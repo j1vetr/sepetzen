@@ -104,7 +104,7 @@ export function Header() {
             <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" className="text-polen-orange shrink-0">
               <circle cx="12" cy="12" r="9"/><path d="M9 12l2 2 4-4"/>
             </svg>
-            <span className="text-[10px] tracking-[0.28em] uppercase text-white/75 font-medium">2.500 TL Üzeri Ücretsiz Kargo</span>
+            <span className="text-[10px] tracking-[0.28em] uppercase text-white/75 font-medium">Ücretsiz Numune Talebi</span>
           </div>
         </div>
       </div>
@@ -591,7 +591,7 @@ export function Header() {
                     <circle cx="12" cy="12" r="9"/><path d="M9 12l2 2 4-4"/>
                   </svg>
                   <span className="text-[10px] tracking-[0.22em] uppercase text-black/60 font-medium">
-                    2.500 TL Üzeri Ücretsiz Kargo
+                    Ücretsiz Numune Talebi · Türkiye Geneli Kargo
                   </span>
                 </motion.div>
               </nav>

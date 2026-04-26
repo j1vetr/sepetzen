@@ -200,7 +200,7 @@ export default function ProductDetail() {
     const sizes = product.availableSizes?.length > 0 ? product.availableSizes : [];
     
     if (sizes.length > 0 && !selectedSize) {
-      toast({ title: 'Uyarı', description: 'Lütfen bir beden seçiniz.', variant: 'destructive' });
+      toast({ title: 'Uyarı', description: 'Lütfen bir ölçü seçiniz.', variant: 'destructive' });
       return;
     }
     
@@ -289,7 +289,7 @@ export default function ProductDetail() {
         </svg>
       ),
       url: `https://wa.me/?text=${encodeURIComponent(shareText + ' ' + shareUrl)}`,
-      color: 'hover:bg-green-500/20 hover:text-green-400',
+      color: 'text-black hover:bg-black/5 hover:text-polen-orange',
     },
     {
       name: 'X (Twitter)',
@@ -299,7 +299,7 @@ export default function ProductDetail() {
         </svg>
       ),
       url: `https://twitter.com/intent/tweet?text=${encodeURIComponent(shareText)}&url=${encodeURIComponent(shareUrl)}`,
-      color: 'hover:bg-white/20 hover:text-white',
+      color: 'text-black hover:bg-black/5 hover:text-polen-orange',
     },
     {
       name: 'Facebook',
@@ -309,7 +309,7 @@ export default function ProductDetail() {
         </svg>
       ),
       url: `https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(shareUrl)}`,
-      color: 'hover:bg-blue-500/20 hover:text-blue-400',
+      color: 'text-black hover:bg-black/5 hover:text-polen-orange',
     },
   ];
 
@@ -347,7 +347,7 @@ export default function ProductDetail() {
             <h1 className="font-display text-3xl mb-4 text-black">Ürün Bulunamadı</h1>
             <p className="text-black/40 mb-8">Aradığınız ürün mevcut değil veya kaldırılmış olabilir.</p>
             <Link href="/">
-              <motion.span whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }} className="inline-flex items-center gap-2 px-6 py-3 bg-black text-white font-medium text-sm tracking-wider">
+              <motion.span whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }} className="inline-flex items-center gap-2 px-6 py-3 bg-black text-white font-semibold hover:bg-polen-orange transition-colors text-xs tracking-[0.18em] uppercase">
                 Ana Sayfaya Dön
               </motion.span>
             </Link>
@@ -464,8 +464,8 @@ export default function ProductDetail() {
                       <Ruler className="w-5 h-5 sm:w-6 sm:h-6 text-black/50" />
                     </div>
                     <div>
-                      <h3 className="font-display text-lg sm:text-xl text-black">Beden Rehberi</h3>
-                      <p className="text-xs sm:text-sm text-black/40">Doğru bedeni seçmenize yardımcı olur</p>
+                      <h3 className="font-display text-lg sm:text-xl text-black">Ölçü Rehberi</h3>
+                      <p className="text-xs sm:text-sm text-black/40">Doğru ölçüyü seçmenize yardımcı olur</p>
                     </div>
                   </div>
                   <button 
@@ -524,7 +524,7 @@ export default function ProductDetail() {
                       </div>
                       <div className="text-xs sm:text-sm text-black/50">
                         <p className="font-medium text-black mb-1">Ölçü Alma İpucu</p>
-                        <p>En doğru sonuç için, vücudunuzu mezura ile ölçün ve tablodaki değerlerle karşılaştırın. Eğer iki beden arasında kalırsanız, rahat bir kesim için büyük bedeni tercih edebilirsiniz.</p>
+                        <p>En doğru sonuç için, mekânın yerleştirme alanını dikkatli ölçün ve tablodaki standart ebatlarla karşılaştırın. İki ölçü arasında kalırsanız, daha uyumlu bir görünüm için bir üst ebadı tercih edebilirsiniz.</p>
                       </div>
                     </div>
                   </div>
@@ -533,8 +533,8 @@ export default function ProductDetail() {
                     <div className="w-16 h-16 mx-auto mb-4 border border-black/8 flex items-center justify-center">
                       <Ruler className="w-8 h-8 text-black/20" />
                     </div>
-                    <h4 className="text-lg font-medium text-black mb-2">Beden Tablosu Bulunamadı</h4>
-                    <p className="text-sm text-black/40 max-w-sm mx-auto">Bu kategori için henüz beden tablosu eklenmemiş. Lütfen ürün açıklamasındaki beden bilgilerini kontrol edin.</p>
+                    <h4 className="text-lg font-medium text-black mb-2">Ölçü Tablosu Bulunamadı</h4>
+                    <p className="text-sm text-black/40 max-w-sm mx-auto">Bu kategori için henüz ölçü tablosu eklenmemiş. Lütfen ürün açıklamasındaki ölçü bilgilerini kontrol edin.</p>
                   </div>
                 )}
               </div>
@@ -839,14 +839,14 @@ export default function ProductDetail() {
                   <div>
                     <div className="flex items-center justify-between mb-3">
                       <span className="text-[11px] font-medium text-black/40 uppercase tracking-[0.18em]">
-                        Beden: <span className="text-black font-semibold">{selectedSize || ''}</span>
+                        Ölçü: <span className="text-black font-semibold">{selectedSize || ''}</span>
                       </span>
                       <button 
                         onClick={() => setShowSizeGuide(true)} 
                         className="flex items-center gap-1.5 px-3 py-1.5 border border-black/15 text-black/50 hover:border-black hover:text-black transition-all group"
                       >
                         <Ruler className="w-3.5 h-3.5 group-hover:scale-110 transition-transform" />
-                        <span className="text-xs font-medium">Beden Rehberi</span>
+                        <span className="text-xs font-medium">Ölçü Rehberi</span>
                       </button>
                     </div>
                     <div className="flex flex-wrap gap-2">
@@ -906,7 +906,7 @@ export default function ProductDetail() {
                     className={`flex-1 py-3.5 font-medium text-sm uppercase tracking-[0.15em] transition-colors disabled:opacity-50 flex items-center justify-center gap-2 ${
                       isCompletelyOutOfStock 
                         ? 'bg-black/8 text-black/35 cursor-not-allowed' 
-                        : 'bg-black hover:bg-zinc-900 text-white'
+                        : 'bg-black hover:bg-polen-orange text-white'
                     }`}
                     data-testid="button-add-to-cart"
                   >
@@ -1044,7 +1044,7 @@ export default function ProductDetail() {
                   <button
                     type="submit"
                     disabled={createReviewMutation.isPending}
-                    className="px-6 py-3 bg-black text-white font-medium hover:bg-zinc-900 transition-colors disabled:opacity-50 flex items-center gap-2 text-sm tracking-wider"
+                    className="px-6 py-3 bg-black text-white font-semibold hover:bg-polen-orange transition-colors disabled:opacity-50 flex items-center gap-2 text-xs tracking-[0.18em] uppercase"
                     data-testid="button-submit-review"
                   >
                     {createReviewMutation.isPending ? (
@@ -1062,7 +1062,7 @@ export default function ProductDetail() {
               <div className="bg-stone-50 border border-black/8 p-6 mb-8 text-center">
                 <p className="text-black font-medium mb-4">Değerlendirme yazmak için giriş yapın</p>
                 <Link href="/giris">
-                  <button className="px-6 py-3 bg-black text-white font-medium hover:bg-zinc-900 transition-colors text-sm tracking-wider">
+                  <button className="px-6 py-3 bg-black text-white font-semibold hover:bg-polen-orange transition-colors text-xs tracking-[0.18em] uppercase">
                     Giriş Yap
                   </button>
                 </Link>
