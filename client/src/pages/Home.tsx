@@ -430,7 +430,7 @@ export default function Home() {
 
         {/* ── Main content: centered both axes; mobile clears fixed header ── */}
         <div
-          className="absolute inset-0 z-10 flex items-center justify-center pt-[88px] pb-[150px] lg:pt-[clamp(28px,5vh,60px)] lg:pb-[clamp(170px,21vh,210px)]"
+          className="absolute inset-0 z-10 flex items-center justify-center pt-[88px] pb-[200px] lg:pt-[clamp(28px,5vh,60px)] lg:pb-[clamp(220px,26vh,260px)]"
         >
           <div className="w-full max-w-[1280px] mx-auto px-6 sm:px-10 lg:px-16">
             <div className="text-left lg:text-center max-w-[680px] lg:max-w-none mx-auto lg:mx-0">
@@ -521,7 +521,7 @@ export default function Home() {
             className="absolute bottom-4 sm:bottom-6 lg:bottom-8 left-0 right-0 z-20 bg-black/60 backdrop-blur-md border-y border-white/10"
             data-testid="section-hero-marquee"
           >
-            <div className="relative h-[110px] sm:h-[125px] overflow-hidden">
+            <div className="relative h-[150px] sm:h-[170px] overflow-hidden">
               {/* Edge fades */}
               <div className="absolute inset-y-0 left-0 w-20 sm:w-28 z-10 pointer-events-none" style={{ background: 'linear-gradient(to right, rgba(0,0,0,0.9), transparent)' }} />
               <div className="absolute inset-y-0 right-0 w-20 sm:w-28 z-10 pointer-events-none" style={{ background: 'linear-gradient(to left, rgba(0,0,0,0.9), transparent)' }} />
@@ -529,26 +529,43 @@ export default function Home() {
               <div className="flex animate-marquee-slow h-full items-center" style={{ width: 'max-content' }}>
                 {[...allProducts, ...allProducts, ...allProducts].map((p, i) => {
                   const img = p.images?.[0];
+                  const price = parseFloat(p.basePrice);
                   return (
                     <Link
                       key={`${p.id}-${i}`}
                       href={`/urun/${p.slug}`}
-                      className="group flex-shrink-0 mx-3 sm:mx-4 flex items-center cursor-pointer"
+                      className="group flex-shrink-0 mx-3 sm:mx-4 flex flex-col items-center gap-1.5 cursor-pointer"
                       data-testid={`link-hero-scroll-${p.id}-${i}`}
                       aria-label={p.name}
                     >
-                      <div className="relative w-[78px] h-[92px] sm:w-[88px] sm:h-[105px] overflow-hidden bg-white/5 border border-white/10 group-hover:border-polen-orange/60 transition-colors duration-400">
+                      <div className="relative w-[88px] h-[110px] sm:w-[96px] sm:h-[120px] overflow-hidden bg-white/5 border border-white/10 group-hover:border-polen-orange/60 transition-colors duration-400">
                         {img ? (
                           <img
                             src={img}
-                            alt=""
-                            className="w-full h-full object-cover object-center opacity-85 group-hover:opacity-100 group-hover:scale-105 transition-all duration-500"
+                            alt={p.name}
+                            className="w-full h-full object-cover object-top opacity-85 group-hover:opacity-100 group-hover:scale-105 transition-all duration-500"
                             loading="lazy"
                           />
                         ) : (
                           <div className="w-full h-full bg-white/5" />
                         )}
+                        {p.discountBadge && (
+                          <div className="absolute top-1 left-1 bg-white text-black text-[7px] font-bold tracking-wider px-1 py-px uppercase">
+                            {p.discountBadge}
+                          </div>
+                        )}
                       </div>
+                      <p
+                        className="max-w-[100px] sm:max-w-[110px] text-[9px] sm:text-[10px] text-white/70 group-hover:text-white transition-colors font-medium tracking-wide truncate text-center uppercase"
+                        title={p.name}
+                      >
+                        {p.name}
+                      </p>
+                      {!isNaN(price) && price > 0 && (
+                        <p className="text-[10px] sm:text-[11px] text-polen-orange group-hover:text-white transition-colors font-semibold tabular-nums">
+                          {price.toLocaleString('tr-TR')} ₺
+                        </p>
+                      )}
                     </Link>
                   );
                 })}

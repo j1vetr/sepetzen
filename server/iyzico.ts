@@ -15,7 +15,7 @@ const getSecretKey = () => process.env.IYZICO_SECRET_KEY || '';
 //   1. Admin panel toggle (site_settings.iyzico_mode)
 //   2. IYZICO_MODE env var ('live' | 'sandbox')
 //   3. IYZICO_BASE_URL env var (legacy override)
-//   4. Default: 'sandbox' (safe for development)
+//   4. Default: 'live' (production-first; explicitly opt in to sandbox)
 export async function getIyzicoMode(): Promise<IyzicoMode> {
   try {
     const dbMode = await storage.getSiteSetting('iyzico_mode');
@@ -26,10 +26,10 @@ export async function getIyzicoMode(): Promise<IyzicoMode> {
   const envMode = (process.env.IYZICO_MODE || '').toLowerCase();
   if (envMode === 'live' || envMode === 'production') return 'live';
   if (envMode === 'sandbox' || envMode === 'test') return 'sandbox';
-  if (process.env.IYZICO_BASE_URL && !process.env.IYZICO_BASE_URL.includes('sandbox')) {
-    return 'live';
+  if (process.env.IYZICO_BASE_URL && process.env.IYZICO_BASE_URL.includes('sandbox')) {
+    return 'sandbox';
   }
-  return 'sandbox';
+  return 'live';
 }
 
 export async function setIyzicoMode(mode: IyzicoMode): Promise<void> {
