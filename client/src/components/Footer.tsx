@@ -3,7 +3,11 @@ import { Instagram } from 'lucide-react';
 import { useCategories } from '@/hooks/useProducts';
 
 export function Footer() {
-  const { data: categories = [] } = useCategories();
+  const { data: allCategories = [] } = useCategories();
+  // Hide legacy categories (display_order >= 100); show only stone categories
+  const categories = allCategories
+    .filter(c => (c.displayOrder ?? 0) < 100)
+    .sort((a, b) => (a.displayOrder ?? 0) - (b.displayOrder ?? 0));
 
   return (
     <footer className="bg-[hsl(var(--polen-stone))] text-white py-16 lg:py-20 px-6" data-testid="footer">

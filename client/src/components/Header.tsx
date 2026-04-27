@@ -74,7 +74,7 @@ export function Header() {
     staleTime: 60000,
   });
 
-  // Hide legacy fitness categories (display_order >= 100); show only stone categories
+  // Hide legacy categories (display_order >= 100); show only stone categories
   const visibleCategories = categoriesData
     .filter(c => (c.displayOrder ?? 0) < 100)
     .sort((a, b) => (a.displayOrder ?? 0) - (b.displayOrder ?? 0));

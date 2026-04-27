@@ -644,13 +644,13 @@ export type QuoteItem = typeof quoteItems.$inferSelect;
 export const productAttributes = pgTable("product_attributes", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
   productId: varchar("product_id").references(() => products.id, { onDelete: "cascade" }).notNull().unique(),
-  productType: text("product_type"), // tshirt, esofman, sort, atlet, salvar, sweatshirt
-  fit: text("fit"), // oversize, slimfit, regular
-  material: text("material"), // pamuk, polyester, karisim
-  usage: jsonb("usage").$type<string[]>().default([]), // ["spor", "gunluk", "antrenman"]
-  season: text("season"), // yaz, kis, tum_sezon
-  features: jsonb("features").$type<string[]>().default([]), // ["fermuarli", "kapusonlu", "cepli", "nefes_alir"]
-  targetGender: text("target_gender"), // erkek, kadin, unisex
+  productType: text("product_type"), // mermer, granit, traverten, oniks, bazalt
+  fit: text("fit"), // legacy: oversize, slimfit, regular (kept for backward compatibility)
+  material: text("material"), // dogal_tas, mermer, granit, traverten, oniks
+  usage: jsonb("usage").$type<string[]>().default([]), // ["banyo", "mutfak", "zemin", "duvar", "dis_cephe"]
+  season: text("season"), // legacy field (not used for stone)
+  features: jsonb("features").$type<string[]>().default([]), // ["damarlı", "düz", "cilalı", "honlu", "fırçalı", "eskitme"]
+  targetGender: text("target_gender"), // legacy (not used for stone)
   priceRange: text("price_range"), // ekonomik, orta, premium
   keywords: jsonb("keywords").$type<string[]>().default([]), // Özel arama kelimeleri
   createdAt: timestamp("created_at").defaultNow().notNull(),

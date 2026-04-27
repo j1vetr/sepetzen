@@ -79,9 +79,9 @@ export default function NotFound() {
               <p className="text-zinc-500 text-sm mb-4">Popüler Sayfalar</p>
               <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-2 sm:gap-3 max-w-2xl mx-auto">
                 {[
-                  { href: '/kategori/tshirt', label: 'T-Shirt' },
-                  { href: '/kategori/sort', label: 'Şort' },
-                  { href: '/kategori/esofman', label: 'Eşofman' },
+                  { href: '/kategori/mermer', label: 'Mermer' },
+                  { href: '/kategori/granit', label: 'Granit' },
+                  { href: '/kategori/traverten', label: 'Traverten' },
                   { href: '/hakkimizda', label: 'Hakkımızda' },
                   { href: '/siparis-takip', label: 'Sipariş Takip' },
                 ].map((link) => (

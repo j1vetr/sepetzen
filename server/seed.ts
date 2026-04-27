@@ -1,119 +1,169 @@
 import { db } from "./db";
 import { adminUsers, categories, products, productVariants } from "@shared/schema";
 import bcrypt from "bcrypt";
+import { eq } from "drizzle-orm";
 
 async function seed() {
   try {
-    console.log("Starting database seed...");
+    console.log("Starting Polen Stone database seed...");
 
-    // Create admin user
-    const hashedPassword = await bcrypt.hash("admin123", 10);
-    const [admin] = await db.insert(adminUsers).values({
-      username: "admin",
-      password: hashedPassword,
-    }).returning();
-    console.log("✓ Admin user created:", admin.username);
+    const isProduction = process.env.NODE_ENV === "production";
 
-    // Create categories
-    const categoryData = [
-      { name: "Eşofman", slug: "esofman", displayOrder: 1, image: "https://images.unsplash.com/photo-1552902865-b72c031ac5ea?w=600&h=800&fit=crop" },
-      { name: "Şalvar & Pantolon", slug: "salvar-pantolon", displayOrder: 2, image: "https://images.unsplash.com/photo-1624378439575-d8705ad7ae80?w=600&h=800&fit=crop" },
-      { name: "Sıfır Kol & Atlet", slug: "sifir-kol-atlet", displayOrder: 3, image: "https://images.unsplash.com/photo-1571945153237-4929e783af4a?w=600&h=800&fit=crop" },
-      { name: "Şort", slug: "sort", displayOrder: 4, image: "https://images.unsplash.com/photo-1591195853828-11db59a44f6b?w=600&h=800&fit=crop" },
-      { name: "T-Shirt", slug: "tshirt", displayOrder: 5, image: "https://images.unsplash.com/photo-1521572163474-6864f9cf17ab?w=600&h=800&fit=crop" },
+    if (isProduction) {
+      console.log("• Skipping default admin seed in production environment.");
+    } else {
+      const existingAdmin = await db
+        .select()
+        .from(adminUsers)
+        .where(eq(adminUsers.username, "admin"))
+        .limit(1);
+
+      if (existingAdmin.length === 0) {
+        const hashedPassword = await bcrypt.hash("admin123", 10);
+        const [admin] = await db.insert(adminUsers).values({
+          username: "admin",
+          password: hashedPassword,
+        }).returning();
+        console.log("✓ Dev admin user created:", admin.username);
+      } else {
+        console.log("• Admin user already exists, skipping.");
+      }
+    }
+
+    const stoneCategories = [
+      { name: "Mermer", slug: "mermer", displayOrder: 0 },
+      { name: "Granit", slug: "granit", displayOrder: 1 },
+      { name: "Traverten", slug: "traverten", displayOrder: 2 },
+      { name: "Oniks", slug: "oniks", displayOrder: 3 },
     ];
 
-    const createdCategories = await db.insert(categories).values(categoryData).returning();
-    console.log("✓ Categories created:", createdCategories.length);
+    const createdCategoryIds: Record<string, string> = {};
+    for (const cat of stoneCategories) {
+      const existing = await db
+        .select()
+        .from(categories)
+        .where(eq(categories.slug, cat.slug))
+        .limit(1);
 
-    // Create sample products
-    const tshirtCategory = createdCategories.find(c => c.slug === "tshirt");
-    const esofmanCategory = createdCategories.find(c => c.slug === "esofman");
-    const sortCategory = createdCategories.find(c => c.slug === "sort");
-    const atletCategory = createdCategories.find(c => c.slug === "sifir-kol-atlet");
+      if (existing.length === 0) {
+        const [created] = await db.insert(categories).values(cat).returning();
+        createdCategoryIds[cat.slug] = created.id;
+        console.log(`✓ Category created: ${cat.name}`);
+      } else {
+        createdCategoryIds[cat.slug] = existing[0].id;
+        console.log(`• Category exists: ${cat.name}`);
+      }
+    }
 
     const sampleProducts = [
       {
-        name: "Performance Pro Tişört",
-        slug: "performance-pro-tisort",
-        description: "Yüksek performanslı antrenman tişörtü. Nefes alabilen kumaş teknolojisi ile ter kontrolü sağlar.",
-        categoryId: tshirtCategory?.id,
-        basePrice: "599.00",
-        images: ["https://images.unsplash.com/photo-1618354691373-d851c5c3a990?w=600&h=800&fit=crop"],
+        name: "Carrara Beyaz Mermer",
+        slug: "carrara-beyaz-mermer",
+        description:
+          "Klasik İtalyan ihtişamı. Soğuk gri damarları olan parlak beyaz mermer; banyo ve mutfak tezgâhları için ideal.",
+        categoryId: createdCategoryIds["mermer"],
+        basePrice: "4500.00",
+        images: [],
         isActive: true,
         isFeatured: true,
         isNew: true,
       },
       {
-        name: "Muscle Fit Eşofman Altı",
-        slug: "muscle-fit-esofman-alti",
-        description: "Kas kesimli eşofman altı. Rahat hareket imkanı ve modern tasarım.",
-        categoryId: esofmanCategory?.id,
-        basePrice: "899.00",
-        images: ["https://images.unsplash.com/photo-1552902865-b72c031ac5ea?w=600&h=800&fit=crop"],
+        name: "Afyon Şeker Mermer",
+        slug: "afyon-seker-mermer",
+        description:
+          "Anadolu'nun pürüzsüz beyazı. Homojen krem-beyaz dokusuyla zarif zemin ve duvar uygulamalarında öne çıkar.",
+        categoryId: createdCategoryIds["mermer"],
+        basePrice: "3800.00",
+        images: [],
         isActive: true,
         isFeatured: true,
         isNew: false,
       },
       {
-        name: "Training Şort",
-        slug: "training-sort",
-        description: "Hafif ve esnek antrenman şortu. Hızlı kuruma özelliği.",
-        categoryId: sortCategory?.id,
-        basePrice: "449.00",
-        images: ["https://images.unsplash.com/photo-1591195853828-11db59a44f6b?w=600&h=800&fit=crop"],
+        name: "Absolute Black Granit",
+        slug: "absolute-black-granit",
+        description:
+          "Derin, tek ton siyah granit. Cilalı yüzey ile mat zarafet; mutfak tezgâhı ve dış cephe için dayanıklı seçim.",
+        categoryId: createdCategoryIds["granit"],
+        basePrice: "2900.00",
+        images: [],
+        isActive: true,
+        isFeatured: true,
+        isNew: false,
+      },
+      {
+        name: "Klasik Traverten",
+        slug: "klasik-traverten",
+        description:
+          "Sıcak bej tonları ve karakteristik gözenekli yapısıyla. Honlu yüzey, doğal mekânlar için tercih edilir.",
+        categoryId: createdCategoryIds["traverten"],
+        basePrice: "1800.00",
+        images: [],
         isActive: true,
         isFeatured: false,
         isNew: true,
       },
       {
-        name: "Essential Tank Top",
-        slug: "essential-tank-top",
-        description: "Temel atlet. Premium kalite pamuklu kumaş.",
-        categoryId: atletCategory?.id,
-        basePrice: "399.00",
-        images: ["https://images.unsplash.com/photo-1571945153237-4929e783af4a?w=600&h=800&fit=crop"],
+        name: "Bal Oniks",
+        slug: "bal-oniks",
+        description:
+          "Işık geçirgen, bal renginde lüks oniks. Arkadan aydınlatmalı paneller ve dekoratif duvarlar için eşsiz seçim.",
+        categoryId: createdCategoryIds["oniks"],
+        basePrice: "8500.00",
+        images: [],
         isActive: true,
         isFeatured: true,
-        isNew: false,
-      },
-      {
-        name: "Compression Tişört",
-        slug: "compression-tisort",
-        description: "Sıkı kesimli kompresyon tişörtü. Kas desteği ve performans artışı.",
-        categoryId: tshirtCategory?.id,
-        basePrice: "649.00",
-        images: ["https://images.unsplash.com/photo-1583743814966-8936f5b7be1a?w=600&h=800&fit=crop"],
-        isActive: true,
-        isFeatured: false,
-        isNew: false,
+        isNew: true,
       },
     ];
 
-    const createdProducts = await db.insert(products).values(sampleProducts).returning();
-    console.log("✓ Products created:", createdProducts.length);
+    let createdProductCount = 0;
+    for (const prod of sampleProducts) {
+      if (!prod.categoryId) continue;
+      const existing = await db
+        .select()
+        .from(products)
+        .where(eq(products.slug, prod.slug))
+        .limit(1);
 
-    // Create variants for first product
-    const firstProduct = createdProducts[0];
-    const variants = [
-      { productId: firstProduct.id, size: "S", color: "Siyah", colorHex: "#000000", price: "599.00", stock: 15, sku: "PRF-BLK-S" },
-      { productId: firstProduct.id, size: "M", color: "Siyah", colorHex: "#000000", price: "599.00", stock: 20, sku: "PRF-BLK-M" },
-      { productId: firstProduct.id, size: "L", color: "Siyah", colorHex: "#000000", price: "599.00", stock: 18, sku: "PRF-BLK-L" },
-      { productId: firstProduct.id, size: "XL", color: "Siyah", colorHex: "#000000", price: "599.00", stock: 12, sku: "PRF-BLK-XL" },
-      { productId: firstProduct.id, size: "S", color: "Beyaz", colorHex: "#FFFFFF", price: "599.00", stock: 10, sku: "PRF-WHT-S" },
-      { productId: firstProduct.id, size: "M", color: "Beyaz", colorHex: "#FFFFFF", price: "599.00", stock: 15, sku: "PRF-WHT-M" },
-      { productId: firstProduct.id, size: "L", color: "Beyaz", colorHex: "#FFFFFF", price: "599.00", stock: 12, sku: "PRF-WHT-L" },
-    ];
+      if (existing.length === 0) {
+        const [created] = await db.insert(products).values(prod).returning();
+        await db.insert(productVariants).values([
+          {
+            productId: created.id,
+            size: "30x60",
+            color: "Doğal",
+            colorHex: "#E8DCC4",
+            price: prod.basePrice,
+            stock: 50,
+            sku: `${prod.slug.toUpperCase().slice(0, 8)}-3060`,
+          },
+          {
+            productId: created.id,
+            size: "60x60",
+            color: "Doğal",
+            colorHex: "#E8DCC4",
+            price: prod.basePrice,
+            stock: 30,
+            sku: `${prod.slug.toUpperCase().slice(0, 8)}-6060`,
+          },
+        ]);
+        createdProductCount++;
+        console.log(`✓ Product created: ${prod.name}`);
+      } else {
+        console.log(`• Product exists: ${prod.name}`);
+      }
+    }
 
-    await db.insert(productVariants).values(variants);
-    console.log("✓ Variants created for", firstProduct.name);
+    console.log(`\n✅ Polen Stone seed completed. ${createdProductCount} new products inserted.`);
+    if (!isProduction) {
+      console.log("\nDev admin credentials (local only):");
+      console.log("  Username: admin");
+      console.log("  Password: admin123");
+      console.log("\nLogin at: /toov-admin/login");
+    }
 
-    console.log("\n✅ Database seeding completed successfully!");
-    console.log("\nAdmin credentials:");
-    console.log("  Username: admin");
-    console.log("  Password: admin123");
-    console.log("\nLogin at: /toov-admin/login");
-    
     process.exit(0);
   } catch (error) {
     console.error("❌ Seeding failed:", error);
