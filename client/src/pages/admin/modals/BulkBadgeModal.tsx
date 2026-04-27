@@ -28,7 +28,7 @@ export default function BulkBadgeModal({
   onSuccess: () => void;
   preselectedProductIds?: string[];
 }) {
-  const hasPreselection = preselectedProductIds !== undefined;
+  const hasPreselection = (preselectedProductIds?.length ?? 0) > 0;
   const [badgeText, setBadgeText] = useState('%20');
   const [filterMode, setFilterMode] = useState<'all' | 'category' | 'select'>(
     hasPreselection ? 'select' : 'all',
