@@ -92,12 +92,27 @@ export function registerMarketplaceRoutes(
       return res.status(400).json({ message: "Geçersiz veri", errors: parsed.error.errors });
     }
     // Adapter kayıtlı mı?
+    let entry;
     try {
-      getAdapterEntry(parsed.data.type as MarketplaceType);
+      entry = getAdapterEntry(parsed.data.type as MarketplaceType);
     } catch {
       return res.status(400).json({ message: `'${parsed.data.type}' adapter'ı kayıtlı değil` });
     }
-    const encrypted = encryptCredentials(parsed.data.credentials ?? {});
+    // Adapter'ın bildirdiği zorunlu credential alanları doldurulmuş mu?
+    const creds = (parsed.data.credentials ?? {}) as Record<string, unknown>;
+    const missing = entry.credentialFields
+      .filter((f) => f.required)
+      .filter((f) => {
+        const v = creds[f.key];
+        return v === undefined || v === null || (typeof v === "string" && v.trim() === "");
+      })
+      .map((f) => f.label || f.key);
+    if (missing.length > 0) {
+      return res.status(400).json({
+        message: `Eksik kredensiyel alanları: ${missing.join(", ")}`,
+      });
+    }
+    const encrypted = encryptCredentials(creds);
     const created = await storage.createMarketplace({
       type: parsed.data.type,
       name: parsed.data.name,
@@ -129,7 +144,25 @@ export function registerMarketplaceRoutes(
       } catch {
         current = {};
       }
-      const merged = { ...current, ...parsed.data.credentials };
+      const merged = { ...current, ...parsed.data.credentials } as Record<string, unknown>;
+      // Adapter'ın bildirdiği zorunlu alanlar merge sonrası dolu mu?
+      try {
+        const entry = getAdapterEntry(existing.type as MarketplaceType);
+        const missing = entry.credentialFields
+          .filter((f) => f.required)
+          .filter((f) => {
+            const v = merged[f.key];
+            return v === undefined || v === null || (typeof v === "string" && v.trim() === "");
+          })
+          .map((f) => f.label || f.key);
+        if (missing.length > 0) {
+          return res.status(400).json({
+            message: `Eksik kredensiyel alanları: ${missing.join(", ")}`,
+          });
+        }
+      } catch {
+        // adapter kaydı yoksa update'i bloklama (eski kayıt korumacılığı)
+      }
       patch.encryptedCredentials = encryptCredentials(merged);
     }
     const updated = await storage.updateMarketplace(req.params.id, patch);
