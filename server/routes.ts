@@ -2083,6 +2083,11 @@ export async function registerRoutes(
 
     const sendRedirect = (path: string) => res.redirect(303, `${baseUrl}${path}`);
 
+    // Track whether we hold the 'processing' claim so the catch block can
+    // release it back to 'failed' on any unexpected error (no permanent locks).
+    let claimedMerchantOid: string | null = null;
+    let terminalized = false;
+
     try {
       const token = (req.body?.token as string) || '';
       console.log('[iyzico Callback] Received token:', token ? token.substring(0, 12) + '…' : '(none)');
@@ -2109,6 +2114,7 @@ export async function registerRoutes(
 
       // Atomically claim this payment for processing. Only one concurrent caller wins.
       const pendingPayment = await storage.claimPendingPaymentForProcessing(merchantOid);
+      if (pendingPayment) claimedMerchantOid = merchantOid;
       if (!pendingPayment) {
         // Either not found, already processed, or another worker is processing it.
         const existing = await storage.getPendingPaymentByMerchantOid(merchantOid);
@@ -2131,6 +2137,7 @@ export async function registerRoutes(
       if (pendingPayment.paymentToken && pendingPayment.paymentToken !== token) {
         console.error('[iyzico Callback] Token mismatch for', merchantOid);
         await storage.updatePendingPaymentStatus(merchantOid, 'failed');
+        terminalized = true;
         return sendRedirect(`/odeme-basarisiz?oid=${merchantOid}`);
       }
 
@@ -2143,6 +2150,7 @@ export async function registerRoutes(
         if (Math.abs(expected - paid) > 0.01) {
           console.error('[iyzico Callback] Amount mismatch', { expected, paid, merchantOid });
           await storage.updatePendingPaymentStatus(merchantOid, 'failed');
+          terminalized = true;
           return sendRedirect(`/odeme-basarisiz?oid=${merchantOid}`);
         }
 
@@ -2236,6 +2244,7 @@ export async function registerRoutes(
 
         // Update pending payment status
         await storage.updatePendingPaymentStatus(merchantOid, 'completed');
+        terminalized = true;
 
         // Send confirmation emails
         const orderItems = await storage.getOrderItems(order.id);
@@ -2317,12 +2326,23 @@ export async function registerRoutes(
       } else {
         // Payment failed
         await storage.updatePendingPaymentStatus(merchantOid, 'failed');
+        terminalized = true;
         console.log('[iyzico Callback] Payment failed:', merchantOid, result.errorMessage || result.paymentStatus);
         return sendRedirect(`/odeme-basarisiz?oid=${merchantOid}`);
       }
     } catch (error) {
       console.error('[iyzico Callback] Error:', error);
-      return sendRedirect('/odeme-basarisiz');
+      // CRITICAL: if we claimed the row but didn't reach a terminal state,
+      // release the claim back to 'failed' so the row never gets stuck in 'processing'.
+      if (claimedMerchantOid && !terminalized) {
+        try {
+          await storage.updatePendingPaymentStatus(claimedMerchantOid, 'failed');
+          console.error('[iyzico Callback] Released stranded claim → failed:', claimedMerchantOid);
+        } catch (releaseErr) {
+          console.error('[iyzico Callback] Failed to release stranded claim:', releaseErr);
+        }
+      }
+      return sendRedirect(claimedMerchantOid ? `/odeme-basarisiz?oid=${claimedMerchantOid}` : '/odeme-basarisiz');
     }
   };
 
