@@ -153,11 +153,13 @@ function StatRow({
   label,
   value,
   loading,
+  errored,
 }: {
   icon: ComponentType<{ className?: string }>;
   label: string;
   value: string | number;
   loading: boolean;
+  errored?: boolean;
 }) {
   return (
     <div className="flex items-center justify-between py-3 border-b border-neutral-100 last:border-b-0">
@@ -165,7 +167,11 @@ function StatRow({
         <Icon className="w-4 h-4 text-neutral-400 shrink-0" />
         <span className="text-[13px] text-neutral-700 truncate">{label}</span>
       </div>
-      {loading ? (
+      {errored ? (
+        <span className="text-[13px] text-neutral-400 tabular-nums" title="Veri yüklenemedi">
+          —
+        </span>
+      ) : loading ? (
         <span className="block h-4 w-10 rounded bg-neutral-100" />
       ) : (
         <span className="text-[15px] font-semibold text-neutral-900 tabular-nums">{value}</span>
@@ -327,30 +333,29 @@ export default function DashboardTab({
         </PageSection>
 
         <PageSection title="Hızlı İstatistikler" description="Anlık özet">
-          {statsError && productsError ? (
-            <InlineError label="İstatistikler yüklenemedi. Birazdan tekrar denenecek." />
-          ) : (
-            <div className="-my-1">
-              <StatRow
-                icon={Clock}
-                label="Bekleyen siparişler"
-                value={formatNumber(stats?.pendingOrders ?? 0)}
-                loading={showStatsLoading}
-              />
-              <StatRow
-                icon={Layers}
-                label="Kategoriler"
-                value={formatNumber(stats?.totalCategories ?? 0)}
-                loading={showStatsLoading}
-              />
-              <StatRow
-                icon={CheckCircle2}
-                label="Aktif ürünler"
-                value={formatNumber(activeProducts)}
-                loading={productsLoading && products.length === 0 && !productsError}
-              />
-            </div>
-          )}
+          <div className="-my-1">
+            <StatRow
+              icon={Clock}
+              label="Bekleyen siparişler"
+              value={formatNumber(stats?.pendingOrders ?? 0)}
+              loading={showStatsLoading}
+              errored={statsError && !stats}
+            />
+            <StatRow
+              icon={Layers}
+              label="Kategoriler"
+              value={formatNumber(stats?.totalCategories ?? 0)}
+              loading={showStatsLoading}
+              errored={statsError && !stats}
+            />
+            <StatRow
+              icon={CheckCircle2}
+              label="Aktif ürünler"
+              value={formatNumber(activeProducts)}
+              loading={productsLoading && products.length === 0 && !productsError}
+              errored={productsError && products.length === 0}
+            />
+          </div>
         </PageSection>
       </div>
     </div>
