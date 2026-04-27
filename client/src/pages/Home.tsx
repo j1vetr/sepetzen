@@ -382,8 +382,7 @@ export default function Home() {
       ════════════════════════════════════════════ */}
       <section
         ref={heroRef}
-        className="relative overflow-hidden bg-black text-white"
-        style={{ height: 'calc(100svh - 112px)', minHeight: '600px', maxHeight: '1000px' }}
+        className="relative overflow-hidden bg-black text-white h-[100svh] lg:h-[calc(100svh-150px)] min-h-[460px] max-h-[940px]"
         data-testid="section-hero"
       >
         {/* ── Cinematic background video (with poster fallback) ── */}
@@ -424,40 +423,37 @@ export default function Home() {
           }}
         />
 
-        {/* ── Main content: more centered vertically over the video ── */}
+        {/* ── Main content: centered both axes; mobile clears fixed header ── */}
         <div
-          className="absolute inset-0 z-10 flex items-center"
-          style={{ paddingTop: 'clamp(40px, 8vh, 90px)', paddingBottom: 'clamp(120px, 18vh, 180px)' }}
+          className="absolute inset-0 z-10 flex items-center justify-center pt-[88px] pb-[185px] lg:pt-[clamp(28px,5vh,60px)] lg:pb-[clamp(195px,24vh,230px)]"
         >
-          <div className="w-full max-w-[1400px] mx-auto px-6 sm:px-10 lg:px-16">
-            <div className="max-w-[680px]">
+          <div className="w-full max-w-[1280px] mx-auto px-6 sm:px-10 lg:px-16">
+            <div className="text-left lg:text-center max-w-[680px] lg:max-w-none mx-auto lg:mx-0">
               {/* Tiny eyebrow rule */}
               <motion.div
-                initial={{ opacity: 0, x: -10 }}
-                animate={{ opacity: 1, x: 0 }}
+                initial={{ opacity: 0, y: -6 }}
+                animate={{ opacity: 1, y: 0 }}
                 transition={{ duration: 0.7, delay: 0.15 }}
-                className="flex items-center gap-3 mb-5 sm:mb-7"
+                className="flex lg:justify-center items-center gap-3 mb-5 sm:mb-7"
               >
                 <span className="w-8 h-px bg-polen-orange" />
                 <span className="text-white/60 text-[10px] sm:text-[11px] tracking-[0.32em] uppercase font-medium">
                   Polen Stone
                 </span>
+                <span className="w-8 h-px bg-polen-orange hidden lg:inline-block" />
               </motion.div>
 
-              {/* Headline — two lines, generous spacing, no overflow clipping */}
+              {/* Headline — stacked on mobile, single line centered on desktop */}
               <h1
-                className="font-display tracking-[0.005em] text-white"
-                style={{
-                  fontSize: 'clamp(3.2rem, 9vw, 7rem)',
-                  lineHeight: 1.05,
-                }}
+                className="font-display tracking-[0.005em] text-white text-[3rem] xs:text-[3.4rem] sm:text-[4.2rem] md:text-[5.2rem] lg:text-[4.5rem] xl:text-[5.6rem] 2xl:text-[6.5rem]"
+                style={{ lineHeight: 1.02 }}
                 aria-label="Doğanın İhtişamı"
               >
                 <motion.span
                   initial={{ opacity: 0, y: 24 }}
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ duration: 0.95, ease: [0.16, 1, 0.3, 1] }}
-                  className="block"
+                  className="block lg:inline-block lg:align-baseline"
                 >
                   Doğanın
                 </motion.span>
@@ -465,7 +461,7 @@ export default function Home() {
                   initial={{ opacity: 0, y: 24 }}
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ duration: 0.95, delay: 0.18, ease: [0.16, 1, 0.3, 1] }}
-                  className="block mt-2 sm:mt-3"
+                  className="block mt-1 sm:mt-2 lg:mt-0 lg:inline-block lg:align-baseline lg:ml-[0.32em]"
                   style={{
                     color: 'transparent',
                     WebkitTextStroke: '1.2px hsl(var(--polen-orange))',
@@ -480,7 +476,7 @@ export default function Home() {
                 initial={{ opacity: 0, y: 12 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ duration: 0.85, delay: 0.55 }}
-                className="mt-6 sm:mt-8 lg:mt-10 max-w-[460px] text-white/65 text-[13px] sm:text-[14px] font-body leading-[1.7]"
+                className="mt-5 sm:mt-7 lg:mt-8 max-w-[460px] lg:max-w-[600px] lg:mx-auto text-white/65 text-[13px] sm:text-[14px] font-body leading-[1.7]"
               >
                 Anadolu'nun ocaklarından mimarın masasına. Mermer, granit ve
                 traverten koleksiyonumuzla mekânlarınıza bin yıllık taş mirasını
@@ -492,7 +488,7 @@ export default function Home() {
                 initial={{ opacity: 0, y: 14 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ duration: 0.85, delay: 0.7 }}
-                className="mt-7 sm:mt-9 lg:mt-11 flex flex-wrap items-center gap-x-6 gap-y-4"
+                className="mt-6 sm:mt-8 lg:mt-9 flex flex-wrap items-center gap-x-6 gap-y-4 lg:justify-center"
               >
                 <Link href="/magaza" data-testid="button-hero-shop">
                   <motion.span
