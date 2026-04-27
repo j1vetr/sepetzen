@@ -135,7 +135,7 @@ export async function createCheckoutFormInitialize(
     basketItems: req.basketItems,
   };
   return new Promise((resolve) => {
-    client.checkoutFormInitialize.create(payload, (err: unknown, result: unknown) => {
+    client.checkoutFormInitialize.create(payload as never, (err: unknown, result: unknown) => {
       if (err) {
         const message = err instanceof Error ? err.message : String(err);
         resolve({ status: 'failure', errorMessage: message });

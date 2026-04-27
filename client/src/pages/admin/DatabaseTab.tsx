@@ -23,7 +23,7 @@ export default function DatabasePanel() {
   const tables = [
     { id: 'orders', name: 'Siparişler', description: 'Tüm siparişler ve sipariş kalemleri', count: dbStats?.orders || 0, icon: ShoppingCart },
     { id: 'cart_items', name: 'Sepet Öğeleri', description: 'Tüm kullanıcıların sepetlerindeki ürünler', count: dbStats?.cartItems || 0, icon: Package },
-    { id: 'pending_payments', name: 'Bekleyen Ödemeler', description: 'PayTR ödeme kayıtları', count: dbStats?.pendingPayments || 0, icon: Clock },
+    { id: 'pending_payments', name: 'Bekleyen Ödemeler', description: 'iyzico ödeme kayıtları', count: dbStats?.pendingPayments || 0, icon: Clock },
     { id: 'reviews', name: 'Yorumlar', description: 'Ürün değerlendirmeleri', count: dbStats?.reviews || 0, icon: MessageSquare },
     { id: 'coupon_usage', name: 'Kupon Kullanımları', description: 'Kupon kullanım geçmişi ve sayaçları', count: dbStats?.couponUsage || 0, icon: Tag },
   ];

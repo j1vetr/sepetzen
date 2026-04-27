@@ -34,7 +34,7 @@ Preferred communication style: Simple, everyday language.
 - **Multi-Category Product Support**: Products can be assigned to multiple categories.
 - **Stock Management**: Automatic stock reduction on orders, adjustments, and restoration on cancellation.
 - **AI Product Description Generation**: OpenAI GPT-4o for stone-context product copy with HTML formatting.
-- **Payment System**: PayTR integration for credit card payments with success/failure callbacks.
+- **Payment System**: iyzico Checkout Form (3DS) integration for credit card payments with success/failure callbacks.
 - **Invoice Integration**: Automatic invoice generation and submission to BizimHesap after successful payments.
 - **Coupon System**: Percentage/fixed discounts, usage limits, validity periods.
 - **Shipping**: Domestic and international shipping with server-side validation. Sample request flow surfaced on the homepage.

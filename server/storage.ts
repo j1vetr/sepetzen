@@ -1453,7 +1453,7 @@ export class DbStorage implements IStorage {
       .orderBy(desc(reviewRequests.createdAt));
   }
 
-  // Pending Payments for PayTR
+  // Pending Payments (iyzico Checkout Form)
   async createPendingPayment(payment: Omit<PendingPayment, 'id' | 'createdAt'>): Promise<PendingPayment> {
     const [newPayment] = await db.insert(pendingPayments).values(payment).returning();
     return newPayment;
@@ -1464,9 +1464,30 @@ export class DbStorage implements IStorage {
     return payment;
   }
 
+  async getPendingPaymentByPaymentToken(paymentToken: string): Promise<PendingPayment | undefined> {
+    const [payment] = await db.select().from(pendingPayments).where(eq(pendingPayments.paymentToken, paymentToken));
+    return payment;
+  }
+
   async updatePendingPaymentStatus(merchantOid: string, status: string): Promise<PendingPayment | undefined> {
     const [updated] = await db.update(pendingPayments)
       .set({ status })
+      .where(eq(pendingPayments.merchantOid, merchantOid))
+      .returning();
+    return updated;
+  }
+
+  async updatePendingPaymentToken(merchantOid: string, paymentToken: string): Promise<PendingPayment | undefined> {
+    const [updated] = await db.update(pendingPayments)
+      .set({ paymentToken })
+      .where(eq(pendingPayments.merchantOid, merchantOid))
+      .returning();
+    return updated;
+  }
+
+  async setPendingPaymentIyzicoId(merchantOid: string, iyzicoPaymentId: string): Promise<PendingPayment | undefined> {
+    const [updated] = await db.update(pendingPayments)
+      .set({ iyzicoPaymentId })
       .where(eq(pendingPayments.merchantOid, merchantOid))
       .returning();
     return updated;

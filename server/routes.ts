@@ -24,7 +24,12 @@ import {
   sendTestEmail,
   sendAbandonedCartEmail 
 } from "./emailService";
-import { getPayTRToken, verifyPayTRCallback, type PayTRCallbackData } from "./paytr";
+import {
+  createCheckoutFormInitialize,
+  retrieveCheckoutForm,
+  isIyzicoConfigured,
+  type IyzicoBasketItem,
+} from "./iyzico";
 import { sendInvoiceToBizimHesap } from "./bizimhesap";
 import { generateProductDescription, styleNames, type DescriptionStyle } from "./aiService";
 import { processMessage, getChatHistory, generateProductEmbedding, generateAllProductEmbeddings, isChatbotAvailable } from "./chatbotService";
@@ -1790,7 +1795,7 @@ export async function registerRoutes(
     }
   });
 
-  // PayTR Payment API
+  // iyzico Payment API
   app.post("/api/payment/create", async (req: Request, res) => {
     try {
       const cartToken = getOrCreateCartToken(req, res);
@@ -1835,7 +1840,7 @@ export async function registerRoutes(
         price: string;
       }> = [];
 
-      const userBasket: Array<[string, string, number]> = [];
+      const iyzicoBasketItems: IyzicoBasketItem[] = [];
 
       for (const cartItem of cartItems) {
         const variant = cartItem.variantId 
@@ -1859,12 +1864,17 @@ export async function registerRoutes(
             price: product.basePrice,
           });
 
-          // PayTR basket format: [name, price in kuruş, quantity]
-          userBasket.push([
-            product.name.substring(0, 50), // Max 50 chars for product name
-            Math.round(itemPrice * 100).toString(), // Price in kuruş
-            cartItem.quantity
-          ]);
+          // iyzico basket: one row per unit so sum(basketItems.price) === price
+          for (let qi = 0; qi < cartItem.quantity; qi++) {
+            iyzicoBasketItems.push({
+              id: `${product.id}-${variant?.id || 'base'}-${qi}`,
+              name: product.name.substring(0, 250),
+              category1: 'Doğal Taş',
+              category2: 'Mermer',
+              itemType: 'PHYSICAL',
+              price: itemPrice.toFixed(2),
+            });
+          }
         }
       }
 
@@ -1929,10 +1939,31 @@ export async function registerRoutes(
                      req.socket.remoteAddress || 
                      '127.0.0.1';
 
-      // Get base URL for success/fail URLs - use production domain for PayTR
+      // Get base URL for callback - use production domain in prod
       const baseUrl = process.env.NODE_ENV === 'production' 
-        ? 'https://polenstone.com.tr' 
+        ? (process.env.PUBLIC_BASE_URL || 'https://polenstone.com.tr')
         : `${req.headers['x-forwarded-proto'] || 'https'}://${req.headers.host || 'localhost:5000'}`;
+
+      // Add shipping as a basket line so sum(basketItems.price) === priceTry
+      if (shippingCost > 0) {
+        iyzicoBasketItems.push({
+          id: `shipping-${merchantOid}`,
+          name: 'Kargo',
+          category1: 'Kargo',
+          itemType: 'VIRTUAL',
+          price: shippingCost.toFixed(2),
+        });
+      }
+
+      // iyzico requires sum(basketItems.price) === price (pre-discount).
+      // paidPrice is the actual amount charged. discount is implicit in (price - paidPrice).
+      const priceTry = (serverSubtotal + shippingCost).toFixed(2);
+      const paidPriceTry = serverTotal.toFixed(2);
+
+      // Split customer name -> name/surname for iyzico
+      const nameParts = customerName.trim().split(/\s+/);
+      const firstName = nameParts[0] || customerName;
+      const lastName = nameParts.length > 1 ? nameParts.slice(1).join(' ') : firstName;
 
       // Create pending payment record
       const expiresAt = new Date();
@@ -1952,7 +1983,8 @@ export async function registerRoutes(
         couponCode: validatedCoupon?.code || null,
         total: serverTotal.toFixed(2),
         status: 'pending',
-        paytrToken: null,
+        paymentToken: null,
+        iyzicoPaymentId: null,
         createAccount: createAccount || false,
         accountPasswordHash: accountPasswordHash,
         clientIp: userIp,
@@ -1960,81 +1992,147 @@ export async function registerRoutes(
         expiresAt,
       });
 
-      // Request PayTR token
-      const paytrResponse = await getPayTRToken({
-        merchantOid,
-        userIp,
-        email: customerEmail,
-        paymentAmount: Math.round(serverTotal * 100), // Convert to kuruş
-        userName: customerName,
-        userAddress: `${address}, ${district}, ${city}`,
-        userPhone: customerPhone,
-        userBasket,
-        okUrl: `${baseUrl}/odeme-basarili?oid=${merchantOid}`,
-        failUrl: `${baseUrl}/odeme-basarisiz?oid=${merchantOid}`,
-        noInstallment: '1', // Disable installments
-        currency: 'TL',
-        testMode: process.env.NODE_ENV === 'production' ? '0' : '1',
-        debugOn: '1',
+      if (!isIyzicoConfigured()) {
+        await storage.deletePendingPayment(merchantOid);
+        console.error('[iyzico] API anahtarları yapılandırılmamış (IYZICO_API_KEY / IYZICO_SECRET_KEY).');
+        return res.status(500).json({
+          error: 'Ödeme sistemi henüz yapılandırılmadı. Lütfen daha sonra tekrar deneyin.',
+        });
+      }
+
+      // Initialize iyzico Checkout Form
+      const iyzicoResp = await createCheckoutFormInitialize({
+        conversationId: merchantOid,
+        price: priceTry,
+        paidPrice: paidPriceTry,
+        currency: 'TRY',
+        basketId: merchantOid,
+        callbackUrl: `${baseUrl}/api/payment/callback`,
+        enabledInstallments: [1],
+        buyer: {
+          id: cartToken.substring(0, 64),
+          name: firstName,
+          surname: lastName,
+          gsmNumber: customerPhone.startsWith('+') ? customerPhone : `+90${customerPhone.replace(/^0/, '')}`,
+          email: customerEmail,
+          identityNumber: '11111111111',
+          registrationAddress: `${address}, ${district}, ${city}`,
+          city: city,
+          country: selectedCountry,
+          ip: userIp,
+          zipCode: postalCode || undefined,
+        },
+        shippingAddress: {
+          contactName: customerName,
+          city: city,
+          country: selectedCountry,
+          address: `${address}, ${district}`,
+          zipCode: postalCode || undefined,
+        },
+        billingAddress: {
+          contactName: customerName,
+          city: city,
+          country: selectedCountry,
+          address: `${address}, ${district}`,
+          zipCode: postalCode || undefined,
+        },
+        basketItems: iyzicoBasketItems,
       });
 
-      if (paytrResponse.status === 'success' && paytrResponse.token) {
-        // Update pending payment with token
+      if (iyzicoResp.status === 'success' && iyzicoResp.token) {
+        await storage.updatePendingPaymentToken(merchantOid, iyzicoResp.token);
         await storage.updatePendingPaymentStatus(merchantOid, 'token_received');
-        
+
         res.json({
           success: true,
-          token: paytrResponse.token,
+          token: iyzicoResp.token,
           merchantOid,
-          iframeUrl: `https://www.paytr.com/odeme/guvenli/${paytrResponse.token}`,
+          checkoutFormContent: iyzicoResp.checkoutFormContent,
+          paymentPageUrl: iyzicoResp.paymentPageUrl,
         });
       } else {
-        // Delete pending payment on failure
         await storage.deletePendingPayment(merchantOid);
-        console.error('[PayTR] Token request failed:', paytrResponse.reason);
-        res.status(400).json({ 
-          error: 'Ödeme sistemi bağlantısı kurulamadı. Lütfen daha sonra tekrar deneyin.',
-          reason: paytrResponse.reason 
+        console.error('[iyzico] Checkout form init failed:', iyzicoResp.errorCode, iyzicoResp.errorMessage);
+        res.status(400).json({
+          error: iyzicoResp.errorMessage || 'Ödeme sistemi bağlantısı kurulamadı. Lütfen daha sonra tekrar deneyin.',
         });
       }
     } catch (error) {
-      console.error('[PayTR] Payment creation error:', error);
+      console.error('[iyzico] Payment creation error:', error);
       res.status(500).json({ error: "Ödeme işlemi başlatılamadı" });
     }
   });
 
-  // PayTR Callback (Notification URL) - receives payment results
+  // iyzico Callback - browser POSTs here after Checkout Form completes
   app.post("/api/payment/callback", async (req: Request, res) => {
+    const baseUrl = process.env.NODE_ENV === 'production'
+      ? (process.env.PUBLIC_BASE_URL || 'https://polenstone.com.tr')
+      : `${req.headers['x-forwarded-proto'] || 'https'}://${req.headers.host || 'localhost:5000'}`;
+
+    const sendRedirect = (path: string) => res.redirect(303, `${baseUrl}${path}`);
+
     try {
-      const callbackData = req.body as PayTRCallbackData;
-      
-      console.log('[PayTR Callback] Received:', {
-        merchant_oid: callbackData.merchant_oid,
-        status: callbackData.status,
-        total_amount: callbackData.total_amount
+      const token = (req.body?.token as string) || '';
+      console.log('[iyzico Callback] Received token:', token ? token.substring(0, 12) + '…' : '(none)');
+
+      if (!token) {
+        console.error('[iyzico Callback] Missing token in callback body');
+        return sendRedirect('/odeme-basarisiz');
+      }
+
+      // Verify with iyzico
+      const result = await retrieveCheckoutForm(token);
+      const merchantOid = result.basketId || result.conversationId || '';
+      console.log('[iyzico Callback] Retrieve result:', {
+        status: result.status,
+        paymentStatus: result.paymentStatus,
+        merchantOid,
+        paymentId: result.paymentId,
       });
 
-      // Verify hash
-      if (!verifyPayTRCallback(callbackData)) {
-        console.error('[PayTR Callback] Hash verification failed');
-        return res.send('PAYTR notification failed: bad hash');
+      if (!merchantOid) {
+        console.error('[iyzico Callback] No merchantOid in iyzico response');
+        return sendRedirect('/odeme-basarisiz');
       }
 
-      const pendingPayment = await storage.getPendingPaymentByMerchantOid(callbackData.merchant_oid);
+      const pendingPayment = await storage.getPendingPaymentByMerchantOid(merchantOid);
       if (!pendingPayment) {
-        console.error('[PayTR Callback] Pending payment not found:', callbackData.merchant_oid);
-        return res.send('OK'); // Return OK to prevent retries
+        console.error('[iyzico Callback] Pending payment not found:', merchantOid);
+        return sendRedirect(`/odeme-basarisiz?oid=${merchantOid}`);
       }
 
-      // Check if already processed
-      if (pendingPayment.status === 'completed' || pendingPayment.status === 'failed') {
-        console.log('[PayTR Callback] Payment already processed:', callbackData.merchant_oid);
-        return res.send('OK');
+      // Idempotency: already processed?
+      if (pendingPayment.status === 'completed') {
+        return sendRedirect(`/odeme-basarili?oid=${merchantOid}`);
+      }
+      if (pendingPayment.status === 'failed') {
+        return sendRedirect(`/odeme-basarisiz?oid=${merchantOid}`);
       }
 
-      if (callbackData.status === 'success') {
+      // Verify token belongs to this pending payment
+      if (pendingPayment.paymentToken && pendingPayment.paymentToken !== token) {
+        console.error('[iyzico Callback] Token mismatch for', merchantOid);
+        return sendRedirect(`/odeme-basarisiz?oid=${merchantOid}`);
+      }
+
+      const isPaid = result.status === 'success' && result.paymentStatus === 'SUCCESS';
+
+      if (isPaid) {
+        // Verify amount matches the pending total (within 1 kuruş)
+        const expected = parseFloat(pendingPayment.total);
+        const paid = result.paidPrice ?? 0;
+        if (Math.abs(expected - paid) > 0.01) {
+          console.error('[iyzico Callback] Amount mismatch', { expected, paid, merchantOid });
+          await storage.updatePendingPaymentStatus(merchantOid, 'failed');
+          return sendRedirect(`/odeme-basarisiz?oid=${merchantOid}`);
+        }
+
+        if (result.paymentId) {
+          await storage.setPendingPaymentIyzicoId(merchantOid, result.paymentId);
+        }
+
         // Payment successful - create the actual order
-        const orderNumber = callbackData.merchant_oid;
+        const orderNumber = merchantOid;
 
         // Create order
         const order = await storage.createOrder({
@@ -2118,7 +2216,7 @@ export async function registerRoutes(
         await storage.clearCart(pendingPayment.sessionId);
 
         // Update pending payment status
-        await storage.updatePendingPaymentStatus(callbackData.merchant_oid, 'completed');
+        await storage.updatePendingPaymentStatus(merchantOid, 'completed');
 
         // Send confirmation emails
         const orderItems = await storage.getOrderItems(order.id);
@@ -2187,26 +2285,25 @@ export async function registerRoutes(
               // Send welcome email
               sendWelcomeEmail(newUser).catch(err => console.error('[Email] Welcome email failed:', err));
 
-              console.log('[PayTR Callback] User account created:', newUser.email);
+              console.log('[iyzico Callback] User account created:', newUser.email);
             }
           } catch (userError) {
-            console.error('[PayTR Callback] Failed to create user account:', userError);
+            console.error('[iyzico Callback] Failed to create user account:', userError);
             // Don't fail the order, just log the error
           }
         }
 
-        console.log('[PayTR Callback] Order created successfully:', orderNumber);
+        console.log('[iyzico Callback] Order created successfully:', orderNumber);
+        return sendRedirect(`/odeme-basarili?oid=${merchantOid}`);
       } else {
         // Payment failed
-        await storage.updatePendingPaymentStatus(callbackData.merchant_oid, 'failed');
-        console.log('[PayTR Callback] Payment failed:', callbackData.merchant_oid, callbackData.failed_reason_msg);
+        await storage.updatePendingPaymentStatus(merchantOid, 'failed');
+        console.log('[iyzico Callback] Payment failed:', merchantOid, result.errorMessage || result.paymentStatus);
+        return sendRedirect(`/odeme-basarisiz?oid=${merchantOid}`);
       }
-
-      // MUST return "OK" to PayTR
-      res.send('OK');
     } catch (error) {
-      console.error('[PayTR Callback] Error:', error);
-      res.send('OK'); // Still return OK to prevent infinite retries
+      console.error('[iyzico Callback] Error:', error);
+      return sendRedirect('/odeme-basarisiz');
     }
   });
 

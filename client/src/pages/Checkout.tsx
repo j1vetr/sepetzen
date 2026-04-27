@@ -64,12 +64,12 @@ export default function Checkout() {
   const [stepErrors, setStepErrors] = useState<Record<number, string[]>>({});
   const [savedOrderTotal, setSavedOrderTotal] = useState<number | null>(null);
   
-  // PayTR Payment State
-  const [paytrToken, setPaytrToken] = useState<string | null>(null);
+  // iyzico Checkout Form State
+  const [checkoutFormContent, setCheckoutFormContent] = useState<string | null>(null);
   const [merchantOid, setMerchantOid] = useState<string | null>(null);
   const [paymentLoading, setPaymentLoading] = useState(false);
   const [paymentError, setPaymentError] = useState<string | null>(null);
-  const iframeRef = useRef<HTMLIFrameElement>(null);
+  const checkoutFormRef = useRef<HTMLDivElement>(null);
   const initiateCheckoutTracked = useRef(false);
   
   // Coupon state
@@ -305,7 +305,7 @@ export default function Checkout() {
   const handleNextStep = () => {
     if (validateStep(currentStep)) {
       if (currentStep === 2) {
-        // When moving to step 3 (payment), initiate PayTR payment
+        // When moving to step 3 (payment), initiate iyzico Checkout Form
         initiatePayment();
       } else {
         setCurrentStep(prev => Math.min(prev + 1, 4));
@@ -313,7 +313,7 @@ export default function Checkout() {
     }
   };
 
-  // Initiate PayTR payment
+  // Initiate iyzico Checkout Form
   const initiatePayment = async () => {
     if (items.length === 0) {
       toast({ 
@@ -353,7 +353,7 @@ export default function Checkout() {
         throw new Error(data.error || 'Ödeme başlatılamadı');
       }
 
-      setPaytrToken(data.token);
+      setCheckoutFormContent(data.checkoutFormContent || null);
       setMerchantOid(data.merchantOid);
       setSavedOrderTotal(total);
       setCurrentStep(3);
@@ -390,7 +390,7 @@ export default function Checkout() {
 
         } else if (data.status === 'failed') {
           setPaymentError('Ödeme başarısız oldu. Lütfen tekrar deneyin.');
-          setPaytrToken(null);
+          setCheckoutFormContent(null);
         }
       }
     } catch (error) {
@@ -400,18 +400,49 @@ export default function Checkout() {
 
   // Poll for payment status when on step 3
   useEffect(() => {
-    if (currentStep === 3 && merchantOid && paytrToken) {
+    if (currentStep === 3 && merchantOid && checkoutFormContent) {
       const interval = setInterval(() => {
         checkPaymentStatus();
       }, 3000); // Check every 3 seconds
 
       return () => clearInterval(interval);
     }
-  }, [currentStep, merchantOid, paytrToken, checkPaymentStatus]);
+  }, [currentStep, merchantOid, checkoutFormContent, checkPaymentStatus]);
+
+  // Inject iyzico Checkout Form HTML/JS into the DOM when received
+  useEffect(() => {
+    if (!checkoutFormContent || !checkoutFormRef.current) return;
+
+    const container = checkoutFormRef.current;
+    container.innerHTML = '';
+
+    // checkoutFormContent contains both HTML and a <script> tag.
+    // Setting innerHTML does NOT execute scripts, so we re-create them.
+    const wrapper = document.createElement('div');
+    wrapper.innerHTML = checkoutFormContent;
+
+    // Move all non-script nodes into the container
+    Array.from(wrapper.childNodes).forEach((node) => {
+      if (node.nodeName === 'SCRIPT') {
+        const original = node as HTMLScriptElement;
+        const script = document.createElement('script');
+        if (original.src) script.src = original.src;
+        if (original.type) script.type = original.type;
+        script.text = original.text;
+        container.appendChild(script);
+      } else {
+        container.appendChild(node);
+      }
+    });
+
+    return () => {
+      container.innerHTML = '';
+    };
+  }, [checkoutFormContent]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    // Payment is now handled by PayTR iframe
+    // Payment is now handled by iyzico Checkout Form
     // This function is kept for form compatibility but shouldn't be called directly
   };
 
@@ -1000,21 +1031,14 @@ export default function Checkout() {
                         </div>
                       )}
 
-                      {paytrToken ? (
+                      {checkoutFormContent ? (
                         <div className="space-y-4">
-                          <div className="bg-white rounded-xl overflow-hidden" style={{ minHeight: '500px' }}>
-                            <iframe
-                              ref={iframeRef}
-                              src={`https://www.paytr.com/odeme/guvenli/${paytrToken}`}
-                              width="100%"
-                              height="500"
-                              frameBorder="0"
-                              scrolling="yes"
-                              style={{ border: 'none', minHeight: '500px' }}
-                              title="PayTR Ödeme"
-                              data-testid="paytr-iframe"
-                            />
-                          </div>
+                          <div
+                            ref={checkoutFormRef}
+                            className="bg-white rounded-xl overflow-hidden"
+                            style={{ minHeight: '500px' }}
+                            data-testid="iyzico-checkout-form"
+                          />
                           
                           <div className="p-4 bg-green-500/10 border border-green-500/20 rounded-xl">
                             <div className="flex items-start gap-3">
@@ -1022,7 +1046,7 @@ export default function Checkout() {
                               <div>
                                 <p className="text-sm font-medium text-green-400">256-bit SSL Güvenlik</p>
                                 <p className="text-xs text-muted-foreground mt-1">
-                                  Kart bilgileriniz PayTR güvencesiyle şifrelenmektedir.
+                                  Kart bilgileriniz iyzico güvencesiyle şifrelenmektedir.
                                 </p>
                               </div>
                             </div>
@@ -1032,7 +1056,7 @@ export default function Checkout() {
                             type="button" 
                             variant="outline"
                             onClick={() => {
-                              setPaytrToken(null);
+                              setCheckoutFormContent(null);
                               setMerchantOid(null);
                               setPaymentError(null);
                               setCurrentStep(2);
