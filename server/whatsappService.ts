@@ -81,8 +81,9 @@ async function getConfig(): Promise<WhatsAppConfig | null> {
 export function normalizePhone(input: string | null | undefined): string | null {
   if (!input) return null;
   let digits = input.replace(/[^\d+]/g, '');
-  digits = digits.replace(/^\+/, '');
-  if (digits.startsWith('0')) digits = digits.slice(1);
+  while (digits.startsWith('+') || digits.startsWith('0')) {
+    digits = digits.slice(1);
+  }
   if (digits.length === 10) digits = '90' + digits;
   if (!/^90\d{10}$/.test(digits)) return null;
   return digits;
