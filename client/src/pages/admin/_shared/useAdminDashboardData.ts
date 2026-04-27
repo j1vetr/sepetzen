@@ -26,20 +26,24 @@ export function useAdminDashboardData({
     retry: false,
   });
 
-  const { data: stats, isLoading: statsLoading } = useQuery<Stats>({
+  const { data: stats, isLoading: statsLoading, isError: statsError } = useQuery<Stats>({
     queryKey: ['admin', 'stats'],
     queryFn: async () => {
       const response = await fetch('/api/admin/stats', { credentials: 'include' });
-      if (!response.ok) return null;
+      if (!response.ok) throw new Error('Stats request failed');
       return response.json();
     },
     enabled: !!adminUser,
     refetchInterval: 30000,
   });
 
-  const { data: products = [], isLoading: productsLoading } = useQuery<Product[]>({
+  const { data: products = [], isLoading: productsLoading, isError: productsError } = useQuery<Product[]>({
     queryKey: ['admin', 'products'],
-    queryFn: async () => (await fetch('/api/admin/products')).json(),
+    queryFn: async () => {
+      const r = await fetch('/api/admin/products');
+      if (!r.ok) throw new Error('Products request failed');
+      return r.json();
+    },
     enabled: !!adminUser,
   });
 
@@ -59,9 +63,18 @@ export function useAdminDashboardData({
     enabled: !!adminUser,
   });
 
-  const { data: orders = [], refetch: refetchOrders, isLoading: ordersLoading } = useQuery<Order[]>({
+  const {
+    data: orders = [],
+    refetch: refetchOrders,
+    isLoading: ordersLoading,
+    isError: ordersError,
+  } = useQuery<Order[]>({
     queryKey: ['admin', 'orders'],
-    queryFn: async () => (await fetch('/api/admin/orders')).json(),
+    queryFn: async () => {
+      const r = await fetch('/api/admin/orders');
+      if (!r.ok) throw new Error('Orders request failed');
+      return r.json();
+    },
     enabled: !!adminUser,
     refetchInterval: 30000,
     refetchIntervalInBackground: true,
@@ -143,12 +156,15 @@ export function useAdminDashboardData({
     userLoading,
     stats,
     statsLoading,
+    statsError,
     products,
     productsLoading,
+    productsError,
     allVariants,
     categories,
     orders,
     ordersLoading,
+    ordersError,
     refetchOrders,
     users,
     logoutMutation,

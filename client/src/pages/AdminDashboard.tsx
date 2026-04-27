@@ -28,7 +28,6 @@ import {
   VALID_TABS,
   SIDEBAR_CATEGORIES,
   ALL_SIDEBAR_ITEMS,
-  getStatusColor,
   getStatusLabel,
 } from './admin/_shared/sidebarConfig';
 import { useAdminDashboardData } from './admin/_shared/useAdminDashboardData';
@@ -71,12 +70,15 @@ export default function AdminDashboard() {
     userLoading,
     stats,
     statsLoading,
+    statsError,
     products,
     productsLoading,
+    productsError,
     allVariants,
     categories,
     orders,
     ordersLoading,
+    ordersError,
     refetchOrders,
     users,
     logoutMutation,
@@ -132,10 +134,14 @@ export default function AdminDashboard() {
             stats={stats}
             orders={orders}
             products={products}
-            getStatusColor={getStatusColor}
             getStatusLabel={getStatusLabel}
             onNavigate={handleTabChange}
-            isLoading={statsLoading || ordersLoading || productsLoading}
+            statsLoading={statsLoading}
+            ordersLoading={ordersLoading}
+            productsLoading={productsLoading}
+            statsError={statsError}
+            ordersError={ordersError}
+            productsError={productsError}
           />
         )}
         {activeTab === 'products' && (

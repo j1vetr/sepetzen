@@ -1,4 +1,14 @@
-import { Package, ShoppingCart, Users, Wallet, Clock, Layers, CheckCircle2, ArrowUpRight } from 'lucide-react';
+import {
+  Package,
+  ShoppingCart,
+  Users,
+  Wallet,
+  Clock,
+  Layers,
+  CheckCircle2,
+  ArrowUpRight,
+  AlertCircle,
+} from 'lucide-react';
 import type { ReactNode, ComponentType } from 'react';
 import type { Stats, Order, Product, TabType } from './_shared/types';
 
@@ -6,10 +16,14 @@ interface DashboardTabProps {
   stats: Stats | null | undefined;
   orders: Order[];
   products: Product[];
-  getStatusColor: (status: string) => string;
   getStatusLabel: (status: string) => string;
   onNavigate: (tab: TabType) => void;
-  isLoading?: boolean;
+  statsLoading?: boolean;
+  ordersLoading?: boolean;
+  productsLoading?: boolean;
+  statsError?: boolean;
+  ordersError?: boolean;
+  productsError?: boolean;
 }
 
 function formatCurrency(value: number): string {
@@ -160,18 +174,34 @@ function StatRow({
   );
 }
 
+function InlineError({ label }: { label: string }) {
+  return (
+    <div
+      className="flex items-start gap-2 px-3 py-2.5 rounded-md bg-red-50 border border-red-200 text-[12px] text-red-700"
+      role="alert"
+    >
+      <AlertCircle className="w-3.5 h-3.5 mt-[1px] shrink-0" />
+      <span>{label}</span>
+    </div>
+  );
+}
+
 export default function DashboardTab({
   stats,
   orders,
   products,
   getStatusLabel,
   onNavigate,
-  isLoading = false,
+  statsLoading = false,
+  ordersLoading = false,
+  productsLoading = false,
+  statsError = false,
+  ordersError = false,
+  productsError = false,
 }: DashboardTabProps) {
   const recentOrders = orders.slice(0, 5);
   const activeProducts = products.filter((p) => p.isActive).length;
-  const ordersLoading = isLoading;
-  const statsLoading = isLoading || !stats;
+  const showStatsLoading = statsLoading && !stats && !statsError;
 
   return (
     <div className="space-y-6 sm:space-y-8" data-testid="tab-dashboard">
@@ -187,30 +217,34 @@ export default function DashboardTab({
         </p>
       </header>
 
+      {statsError && (
+        <InlineError label="İstatistikler şu anda yüklenemedi. Bağlantı geri geldiğinde otomatik yenilenir." />
+      )}
+
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
         <KpiCard
           icon={Package}
           label="Ürün"
           value={formatNumber(stats?.totalProducts ?? 0)}
-          loading={statsLoading}
+          loading={showStatsLoading}
         />
         <KpiCard
           icon={ShoppingCart}
           label="Sipariş"
           value={formatNumber(stats?.totalOrders ?? 0)}
-          loading={statsLoading}
+          loading={showStatsLoading}
         />
         <KpiCard
           icon={Users}
           label="Kullanıcı"
           value={formatNumber(stats?.totalUsers ?? 0)}
-          loading={statsLoading}
+          loading={showStatsLoading}
         />
         <KpiCard
           icon={Wallet}
           label="Gelir"
           value={formatCurrency(stats?.totalRevenue ?? 0)}
-          loading={statsLoading}
+          loading={showStatsLoading}
         />
       </div>
 
@@ -234,7 +268,9 @@ export default function DashboardTab({
             </button>
           }
         >
-          {ordersLoading ? (
+          {ordersError ? (
+            <InlineError label="Siparişler yüklenemedi. Birazdan tekrar denenecek." />
+          ) : ordersLoading && recentOrders.length === 0 ? (
             <div data-testid="dashboard-orders-loading">
               <OrderRowSkeleton />
               <OrderRowSkeleton />
@@ -291,26 +327,30 @@ export default function DashboardTab({
         </PageSection>
 
         <PageSection title="Hızlı İstatistikler" description="Anlık özet">
-          <div className="-my-1">
-            <StatRow
-              icon={Clock}
-              label="Bekleyen siparişler"
-              value={formatNumber(stats?.pendingOrders ?? 0)}
-              loading={statsLoading}
-            />
-            <StatRow
-              icon={Layers}
-              label="Kategoriler"
-              value={formatNumber(stats?.totalCategories ?? 0)}
-              loading={statsLoading}
-            />
-            <StatRow
-              icon={CheckCircle2}
-              label="Aktif ürünler"
-              value={formatNumber(activeProducts)}
-              loading={isLoading}
-            />
-          </div>
+          {statsError && productsError ? (
+            <InlineError label="İstatistikler yüklenemedi. Birazdan tekrar denenecek." />
+          ) : (
+            <div className="-my-1">
+              <StatRow
+                icon={Clock}
+                label="Bekleyen siparişler"
+                value={formatNumber(stats?.pendingOrders ?? 0)}
+                loading={showStatsLoading}
+              />
+              <StatRow
+                icon={Layers}
+                label="Kategoriler"
+                value={formatNumber(stats?.totalCategories ?? 0)}
+                loading={showStatsLoading}
+              />
+              <StatRow
+                icon={CheckCircle2}
+                label="Aktif ürünler"
+                value={formatNumber(activeProducts)}
+                loading={productsLoading && products.length === 0 && !productsError}
+              />
+            </div>
+          )}
         </PageSection>
       </div>
     </div>
