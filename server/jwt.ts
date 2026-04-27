@@ -4,7 +4,7 @@ import { db } from './db';
 import { refreshTokens, users, adminUsers } from '@shared/schema';
 import { eq, and, isNull, gt } from 'drizzle-orm';
 
-const JWT_SECRET = process.env.JWT_SECRET || process.env.SESSION_SECRET || 'hank-jwt-secret-2025';
+const JWT_SECRET = process.env.JWT_SECRET || process.env.SESSION_SECRET || 'polen-stone-jwt-secret-2026';
 const ACCESS_TOKEN_EXPIRY = '15m';
 const REFRESH_TOKEN_EXPIRY_DAYS = 7;
 
