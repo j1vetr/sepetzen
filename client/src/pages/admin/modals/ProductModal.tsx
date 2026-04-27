@@ -9,7 +9,6 @@ import {
   Package,
   Eye,
   RefreshCw,
-  Image as ImageIcon,
   Trash2,
 } from 'lucide-react';
 import type { Product, ProductDraft, Category } from '../_shared/types';
@@ -136,6 +135,32 @@ export default function ProductModal({
       urls.forEach((u) => URL.revokeObjectURL(u));
     };
   }, [pendingFiles]);
+
+  useEffect(() => {
+    setFormData({
+      name: product?.name || '',
+      slug: product?.slug || '',
+      description: product?.description || '',
+      sku: product?.sku || '',
+      basePrice: product?.basePrice || '',
+      categoryId: product?.categoryId || '',
+      categoryIds:
+        product?.categoryIds || (product?.categoryId ? [product.categoryId] : ([] as string[])),
+      images: product?.images || ([] as string[]),
+      availableSizes: product?.availableSizes || [],
+      availableColors: product?.availableColors || [],
+      isActive: product?.isActive ?? true,
+      isFeatured: product?.isFeatured ?? false,
+      isNew: product?.isNew ?? false,
+      initialStock: '',
+    });
+    setPendingFiles([]);
+    setUploadError(null);
+    setShowAiPanel(false);
+    setAiPreview(null);
+    setPreviewImage(0);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [product?.id]);
 
   const regenerateSlug = () => {
     setFormData((prev) => ({ ...prev, slug: generateSlug(prev.name) }));

@@ -5,7 +5,6 @@ import type { BulkAIResult, Category } from '../_shared/types';
 import AdminModal from '../_ui/AdminModal';
 import {
   PrimaryButton,
-  SecondaryButton,
   GhostButton,
   SectionHeading,
   SelectInput,
