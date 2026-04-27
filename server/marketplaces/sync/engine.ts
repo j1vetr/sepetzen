@@ -761,11 +761,17 @@ async function runDeltaSync(
       const snapVariants = snap.variants ?? [];
       let stockApplied = false;
 
+      // Full sync `${type}:${rawSku}` formatında yazıyor — delta da aynı prefix'le
+      // arasın. Geriye dönük uyum için prefix'siz halini de fallback olarak kontrol et.
+      const skuPrefix = `${mp.type}:`;
       for (const v of snapVariants) {
         let target: typeof variants[number] | undefined;
-        const skuKey = v.sku ?? v.barcode ?? null;
-        if (skuKey) {
-          target = variants.find((existing) => existing.sku === skuKey);
+        const rawKey = v.sku ?? v.barcode ?? null;
+        if (rawKey) {
+          const prefixedKey = `${skuPrefix}${rawKey}`;
+          target =
+            variants.find((existing) => existing.sku === prefixedKey) ??
+            variants.find((existing) => existing.sku === rawKey);
         }
         if (!target && variants.length === 1) {
           target = variants[0];
