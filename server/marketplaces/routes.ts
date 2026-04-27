@@ -144,6 +144,39 @@ export function registerMarketplaceRoutes(
   });
 
   // Bağlantı testi
+  // Kayıttan ÖNCE: form'da girilen ham kredensiyallerle bağlantı testi.
+  // Kredensiyaller bellekte kalır, DB'ye yazılmaz.
+  app.post("/api/admin/marketplaces/test-credentials", requireAdmin, async (req, res) => {
+    const schema = z.object({
+      type: z.string().min(1),
+      credentials: z.record(z.unknown()),
+      config: z.record(z.unknown()).optional(),
+    });
+    const parsed = schema.safeParse(req.body ?? {});
+    if (!parsed.success) {
+      return res.status(400).json({ ok: false, message: "Geçersiz istek" });
+    }
+    if (!getAdapterEntry(parsed.data.type as MarketplaceType)) {
+      return res
+        .status(400)
+        .json({ ok: false, message: `Bilinmeyen pazaryeri: ${parsed.data.type}` });
+    }
+    try {
+      const adapter = createAdapter(
+        parsed.data.type as MarketplaceType,
+        parsed.data.credentials as MarketplaceCredentials,
+        (parsed.data.config ?? {}) as MarketplaceConfig,
+      );
+      const result = await adapter.testConnection();
+      res.json(result);
+    } catch (err) {
+      res.status(200).json({
+        ok: false,
+        message: err instanceof Error ? err.message : String(err),
+      });
+    }
+  });
+
   app.post("/api/admin/marketplaces/:id/test-connection", requireAdmin, async (req, res) => {
     const mp = await storage.getMarketplace(req.params.id);
     if (!mp) return res.status(404).json({ message: "Bulunamadı" });

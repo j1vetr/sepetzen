@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { Fragment, useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
@@ -385,7 +385,58 @@ function MarketplaceFormDialog({
   const [name, setName] = useState<string>(existing?.name ?? "Trendyol");
   const [isActive, setIsActive] = useState<boolean>(existing?.isActive ?? true);
   const [credentials, setCredentials] = useState<Record<string, string>>({});
+  const [testResult, setTestResult] = useState<{ ok: boolean; message: string } | null>(null);
   const fields = adapters.find((a) => a.type === type)?.credentialFields ?? [];
+
+  // Kredensiyal değiştiğinde önceki test sonucu artık geçerli değildir
+  function updateCredential(key: string, value: string) {
+    setCredentials((prev) => ({ ...prev, [key]: value }));
+    setTestResult(null);
+  }
+
+  const testCredsMutation = useMutation({
+    mutationFn: async () => {
+      const filled = Object.fromEntries(
+        Object.entries(credentials).filter(([, v]) => v && v.trim().length > 0),
+      );
+      // Düzenleme modunda boş alanları doldurmak için mevcut kayıt üzerinden test et
+      if (existing) {
+        const required = fields.filter((f) => f.required);
+        const missing = required.filter((f) => !filled[f.key]);
+        if (missing.length > 0) {
+          // Mevcut kaydın kredensiyalleri server'da çözülerek test ediliyor
+          const res = await apiRequest(
+            "POST",
+            `/api/admin/marketplaces/${existing.id}/test-connection`,
+          );
+          return (await res.json()) as { ok: boolean; message: string };
+        }
+      } else {
+        const required = fields.filter((f) => f.required);
+        for (const f of required) {
+          if (!filled[f.key]) throw new Error(`${f.label} zorunlu`);
+        }
+      }
+      const res = await apiRequest("POST", `/api/admin/marketplaces/test-credentials`, {
+        type,
+        credentials: filled,
+        config: {},
+      });
+      return (await res.json()) as { ok: boolean; message: string };
+    },
+    onSuccess: (r) => {
+      setTestResult(r);
+      toast({
+        title: r.ok ? "Bağlantı başarılı" : "Bağlantı başarısız",
+        description: r.message,
+        variant: r.ok ? "default" : "destructive",
+      });
+    },
+    onError: (err: Error) => {
+      setTestResult({ ok: false, message: err.message });
+      toast({ title: "Test başarısız", description: err.message, variant: "destructive" });
+    },
+  });
 
   const saveMutation = useMutation({
     mutationFn: async () => {
@@ -469,9 +520,7 @@ function MarketplaceFormDialog({
                 <Input
                   type={f.type === "password" ? "password" : "text"}
                   value={credentials[f.key] ?? ""}
-                  onChange={(e) =>
-                    setCredentials((prev) => ({ ...prev, [f.key]: e.target.value }))
-                  }
+                  onChange={(e) => updateCredential(f.key, e.target.value)}
                   placeholder={
                     existing?.maskedCredentials?.[f.key]
                       ? `Mevcut: ${existing.maskedCredentials[f.key]}`
@@ -492,21 +541,64 @@ function MarketplaceFormDialog({
             )}
           </div>
         </div>
-        <DialogFooter>
-          <Button variant="ghost" onClick={onClose} data-testid="button-marketplace-cancel">
-            İptal
-          </Button>
-          <Button
-            onClick={() => saveMutation.mutate()}
-            disabled={saveMutation.isPending}
-            data-testid="button-marketplace-save"
-            className="bg-amber-600 hover:bg-amber-700"
-          >
-            {saveMutation.isPending ? (
-              <Loader2 className="w-4 h-4 animate-spin mr-1" />
-            ) : null}
-            Kaydet
-          </Button>
+        <DialogFooter className="flex-col sm:flex-col items-stretch gap-2">
+          <div className="flex items-center gap-2 flex-wrap">
+            <Button
+              variant="outline"
+              onClick={() => testCredsMutation.mutate()}
+              disabled={testCredsMutation.isPending}
+              data-testid="button-test-credentials"
+              className="border-zinc-700"
+            >
+              {testCredsMutation.isPending ? (
+                <Loader2 className="w-4 h-4 animate-spin mr-1" />
+              ) : (
+                <CheckCircle2 className="w-4 h-4 mr-1" />
+              )}
+              Bağlantıyı Test Et
+            </Button>
+            {testResult && (
+              <span
+                className={`text-sm flex items-center gap-1 ${
+                  testResult.ok ? "text-emerald-400" : "text-red-400"
+                }`}
+                data-testid={`text-test-result-${testResult.ok ? "ok" : "fail"}`}
+              >
+                {testResult.ok ? (
+                  <>
+                    <CheckCircle2 className="w-4 h-4" />
+                    Başarılı — {testResult.message}
+                  </>
+                ) : (
+                  <>
+                    <XCircle className="w-4 h-4" />
+                    {testResult.message}
+                  </>
+                )}
+              </span>
+            )}
+          </div>
+          {!existing && !testResult?.ok && (
+            <p className="text-xs text-amber-300">
+              İpucu: Kayıttan önce <strong>Bağlantıyı Test Et</strong> ile kredensiyalleri doğrulayın.
+            </p>
+          )}
+          <div className="flex justify-end gap-2 pt-2 border-t border-zinc-800">
+            <Button variant="ghost" onClick={onClose} data-testid="button-marketplace-cancel">
+              İptal
+            </Button>
+            <Button
+              onClick={() => saveMutation.mutate()}
+              disabled={saveMutation.isPending}
+              data-testid="button-marketplace-save"
+              className="bg-amber-600 hover:bg-amber-700"
+            >
+              {saveMutation.isPending ? (
+                <Loader2 className="w-4 h-4 animate-spin mr-1" />
+              ) : null}
+              Kaydet
+            </Button>
+          </div>
         </DialogFooter>
       </DialogContent>
     </Dialog>
@@ -565,7 +657,8 @@ function SyncHistoryDialog({
               </thead>
               <tbody>
                 {(data ?? []).map((r) => (
-                  <tr key={r.id} className="border-b border-zinc-800/50">
+                <Fragment key={r.id}>
+                  <tr className="border-b border-zinc-800/50">
                     <td className="py-2 text-zinc-300">{formatDate(r.startedAt)}</td>
                     <td className="text-zinc-400">{formatDate(r.completedAt)}</td>
                     <td className="text-zinc-400" data-testid={`text-duration-${r.id}`}>
@@ -584,6 +677,34 @@ function SyncHistoryDialog({
                     </td>
                     <td className="text-red-400">{r.errors?.length ?? 0}</td>
                   </tr>
+                  {(r.errors?.length ?? 0) > 0 && (
+                    <tr key={`${r.id}-errs`} className="border-b border-zinc-800/50">
+                      <td colSpan={11} className="py-2 px-2 bg-red-500/5">
+                        <details data-testid={`details-errors-${r.id}`}>
+                          <summary className="cursor-pointer text-xs text-red-300 select-none">
+                            Hata özetlerini göster ({r.errors.length})
+                          </summary>
+                          <ul className="mt-2 space-y-1 text-xs text-red-200/90 font-mono">
+                            {r.errors.slice(0, 5).map((e, i) => (
+                              <li
+                                key={i}
+                                className="pl-2 border-l border-red-500/40"
+                                data-testid={`text-error-${r.id}-${i}`}
+                              >
+                                <span className="text-red-300/70">{e.context}:</span> {e.message}
+                              </li>
+                            ))}
+                            {r.errors.length > 5 && (
+                              <li className="text-red-300/60">
+                                …ve {r.errors.length - 5} daha
+                              </li>
+                            )}
+                          </ul>
+                        </details>
+                      </td>
+                    </tr>
+                  )}
+                </Fragment>
                 ))}
                 {(data ?? []).length === 0 && (
                   <tr>

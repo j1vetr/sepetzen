@@ -66,6 +66,16 @@ app.use((req, res, next) => {
 });
 
 (async () => {
+  // Eager olarak pazaryeri şifreleme anahtarını doğrula. Production'da
+  // MARKETPLACE_ENCRYPTION_KEY yoksa burada throw eder ve sunucu açılmaz.
+  try {
+    const { assertEncryptionKeyConfigured } = await import("./marketplaces/crypto");
+    assertEncryptionKeyConfigured();
+  } catch (err) {
+    console.error("[index] FATAL — marketplace encryption key check failed:", err);
+    throw err;
+  }
+
   await registerRoutes(httpServer, app);
 
   // Pazaryeri senkron zamanlayıcısı (Trendyol delta saatlik / full 03:00)

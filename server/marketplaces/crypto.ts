@@ -85,6 +85,14 @@ function loadKey(): Buffer {
   return cachedKey;
 }
 
+/**
+ * Sunucu açılışında çağrılır: anahtar yapılandırmasını eager doğrular.
+ * Production'da MARKETPLACE_ENCRYPTION_KEY yoksa fail-fast (loadKey throw eder).
+ */
+export function assertEncryptionKeyConfigured(): void {
+  loadKey();
+}
+
 export function encryptCredentials(payload: Record<string, unknown>): string {
   const key = loadKey();
   const iv = crypto.randomBytes(IV_LEN);
