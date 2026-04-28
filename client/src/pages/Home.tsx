@@ -33,9 +33,7 @@ interface MenuItemData {
   children?: MenuItemData[];
 }
 
-/* ─────────────────────────────────────────────────────────────
- * UTILITIES
- * ───────────────────────────────────────────────────────────── */
+// UTILITIES
 
 function hashStr(s: string): number {
   let h = 0;
@@ -66,9 +64,7 @@ function getRootHref(root: MenuItemData): string {
   return '/magaza';
 }
 
-/* ─────────────────────────────────────────────────────────────
- * REVEAL WORD — text reveal animation
- * ───────────────────────────────────────────────────────────── */
+// REVEAL WORD — text reveal animation
 
 function RevealWord({
   text,
@@ -93,10 +89,7 @@ function RevealWord({
   );
 }
 
-/* ─────────────────────────────────────────────────────────────
- * MOUNTED — gate that defers children until after first paint so
- * framer-motion's useScroll can safely attach to DOM refs.
- * ───────────────────────────────────────────────────────────── */
+// Gate that defers children until after first paint so framer-motion's useScroll can safely attach to DOM refs.
 function useMounted() {
   const [m, setM] = useState(false);
   useEffect(() => {
@@ -105,9 +98,7 @@ function useMounted() {
   return m;
 }
 
-/* ─────────────────────────────────────────────────────────────
- * SCENE 01 — HERO (cinematic)
- * ───────────────────────────────────────────────────────────── */
+// SCENE 01 — HERO (cinematic)
 
 function HeroScene() {
   const mounted = useMounted();
@@ -152,6 +143,64 @@ function HeroSceneStatic() {
   );
 }
 
+function HeroVideoLazy() {
+  const [show, setShow] = useState(false);
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    let cancelled = false;
+    const start = () => {
+      if (cancelled) return;
+      setShow(true);
+    };
+    // Defer until browser idle (or 1.2s fallback) so hero paint isn't blocked by video bytes
+    const w = window as Window & {
+      requestIdleCallback?: (cb: () => void, opts?: { timeout: number }) => number;
+    };
+    const idleId = w.requestIdleCallback
+      ? w.requestIdleCallback(start, { timeout: 1500 })
+      : window.setTimeout(start, 1200);
+    return () => {
+      cancelled = true;
+      if (w.requestIdleCallback) {
+        (window as unknown as { cancelIdleCallback?: (id: number) => void }).cancelIdleCallback?.(
+          idleId as number,
+        );
+      } else {
+        window.clearTimeout(idleId as number);
+      }
+    };
+  }, []);
+  if (!show) return null;
+  return (
+    <>
+      <video
+        autoPlay
+        loop
+        muted
+        playsInline
+        preload="none"
+        poster={heroPosterImage}
+        className="absolute inset-0 w-full h-full object-cover hidden md:block"
+        aria-hidden="true"
+      >
+        <source src={HERO_VIDEO_DESKTOP} type="video/mp4" />
+      </video>
+      <video
+        autoPlay
+        loop
+        muted
+        playsInline
+        preload="none"
+        poster={heroPosterImage}
+        className="absolute inset-0 w-full h-full object-cover md:hidden"
+        aria-hidden="true"
+      >
+        <source src={HERO_VIDEO_MOBILE} type="video/mp4" />
+      </video>
+    </>
+  );
+}
+
 function HeroSceneInner() {
   const heroRef = useRef<HTMLDivElement>(null);
   const { scrollYProgress } = useScroll({
@@ -181,30 +230,15 @@ function HeroSceneInner() {
       className="relative h-[100svh] min-h-[640px] w-full overflow-hidden bg-black text-white"
       data-testid="scene-hero"
     >
-      {/* Background video */}
+      {/* Background video — lazy: poster shows immediately, source attaches after first paint */}
       <motion.div className="absolute inset-0 z-0" style={{ y: videoY }}>
-        <video
-          autoPlay
-          loop
-          muted
-          playsInline
-          poster={heroPosterImage}
-          className="absolute inset-0 w-full h-full object-cover hidden md:block"
+        <img
+          src={heroPosterImage}
+          alt=""
           aria-hidden="true"
-        >
-          <source src={HERO_VIDEO_DESKTOP} type="video/mp4" />
-        </video>
-        <video
-          autoPlay
-          loop
-          muted
-          playsInline
-          poster={heroPosterImage}
-          className="absolute inset-0 w-full h-full object-cover md:hidden"
-          aria-hidden="true"
-        >
-          <source src={HERO_VIDEO_MOBILE} type="video/mp4" />
-        </video>
+          className="absolute inset-0 w-full h-full object-cover"
+        />
+        <HeroVideoLazy />
         {/* Gradient veils */}
         <div className="absolute inset-0 bg-gradient-to-b from-black/55 via-black/25 to-black/80" />
         <div className="absolute inset-0 bg-gradient-to-r from-black/60 via-transparent to-black/30" />
@@ -304,9 +338,7 @@ function HeroSceneInner() {
   );
 }
 
-/* ─────────────────────────────────────────────────────────────
- * SCENE 02 — PRODUCT MARQUEE STRIP (post-hero connector)
- * ───────────────────────────────────────────────────────────── */
+// SCENE 02 — PRODUCT MARQUEE STRIP (post-hero connector)
 
 function ProductMarqueeScene({ products }: { products: Product[] }) {
   const items = useMemo(() => {
@@ -377,9 +409,7 @@ function ProductMarqueeScene({ products }: { products: Product[] }) {
   );
 }
 
-/* ─────────────────────────────────────────────────────────────
- * SCENE 03 — PINNED HORIZONTAL SHOWCASE
- * ───────────────────────────────────────────────────────────── */
+// SCENE 03 — PINNED HORIZONTAL SHOWCASE
 
 function PinnedShowcaseScene({ products }: { products: Product[] }) {
   const mounted = useMounted();
@@ -424,7 +454,7 @@ function PinnedShowcaseSceneInner({ items }: { items: Product[] }) {
     return () => mql.removeEventListener('change', update);
   }, []);
 
-  // ── Mobile fallback: native snap-x scroll, no pinning ──
+  // Mobile fallback: native snap-x scroll, no pinning
   if (isMobile) {
     return (
       <section
@@ -591,9 +621,7 @@ function PinnedShowcaseSceneInner({ items }: { items: Product[] }) {
   );
 }
 
-/* ─────────────────────────────────────────────────────────────
- * SCENE 04 — BENTO PRODUCT MOSAIC
- * ───────────────────────────────────────────────────────────── */
+// SCENE 04 — BENTO PRODUCT MOSAIC
 
 const BENTO_LAYOUT = [
   'col-span-2 row-span-2 aspect-square', // 0  big square
@@ -744,9 +772,7 @@ function BentoCard({ product }: { product: Product }) {
   );
 }
 
-/* ─────────────────────────────────────────────────────────────
- * SCENE 05 — IMAGE-DRIVEN CATEGORY BENTO
- * ───────────────────────────────────────────────────────────── */
+// SCENE 05 — IMAGE-DRIVEN CATEGORY BENTO
 
 const CATEGORY_BENTO_LAYOUT = [
   'col-span-2 row-span-2', // 0
@@ -815,7 +841,7 @@ function CategoryBentoScene({
         </Link>
       </div>
 
-      <div className="max-w-[1500px] mx-auto grid grid-cols-2 lg:grid-cols-4 auto-rows-[160px] lg:auto-rows-[200px] gap-2 lg:gap-3">
+      <div className="max-w-[1500px] mx-auto grid grid-cols-1 lg:grid-cols-4 auto-rows-[260px] lg:auto-rows-[200px] gap-2 lg:gap-3">
         {items.map((it, i) => {
           const cls = CATEGORY_BENTO_LAYOUT[i] || 'col-span-1 row-span-1';
           return (
@@ -950,9 +976,7 @@ function CategoryCard({
   );
 }
 
-/* ─────────────────────────────────────────────────────────────
- * SCENE 06 — STATEMENT MARQUEE STRIP
- * ───────────────────────────────────────────────────────────── */
+// SCENE 06 — STATEMENT MARQUEE STRIP
 
 function StatementMarqueeScene() {
   const items = [
@@ -1038,9 +1062,7 @@ function StatementMarqueeScene() {
   );
 }
 
-/* ─────────────────────────────────────────────────────────────
- * SCENE 07 — FINAL CTA (footer-preceding)
- * ───────────────────────────────────────────────────────────── */
+// SCENE 07 — FINAL CTA (footer-preceding)
 
 function FinalCtaScene() {
   const ref = useRef<HTMLDivElement>(null);
@@ -1145,9 +1167,7 @@ function FinalCtaScene() {
   );
 }
 
-/* ─────────────────────────────────────────────────────────────
- * MAIN — Home page
- * ───────────────────────────────────────────────────────────── */
+// MAIN — Home page
 
 export default function Home() {
   const { data: products = [] } = useProducts({});
