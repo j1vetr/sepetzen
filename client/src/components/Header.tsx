@@ -56,7 +56,9 @@ export function Header() {
   const { user, logout } = useAuth();
   const { scrollY } = useScroll();
 
-  useMotionValueEvent(scrollY, 'change', (v) => setScrolled(v > 48));
+  // Brand bar yaklaşık 116px; eşiği biraz aşağı çekip kompakt logo'nun
+  // brand bar viewport'tan çıktıktan sonra belirmesini sağlıyoruz.
+  useMotionValueEvent(scrollY, 'change', (v) => setScrolled(v > 110));
 
   useEffect(() => {
     if (mobileOpen) document.body.style.overflow = 'hidden';
@@ -108,14 +110,9 @@ export function Header() {
 
   return (
     <>
-      {/* ── Brand bar (desktop): WhatsApp · Logo · Telefon + E-posta ── */}
-      <motion.div
-        initial={false}
-        animate={{ height: scrolled ? 0 : 'auto', opacity: scrolled ? 0 : 1 }}
-        transition={{ duration: 0.4, ease: [0.33, 1, 0.68, 1] }}
-        className="hidden lg:block bg-white border-b border-black/[0.06] overflow-hidden"
-        style={{ willChange: 'height, opacity' }}
-      >
+      {/* ── Brand bar (desktop): WhatsApp · Logo · Telefon + E-posta
+          Normal akışta durur; scroll edilince doğal olarak yukarı kayar. ── */}
+      <div className="hidden lg:block bg-white border-b border-black/[0.06]">
         <div className="max-w-[1400px] mx-auto px-8 py-4 grid grid-cols-3 items-center gap-6">
           {/* Sol: WhatsApp */}
           <a
@@ -181,14 +178,14 @@ export function Header() {
             </a>
           </div>
         </div>
-      </motion.div>
+      </div>
 
-      {/* ── Main header ── */}
+      {/* ── Main header (nav bar) — desktop'ta sticky, mobile'da fixed ── */}
       <motion.header
         initial={false}
         animate={{ height: scrolled ? 64 : 72 }}
         transition={{ duration: 0.35, ease: [0.33, 1, 0.68, 1] }}
-        className="fixed lg:static top-0 left-0 right-0 z-40 bg-white border-b border-black/8 flex items-center lg:!h-auto"
+        className={`fixed lg:sticky top-0 left-0 right-0 z-40 bg-white border-b border-black/8 flex items-center lg:!h-auto transition-shadow duration-300 ${scrolled ? 'lg:shadow-[0_4px_18px_-8px_rgba(0,0,0,0.18)]' : ''}`}
         style={{ willChange: 'height' }}
       >
         <div className="w-full max-w-[1400px] mx-auto px-4 lg:px-8 lg:py-3">
