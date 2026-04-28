@@ -125,7 +125,7 @@ function HeroSceneStatic() {
         <h1
           className="font-display text-white leading-[0.86] uppercase"
           style={{
-            fontSize: 'clamp(72px, 18vw, 320px)',
+            fontSize: 'clamp(72px, 13vw, 220px)',
             letterSpacing: '-0.04em',
             fontWeight: 700,
           }}
@@ -264,7 +264,7 @@ function HeroSceneInner() {
           <h1
             className="font-display text-white leading-[0.86] uppercase"
             style={{
-              fontSize: 'clamp(72px, 18vw, 320px)',
+              fontSize: 'clamp(72px, 13vw, 220px)',
               letterSpacing: '-0.04em',
               fontWeight: 700,
             }}
@@ -291,31 +291,14 @@ function HeroSceneInner() {
         </div>
       </motion.div>
 
-      {/* Bottom row: stats + scroll cue */}
+      {/* Bottom row: scroll cue only */}
       <div className="absolute bottom-0 left-0 right-0 z-20 px-5 lg:px-10 pb-8 lg:pb-10">
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 1.5, duration: 0.8 }}
-          className="flex flex-col lg:flex-row lg:items-end lg:justify-between gap-6"
+          className="flex items-end justify-end"
         >
-          {/* Left: stats */}
-          <div className="grid grid-cols-3 gap-6 lg:gap-12 text-white max-w-[640px]">
-            {[
-              { n: '08', l: 'Koleksiyon' },
-              { n: '81', l: 'İl Teslimat' },
-              { n: '∞', l: 'Damar Deseni' },
-            ].map((s) => (
-              <div key={s.l}>
-                <div className="font-display text-3xl lg:text-5xl leading-none">{s.n}</div>
-                <div className="mt-2 text-[10px] tracking-[0.22em] uppercase text-white/55 font-mono">
-                  {s.l}
-                </div>
-              </div>
-            ))}
-          </div>
-
-          {/* Right: scroll cue */}
           <div className="hidden lg:flex items-center gap-3 text-white/55 text-[10px] tracking-[0.28em] uppercase font-mono">
             <motion.span
               animate={{ y: [0, 8, 0] }}
@@ -330,79 +313,7 @@ function HeroSceneInner() {
   );
 }
 
-// SCENE 02 — PRODUCT MARQUEE STRIP (post-hero connector)
-
-function ProductMarqueeScene({ products }: { products: Product[] }) {
-  const items = useMemo(() => {
-    if (!products?.length) return [];
-    // Only show products with a real image so the marquee never renders broken tiles.
-    return products.filter((p) => !!(p.images && p.images.length > 0)).slice(0, 16);
-  }, [products]);
-  if (items.length === 0) return null;
-  const doubled = [...items, ...items];
-
-  return (
-    <section
-      className="relative bg-black text-white py-14 lg:py-20 overflow-hidden border-y border-white/8"
-      data-testid="scene-product-marquee"
-    >
-      {/* Eyebrow */}
-      <div className="absolute top-5 lg:top-7 left-0 right-0 px-5 lg:px-10 flex items-center justify-between text-[10px] font-mono tracking-[0.28em] uppercase text-white/45 z-10">
-        <span>— 02 / Akış</span>
-        <Link
-          href="/magaza"
-          data-testid="link-marquee-shop"
-          aria-label="Tüm ürünleri gör"
-          className="hover:text-polen-orange transition-colors"
-        >
-          Tüm Ürünler ↗
-        </Link>
-      </div>
-
-      <div className="relative mt-6">
-        <div className="flex gap-6 lg:gap-8 animate-marquee-hero">
-          {doubled.map((p, i) => (
-            <Link
-              key={`${p.id}-${i}`}
-              href={`/urun/${p.slug}`}
-              data-testid={`link-marquee-product-${p.id}-${i}`}
-              data-cursor="hover"
-              data-cursor-label={p.name}
-              aria-label={`${p.name} ürün sayfası`}
-              className="group shrink-0 w-[260px] lg:w-[320px]"
-            >
-              <div className="relative aspect-[4/5] overflow-hidden bg-zinc-900">
-                <img
-                  src={p.images?.[0] || ''}
-                  alt={p.name}
-                  loading="lazy"
-                  decoding="async"
-                  className="absolute inset-0 w-full h-full object-cover transition-transform duration-[1200ms] ease-out group-hover:scale-105"
-                />
-                <div className="absolute inset-x-0 bottom-0 h-1/2 bg-gradient-to-t from-black/80 to-transparent" />
-                <div className="absolute bottom-0 left-0 right-0 p-4 lg:p-5 flex items-end justify-between gap-3">
-                  <div className="min-w-0">
-                    <div className="text-[10px] font-mono tracking-[0.22em] uppercase text-white/55">
-                      Ürün
-                    </div>
-                    <div className="text-sm lg:text-base font-medium text-white truncate">
-                      {p.name}
-                    </div>
-                  </div>
-                  <div className="text-sm lg:text-base font-semibold text-polen-orange whitespace-nowrap">
-                    {formatPrice(p.basePrice)} ₺
-                  </div>
-                </div>
-              </div>
-            </Link>
-          ))}
-        </div>
-      </div>
-    </section>
-  );
-}
-
-// SCENE 03 — PINNED HORIZONTAL SHOWCASE
+// SCENE 02 — PINNED HORIZONTAL SHOWCASE
 
 function PinnedShowcaseScene({ products }: { products: Product[] }) {
   const mounted = useMounted();
@@ -664,17 +575,18 @@ function BentoMosaicScene({ products }: { products: Product[] }) {
     return out;
   }, [products]);
 
-  if (items.length === 0) return null;
+  // Hide the entire scene unless we have a meaningful mosaic (≥6 image-bearing products)
+  if (items.length < 6) return null;
 
   return (
     <section
       ref={sectionRef}
-      className="relative bg-[hsl(var(--polen-cream))] text-black py-20 lg:py-28 px-5 lg:px-10"
+      className="relative bg-[hsl(var(--polen-cream))] text-black py-16 lg:py-20 px-5 lg:px-10"
       data-testid="scene-bento"
     >
       {/* Eyebrow row */}
-      <div className="max-w-[1500px] mx-auto flex items-center justify-between mb-10 lg:mb-14 text-[10px] font-mono tracking-[0.28em] uppercase text-black/50">
-        <span>— 04 / Seçmece</span>
+      <div className="max-w-[1320px] mx-auto flex items-center justify-between mb-8 lg:mb-10 text-[10px] font-mono tracking-[0.28em] uppercase text-black/50">
+        <span>— 03 / Seçmece</span>
         <Link
           href="/magaza"
           data-testid="link-bento-all"
@@ -685,7 +597,7 @@ function BentoMosaicScene({ products }: { products: Product[] }) {
         </Link>
       </div>
 
-      <div className="max-w-[1500px] mx-auto grid grid-cols-2 lg:grid-cols-4 auto-rows-[180px] lg:auto-rows-[220px] gap-3 lg:gap-4">
+      <div className="max-w-[1320px] mx-auto grid grid-cols-2 lg:grid-cols-4 auto-rows-[160px] lg:auto-rows-[180px] gap-3 lg:gap-4">
         {items.map((p, i) => {
           const cls = BENTO_LAYOUT[i] || 'col-span-1 row-span-1 aspect-[4/5]';
           return (
@@ -826,6 +738,13 @@ const CATEGORY_BENTO_LAYOUT = [
   'col-span-2 row-span-1', // 7 wide
 ];
 
+interface CategoryRecord {
+  id: string;
+  name: string;
+  slug: string;
+  image?: string | null;
+}
+
 function CategoryBentoScene({
   menuRoots,
   products,
@@ -836,16 +755,45 @@ function CategoryBentoScene({
   const sectionRef = useRef<HTMLDivElement>(null);
   const inView = useInView(sectionRef, { once: true, amount: 0.05 });
 
+  const { data: categories = [] } = useQuery<CategoryRecord[]>({
+    queryKey: ['/api/categories'],
+    queryFn: async () => {
+      const res = await fetch('/api/categories');
+      if (!res.ok) return [];
+      return res.json();
+    },
+    staleTime: 60_000,
+  });
+
+  const categoryImageById = useMemo(() => {
+    const m = new Map<string, string>();
+    for (const c of categories) {
+      if (c.image) m.set(c.id, c.image);
+    }
+    return m;
+  }, [categories]);
+
   const items = useMemo(() => {
     return menuRoots.slice(0, 8).map((root) => {
       const ids = getRootCategoryIds(root);
       const pool = products.filter(
         (p) => p.categoryId && ids.includes(p.categoryId) && p.images?.length,
       );
+      // Image fallback chain: (1) product image from this group → (2) any
+      // matching category record's `image` → (3) null (card renders typographic).
       let image: string | null = null;
       if (pool.length > 0) {
         const idx = hashStr(root.id) % pool.length;
         image = pool[idx].images[0];
+      }
+      if (!image) {
+        for (const cid of ids) {
+          const ci = categoryImageById.get(cid);
+          if (ci) {
+            image = ci;
+            break;
+          }
+        }
       }
       const subTitles = (root.children || [])
         .filter((c) => c.isActive && c.type === 'category' && c.category)
@@ -860,18 +808,18 @@ function CategoryBentoScene({
         subTitles,
       };
     });
-  }, [menuRoots, products]);
+  }, [menuRoots, products, categoryImageById]);
 
   if (items.length === 0) return null;
 
   return (
     <section
       ref={sectionRef}
-      className="relative bg-black text-white py-20 lg:py-28 px-5 lg:px-10"
+      className="relative bg-black text-white py-16 lg:py-20 px-5 lg:px-10"
       data-testid="scene-category-bento"
     >
-      <div className="max-w-[1500px] mx-auto flex items-center justify-between mb-10 lg:mb-14 text-[10px] font-mono tracking-[0.28em] uppercase text-white/55">
-        <span>— 05 / Koleksiyon</span>
+      <div className="max-w-[1320px] mx-auto flex items-center justify-between mb-8 lg:mb-10 text-[10px] font-mono tracking-[0.28em] uppercase text-white/55">
+        <span>— 04 / Koleksiyon</span>
         <Link
           href="/magaza"
           data-testid="link-category-bento-all"
@@ -882,7 +830,7 @@ function CategoryBentoScene({
         </Link>
       </div>
 
-      <div className="max-w-[1500px] mx-auto grid grid-cols-1 lg:grid-cols-4 auto-rows-[260px] lg:auto-rows-[200px] gap-2 lg:gap-3">
+      <div className="max-w-[1320px] mx-auto grid grid-cols-1 lg:grid-cols-4 auto-rows-[240px] lg:auto-rows-[180px] gap-2 lg:gap-3">
         {items.map((it, i) => {
           const cls = CATEGORY_BENTO_LAYOUT[i] || 'col-span-1 row-span-1';
           return (
@@ -953,7 +901,29 @@ function CategoryCard({
           transition={{ duration: 1.4, ease: [0.16, 1, 0.3, 1] }}
         />
       ) : (
-        <div className="absolute inset-0 bg-gradient-to-br from-zinc-800 to-zinc-950" />
+        <>
+          {/* Typographic fallback — diagonal stone-tone gradient with the title
+              echoed huge in the background at very low opacity. Avoids the
+              "flat black tile" look when neither product nor category image is
+              available. */}
+          <div className="absolute inset-0 bg-gradient-to-br from-stone-700 via-stone-800 to-stone-950" />
+          <div className="absolute inset-0 opacity-[0.07] flex items-center justify-center overflow-hidden">
+            <span
+              className="font-display uppercase text-white whitespace-nowrap leading-none"
+              style={{ fontSize: 'clamp(120px, 18vw, 260px)', letterSpacing: '-0.04em' }}
+            >
+              {title}
+            </span>
+          </div>
+          <div
+            aria-hidden="true"
+            className="absolute inset-0 mix-blend-overlay opacity-30"
+            style={{
+              backgroundImage:
+                'radial-gradient(circle at 30% 20%, rgba(255,255,255,0.10), transparent 55%), radial-gradient(circle at 70% 80%, rgba(0,0,0,0.45), transparent 60%)',
+            }}
+          />
+        </>
       )}
       {/* Veil */}
       <motion.div
@@ -1036,16 +1006,6 @@ function StatementMarqueeScene() {
   ];
   const doubled = [...items, ...items, ...items];
 
-  const stats = [
-    { n: '500+', l: 'Tamamlanan Proje' },
-    { n: '10+', l: 'Yıllık Tecrübe' },
-    { n: '%100', l: 'Türk Mermeri' },
-    { n: '81', l: 'İl Teslimat' },
-  ];
-
-  const statsRef = useRef<HTMLDivElement>(null);
-  const inView = useInView(statsRef, { once: true, amount: 0.4 });
-
   return (
     <section
       className="relative bg-[hsl(var(--polen-stone))] text-white overflow-hidden border-y border-white/10"
@@ -1053,7 +1013,7 @@ function StatementMarqueeScene() {
       aria-label="Marka bilgi şeridi"
     >
       {/* Marquee row */}
-      <div className="py-10 lg:py-14 overflow-hidden">
+      <div className="py-10 lg:py-12 overflow-hidden">
         <div className="flex items-center gap-12 lg:gap-16 animate-marquee-slow whitespace-nowrap">
           {doubled.map((t, i) => (
             <span
@@ -1061,41 +1021,11 @@ function StatementMarqueeScene() {
               className={`font-display uppercase ${
                 t.length === 1
                   ? 'text-polen-orange text-2xl lg:text-3xl'
-                  : 'text-3xl lg:text-5xl tracking-[0.02em]'
+                  : 'text-3xl lg:text-4xl tracking-[0.02em]'
               }`}
             >
               {t}
             </span>
-          ))}
-        </div>
-      </div>
-
-      {/* Stats strip */}
-      <div
-        ref={statsRef}
-        className="border-t border-white/10 px-5 lg:px-10 py-10 lg:py-14"
-        data-testid="strip-stats"
-      >
-        <div className="max-w-[1500px] mx-auto grid grid-cols-2 lg:grid-cols-4 gap-y-8 gap-x-6 lg:gap-x-12">
-          {stats.map((s, i) => (
-            <motion.div
-              key={s.l}
-              initial={{ opacity: 0, y: 24 }}
-              animate={inView ? { opacity: 1, y: 0 } : {}}
-              transition={{ duration: 0.7, delay: i * 0.08, ease: [0.16, 1, 0.3, 1] }}
-              className="flex flex-col items-start"
-              data-testid={`stat-${i}`}
-            >
-              <div
-                className="font-display text-white leading-[0.95]"
-                style={{ fontSize: 'clamp(40px, 6vw, 88px)', letterSpacing: '-0.02em' }}
-              >
-                {s.n}
-              </div>
-              <div className="mt-3 text-[10px] lg:text-[11px] tracking-[0.24em] uppercase text-white/55 font-mono">
-                {s.l}
-              </div>
-            </motion.div>
           ))}
         </div>
       </div>
@@ -1111,17 +1041,17 @@ function FinalCtaScene() {
   return (
     <section
       ref={ref}
-      className="relative bg-[hsl(var(--polen-cream))] text-black py-32 lg:py-48 px-5 lg:px-10 overflow-hidden"
+      className="relative bg-[hsl(var(--polen-cream))] text-black py-24 lg:py-36 px-5 lg:px-10 overflow-hidden"
       data-testid="scene-final-cta"
     >
-      <div className="max-w-[1400px] mx-auto">
+      <div className="max-w-[1320px] mx-auto">
         <div className="text-[10px] font-mono tracking-[0.28em] uppercase text-black/45 mb-8">
-          — 06 / Davet
+          — 05 / Davet
         </div>
         <h2
           className="font-display uppercase text-black leading-[0.92]"
           style={{
-            fontSize: 'clamp(40px, 8.5vw, 152px)',
+            fontSize: 'clamp(40px, 6vw, 110px)',
             letterSpacing: '-0.03em',
           }}
         >
@@ -1238,7 +1168,6 @@ export default function Home() {
       <MotionConfig reducedMotion="user">
         <main className="bg-black">
           <HeroScene />
-          <ProductMarqueeScene products={products} />
           <PinnedShowcaseScene products={products} />
           <BentoMosaicScene products={products} />
           <CategoryBentoScene menuRoots={menuRoots} products={products} />
