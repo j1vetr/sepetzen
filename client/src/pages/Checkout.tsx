@@ -416,19 +416,36 @@ export default function Checkout() {
     }
   }, [currentStep, merchantOid, checkoutFormContent, checkPaymentStatus]);
 
-  // Inject iyzico Checkout Form HTML/JS into the DOM when received
+  // Inject iyzico Checkout Form HTML/JS into the DOM when received.
+  // iyzico's bundle.js looks for a div with id="iyzipay-checkout-form" and
+  // class "responsive" — without it the form area stays blank. We also clear
+  // the global iyziInit on unmount so a second checkout in the same SPA
+  // session re-renders correctly (the snippet does `if (typeof iyziInit == 'undefined')`).
   useEffect(() => {
     if (!checkoutFormContent || !checkoutFormRef.current) return;
 
     const container = checkoutFormRef.current;
     container.innerHTML = '';
 
-    // checkoutFormContent contains both HTML and a <script> tag.
-    // Setting innerHTML does NOT execute scripts, so we re-create them.
+    // 1) Mount point that iyzico's bundle.js targets.
+    const formMount = document.createElement('div');
+    formMount.id = 'iyzipay-checkout-form';
+    formMount.className = 'responsive';
+    container.appendChild(formMount);
+
+    // 2) Reset any previous global so the snippet always re-initialises.
+    try {
+      delete (window as unknown as { iyziInit?: unknown }).iyziInit;
+    } catch {
+      (window as unknown as { iyziInit?: unknown }).iyziInit = undefined;
+    }
+
+    // 3) checkoutFormContent contains HTML and/or a <script> tag.
+    // Setting innerHTML does NOT execute inline scripts, so we re-create them.
+    const injectedScripts: HTMLScriptElement[] = [];
     const wrapper = document.createElement('div');
     wrapper.innerHTML = checkoutFormContent;
 
-    // Move all non-script nodes into the container
     Array.from(wrapper.childNodes).forEach((node) => {
       if (node.nodeName === 'SCRIPT') {
         const original = node as HTMLScriptElement;
@@ -437,6 +454,7 @@ export default function Checkout() {
         if (original.type) script.type = original.type;
         script.text = original.text;
         container.appendChild(script);
+        injectedScripts.push(script);
       } else {
         container.appendChild(node);
       }
@@ -444,6 +462,16 @@ export default function Checkout() {
 
     return () => {
       container.innerHTML = '';
+      injectedScripts.forEach((s) => s.parentNode?.removeChild(s));
+      // Remove the bundle.js tag iyzico appended to <head> so a fresh form can load it again.
+      document
+        .querySelectorAll('script[src*="static.iyzipay.com/checkoutform"]')
+        .forEach((el) => el.parentNode?.removeChild(el));
+      try {
+        delete (window as unknown as { iyziInit?: unknown }).iyziInit;
+      } catch {
+        (window as unknown as { iyziInit?: unknown }).iyziInit = undefined;
+      }
     };
   }, [checkoutFormContent]);
 
