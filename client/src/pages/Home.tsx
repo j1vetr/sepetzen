@@ -9,6 +9,7 @@ import {
   useTransform,
   useInView,
   useMotionValueEvent,
+  useReducedMotion,
 } from 'framer-motion';
 import { useQuery } from '@tanstack/react-query';
 import { ArrowUpRight, ArrowRight, Plus } from 'lucide-react';
@@ -110,13 +111,17 @@ function useMounted() {
 
 function HeroScene() {
   const mounted = useMounted();
-  if (!mounted) return <HeroSceneStatic />;
+  const prefersReduced = useReducedMotion();
+  if (!mounted || prefersReduced) return <HeroSceneStatic />;
   return <HeroSceneInner />;
 }
 
 function HeroSceneStatic() {
   return (
-    <section className="relative h-[100svh] min-h-[640px] w-full overflow-hidden bg-black">
+    <section
+      className="relative h-[100svh] min-h-[640px] w-full overflow-hidden bg-black flex items-center justify-center"
+      aria-label="Polen Stone tanıtım"
+    >
       <img
         src={heroPosterImage}
         alt=""
@@ -124,6 +129,25 @@ function HeroSceneStatic() {
         className="absolute inset-0 w-full h-full object-cover opacity-80"
       />
       <div className="absolute inset-0 bg-gradient-to-b from-black/55 via-black/25 to-black/80" />
+      <div className="relative z-10 text-center px-5">
+        <h1
+          className="font-display text-white leading-[0.86] uppercase"
+          style={{
+            fontSize: 'clamp(72px, 18vw, 320px)',
+            letterSpacing: '-0.04em',
+            fontWeight: 700,
+          }}
+          data-testid="text-hero-title"
+        >
+          <span className="block">POLEN</span>
+          <span className="block text-polen-orange" style={{ marginTop: '-0.18em' }}>
+            STONE
+          </span>
+        </h1>
+        <p className="mt-5 lg:mt-7 max-w-[520px] mx-auto text-[12px] lg:text-[13px] tracking-[0.18em] uppercase text-white/65 font-mono">
+          Mermer · Granit · Traverten · Oniks
+        </p>
+      </div>
     </section>
   );
 }
@@ -133,7 +157,6 @@ function HeroSceneInner() {
   const { scrollYProgress } = useScroll({
     target: heroRef,
     offset: ['start start', 'end start'],
-    layoutEffect: false,
   });
   const videoY = useTransform(scrollYProgress, [0, 1], ['0%', '20%']);
   const titleY = useTransform(scrollYProgress, [0, 1], ['0%', '-30%']);
@@ -376,7 +399,6 @@ function PinnedShowcaseSceneInner({ items }: { items: Product[] }) {
   const { scrollYProgress } = useScroll({
     target: containerRef,
     offset: ['start start', 'end end'],
-    layoutEffect: false,
   });
 
   // total horizontal travel calibrated to item count
@@ -1076,21 +1098,47 @@ function FinalCtaScene() {
             Anadolu'nun zengin doğal taş mirasını mekânınıza taşıyoruz.
             Mermer, granit, traverten ve oniks koleksiyonumuzu keşfedin.
           </p>
-          <Link
-            href="/magaza"
-            data-testid="link-final-cta-shop"
-            data-cursor="cta"
-            data-cursor-label="Keşfet"
-            aria-label="Tüm koleksiyonu keşfet"
-            className="group inline-flex items-center gap-4 self-start"
-          >
-            <span className="inline-flex items-center justify-center w-16 h-16 lg:w-20 lg:h-20 rounded-full bg-black text-white group-hover:bg-polen-orange transition-colors">
-              <ArrowUpRight className="w-6 h-6 lg:w-7 lg:h-7" />
-            </span>
-            <span className="text-sm lg:text-base font-medium tracking-[0.18em] uppercase text-black group-hover:text-polen-orange transition-colors">
-              Tüm Koleksiyonu Keşfet
-            </span>
-          </Link>
+          <div className="flex flex-col sm:flex-row items-start sm:items-center gap-5 sm:gap-8">
+            <Link
+              href="/magaza"
+              data-testid="link-final-cta-shop"
+              data-cursor="cta"
+              data-cursor-label="Keşfet"
+              aria-label="Tüm koleksiyonu keşfet"
+              className="group inline-flex items-center gap-4"
+            >
+              <span className="inline-flex items-center justify-center w-16 h-16 lg:w-20 lg:h-20 rounded-full bg-black text-white group-hover:bg-polen-orange transition-colors">
+                <ArrowUpRight className="w-6 h-6 lg:w-7 lg:h-7" />
+              </span>
+              <span className="text-sm lg:text-base font-medium tracking-[0.18em] uppercase text-black group-hover:text-polen-orange transition-colors">
+                Koleksiyonu Keşfet
+              </span>
+            </Link>
+            <a
+              href="https://wa.me/905000000000"
+              target="_blank"
+              rel="noopener noreferrer"
+              data-testid="link-final-cta-whatsapp"
+              data-cursor="cta"
+              data-cursor-label="WhatsApp"
+              aria-label="WhatsApp üzerinden iletişime geç"
+              className="group inline-flex items-center gap-4"
+            >
+              <span className="inline-flex items-center justify-center w-16 h-16 lg:w-20 lg:h-20 rounded-full border border-black/25 text-black group-hover:bg-black group-hover:text-white transition-colors">
+                <svg
+                  viewBox="0 0 24 24"
+                  className="w-6 h-6 lg:w-7 lg:h-7 fill-current"
+                  aria-hidden="true"
+                  focusable="false"
+                >
+                  <path d="M19.05 4.91A10 10 0 0 0 12 2a10 10 0 0 0-8.66 14.95L2 22l5.21-1.34A10 10 0 0 0 22 12a9.93 9.93 0 0 0-2.95-7.09Zm-7.05 15A8.07 8.07 0 0 1 7.9 18.7l-.28-.17-3.09.79.83-3-.18-.3a8 8 0 1 1 6.82 3.86Zm4.41-5.96c-.24-.12-1.42-.7-1.64-.78s-.38-.12-.54.12-.62.78-.76.94-.28.18-.52.06a6.6 6.6 0 0 1-1.95-1.2 7.32 7.32 0 0 1-1.35-1.68c-.14-.24 0-.37.1-.49s.24-.28.36-.42a1.65 1.65 0 0 0 .24-.4.44.44 0 0 0 0-.42c-.06-.12-.54-1.3-.74-1.78s-.39-.4-.54-.41h-.46a.89.89 0 0 0-.64.3 2.7 2.7 0 0 0-.84 2c0 1.18.86 2.32.98 2.48s1.69 2.59 4.1 3.63a13.8 13.8 0 0 0 1.37.51 3.31 3.31 0 0 0 1.51.1 2.48 2.48 0 0 0 1.62-1.14 2 2 0 0 0 .14-1.14c-.06-.12-.22-.18-.46-.3Z" />
+                </svg>
+              </span>
+              <span className="text-sm lg:text-base font-medium tracking-[0.18em] uppercase text-black group-hover:text-polen-orange transition-colors">
+                WhatsApp
+              </span>
+            </a>
+          </div>
         </motion.div>
       </div>
     </section>
