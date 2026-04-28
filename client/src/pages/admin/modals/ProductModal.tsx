@@ -25,24 +25,10 @@ import {
 
 const ALL_SIZES = ['S', 'M', 'L', 'XL', 'XXL', '2XL', '3XL'];
 
-const COLOR_OPTIONS = [
-  { name: 'Siyah', hex: '#000000' },
-  { name: 'Beyaz', hex: '#FFFFFF' },
-  { name: 'Gri', hex: '#6B7280' },
-  { name: 'Lacivert', hex: '#1E3A5F' },
-  { name: 'Kırmızı', hex: '#EF4444' },
-  { name: 'Mavi', hex: '#3B82F6' },
-  { name: 'Yeşil', hex: '#22C55E' },
-  { name: 'Sarı', hex: '#EAB308' },
-  { name: 'Turuncu', hex: '#F97316' },
-  { name: 'Mor', hex: '#A855F7' },
-  { name: 'Pembe', hex: '#EC4899' },
-  { name: 'Kahverengi', hex: '#92400E' },
-  { name: 'Bej', hex: '#D4C4A8' },
-  { name: 'Bordo', hex: '#7C2D12' },
-  { name: 'Antrasit', hex: '#374151' },
-  { name: 'Haki', hex: '#6B8E23' },
-];
+// Türkçe-uyumlu büyük harf dönüşümü: i → İ, ı → I, vs.
+function toTurkishUpper(value: string): string {
+  return value.toLocaleUpperCase('tr-TR');
+}
 
 function generateSlug(name: string) {
   const turkishMap: Record<string, string> = {
@@ -106,8 +92,8 @@ export default function ProductModal({
   const [uploadError, setUploadError] = useState<string | null>(null);
 
   const [previewSize, setPreviewSize] = useState<string | null>(formData.availableSizes[0] || null);
-  const [previewColor, setPreviewColor] = useState<{ name: string; hex: string } | null>(
-    formData.availableColors[0] || null,
+  const [colorInput, setColorInput] = useState<string>(
+    formData.availableColors[0]?.name ? toTurkishUpper(formData.availableColors[0].name) : '',
   );
   const [previewImage, setPreviewImage] = useState(0);
   const [showPreview, setShowPreview] = useState(false);
@@ -141,6 +127,11 @@ export default function ProductModal({
     setPendingFiles([]);
     setUploadError(null);
     setPreviewImage(0);
+    setColorInput(
+      product?.availableColors?.[0]?.name
+        ? toTurkishUpper(product.availableColors[0].name)
+        : '',
+    );
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [product?.id]);
 
@@ -160,17 +151,6 @@ export default function ProductModal({
     });
   };
 
-  const toggleColor = (color: { name: string; hex: string }) => {
-    setFormData((prev) => {
-      const isRemoving = prev.availableColors.some((c) => c.name === color.name);
-      const newColors = isRemoving
-        ? prev.availableColors.filter((c) => c.name !== color.name)
-        : [...prev.availableColors, color];
-      if (isRemoving && previewColor?.name === color.name) setPreviewColor(newColors[0] || null);
-      else if (!isRemoving && newColors.length === 1) setPreviewColor(color);
-      return { ...prev, availableColors: newColors };
-    });
-  };
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files) {
@@ -244,11 +224,17 @@ export default function ProductModal({
       }
     }
 
+    const trimmedColor = colorInput.trim();
+    const normalizedColors = trimmedColor
+      ? [{ name: toTurkishUpper(trimmedColor), hex: '' }]
+      : [];
+
     onSave({
       ...product,
       ...formData,
       slug: formData.slug || generateSlug(formData.name),
       images: [...formData.images, ...uploadedUrls],
+      availableColors: normalizedColors,
     });
   };
 
@@ -595,31 +581,16 @@ export default function ProductModal({
               </div>
             </FormField>
             <div className="mt-3">
-              <FormField label="Renkler">
-                <div className="flex flex-wrap gap-1.5">
-                  {COLOR_OPTIONS.map((color) => {
-                    const selected = formData.availableColors.some((c) => c.name === color.name);
-                    return (
-                      <button
-                        key={color.name}
-                        type="button"
-                        onClick={() => toggleColor(color)}
-                        className={`flex items-center gap-1.5 pl-1.5 pr-2 h-8 rounded-md text-[12px] transition-colors border ${
-                          selected
-                            ? 'bg-neutral-50 text-neutral-900 border-neutral-900'
-                            : 'bg-white text-neutral-700 border-neutral-200 hover:bg-neutral-50'
-                        }`}
-                        data-testid={`button-color-${color.name}`}
-                      >
-                        <span
-                          className="w-4 h-4 rounded-full border border-neutral-300 shrink-0"
-                          style={{ backgroundColor: color.hex }}
-                        />
-                        <span>{color.name}</span>
-                      </button>
-                    );
-                  })}
-                </div>
+              <FormField label="Renk (otomatik büyük harf)">
+                <TextInput
+                  value={colorInput}
+                  onChange={(e) => setColorInput(toTurkishUpper(e.target.value))}
+                  placeholder="Örn. BEYAZ MERMER, SİYAH ABSOLUTE, BEJ TRAVERTEN"
+                  data-testid="input-product-color"
+                />
+                <p className="mt-1 text-[11px] text-neutral-500">
+                  Her renk ayrı bir ürün olarak yönetilir. Boş bırakılırsa renk kaydedilmez.
+                </p>
               </FormField>
             </div>
           </section>
@@ -791,35 +762,14 @@ export default function ProductModal({
                 </div>
               </div>
 
-              {formData.availableColors.length > 0 && (
+              {colorInput.trim() && (
                 <div>
                   <p className="text-[12px] text-neutral-500 mb-1.5">
                     Renk:{' '}
-                    <span className="text-neutral-900">
-                      {previewColor?.name || formData.availableColors[0]?.name}
+                    <span className="text-neutral-900 font-medium tracking-wide">
+                      {toTurkishUpper(colorInput.trim())}
                     </span>
                   </p>
-                  <div className="flex gap-1.5">
-                    {formData.availableColors.map((color) => {
-                      const isSelected =
-                        previewColor?.name === color.name ||
-                        (!previewColor && color.name === formData.availableColors[0]?.name);
-                      return (
-                        <button
-                          key={color.name}
-                          type="button"
-                          onClick={() => setPreviewColor(color)}
-                          className={`w-7 h-7 rounded-full transition-all border ${
-                            isSelected
-                              ? 'border-neutral-900 ring-2 ring-neutral-900/15 ring-offset-1 ring-offset-white'
-                              : 'border-neutral-300'
-                          }`}
-                          style={{ backgroundColor: color.hex }}
-                          title={color.name}
-                        />
-                      );
-                    })}
-                  </div>
                 </div>
               )}
 
