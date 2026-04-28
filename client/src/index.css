@@ -218,7 +218,7 @@
 }
 
 .animate-marquee-slowest {
-  animation: marquee 200s linear infinite;
+  animation: marquee 400s linear infinite;
 }
 
 @keyframes marquee-right {
@@ -254,8 +254,19 @@
 }
 
 .animate-marquee-fast {
-  animation: marquee-fast 18s linear infinite;
+  animation: marquee-fast 36s linear infinite;
   width: max-content;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .animate-marquee,
+  .animate-marquee-slow,
+  .animate-marquee-slowest,
+  .animate-marquee-right,
+  .animate-marquee-fast,
+  .animate-hero-slider {
+    animation: none;
+  }
 }
 
 .hero-clip {
