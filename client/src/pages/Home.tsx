@@ -146,39 +146,37 @@ function HeroSceneStatic() {
 
 function HeroVideoLazy() {
   const [show, setShow] = useState(false);
+  const [isMobile, setIsMobile] = useState<boolean | null>(null);
   useEffect(() => {
-    // Defer video mount past first paint so the LCP poster image lands first.
-    const id = window.setTimeout(() => setShow(true), 900);
-    return () => window.clearTimeout(id);
+    // Pick the right asset up-front so we never download both the 3.7MB desktop
+    // file and the 900KB mobile file. On mobile we shorten the defer so the
+    // hero warms up under ~3s after first paint.
+    const mql = window.matchMedia('(max-width: 767px)');
+    setIsMobile(mql.matches);
+    const onChange = (e: MediaQueryListEvent) => setIsMobile(e.matches);
+    mql.addEventListener('change', onChange);
+    const id = window.setTimeout(() => setShow(true), mql.matches ? 450 : 900);
+    return () => {
+      window.clearTimeout(id);
+      mql.removeEventListener('change', onChange);
+    };
   }, []);
-  if (!show) return null;
+  if (!show || isMobile === null) return null;
+  const src = isMobile ? HERO_VIDEO_MOBILE : HERO_VIDEO_DESKTOP;
   return (
-    <>
-      <video
-        autoPlay
-        loop
-        muted
-        playsInline
-        preload="none"
-        poster={heroPosterImage}
-        className="absolute inset-0 w-full h-full object-cover hidden md:block"
-        aria-hidden="true"
-      >
-        <source src={HERO_VIDEO_DESKTOP} type="video/mp4" />
-      </video>
-      <video
-        autoPlay
-        loop
-        muted
-        playsInline
-        preload="none"
-        poster={heroPosterImage}
-        className="absolute inset-0 w-full h-full object-cover md:hidden"
-        aria-hidden="true"
-      >
-        <source src={HERO_VIDEO_MOBILE} type="video/mp4" />
-      </video>
-    </>
+    <video
+      key={src}
+      autoPlay
+      loop
+      muted
+      playsInline
+      preload="auto"
+      poster={heroPosterImage}
+      className="absolute inset-0 w-full h-full object-cover"
+      aria-hidden="true"
+    >
+      <source src={src} type="video/mp4" />
+    </video>
   );
 }
 
@@ -188,9 +186,22 @@ function HeroSceneInner() {
     target: heroRef,
     offset: ['start start', 'end start'],
   });
-  const videoY = useTransform(scrollYProgress, [0, 1], ['0%', '20%']);
-  const titleY = useTransform(scrollYProgress, [0, 1], ['0%', '-30%']);
-  const titleOpacity = useTransform(scrollYProgress, [0, 0.7], [1, 0]);
+
+  // Skip per-frame parallax transforms on touch devices — they cause
+  // composited reflow during native momentum scroll on iOS Safari and Android
+  // Chrome and produce visible jank in the hero.
+  const [isTouch, setIsTouch] = useState(false);
+  useEffect(() => {
+    const mql = window.matchMedia('(pointer: coarse), (max-width: 1023px)');
+    const update = () => setIsTouch(mql.matches);
+    update();
+    mql.addEventListener('change', update);
+    return () => mql.removeEventListener('change', update);
+  }, []);
+
+  const videoY = useTransform(scrollYProgress, [0, 1], ['0%', isTouch ? '0%' : '20%']);
+  const titleY = useTransform(scrollYProgress, [0, 1], ['0%', isTouch ? '0%' : '-30%']);
+  const titleOpacity = useTransform(scrollYProgress, [0, 0.7], [1, isTouch ? 1 : 0]);
 
   const [time, setTime] = useState('');
   useEffect(() => {
@@ -446,18 +457,31 @@ function PinnedShowcaseSceneInner({ items }: { items: Product[] }) {
       >
         <div className="px-5 mb-6 flex items-center justify-between text-[10px] font-mono tracking-[0.28em] uppercase text-white/55">
           <span>— 03 / Vitrin</span>
-          <Link
-            href="/magaza"
-            className="hover:text-polen-orange transition-colors"
-            data-testid="link-pinned-all"
-            aria-label="Tüm ürünleri gör"
-          >
-            Tümü ↗
-          </Link>
+          <span className="flex items-center gap-3">
+            <span aria-hidden="true" className="text-white/40">
+              ← Kaydır →
+            </span>
+            <Link
+              href="/magaza"
+              className="hover:text-polen-orange transition-colors"
+              data-testid="link-pinned-all"
+              aria-label="Tüm ürünleri gör"
+            >
+              Tümü ↗
+            </Link>
+          </span>
         </div>
         <div
           className="flex gap-5 overflow-x-auto snap-x snap-mandatory scrollbar-hide pl-5 pr-5"
-          style={{ scrollPaddingLeft: '20px', WebkitOverflowScrolling: 'touch' }}
+          style={{
+            scrollPaddingLeft: '20px',
+            WebkitOverflowScrolling: 'touch',
+            // Prevent horizontal swipes from triggering iOS browser back/forward
+            // gestures and keep vertical page scroll free of accidental hijacks.
+            overscrollBehaviorX: 'contain',
+            touchAction: 'pan-x pan-y',
+          }}
+          data-testid="scroller-pinned-mobile"
         >
           {items.map((p, idx) => (
             <Link
