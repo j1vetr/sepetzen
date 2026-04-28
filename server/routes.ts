@@ -38,6 +38,7 @@ import {
   createCheckoutFormInitialize,
   retrieveCheckoutForm,
   isIyzicoConfigured,
+  testIyzicoConnection,
   type IyzicoBasketItem,
 } from "./iyzico";
 import { sendInvoiceToBizimHesap } from "./bizimhesap";
@@ -2344,6 +2345,24 @@ export async function registerRoutes(
     } catch (error) {
       console.error('[iyzico config] error:', error);
       res.status(500).json({ error: 'iyzico ayarları alınamadı' });
+    }
+  });
+
+  app.post("/api/admin/iyzico/test", requireAdmin, async (_req, res) => {
+    try {
+      const result = await testIyzicoConnection();
+      console.log('[iyzico] connection test:', {
+        ok: result.ok,
+        status: result.status,
+        errorCode: result.errorCode,
+        errorMessage: result.errorMessage,
+        apiKeyLength: result.apiKeyLength,
+        secretKeyLength: result.secretKeyLength,
+      });
+      res.json(result);
+    } catch (error) {
+      console.error('[iyzico test] error:', error);
+      res.status(500).json({ error: 'Test çağrısı başarısız' });
     }
   });
 

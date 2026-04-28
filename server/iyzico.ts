@@ -125,6 +125,70 @@ export async function isIyzicoConfigured(): Promise<boolean> {
   return Boolean(apiKey && secretKey);
 }
 
+export type IyzicoTestResult = {
+  ok: boolean;
+  status?: 'success' | 'failure';
+  errorCode?: string;
+  errorMessage?: string;
+  systemTime?: number;
+  apiKeyLength?: number;
+  secretKeyLength?: number;
+  uri: string;
+};
+
+// Calls iyzico's GET /payment/test endpoint, which only validates the HMAC
+// signature and credentials. Useful as an admin "ping" to confirm the saved
+// API key + secret key are accepted by the live gateway.
+export async function testIyzicoConnection(): Promise<IyzicoTestResult> {
+  const apiKey = await getApiKey();
+  const secretKey = await getSecretKey();
+  const base = {
+    apiKeyLength: apiKey.length,
+    secretKeyLength: secretKey.length,
+    uri: LIVE_URL,
+  };
+  if (!apiKey || !secretKey) {
+    return {
+      ok: false,
+      errorMessage: 'API anahtarları yapılandırılmamış',
+      ...base,
+    };
+  }
+  let client: Iyzipay;
+  try {
+    client = new Iyzipay({ apiKey, secretKey, uri: LIVE_URL });
+  } catch (err) {
+    return {
+      ok: false,
+      errorMessage: err instanceof Error ? err.message : String(err),
+      ...base,
+    };
+  }
+  return new Promise((resolve) => {
+    (client as unknown as { apiTest: { retrieve: (cb: (e: unknown, r: unknown) => void) => void } }).apiTest.retrieve(
+      (err: unknown, result: unknown) => {
+        if (err) {
+          resolve({
+            ok: false,
+            errorMessage: err instanceof Error ? err.message : String(err),
+            ...base,
+          });
+          return;
+        }
+        const r = (result || {}) as { status?: 'success' | 'failure'; errorCode?: string; errorMessage?: string; systemTime?: number };
+        resolve({
+          ok: r.status === 'success',
+          status: r.status,
+          errorCode: r.errorCode,
+          errorMessage: r.errorMessage,
+          systemTime: r.systemTime,
+          ...base,
+        });
+      },
+    );
+  });
+}
+
 export async function createCheckoutFormInitialize(
   req: IyzicoCheckoutFormInitializeRequest,
 ): Promise<IyzicoCheckoutFormInitializeResponse> {

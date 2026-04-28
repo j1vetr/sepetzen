@@ -97,6 +97,15 @@ export default function SettingsPanel() {
   const [callbackCopied, setCallbackCopied] = useState(false);
   const [iyzicoApiKey, setIyzicoApiKey] = useState('');
   const [iyzicoSecretKey, setIyzicoSecretKey] = useState('');
+  const [iyzicoTesting, setIyzicoTesting] = useState(false);
+  const [iyzicoTestResult, setIyzicoTestResult] = useState<{
+    ok: boolean;
+    errorCode?: string;
+    errorMessage?: string;
+    apiKeyLength?: number;
+    secretKeyLength?: number;
+    uri?: string;
+  } | null>(null);
   const [maintenanceSaving, setMaintenanceSaving] = useState(false);
   const [waTesting, setWaTesting] = useState(false);
   const [waTestPhone, setWaTestPhone] = useState('');
@@ -187,6 +196,24 @@ export default function SettingsPanel() {
       setMessage({ type: 'error', text: 'Anahtarlar kaydedilemedi' });
     } finally {
       setIyzicoSaving(false);
+    }
+  };
+
+  const handleIyzicoTestConnection = async () => {
+    setIyzicoTesting(true);
+    setIyzicoTestResult(null);
+    setMessage(null);
+    try {
+      const res = await fetch('/api/admin/iyzico/test', {
+        method: 'POST',
+        credentials: 'include',
+      });
+      const data = await res.json();
+      setIyzicoTestResult(data);
+    } catch {
+      setIyzicoTestResult({ ok: false, errorMessage: 'Test isteği gönderilemedi' });
+    } finally {
+      setIyzicoTesting(false);
     }
   };
 
@@ -617,21 +644,68 @@ export default function SettingsPanel() {
               </div>
             </div>
 
-            <div className="flex items-center justify-between gap-3">
+            <div className="flex flex-wrap items-center justify-between gap-3">
               <div className={`text-xs font-medium ${iyzicoConfig.configured ? 'text-emerald-600' : 'text-red-600'}`} data-testid="text-iyzico-status">
                 {iyzicoConfig.configured ? '✓ Anahtarlar tanımlı — ödeme aktif' : '⚠ Anahtarlar eksik — ödeme alınamaz'}
               </div>
-              <button
-                type="button"
-                onClick={handleIyzicoSaveCredentials}
-                disabled={iyzicoSaving || !iyzicoApiKey.trim() || !iyzicoSecretKey.trim()}
-                data-testid="button-iyzico-save-credentials"
-                className="flex items-center gap-2 px-5 py-2.5 bg-neutral-900 text-white rounded-lg hover:bg-neutral-800 transition-colors text-sm font-medium disabled:opacity-50 disabled:cursor-not-allowed"
-              >
-                {iyzicoSaving ? <Loader2 className="w-4 h-4 animate-spin" /> : <KeyRound className="w-4 h-4" />}
-                Anahtarları Kaydet
-              </button>
+              <div className="flex items-center gap-2">
+                <button
+                  type="button"
+                  onClick={handleIyzicoTestConnection}
+                  disabled={iyzicoTesting || !iyzicoConfig.configured}
+                  data-testid="button-iyzico-test"
+                  className="flex items-center gap-2 px-4 py-2.5 bg-white border border-neutral-300 text-neutral-900 rounded-lg hover:bg-neutral-50 transition-colors text-sm font-medium disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  {iyzicoTesting ? <Loader2 className="w-4 h-4 animate-spin" /> : <CheckCircle2 className="w-4 h-4" />}
+                  Bağlantıyı Test Et
+                </button>
+                <button
+                  type="button"
+                  onClick={handleIyzicoSaveCredentials}
+                  disabled={iyzicoSaving || !iyzicoApiKey.trim() || !iyzicoSecretKey.trim()}
+                  data-testid="button-iyzico-save-credentials"
+                  className="flex items-center gap-2 px-5 py-2.5 bg-neutral-900 text-white rounded-lg hover:bg-neutral-800 transition-colors text-sm font-medium disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  {iyzicoSaving ? <Loader2 className="w-4 h-4 animate-spin" /> : <KeyRound className="w-4 h-4" />}
+                  Anahtarları Kaydet
+                </button>
+              </div>
             </div>
+
+            {iyzicoTestResult && (
+              <div
+                className={`p-3 rounded-lg border text-xs space-y-1 ${
+                  iyzicoTestResult.ok
+                    ? 'bg-emerald-50 border-emerald-200 text-emerald-800'
+                    : 'bg-red-50 border-red-200 text-red-800'
+                }`}
+                data-testid="text-iyzico-test-result"
+              >
+                <div className="font-semibold">
+                  {iyzicoTestResult.ok
+                    ? '✓ Bağlantı başarılı — iyzico anahtarlarınızı kabul etti.'
+                    : `✗ Bağlantı başarısız${iyzicoTestResult.errorCode ? ` (Kod: ${iyzicoTestResult.errorCode})` : ''}`}
+                </div>
+                {!iyzicoTestResult.ok && iyzicoTestResult.errorMessage && (
+                  <div>Hata: {iyzicoTestResult.errorMessage}</div>
+                )}
+                <div className="text-[11px] opacity-80 font-mono">
+                  uri: {iyzicoTestResult.uri || '-'} • apiKey uzunluk: {iyzicoTestResult.apiKeyLength ?? 0} • secret
+                  uzunluk: {iyzicoTestResult.secretKeyLength ?? 0}
+                </div>
+                {!iyzicoTestResult.ok && iyzicoTestResult.errorCode === '1001' && (
+                  <div className="mt-2 pt-2 border-t border-red-200">
+                    <strong>Olası nedenler:</strong>
+                    <ul className="list-disc list-inside mt-1 space-y-0.5">
+                      <li>Sandbox/test anahtarı kaydedilmiş — canlı uçnokta kabul etmez. iyzico panelinde sekmeyi <strong>Canlı (Production)</strong>'a alıp anahtarı yeniden kopyalayın.</li>
+                      <li>Anahtarda boşluk veya eksik karakter var — iyzico panelinden tek tıkla "Kopyala" butonunu kullanın.</li>
+                      <li>iyzico hesabınız henüz canlı moda geçirilmemiş (onay süreci tamamlanmamış olabilir).</li>
+                      <li>API anahtarı ile gizli anahtar farklı hesaplara ait — ikisi de aynı satırdan alınmalı.</li>
+                    </ul>
+                  </div>
+                )}
+              </div>
+            )}
 
             <div>
               <label className="block text-sm font-medium text-neutral-500 mb-2">
