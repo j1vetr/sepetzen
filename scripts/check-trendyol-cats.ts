@@ -7,13 +7,13 @@
  *
  * Kullanım (production'da):
  *   cd /var/www/polenstone
+ *   set -a && source .env && set +a
  *   npx tsx scripts/check-trendyol-cats.ts          # 2 sayfa (≈100 ürün)
  *   npx tsx scripts/check-trendyol-cats.ts 5        # 5 sayfa (≈250 ürün)
  *   npx tsx scripts/check-trendyol-cats.ts all      # tüm sayfalar (~860 ürün)
  *
- * Gereken env: DATABASE_URL, MARKETPLACE_ENCRYPTION_KEY (.env'den okunur)
+ * Gereken env: DATABASE_URL, MARKETPLACE_ENCRYPTION_KEY
  */
-import "dotenv/config";
 import { db } from "../server/db";
 import { marketplaces } from "../shared/schema";
 import { eq } from "drizzle-orm";
