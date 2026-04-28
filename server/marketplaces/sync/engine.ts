@@ -432,9 +432,16 @@ async function syncImages(
         }
         results[i] = { relativePath: downloaded.relativePath, hash: downloaded.hash };
       } catch (err) {
+        // Görsel indirme/optimize hatası — sync'i öldürmez, ürün indirilen
+        // diğer görselleriyle devam eder. imagesFailed counter UI'da
+        // "X görsel atlandı" rozeti olarak gösterilir.
+        stats.imagesFailed += 1;
+        const status = err instanceof MarketplaceError ? err.statusCode : undefined;
         errors.push({
           context: `${ctx} image ${img.url}`,
           message: err instanceof Error ? err.message : String(err),
+          statusCode: status,
+          kind: classifyError(err, status),
         });
         results[i] = null;
       }
@@ -448,7 +455,15 @@ async function syncImages(
   };
 }
 
-/** Kategori upsert — Trendyol kategorisi → Polen Stone kategorisi. */
+/**
+ * Kategori upsert — Trendyol kategorisi → Polen Stone kategorisi.
+ *
+ * `cameFromTree=true` ise externalName güvenilir leaf adıdır. Bu durumda mevcut
+ * mapping admin tarafından elle yönetiliyorsa korunur; aksi halde (auto-create
+ * izi taşıyorsa = mevcut site kategorisi adı eski mapping.name ile eşit) snapshot
+ * leaf adına göre yeniden eşlenir. Bu, daha önce yanlışlıkla tek bir parent
+ * kategoriye ("Saksı" gibi) toplanmış stale mapping'leri kendi kendine onarır.
+ */
 async function ensureSiteCategory(
   marketplaceId: string,
   externalId: string,
@@ -456,16 +471,49 @@ async function ensureSiteCategory(
   cache: Map<string, string>,
   stats: SyncStats,
   fullPath: string | null = null,
+  cameFromTree: boolean = false,
 ): Promise<string | null> {
   if (cache.has(externalId)) return cache.get(externalId)!;
 
   const mapping = await storage.getMarketplaceCategoryByExternal(marketplaceId, externalId);
+
   if (mapping?.siteCategoryId) {
-    cache.set(externalId, mapping.siteCategoryId);
-    return mapping.siteCategoryId;
+    // Mapping var → admin elle eşlemiş mi yoksa eski auto-create mi?
+    // Auto-create izi: mapping satırının kendi `name`'i, işaret ettiği site
+    // kategorisinin `name`'i ile eşit. Admin elle eşleseydi adlar genellikle
+    // farklı olurdu (mapping name = pazaryeri leaf, site name = farklı).
+    let isAutoCreated = false;
+    let needsRemap = false;
+    if (cameFromTree && mapping.name !== externalName) {
+      // Tree'den gelen leaf adı eski mapping.name ile aynı değilse, mapping
+      // muhtemelen eski yanlış davranıştan (parent adı leaf sanılarak) kalma.
+      const currentSiteCat = await storage.getCategory(mapping.siteCategoryId);
+      isAutoCreated = !!currentSiteCat && currentSiteCat.name === mapping.name;
+      needsRemap = isAutoCreated;
+    }
+    if (!needsRemap) {
+      cache.set(externalId, mapping.siteCategoryId);
+      // Mapping korunuyor ama tree'den daha güncel bir name/fullPath geldiyse
+      // metadata'yı güncelle (siteCategoryId ezilmez).
+      if (cameFromTree && (mapping.name !== externalName || mapping.fullPath !== fullPath)) {
+        await storage.upsertMarketplaceCategoryMapping(
+          marketplaceId,
+          externalId,
+          externalName,
+          mapping.parentExternalId ?? null,
+          mapping.siteCategoryId,
+          fullPath,
+        );
+      }
+      return mapping.siteCategoryId;
+    }
+    // needsRemap → aşağıdaki auto-create akışına düş (yeni leaf adıyla site
+    // kategorisi bul/yarat ve mapping'i güncelle). Eski auto-create site
+    // kategorisi orphan kalabilir; UI zaten 200+ display_order'da gizliyor.
   }
 
-  // Henüz eşlenmemiş → otomatik bir Polen Stone kategorisi yarat (display_order=200, gizli)
+  // Henüz eşlenmemiş veya remap gerekiyor → leaf adıyla bir Polen Stone
+  // kategorisi bul (slug eşleşirse var olanı kullan), yoksa yarat (200+).
   const slug = turkishSlugify(externalName);
   let siteCat = await storage.getCategoryBySlug(slug);
   if (!siteCat) {
@@ -932,6 +980,10 @@ async function runFullSync(
           categoryName = existingMapping?.name ?? "Genel";
           categoryFullPath = categoryFullPath ?? existingMapping?.fullPath ?? null;
         }
+        // cameFromTree=true: leaf adı snapshot'tan geldi → ensureSiteCategory
+        // stale auto-mapping'leri (ör. tüm ürünler "Saksı"ya pin'lenmiş) kendi
+        // kendine onarsın. Tree miss olduğunda payload adına güveniyoruz ama
+        // remap riski almıyoruz (admin override'larını kaybetmemek için).
         const finalCatId = await ensureSiteCategory(
           mp.id,
           np.externalCategoryId,
@@ -939,6 +991,7 @@ async function runFullSync(
           catCache,
           stats,
           categoryFullPath,
+          treeHit !== undefined,
         );
         if (!finalCatId) continue;
         const mpRow = await storage.getMarketplaceProductByExternal(mp.id, np.externalId);
