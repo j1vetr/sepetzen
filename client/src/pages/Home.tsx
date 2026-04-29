@@ -202,7 +202,7 @@ function HeroOverlayContent({ animated = false }: { animated?: boolean }) {
             <span className="block text-polen-orange">Zarafeti</span>
           </h1>
           <p className="mt-5 text-[11px] tracking-[0.22em] uppercase text-white/75 font-mono">
-            Mermer · Granit · Traverten · Oniks
+            Banyo · Lavabo · Dekor · Mutfak
           </p>
           <Link
             href="/magaza"
@@ -232,8 +232,8 @@ function HeroOverlayContent({ animated = false }: { animated?: boolean }) {
               Doğal Taşın
               <span className="block text-polen-orange">Zamansız Zarafeti</span>
             </h1>
-            <p className="mt-7 max-w-[520px] text-[14px] xl:text-[15px] leading-relaxed text-white/80">
-              Mermer, granit, traverten ve oniks — özenle seçilmiş doğal taş koleksiyonumuzu keşfedin.
+            <p className="mt-7 max-w-[560px] text-[14px] xl:text-[15px] leading-relaxed text-white/80">
+              Doğal mermerden el işçiliğiyle üretilen banyo setleri, lavabolar, servis tabakları ve dekoratif objeler. Her parça atölyemizde özenle hazırlanır.
             </p>
             <div className="mt-10 flex items-center gap-5">
               <Link
