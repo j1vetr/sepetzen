@@ -53,18 +53,18 @@
   --secondary-foreground: 24 10% 16%;
   --muted: 32 18% 94%;
   --muted-foreground: 24 6% 42%;
-  --accent: 22 92% 53%;
+  --accent: 41 98% 55%;
   --accent-foreground: 0 0% 100%;
   --destructive: 0 78% 52%;
   --destructive-foreground: 0 0% 100%;
   --border: 30 16% 88%;
   --input: 30 16% 88%;
-  --ring: 22 92% 53%;
+  --ring: 41 98% 55%;
   --radius: 0.5rem;
 
   /* Polen Stone brand tokens */
-  --polen-orange: 22 92% 53%;
-  --polen-orange-deep: 18 88% 46%;
+  --polen-orange: 41 98% 55%;
+  --polen-orange-deep: 38 95% 47%;
   --polen-stone: 30 8% 22%;
   --polen-cream: 35 30% 96%;
   --polen-vein: 30 12% 78%;
@@ -83,13 +83,13 @@
   --secondary-foreground: 35 20% 96%;
   --muted: 24 8% 14%;
   --muted-foreground: 30 6% 60%;
-  --accent: 22 92% 55%;
+  --accent: 41 98% 57%;
   --accent-foreground: 0 0% 100%;
   --destructive: 0 70% 50%;
   --destructive-foreground: 0 0% 100%;
   --border: 24 6% 18%;
   --input: 24 6% 18%;
-  --ring: 22 92% 55%;
+  --ring: 41 98% 57%;
 }
 
 /* Polen Stone — backwards compatible static utilities (Tailwind v4 @theme above
