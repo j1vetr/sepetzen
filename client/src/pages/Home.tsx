@@ -425,8 +425,8 @@ function StatementMarqueeScene() {
     >
       <div className="py-6 lg:py-9 overflow-hidden">
         <div
-          className="flex items-center gap-7 lg:gap-12 animate-marquee-slow whitespace-nowrap"
-          style={{ animationDuration: '38s' }}
+          className="flex items-center gap-7 lg:gap-12 animate-marquee whitespace-nowrap"
+          style={{ animationDuration: '14s' }}
         >
           {doubled.map((t, i) => (
             <span
