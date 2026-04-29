@@ -34,6 +34,7 @@ import {
   SelectInput,
 } from './admin/_ui/AdminUI';
 import AdminModal from './admin/_ui/AdminModal';
+import { BANK_TRANSFER_INFO } from '@shared/bankInfo';
 
 interface OrderItem {
   id: string;
@@ -485,8 +486,11 @@ export default function AdminOrderDetail() {
                     Havale Ödemesi Bekleniyor
                   </p>
                   <p className="text-[12px] text-neutral-600 leading-relaxed">
-                    ENPARA hesabınıza <span className="font-semibold text-neutral-900">₺{formatCurrency(order.total)}</span> tutarında ödeme geldiğinde onaylayın.
+                    {BANK_TRANSFER_INFO.bankName} hesabınıza <span className="font-semibold text-neutral-900">₺{formatCurrency(order.total)}</span> tutarında ödeme geldiğinde onaylayın.
                     Onayda stok düşülür ve müşteriye sipariş onay bildirimi gönderilir.
+                  </p>
+                  <p className="text-[11px] text-neutral-500 font-mono mt-1.5">
+                    IBAN: {BANK_TRANSFER_INFO.iban}
                   </p>
                 </div>
               </div>

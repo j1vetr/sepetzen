@@ -48,13 +48,13 @@ interface Order {
   createdAt: string;
 }
 
-function BankTransferBadge() {
+function BankTransferBadge({ awaitingTransfer = false }: { awaitingTransfer?: boolean }) {
   return (
     <span
       className="inline-flex items-center gap-1 px-2 h-5 rounded-md bg-polen-orange/15 border border-polen-orange/40 text-[10.5px] font-semibold text-black uppercase tracking-wider"
       data-testid="badge-bank-transfer"
     >
-      🏦 Havale
+      🏦 Havale{awaitingTransfer && ' · Onay Bekliyor'}
     </span>
   );
 }
@@ -799,7 +799,9 @@ export default function OrdersPanel() {
                           <span className="font-mono text-[12px] text-neutral-700">
                             {order.orderNumber}
                           </span>
-                          {order.paymentMethod === 'bank_transfer' && <BankTransferBadge />}
+                          {order.paymentMethod === 'bank_transfer' && (
+                            <BankTransferBadge awaitingTransfer={order.paymentStatus === 'awaiting_transfer'} />
+                          )}
                         </div>
                       </td>
                       <td className="px-5 py-3.5">
@@ -873,7 +875,9 @@ export default function OrdersPanel() {
                           <p className="text-[11px] text-neutral-500 font-mono truncate">
                             {order.orderNumber}
                           </p>
-                          {order.paymentMethod === 'bank_transfer' && <BankTransferBadge />}
+                          {order.paymentMethod === 'bank_transfer' && (
+                            <BankTransferBadge awaitingTransfer={order.paymentStatus === 'awaiting_transfer'} />
+                          )}
                         </div>
                       </div>
                     </div>

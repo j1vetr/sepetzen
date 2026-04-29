@@ -16,6 +16,7 @@ import {
   CheckCircle2, UserPlus, Tag, X, Instagram
 } from 'lucide-react';
 import { COUNTRIES } from '@/lib/countries';
+import { BANK_TRANSFER_INFO } from '@shared/bankInfo';
 
 interface Product {
   id: string;
@@ -66,6 +67,15 @@ export default function Checkout() {
   
   // Payment method tab (card | bank_transfer)
   const [paymentMethod, setPaymentMethod] = useState<'card' | 'bank_transfer'>('card');
+  const [copiedField, setCopiedField] = useState<string | null>(null);
+
+  const copyBankField = async (key: 'bank' | 'holder' | 'iban', value: string) => {
+    try {
+      await navigator.clipboard.writeText(value);
+      setCopiedField(key);
+      setTimeout(() => setCopiedField((curr) => (curr === key ? null : curr)), 1800);
+    } catch {}
+  };
   const [bankTransferLoading, setBankTransferLoading] = useState(false);
 
   // iyzico Checkout Form State
@@ -1191,20 +1201,41 @@ export default function Checkout() {
                           <div className="border border-black/10 p-4 space-y-3">
                             <h3 className="font-display text-sm tracking-wider text-black/85">BANKA BİLGİLERİ</h3>
                             <div className="space-y-2 text-sm">
-                              <div className="flex justify-between gap-3">
-                                <span className="text-black/55">Banka</span>
-                                <span className="font-medium text-black" data-testid="text-bank-name">ENPARA (QNB Finansbank)</span>
-                              </div>
-                              <div className="flex justify-between gap-3">
-                                <span className="text-black/55">Hesap Sahibi</span>
-                                <span className="font-medium text-black" data-testid="text-bank-holder">Salih Kapıcıoğlu</span>
-                              </div>
-                              <div className="flex justify-between gap-3 items-start">
-                                <span className="text-black/55 shrink-0">IBAN</span>
-                                <span className="font-mono text-[13px] font-semibold text-black text-right break-all" data-testid="text-bank-iban">
-                                  TR28 0015 7000 0000 0149 6995 20
-                                </span>
-                              </div>
+                              {[
+                                { key: 'bank' as const, label: 'Banka', value: BANK_TRANSFER_INFO.bankName, testId: 'bank-name' },
+                                { key: 'holder' as const, label: 'Hesap Sahibi', value: BANK_TRANSFER_INFO.accountHolder, testId: 'bank-holder' },
+                                { key: 'iban' as const, label: 'IBAN', value: BANK_TRANSFER_INFO.iban, testId: 'bank-iban', mono: true },
+                              ].map(({ key, label, value, testId, mono }) => (
+                                <div key={key} className="flex items-center justify-between gap-2">
+                                  <span className="text-black/55 shrink-0">{label}</span>
+                                  <div className="flex items-center gap-2 min-w-0">
+                                    <span
+                                      className={`text-black font-semibold text-right break-all ${mono ? 'font-mono text-[13px]' : 'font-medium'}`}
+                                      data-testid={`text-${testId}`}
+                                    >
+                                      {value}
+                                    </span>
+                                    <button
+                                      type="button"
+                                      onClick={() => copyBankField(key, value)}
+                                      className="p-1 text-black/45 hover:text-polen-orange hover:bg-black/[0.04] transition-colors rounded shrink-0"
+                                      aria-label={`${label} kopyala`}
+                                      data-testid={`button-copy-${testId}`}
+                                    >
+                                      {copiedField === key ? (
+                                        <Check className="w-3.5 h-3.5 text-polen-orange" strokeWidth={2.5} />
+                                      ) : (
+                                        <ClipboardCheck className="w-3.5 h-3.5" strokeWidth={2} />
+                                      )}
+                                    </button>
+                                  </div>
+                                </div>
+                              ))}
+                              {copiedField && (
+                                <p className="text-[11px] text-polen-orange font-medium" data-testid="text-copied-feedback">
+                                  Kopyalandı
+                                </p>
+                              )}
                             </div>
                           </div>
 

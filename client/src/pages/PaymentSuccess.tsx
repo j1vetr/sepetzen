@@ -17,6 +17,7 @@ import {
   Phone,
   Clock,
 } from 'lucide-react';
+import { BANK_TRANSFER_INFO } from '@shared/bankInfo';
 
 export default function PaymentSuccess() {
   const [orderNumber, setOrderNumber] = useState<string | null>(null);
@@ -57,6 +58,14 @@ export default function PaymentSuccess() {
 
         if (res.ok) {
           const data = await res.json();
+          // Havale algılaması — query param olmadan refresh edildiğinde de
+          // doğru ekran gösterilsin diye order'ın paymentMethod'una bakarız.
+          if (data.paymentMethod === 'bank_transfer' || data.status === 'awaiting_transfer') {
+            setPaymentMethod('bank_transfer');
+            setOrderNumber(data.orderNumber || oid);
+            setLoading(false);
+            return;
+          }
           if (data.status === 'completed') {
             setOrderNumber(data.orderNumber);
             setLoading(false);
@@ -84,7 +93,7 @@ export default function PaymentSuccess() {
 
   const copyIban = async () => {
     try {
-      await navigator.clipboard.writeText('TR28 0015 7000 0000 0149 6995 20');
+      await navigator.clipboard.writeText(BANK_TRANSFER_INFO.iban);
       setCopiedIban(true);
       setTimeout(() => setCopiedIban(false), 1800);
     } catch {}
@@ -265,17 +274,17 @@ export default function PaymentSuccess() {
               <div className="space-y-2.5 text-sm">
                 <div className="flex justify-between gap-3">
                   <span className="text-black/55">Banka</span>
-                  <span className="font-semibold text-black">ENPARA (QNB Finansbank)</span>
+                  <span className="font-semibold text-black">{BANK_TRANSFER_INFO.bankName}</span>
                 </div>
                 <div className="flex justify-between gap-3">
                   <span className="text-black/55">Hesap Sahibi</span>
-                  <span className="font-semibold text-black">Salih Kapıcıoğlu</span>
+                  <span className="font-semibold text-black">{BANK_TRANSFER_INFO.accountHolder}</span>
                 </div>
                 <div className="flex flex-col gap-1.5">
                   <span className="text-black/55 text-xs">IBAN</span>
                   <div className="flex items-center gap-2 bg-white border border-black/8 px-3 py-2.5">
                     <span className="font-mono text-[13px] sm:text-sm font-bold text-black flex-1 break-all" data-testid="text-iban">
-                      TR28 0015 7000 0000 0149 6995 20
+                      {BANK_TRANSFER_INFO.iban}
                     </span>
                     <button
                       onClick={copyIban}

@@ -6,6 +6,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { motion } from 'framer-motion';
 import { useAuth } from '@/hooks/useAuth';
+import { BANK_TRANSFER_INFO } from '@shared/bankInfo';
 import {
   Search,
   Package,
@@ -495,16 +496,16 @@ export default function OrderTracking() {
                   <div className="bg-white border border-black/8 p-4 space-y-2 text-sm">
                     <div className="flex justify-between gap-3">
                       <span className="text-black/55">Banka</span>
-                      <span className="font-semibold text-black">ENPARA (QNB Finansbank)</span>
+                      <span className="font-semibold text-black">{BANK_TRANSFER_INFO.bankName}</span>
                     </div>
                     <div className="flex justify-between gap-3">
                       <span className="text-black/55">Hesap Sahibi</span>
-                      <span className="font-semibold text-black">Salih Kapıcıoğlu</span>
+                      <span className="font-semibold text-black">{BANK_TRANSFER_INFO.accountHolder}</span>
                     </div>
                     <div className="flex flex-col gap-1 pt-1">
                       <span className="text-black/55 text-xs">IBAN</span>
                       <span className="font-mono text-[13px] sm:text-sm font-bold text-black break-all" data-testid="text-bank-iban">
-                        TR28 0015 7000 0000 0149 6995 20
+                        {BANK_TRANSFER_INFO.iban}
                       </span>
                     </div>
                   </div>
@@ -514,8 +515,8 @@ export default function OrderTracking() {
                 </div>
               )}
 
-              {/* Timeline — sipariş aşamaları */}
-              {order.status !== 'cancelled' && (
+              {/* Timeline — sipariş aşamaları (havale onayı bekleyen siparişlerde gizli) */}
+              {order.status !== 'cancelled' && !(order.paymentMethod === 'bank_transfer' && order.paymentStatus === 'awaiting_transfer') && (
                 <div className="bg-white border border-black/[0.08] p-5 sm:p-6">
                   <h3 className="text-[11px] tracking-[0.2em] uppercase text-black/55 font-semibold mb-6">
                     Sipariş Aşamaları

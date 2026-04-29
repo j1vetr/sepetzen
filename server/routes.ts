@@ -2622,8 +2622,34 @@ export async function registerRoutes(
   // Check payment status
   app.get("/api/payment/status/:merchantOid", async (req: Request, res) => {
     try {
-      const pendingPayment = await storage.getPendingPaymentByMerchantOid(req.params.merchantOid);
+      const merchantOid = req.params.merchantOid;
+      const pendingPayment = await storage.getPendingPaymentByMerchantOid(merchantOid);
+
+      // No pendingPayment row → it might be a bank transfer order (havale flow
+      // doesn't create pendingPayment records). Look up by order number.
       if (!pendingPayment) {
+        const order = await storage.getOrderByNumber(merchantOid);
+        if (!order) {
+          return res.status(404).json({ error: "Ödeme bulunamadı" });
+        }
+        if (order.paymentMethod === 'bank_transfer') {
+          const orderItems = await storage.getOrderItems(order.id);
+          return res.json({
+            status: order.paymentStatus === 'awaiting_transfer' ? 'awaiting_transfer' : 'completed',
+            paymentMethod: 'bank_transfer',
+            paymentStatus: order.paymentStatus,
+            orderStatus: order.status,
+            orderNumber: order.orderNumber,
+            orderId: order.id,
+            total: order.total,
+            items: orderItems.map(item => ({
+              productId: item.productId,
+              productName: item.productName,
+              quantity: item.quantity,
+              price: item.price,
+            })),
+          });
+        }
         return res.status(404).json({ error: "Ödeme bulunamadı" });
       }
 
