@@ -327,6 +327,21 @@ export async function registerRoutes(
   app: Express
 ): Promise<Server> {
 
+  // Meta (Facebook/Instagram) Commerce + Google Merchant ürün akışı
+  // Commerce Manager → Katalog → Veri Kaynakları → Programlanmış Akış URL'i olarak kullanılır
+  app.get("/feed/meta-catalog.xml", async (_req, res) => {
+    try {
+      const { buildMetaCatalogXml } = await import("./feeds");
+      const xml = await buildMetaCatalogXml();
+      res.setHeader("Content-Type", "application/xml; charset=utf-8");
+      res.setHeader("Cache-Control", "public, max-age=3600");
+      res.send(xml);
+    } catch (error) {
+      console.error("[meta-catalog] feed üretimi başarısız:", error);
+      res.status(500).send("Feed üretilemedi");
+    }
+  });
+
   // Dynamic sitemap.xml — categories + products + static pages
   app.get(["/sitemap.xml", "/sitemap_index.xml"], async (_req, res) => {
     try {
