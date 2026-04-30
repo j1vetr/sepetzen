@@ -1157,18 +1157,38 @@ export default function ProductDetail() {
 
             {userReview && (
               <div className="bg-stone-50 border border-black/8 p-6 mb-8">
-                <div className="flex items-center gap-2 mb-2">
+                <div className="flex items-center gap-2 mb-2 flex-wrap">
                   <StarRating rating={userReview.rating} size={14} />
-                  <span className="text-xs text-emerald-700 font-medium uppercase tracking-wider">
-                    <Check className="inline w-3 h-3 mr-0.5" />
-                    Değerlendirmeniz
-                  </span>
+                  {userReview.isApproved ? (
+                    <span className="text-xs text-emerald-700 font-medium uppercase tracking-wider">
+                      <Check className="inline w-3 h-3 mr-0.5" />
+                      Değerlendirmeniz
+                    </span>
+                  ) : userReview.rejectionReason ? (
+                    <span className="text-xs text-red-700 font-medium uppercase tracking-wider px-2 py-0.5 bg-red-50 border border-red-200 rounded">
+                      Onaylanmadı
+                    </span>
+                  ) : (
+                    <span className="text-xs text-amber-700 font-medium uppercase tracking-wider px-2 py-0.5 bg-amber-50 border border-amber-200 rounded">
+                      Onay Bekliyor
+                    </span>
+                  )}
                 </div>
                 {userReview.title && (
                   <h4 className="font-semibold text-black">{userReview.title}</h4>
                 )}
                 {userReview.content && (
                   <p className="text-black/55 mt-1 text-sm">{userReview.content}</p>
+                )}
+                {!userReview.isApproved && !userReview.rejectionReason && (
+                  <p className="text-[12px] text-amber-700 mt-3 leading-snug">
+                    Yorumunuz yönetici onayından sonra ürün sayfasında görünecek.
+                  </p>
+                )}
+                {userReview.rejectionReason && (
+                  <div className="mt-3 text-[12px] text-red-700 bg-red-50 border border-red-100 rounded p-2">
+                    <strong>Reddetme nedeni:</strong> {userReview.rejectionReason}
+                  </div>
                 )}
               </div>
             )}
