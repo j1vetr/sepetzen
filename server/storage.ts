@@ -1124,7 +1124,7 @@ export class DbStorage implements IStorage {
       .set({
         isApproved: false,
         rejectionReason: reason,
-        approvedAt: new Date(),
+        approvedAt: null,
         approvedBy: adminId,
       })
       .where(eq(productReviews.id, id))
