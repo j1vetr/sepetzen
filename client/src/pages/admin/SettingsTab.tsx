@@ -507,7 +507,7 @@ export default function SettingsPanel() {
               type="text"
               value={settings.site_url}
               onChange={(e) => setSettings(s => ({ ...s, site_url: e.target.value }))}
-              placeholder="https://polenstone.com.tr"
+              placeholder="https://polenstone.com"
               className="w-full px-4 py-3 bg-neutral-50 border border-neutral-200 rounded-lg text-neutral-900 focus:border-white transition-colors"
               data-testid="input-site-url"
             />

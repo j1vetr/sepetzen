@@ -267,7 +267,7 @@ export async function sendReviewPendingToAdmin(payload: ReviewPendingPayload): P
   const baslikSatiri = payload.title ? `Başlık: _${truncate(payload.title, 80)}_\n` : '';
   const icerikSatiri = payload.content ? `Yorum: "${truncate(payload.content, 200)}"\n\n` : '\n';
 
-  const siteUrl = process.env.SITE_URL || 'https://polenstone.com.tr';
+  const siteUrl = process.env.SITE_URL || 'https://polenstone.com';
   const vars: Record<string, string> = {
     urunAdi: payload.productName,
     yorumYazari: payload.authorName,

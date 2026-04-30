@@ -313,7 +313,7 @@ async function generateQuotePdfBuffer(quote: any, dealer: any, items: any[]): Pr
       
       // Footer
       doc.fontSize(8).font(fontRegular).fillColor('#999999');
-      doc.text('Polen Stone Doğal Taş & Mermer | www.polenstone.com.tr | info@polenstone.com', 50, 780, { align: 'center', width: 495 });
+      doc.text('Polen Stone Doğal Taş & Mermer | www.polenstone.com | info@polenstone.com', 50, 780, { align: 'center', width: 495 });
       
       doc.end();
     } catch (error) {
@@ -330,7 +330,7 @@ export async function registerRoutes(
   // Dynamic sitemap.xml — categories + products + static pages
   app.get(["/sitemap.xml", "/sitemap_index.xml"], async (_req, res) => {
     try {
-      const baseUrl = "https://polenstone.com.tr";
+      const baseUrl = "https://polenstone.com";
       const today = new Date().toISOString().split("T")[0];
 
       const staticPages: Array<{ loc: string; priority: string; changefreq: string }> = [
@@ -2214,7 +2214,7 @@ export async function registerRoutes(
 
       // Get base URL for callback - use production domain in prod
       const baseUrl = process.env.NODE_ENV === 'production' 
-        ? (process.env.PUBLIC_BASE_URL || 'https://polenstone.com.tr')
+        ? (process.env.PUBLIC_BASE_URL || 'https://polenstone.com')
         : `${req.headers['x-forwarded-proto'] || 'https'}://${req.headers.host || 'localhost:5000'}`;
 
       // Add shipping as a basket line so sum(basketItems.price) === priceTry
@@ -2527,7 +2527,7 @@ export async function registerRoutes(
   // The legacy /api/payment/callback path is kept as an alias for older webhooks.
   const iyzicoCallbackHandler = async (req: Request, res: Response) => {
     const baseUrl = process.env.NODE_ENV === 'production'
-      ? (process.env.PUBLIC_BASE_URL || 'https://polenstone.com.tr')
+      ? (process.env.PUBLIC_BASE_URL || 'https://polenstone.com')
       : `${req.headers['x-forwarded-proto'] || 'https'}://${req.headers.host || 'localhost:5000'}`;
 
     const sendRedirect = (path: string) => res.redirect(303, `${baseUrl}${path}`);
@@ -2847,7 +2847,7 @@ export async function registerRoutes(
     try {
       const apiKey = (await storage.getSiteSetting('iyzico_api_key')) || '';
       const secretKey = (await storage.getSiteSetting('iyzico_secret_key')) || '';
-      const baseUrl = process.env.PUBLIC_BASE_URL || 'https://polenstone.com.tr';
+      const baseUrl = process.env.PUBLIC_BASE_URL || 'https://polenstone.com';
       res.json({
         configured: Boolean(apiKey && secretKey),
         apiKeyMasked: maskSecret(apiKey),
@@ -5150,9 +5150,9 @@ export async function registerRoutes(
   // Robots.txt
   app.get("/robots.txt", (req, res) => {
     const host = req.get('host') || '';
-    const isProd = host.includes('polenstone.com.tr');
+    const isProd = host.includes('polenstone.com');
     const baseUrl = isProd
-      ? 'https://polenstone.com.tr'
+      ? 'https://polenstone.com'
       : `${req.protocol}://${host}`;
     const robotsTxt = `User-agent: *
 Allow: /
@@ -5565,7 +5565,7 @@ Sitemap: ${baseUrl}/sitemap.xml
           try {
             let imageUrl = item.productImage;
             if (imageUrl.startsWith('/uploads/')) {
-              imageUrl = `https://polenstone.com.tr${imageUrl}`;
+              imageUrl = `https://polenstone.com${imageUrl}`;
             }
             
             if (imageUrl.startsWith('http://') || imageUrl.startsWith('https://')) {
@@ -5636,7 +5636,7 @@ Sitemap: ${baseUrl}/sitemap.xml
       
       // Footer
       doc.fontSize(8).font(fontRegular).fillColor('#999999');
-      doc.text('Polen Stone Doğal Taş & Mermer | www.polenstone.com.tr | info@polenstone.com', 50, 780, { align: 'center', width: 495 });
+      doc.text('Polen Stone Doğal Taş & Mermer | www.polenstone.com | info@polenstone.com', 50, 780, { align: 'center', width: 495 });
       
       doc.end();
     } catch (error) {
@@ -6243,7 +6243,7 @@ Sitemap: ${baseUrl}/sitemap.xml
       const allCategories = await storage.getCategories();
       const categoryMap = new Map(allCategories.map(c => [c.id, c.name]));
 
-      const baseUrl = "https://polenstone.com.tr";
+      const baseUrl = "https://polenstone.com";
       const items: string[] = [];
 
       for (const product of allProducts) {
