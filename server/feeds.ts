@@ -82,40 +82,49 @@ export async function buildMetaCatalogXml(): Promise<string> {
     const price = formatPriceTRY(p.basePrice);
 
     const additionalImageTags = additionalImages
-      .map((u) => `      <g:additional_image_link>${escapeXml(u)}</g:additional_image_link>`)
+      .map((u) => `    <g:additional_image_link>${escapeXml(u)}</g:additional_image_link>`)
       .join("\n");
+
+    const updatedAt = (p.updatedAt instanceof Date ? p.updatedAt : new Date()).toISOString();
 
     items.push(
       [
-        "    <item>",
-        `      <g:id>${escapeXml(id)}</g:id>`,
-        `      <g:title>${escapeXml(title)}</g:title>`,
-        `      <g:description>${escapeXml(description)}</g:description>`,
-        `      <g:link>${escapeXml(link)}</g:link>`,
-        `      <g:image_link>${escapeXml(mainImage)}</g:image_link>`,
+        "  <entry>",
+        `    <g:id>${escapeXml(id)}</g:id>`,
+        `    <title>${escapeXml(title)}</title>`,
+        `    <link rel="alternate" href="${escapeXml(link)}" />`,
+        `    <updated>${escapeXml(updatedAt)}</updated>`,
+        `    <summary>${escapeXml(description.slice(0, 500))}</summary>`,
+        `    <g:description>${escapeXml(description)}</g:description>`,
+        `    <g:link>${escapeXml(link)}</g:link>`,
+        `    <g:image_link>${escapeXml(mainImage)}</g:image_link>`,
         additionalImageTags,
-        `      <g:availability>in stock</g:availability>`,
-        `      <g:condition>new</g:condition>`,
-        `      <g:price>${escapeXml(price)}</g:price>`,
-        `      <g:brand>${escapeXml(BRAND_NAME)}</g:brand>`,
-        `      <g:product_type>${escapeXml(productType)}</g:product_type>`,
-        `      <g:identifier_exists>no</g:identifier_exists>`,
-        "    </item>",
+        `    <g:availability>in stock</g:availability>`,
+        `    <g:condition>new</g:condition>`,
+        `    <g:price>${escapeXml(price)}</g:price>`,
+        `    <g:brand>${escapeXml(BRAND_NAME)}</g:brand>`,
+        `    <g:product_type>${escapeXml(productType)}</g:product_type>`,
+        `    <g:identifier_exists>no</g:identifier_exists>`,
+        "  </entry>",
       ]
         .filter((line) => line && line.length > 0)
         .join("\n"),
     );
   }
 
-  const header = `<?xml version="1.0" encoding="UTF-8"?>
-<rss xmlns:g="http://base.google.com/ns/1.0" version="2.0">
-  <channel>
-    <title>${escapeXml(BRAND_NAME)}</title>
-    <link>${escapeXml(SITE_URL)}</link>
-    <description>Doğal Taş ve Mermer Ürün Kataloğu</description>`;
+  const feedUpdated = new Date().toISOString();
+  const feedSelf = `${SITE_URL}/feed/meta-catalog.xml`;
 
-  const footer = `  </channel>
-</rss>`;
+  const header = `<?xml version="1.0" encoding="UTF-8"?>
+<feed xmlns="http://www.w3.org/2005/Atom" xmlns:g="http://base.google.com/ns/1.0">
+  <title>${escapeXml(BRAND_NAME)} - Ürün Kataloğu</title>
+  <link rel="self" href="${escapeXml(feedSelf)}" />
+  <link rel="alternate" href="${escapeXml(SITE_URL)}" />
+  <updated>${escapeXml(feedUpdated)}</updated>
+  <author><name>${escapeXml(BRAND_NAME)}</name></author>
+  <id>${escapeXml(feedSelf)}</id>`;
+
+  const footer = `</feed>`;
 
   return `${header}\n${items.join("\n")}\n${footer}\n`;
 }
