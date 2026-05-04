@@ -176,12 +176,10 @@ export default function WholesaleTab({
     setDownloading(true);
     try {
       const productIds = filteredProducts.map((p) => p.id);
-      const productDiscounts: Record<string, number> = {};
-      for (const p of filteredProducts) {
-        const { rate, source } = getEffectiveDiscount(p);
-        if (rate > 0) {
-          productDiscounts[p.id] = rate;
-        }
+
+      const explicitProductDiscounts: Record<string, number> = {};
+      for (const [pid, r] of Object.entries(productRates)) {
+        if (r > 0) explicitProductDiscounts[pid] = r;
       }
 
       const res = await fetch('/api/admin/wholesale/pdf', {
@@ -193,7 +191,7 @@ export default function WholesaleTab({
           categoryId: categoryFilter !== 'all' ? categoryFilter : undefined,
           productIds,
           categoryDiscounts: categoryRates,
-          productDiscounts,
+          productDiscounts: explicitProductDiscounts,
         }),
       });
       if (!res.ok) throw new Error('PDF indirilemedi');
@@ -426,12 +424,12 @@ export default function WholesaleTab({
                 <th className="text-left px-4 py-3 font-medium text-neutral-500">Ürün</th>
                 <th className="text-left px-4 py-3 font-medium text-neutral-500 hidden sm:table-cell">Kategori</th>
                 <th className="text-right px-4 py-3 font-medium text-neutral-500">Liste Fiyatı</th>
+                <th className="text-center px-4 py-3 font-medium text-neutral-500 w-20">
+                  <Tag className="w-3 h-3 inline mr-1 -mt-0.5" />
+                  Özel %
+                </th>
                 {hasAnyDiscount && (
                   <>
-                    <th className="text-center px-4 py-3 font-medium text-neutral-500 w-20">
-                      <Tag className="w-3 h-3 inline mr-1 -mt-0.5" />
-                      Özel %
-                    </th>
                     <th className="text-right px-4 py-3 font-medium text-neutral-500">İndirimli</th>
                     <th className="text-center px-4 py-3 font-medium text-neutral-500">Kaynak</th>
                   </>
@@ -499,20 +497,20 @@ export default function WholesaleTab({
                         {formatPrice(base)} TL
                       </span>
                     </td>
+                    <td className="px-4 py-2 text-center">
+                      <input
+                        type="number"
+                        min={0}
+                        max={99}
+                        value={productRates[product.id] || ''}
+                        onChange={(e) => handleProductRate(product.id, parseInt(e.target.value) || 0)}
+                        placeholder="—"
+                        className="w-14 h-7 px-2 border border-neutral-200 rounded text-[12px] text-center focus:outline-none focus:ring-1 focus:ring-violet-400 focus:border-transparent mx-auto"
+                        data-testid={`input-product-rate-${product.id}`}
+                      />
+                    </td>
                     {hasAnyDiscount && (
                       <>
-                        <td className="px-4 py-2 text-center">
-                          <input
-                            type="number"
-                            min={0}
-                            max={99}
-                            value={productRates[product.id] || ''}
-                            onChange={(e) => handleProductRate(product.id, parseInt(e.target.value) || 0)}
-                            placeholder="—"
-                            className="w-14 h-7 px-2 border border-neutral-200 rounded text-[12px] text-center focus:outline-none focus:ring-1 focus:ring-violet-400 focus:border-transparent mx-auto"
-                            data-testid={`input-product-rate-${product.id}`}
-                          />
-                        </td>
                         <td className="px-4 py-3 text-right whitespace-nowrap font-semibold text-emerald-700">
                           {effectiveRate > 0 ? `${formatPrice(discounted)} TL` : '—'}
                         </td>
@@ -531,7 +529,7 @@ export default function WholesaleTab({
               {filteredProducts.length === 0 && (
                 <tr>
                   <td
-                    colSpan={hasAnyDiscount ? 7 : 4}
+                    colSpan={hasAnyDiscount ? 7 : 5}
                     className="px-4 py-12 text-center text-neutral-400"
                   >
                     Gösterilecek ürün bulunamadı.
