@@ -6389,20 +6389,18 @@ ${items.join("\n")}
       const { discountRate = 0, productIds, categoryId } = req.body;
       const rate = Math.max(0, Math.min(99, Number(discountRate) || 0));
 
-      let allProducts = await storage.getAllProducts();
-      allProducts = allProducts.filter((p: any) => p.isActive);
+      let filteredProducts = await storage.getAllProducts();
+      filteredProducts = filteredProducts.filter((p) => p.isActive);
 
       if (productIds && Array.isArray(productIds) && productIds.length > 0) {
-        const idSet = new Set(productIds);
-        allProducts = allProducts.filter((p: any) => idSet.has(p.id));
+        const idSet = new Set(productIds as string[]);
+        filteredProducts = filteredProducts.filter((p) => idSet.has(p.id));
       } else if (categoryId) {
-        allProducts = allProducts.filter((p: any) =>
-          p.categoryId === categoryId || (p.categoryIds || []).includes(categoryId),
-        );
+        filteredProducts = filteredProducts.filter((p) => p.categoryId === categoryId);
       }
 
-      const allCategories = await storage.getAllCategories();
-      const catMap = new Map(allCategories.map((c: any) => [c.id, c.name]));
+      const allCategories = await storage.getCategories();
+      const catMap = new Map(allCategories.map((c) => [c.id, c.name]));
 
       const doc = new PDFDocument({ size: 'A4', margin: 40, bufferPages: true });
 
@@ -6436,13 +6434,17 @@ ${items.join("\n")}
           const pngBuf = await sharp(svgLogoPath).resize(140).png().toBuffer();
           doc.image(pngBuf, marginL, 30, { width: 100 });
           logoAdded = true;
-        } catch {}
+        } catch (logoErr) {
+          console.warn('[Wholesale PDF] SVG logo conversion failed:', logoErr);
+        }
       }
       if (!logoAdded && fs.existsSync(pngLogoPath)) {
         try {
           doc.image(pngLogoPath, marginL, 30, { width: 80 });
           logoAdded = true;
-        } catch {}
+        } catch (logoErr) {
+          console.warn('[Wholesale PDF] PNG logo embed failed:', logoErr);
+        }
       }
       if (!logoAdded) {
         doc.fontSize(24).font(fontB).fillColor(darkColor).text('Polen Stone', marginL, 35);
@@ -6462,7 +6464,7 @@ ${items.join("\n")}
       if (rate > 0) {
         doc.text(`İndirim Oranı: %${rate}`, marginL, 147);
       }
-      doc.text(`Toplam Ürün: ${allProducts.length}`, marginL, rate > 0 ? 162 : 147);
+      doc.text(`Toplam Ürün: ${filteredProducts.length}`, marginL, rate > 0 ? 162 : 147);
 
       if (categoryId) {
         const catName = catMap.get(categoryId) || '';
@@ -6503,13 +6505,13 @@ ${items.join("\n")}
       const rowH = 50;
       const pageBottom = 790;
 
-      for (let i = 0; i < allProducts.length; i++) {
+      for (let i = 0; i < filteredProducts.length; i++) {
         if (currentY + rowH > pageBottom) {
           doc.addPage();
           currentY = drawTableHeader(40);
         }
 
-        const p = allProducts[i] as any;
+        const p = filteredProducts[i];
         const bgColor = i % 2 === 0 ? '#ffffff' : '#f8f8f8';
         doc.rect(marginL, currentY, usableW, rowH).fill(bgColor);
         doc.rect(marginL, currentY, usableW, rowH).stroke('#e5e5e5');
@@ -6534,7 +6536,9 @@ ${items.join("\n")}
                 doc.image(optimized, colImg + 3, currentY + 4, { width: 42, height: 42 });
               }
             }
-          } catch {}
+          } catch (imgErr) {
+            console.warn(`[Wholesale PDF] Image fetch failed for product ${p.id}:`, imgErr instanceof Error ? imgErr.message : imgErr);
+          }
         }
 
         doc.fontSize(8).font(fontB).fillColor(darkColor);
@@ -6544,8 +6548,8 @@ ${items.join("\n")}
           doc.text(`SKU: ${p.sku}`, colName, currentY + 32, { width: colNameW });
         }
 
-        const catIds = p.categoryIds?.length ? p.categoryIds : p.categoryId ? [p.categoryId] : [];
-        const catNames = catIds.map((id: string) => catMap.get(id)).filter(Boolean).join(', ');
+        const catIds = p.categoryId ? [p.categoryId] : [];
+        const catNames = catIds.map((id) => catMap.get(id)).filter(Boolean).join(', ');
         doc.fontSize(7).font(fontR).fillColor('#666666');
         doc.text(catNames || '—', colCat, currentY + 15, { width: colCatW, lineBreak: true, height: 20 });
 
