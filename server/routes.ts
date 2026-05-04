@@ -11,7 +11,7 @@ import PDFDocument from "pdfkit";
 import sharp from "sharp";
 import { cache, CACHE_KEYS, CACHE_TTL } from "./cache";
 import { eq, desc, sql } from "drizzle-orm";
-import { insertAdminUserSchema, insertCategorySchema, insertProductSchema, insertProductVariantSchema, insertCartItemSchema, insertOrderSchema, insertOrderItemSchema, insertUserSchema, couponRedemptions, orders, coupons, products, stockAdjustments } from "@shared/schema";
+import { insertAdminUserSchema, insertCategorySchema, insertProductSchema, insertProductVariantSchema, insertCartItemSchema, insertOrderSchema, insertOrderItemSchema, insertUserSchema, couponRedemptions, orders, coupons, products, stockAdjustments, productCategories } from "@shared/schema";
 import { optimizeImage, optimizeImageBuffer, optimizeUploadedFiles } from "./imageOptimizer";
 import { 
   sendWelcomeEmail, 
@@ -6396,7 +6396,14 @@ ${items.join("\n")}
         const idSet = new Set(productIds as string[]);
         filteredProducts = filteredProducts.filter((p) => idSet.has(p.id));
       } else if (categoryId) {
-        filteredProducts = filteredProducts.filter((p) => p.categoryId === categoryId);
+        const catProductIds = await db
+          .selectDistinct({ productId: productCategories.productId })
+          .from(productCategories)
+          .where(eq(productCategories.categoryId, categoryId));
+        const catIdSet = new Set(catProductIds.map((r) => r.productId));
+        filteredProducts = filteredProducts.filter(
+          (p) => p.categoryId === categoryId || catIdSet.has(p.id),
+        );
       }
 
       const allCategories = await storage.getCategories();
@@ -6501,6 +6508,51 @@ ${items.join("\n")}
         return y + 22;
       };
 
+      const allowedHosts = ['polenstone.com', 'cdn.polenstone.com', 'img.trendyol.com', 'cdn.dsmcdn.com'];
+      const isAllowedHost = (url: string): boolean => {
+        try {
+          const u = new URL(url);
+          return ['http:', 'https:'].includes(u.protocol) &&
+            allowedHosts.some(h => u.hostname === h || u.hostname.endsWith('.' + h));
+        } catch (_e) { return false; }
+      };
+
+      const fetchImage = async (src: string): Promise<Buffer | null> => {
+        try {
+          let imageUrl = src;
+          if (imageUrl.startsWith('/uploads/')) {
+            imageUrl = `https://polenstone.com${imageUrl}`;
+          }
+          if (!isAllowedHost(imageUrl)) return null;
+          const controller = new AbortController();
+          const timeout = setTimeout(() => controller.abort(), 5000);
+          const imgRes = await fetch(imageUrl, { signal: controller.signal });
+          clearTimeout(timeout);
+          if (!imgRes.ok) return null;
+          const imgBuf = Buffer.from(await imgRes.arrayBuffer());
+          return sharp(imgBuf).resize(80, 80, { fit: 'cover' }).jpeg({ quality: 70 }).toBuffer();
+        } catch (_fetchErr) {
+          return null;
+        }
+      };
+
+      const BATCH_SIZE = 5;
+      const imageCache = new Map<string, Buffer | null>();
+      for (let b = 0; b < filteredProducts.length; b += BATCH_SIZE) {
+        const batch = filteredProducts.slice(b, b + BATCH_SIZE);
+        const results = await Promise.allSettled(
+          batch.map((p) => {
+            const src = p.images?.[0];
+            if (!src) return Promise.resolve(null);
+            return fetchImage(src);
+          }),
+        );
+        batch.forEach((p, idx) => {
+          const result = results[idx];
+          imageCache.set(p.id, result.status === 'fulfilled' ? result.value : null);
+        });
+      }
+
       let currentY = drawTableHeader(headerY);
       const rowH = 50;
       const pageBottom = 790;
@@ -6516,28 +6568,12 @@ ${items.join("\n")}
         doc.rect(marginL, currentY, usableW, rowH).fill(bgColor);
         doc.rect(marginL, currentY, usableW, rowH).stroke('#e5e5e5');
 
-        const imgSrc = p.images?.[0];
-        if (imgSrc) {
+        const cachedImg = imageCache.get(p.id);
+        if (cachedImg) {
           try {
-            let imageUrl = imgSrc;
-            if (imageUrl.startsWith('/uploads/')) {
-              imageUrl = `https://polenstone.com${imageUrl}`;
-            }
-            const allowedHosts = ['polenstone.com', 'cdn.polenstone.com', 'img.trendyol.com', 'cdn.dsmcdn.com'];
-            const imgUrlObj = new URL(imageUrl);
-            if (['http:', 'https:'].includes(imgUrlObj.protocol) && allowedHosts.some(h => imgUrlObj.hostname === h || imgUrlObj.hostname.endsWith('.' + h))) {
-              const controller = new AbortController();
-              const timeout = setTimeout(() => controller.abort(), 5000);
-              const imgRes = await fetch(imageUrl, { signal: controller.signal });
-              clearTimeout(timeout);
-              if (imgRes.ok) {
-                const imgBuf = Buffer.from(await imgRes.arrayBuffer());
-                const optimized = await sharp(imgBuf).resize(80, 80, { fit: 'cover' }).jpeg({ quality: 70 }).toBuffer();
-                doc.image(optimized, colImg + 3, currentY + 4, { width: 42, height: 42 });
-              }
-            }
+            doc.image(cachedImg, colImg + 3, currentY + 4, { width: 42, height: 42 });
           } catch (imgErr) {
-            console.warn(`[Wholesale PDF] Image fetch failed for product ${p.id}:`, imgErr instanceof Error ? imgErr.message : imgErr);
+            console.warn(`[Wholesale PDF] Image embed failed for product ${p.id}:`, imgErr instanceof Error ? imgErr.message : imgErr);
           }
         }
 
