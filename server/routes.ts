@@ -4253,6 +4253,334 @@ export async function registerRoutes(
     }
   });
 
+  // Aras Kargo: Print label (A4 HTML page)
+  app.get("/api/admin/orders/:id/aras-kargo/label", requireAdmin, async (req, res) => {
+    try {
+      const { getLabelData } = await import('./arasKargoService.js');
+      const order = await storage.getOrder(req.params.id);
+      if (!order) return res.status(404).send('<h1>Sipariş bulunamadı</h1>');
+
+      const label = await getLabelData(order.orderNumber);
+
+      const addr = order.shippingAddress as any;
+      const addressLine = [addr?.address, addr?.district, addr?.city].filter(Boolean).join(', ');
+
+      const model = label.barcodeModels?.[0];
+      const receiverName = model?.ReceiverAccountName || order.customerName;
+      const receiverAddr = [model?.ReceiverAddress, model?.ReceiverAddress2, model?.ReceiverAddress3].filter(Boolean).join(', ') || addressLine;
+      const receiverCity = [model?.ReceiverTown, model?.ReceiverCity].filter(Boolean).join(' / ') || (addr?.city || '');
+      const receiverPhone = model?.ReceiverPhone || order.customerPhone || '';
+      const senderName = model?.SenderAccountName || 'POLEN STONE';
+      const senderAddr = [model?.SenderAddress, model?.SenderAddress2].filter(Boolean).join(', ') || 'Polen Stone Doğal Taş & Mermer';
+      const barcodeNumber = model?.BarcodeNumber || order.orderNumber;
+      const trackingNumber = label.trackingNumber || order.trackingNumber || '-';
+      const deliveryUnit = model?.DeliveryUnitName || '';
+      const invoiceNo = model?.InvoiceNumber || order.orderNumber;
+
+      // Build barcode image HTML
+      let labelImageHtml = '';
+      if (label.images && label.images.length > 0) {
+        labelImageHtml = label.images.map(b64 =>
+          `<img src="data:image/png;base64,${b64}" class="label-img" alt="Kargo Etiketi" />`
+        ).join('\n');
+      }
+
+      // Inline SVG Code-128-like barcode fallback (visual representation using bars)
+      const barcodeDisplayNum = barcodeNumber.replace(/[^A-Z0-9]/gi, '');
+
+      const html = `<!DOCTYPE html>
+<html lang="tr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Aras Kargo Etiketi — ${order.orderNumber}</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    font-family: 'Arial', sans-serif;
+    background: #f5f5f5;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 20px;
+    min-height: 100vh;
+  }
+  .no-print {
+    margin-bottom: 16px;
+    display: flex;
+    gap: 10px;
+  }
+  .btn {
+    padding: 10px 28px;
+    border: none;
+    border-radius: 6px;
+    cursor: pointer;
+    font-size: 14px;
+    font-weight: bold;
+    letter-spacing: .5px;
+  }
+  .btn-print { background: #111; color: #fff; }
+  .btn-close  { background: #e5e7eb; color: #111; }
+  .page {
+    width: 210mm;
+    min-height: 297mm;
+    background: #fff;
+    padding: 12mm;
+    box-shadow: 0 2px 16px rgba(0,0,0,.12);
+    display: flex;
+    flex-direction: column;
+    gap: 0;
+  }
+
+  /* ── Header ─────────────────────────────────────── */
+  .header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    border-bottom: 3px solid #111;
+    padding-bottom: 8px;
+    margin-bottom: 10px;
+  }
+  .header-brand { font-size: 22px; font-weight: 900; letter-spacing: 2px; color: #111; }
+  .header-brand span { color: #e07b39; }
+  .header-sub { font-size: 11px; color: #666; text-align: right; }
+
+  /* ── Main label image from API ───────────────────── */
+  .label-img-wrapper {
+    border: 1.5px solid #ccc;
+    border-radius: 6px;
+    overflow: hidden;
+    margin-bottom: 10px;
+    text-align: center;
+    background: #fafafa;
+    padding: 8px;
+  }
+  .label-img { max-width: 100%; height: auto; display: block; margin: 0 auto; }
+
+  /* ── Info grid ───────────────────────────────────── */
+  .info-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 8px;
+    margin-bottom: 10px;
+  }
+  .info-box {
+    border: 1.5px solid #ddd;
+    border-radius: 6px;
+    padding: 8px 10px;
+  }
+  .info-box.highlight { border-color: #111; border-width: 2px; }
+  .info-label {
+    font-size: 9px;
+    font-weight: 700;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+    color: #888;
+    margin-bottom: 4px;
+  }
+  .info-value {
+    font-size: 13px;
+    font-weight: 700;
+    color: #111;
+    line-height: 1.4;
+  }
+  .info-value.small { font-size: 11px; font-weight: 400; }
+
+  /* ── Barcode section ─────────────────────────────── */
+  .barcode-section {
+    border: 2px solid #111;
+    border-radius: 8px;
+    padding: 12px 14px;
+    margin-bottom: 10px;
+    text-align: center;
+    background: #fff;
+  }
+  .barcode-section .bc-label {
+    font-size: 9px;
+    letter-spacing: 1.5px;
+    text-transform: uppercase;
+    color: #666;
+    margin-bottom: 6px;
+  }
+  .barcode-bars {
+    display: flex;
+    justify-content: center;
+    align-items: flex-end;
+    gap: 1px;
+    height: 52px;
+    margin: 0 auto 6px;
+    max-width: 340px;
+  }
+  .barcode-bars .bar {
+    background: #111;
+    width: 2px;
+    border-radius: 1px;
+  }
+  .barcode-number {
+    font-family: 'Courier New', monospace;
+    font-size: 15px;
+    font-weight: 700;
+    letter-spacing: 3px;
+    color: #111;
+  }
+  .tracking-number {
+    font-size: 11px;
+    color: #555;
+    margin-top: 4px;
+    letter-spacing: 1px;
+  }
+
+  /* ── Divider ─────────────────────────────────────── */
+  .divider {
+    border: none;
+    border-top: 1px dashed #ccc;
+    margin: 8px 0;
+  }
+
+  /* ── Footer ──────────────────────────────────────── */
+  .footer {
+    margin-top: auto;
+    border-top: 1.5px solid #eee;
+    padding-top: 8px;
+    display: flex;
+    justify-content: space-between;
+    font-size: 9px;
+    color: #999;
+  }
+
+  /* ── Print ───────────────────────────────────────── */
+  @media print {
+    * { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+    body { background: white; padding: 0; }
+    .no-print { display: none !important; }
+    .page {
+      box-shadow: none;
+      margin: 0;
+      padding: 10mm;
+      width: 210mm;
+      min-height: 297mm;
+    }
+    @page {
+      size: A4 portrait;
+      margin: 0;
+    }
+  }
+</style>
+</head>
+<body>
+
+<div class="no-print">
+  <button class="btn btn-print" onclick="window.print()">🖨 Yazdır (A4)</button>
+  <button class="btn btn-close" onclick="window.close()">✕ Kapat</button>
+</div>
+
+<div class="page">
+
+  <!-- Header -->
+  <div class="header">
+    <div class="header-brand">POLEN <span>STONE</span></div>
+    <div class="header-sub">
+      Doğal Taş &amp; Mermer<br>
+      polenstone.com · info@polenstone.com
+    </div>
+  </div>
+
+  ${labelImageHtml ? `
+  <!-- Label image from Aras API -->
+  <div class="label-img-wrapper">
+    ${labelImageHtml}
+  </div>` : ''}
+
+  <!-- Barcode Section -->
+  <div class="barcode-section">
+    <div class="bc-label">Kargo Barkodu</div>
+    <div class="barcode-bars" id="barcodeCanvas">
+      <!-- generated by JS -->
+    </div>
+    <div class="barcode-number">${barcodeDisplayNum}</div>
+    ${trackingNumber !== '-' ? `<div class="tracking-number">Takip No: ${trackingNumber}</div>` : ''}
+  </div>
+
+  <!-- Info Grid -->
+  <div class="info-grid">
+    <div class="info-box highlight">
+      <div class="info-label">📦 Alıcı</div>
+      <div class="info-value">${receiverName}</div>
+      <div class="info-value small">${receiverAddr}</div>
+      <div class="info-value small">${receiverCity}</div>
+      ${receiverPhone ? `<div class="info-value small">📞 ${receiverPhone}</div>` : ''}
+    </div>
+    <div class="info-box">
+      <div class="info-label">🏭 Gönderici</div>
+      <div class="info-value">${senderName}</div>
+      <div class="info-value small">${senderAddr}</div>
+    </div>
+    <div class="info-box">
+      <div class="info-label">📋 Sipariş No</div>
+      <div class="info-value">${order.orderNumber}</div>
+      <div class="info-value small">${new Date().toLocaleDateString('tr-TR')}</div>
+    </div>
+    <div class="info-box">
+      <div class="info-label">🏢 Dağıtım Şubesi</div>
+      <div class="info-value">${deliveryUnit || '—'}</div>
+      ${invoiceNo ? `<div class="info-value small">Fatura: ${invoiceNo}</div>` : ''}
+    </div>
+  </div>
+
+  <hr class="divider" />
+
+  <!-- Footer -->
+  <div class="footer">
+    <span>Aras Kargo — araskargoservisi.com.tr</span>
+    <span>Oluşturulma: ${new Date().toLocaleString('tr-TR', { timeZone: 'Europe/Istanbul' })}</span>
+  </div>
+
+</div>
+
+<script>
+// Generate pseudo-barcode bars from barcode string
+(function() {
+  var code = ${JSON.stringify(barcodeDisplayNum)};
+  var container = document.getElementById('barcodeCanvas');
+  if (!container || !code) return;
+  // Simple visual bar pattern based on char codes
+  var bars = '';
+  for (var i = 0; i < code.length; i++) {
+    var c = code.charCodeAt(i);
+    // narrow/wide pattern
+    var heights = [
+      (c % 5 + 3) * 6,
+      (c % 3 + 2) * 6,
+      (c % 7 + 2) * 6,
+      ((c >> 2) % 4 + 3) * 6,
+    ];
+    heights.forEach(function(h, j) {
+      bars += '<div class="bar" style="height:' + h + 'px;width:' + (j % 2 === 0 ? '2' : '1') + 'px"></div>';
+      bars += '<div style="width:1px;height:1px"></div>'; // gap
+    });
+  }
+  // Add guard bars
+  var guard = '<div class="bar" style="height:52px;width:2px"></div><div style="width:2px"></div>';
+  container.innerHTML = guard + bars + guard;
+})();
+
+// Auto-print after short delay
+window.addEventListener('load', function() {
+  setTimeout(function() { window.print(); }, 600);
+});
+</script>
+</body>
+</html>`;
+
+      res.setHeader('Content-Type', 'text/html; charset=utf-8');
+      res.setHeader('Cache-Control', 'no-store');
+      res.send(html);
+    } catch (error: any) {
+      console.error('[ArasKargo] Label error:', error);
+      res.status(500).send(`<h2>Etiket oluşturulamadı</h2><p>${error.message}</p>`);
+    }
+  });
+
   // Aras Kargo: Query shipment status
   app.get("/api/admin/orders/:id/aras-kargo/status", requireAdmin, async (req, res) => {
     try {

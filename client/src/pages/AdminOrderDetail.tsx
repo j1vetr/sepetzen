@@ -21,6 +21,7 @@ import {
   CheckCircle2,
   Send,
   RefreshCw,
+  Printer,
 } from 'lucide-react';
 import {
   Card,
@@ -853,7 +854,7 @@ export default function AdminOrderDetail() {
               />
               <div className="space-y-2.5">
 
-                {/* API Buttons */}
+                {/* API Buttons — Row 1 */}
                 <div className="flex gap-2">
                   <button
                     type="button"
@@ -878,6 +879,19 @@ export default function AdminOrderDetail() {
                     {arasQuerying ? 'Sorgulanıyor…' : 'Takip No Sorgula'}
                   </button>
                 </div>
+
+                {/* API Buttons — Row 2: Label print */}
+                <a
+                  href={order ? `/api/admin/orders/${order.id}/aras-kargo/label` : '#'}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="w-full inline-flex items-center justify-center gap-1.5 h-9 rounded-md border-2 border-orange-300 bg-orange-50 text-[12px] font-semibold text-orange-700 hover:bg-orange-100 hover:border-orange-400 transition-colors"
+                  data-testid="link-aras-label"
+                  title="A4 kargo etiketi + barkod — yeni sekmede açılır, otomatik yazdır çalışır"
+                >
+                  <Printer className="w-3.5 h-3.5" />
+                  Etiket Yazdır (A4 + Barkod)
+                </a>
 
                 {/* API result message */}
                 {arasMessage && (
