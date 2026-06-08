@@ -4715,10 +4715,65 @@ window.addEventListener('load', function() {
         isPrivate: false,
       });
 
+      // If Aras Kargo was used for this order, try to cancel the shipment too
+      // Derive the barcodeNumber the same way createShipment does
+      const { getArasCredentials, cancelShipment: arasCancel } = await import('./arasKargoService.js');
+      const arasCreds = await getArasCredentials();
+      if (arasCreds.enabled && arasCreds.username) {
+        const existingNotes = await storage.getOrderNotes(req.params.id);
+        const wasSentToAras = existingNotes.some(n => n.content.includes("Aras Kargo API'ye kayıt gönderildi"));
+        if (wasSentToAras) {
+          const barcodeNumber = order.orderNumber.replace(/[^A-Za-z0-9]/g, '').slice(0, 32);
+          arasCancel(barcodeNumber, req.body.reason || 'Siparis iptali').then(result => {
+            const noteContent = result.success
+              ? `Aras Kargo'da kargo iptali yapıldı. (OperationCode: ${result.operationCode || '-'})`
+              : `Aras Kargo iptal denenedi ancak başarısız: ${result.error}`;
+            storage.createOrderNote({ orderId: req.params.id, content: noteContent, authorId: 'system' }).catch(() => {});
+          }).catch(err => console.error('[ArasKargo] Auto-cancel failed:', err));
+        }
+      }
+
       res.json(updatedOrder);
     } catch (error) {
       console.error('Order cancellation error:', error);
       res.status(500).json({ error: "Failed to cancel order" });
+    }
+  });
+
+  // Aras Kargo: Get registered sender addresses (for settings)
+  app.get("/api/admin/aras-kargo/addresses", requireAdmin, async (req, res) => {
+    try {
+      const { getAddressList } = await import('./arasKargoService.js');
+      const result = await getAddressList();
+      res.json(result);
+    } catch (error: any) {
+      res.status(500).json({ success: false, error: error.message });
+    }
+  });
+
+  // Aras Kargo: GetCargoInfo — real delivery status via DataSet
+  app.get("/api/admin/orders/:id/aras-kargo/cargo-info", requireAdmin, async (req, res) => {
+    try {
+      const { getCargoStatus } = await import('./arasKargoService.js');
+      const order = await storage.getOrder(req.params.id);
+      if (!order) return res.status(404).json({ error: "Sipariş bulunamadı" });
+      const result = await getCargoStatus(order.orderNumber);
+      // Auto-mark delivered if Aras says so and order is still in 'shipped'
+      if (result.success && result.found && result.status) {
+        const teslimKelimesi = ['teslim', 'delivered', 'deliver'].some(k => result.status!.toLowerCase().includes(k));
+        if (teslimKelimesi && order.status === 'shipped') {
+          await storage.updateOrder(req.params.id, { status: 'delivered', deliveredAt: new Date() });
+          await storage.createOrderNote({
+            orderId: req.params.id,
+            content: `Aras Kargo durumu: "${result.status}" — sipariş teslim edildi olarak işaretlendi.`,
+            authorId: 'system',
+          });
+        }
+      }
+      res.json(result);
+    } catch (error: any) {
+      console.error('[ArasKargo] GetCargoInfo error:', error);
+      res.status(500).json({ success: false, error: error.message });
     }
   });
 

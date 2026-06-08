@@ -467,3 +467,273 @@ export async function getLabelData(integrationCode: string): Promise<LabelDataRe
     return { success: false, error: `Bağlantı hatası: ${error.message}` };
   }
 }
+
+// ── SetCanceledShipment ───────────────────────────────────────────────────
+// Cancels a previously created shipment in Aras. cargoKey = BarcodeNumber.
+
+export interface CancelShipmentResult {
+  success: boolean;
+  successFlag?: string;
+  operationCode?: string;
+  cargoKey?: string;
+  error?: string;
+}
+
+export async function cancelShipment(barcodeNumber: string, reason?: string): Promise<CancelShipmentResult> {
+  const creds = await getArasCredentials();
+
+  if (!creds.username || !creds.password) {
+    return { success: false, error: 'Aras Kargo API bilgileri eksik.' };
+  }
+
+  const soapBody = `<?xml version="1.0" encoding="utf-8"?>
+<soap12:Envelope xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:soap12="http://www.w3.org/2003/05/soap-envelope">
+  <soap12:Body>
+    <SetCanceledShipment xmlns="http://tempuri.org/">
+      <userName>${escapeXml(creds.username)}</userName>
+      <password>${escapeXml(creds.password)}</password>
+      <language>TR</language>
+      <cargoKey>
+        <string>${escapeXml(barcodeNumber)}</string>
+      </cargoKey>
+      <canceledDescription>${escapeXml(reason || 'Siparis iptali')}</canceledDescription>
+    </SetCanceledShipment>
+  </soap12:Body>
+</soap12:Envelope>`;
+
+  try {
+    const response = await fetch(creds.setorderUrl, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/soap+xml; charset=utf-8; action="http://tempuri.org/SetCanceledShipment"',
+        'Accept': 'application/soap+xml, text/xml',
+      },
+      body: soapBody,
+      signal: AbortSignal.timeout(20000),
+    });
+
+    const text = await response.text();
+    console.log('[ArasKargo] SetCanceledShipment response:', text.slice(0, 400));
+
+    if (text.includes('<faultcode>') || text.includes('<Fault>')) {
+      const faultMsg = parseXmlText(text, 'faultstring') || parseXmlText(text, 'Reason');
+      return { success: false, error: faultMsg || 'SOAP hatası' };
+    }
+
+    const successFlag = parseXmlText(text, 'SuccessFlag');
+    const operationCode = parseXmlText(text, 'OperationCode');
+    const cargoKey = parseXmlText(text, 'CargoKey');
+
+    // SuccessFlag = '1' means success
+    if (successFlag === '1' || successFlag.toLowerCase() === 'true') {
+      return { success: true, successFlag, operationCode, cargoKey };
+    }
+
+    // If no SuccessFlag in response, check if block even exists
+    if (!successFlag && !text.includes('CanceledShipmentInfo')) {
+      return { success: false, error: 'Aras API yanıt vermedi veya barkod sistemde bulunamadı.' };
+    }
+
+    return {
+      success: false,
+      error: `İptal başarısız. OperationCode: ${operationCode || '-'}. Kargo şubeye çıkmış olabilir.`,
+      operationCode,
+    };
+  } catch (error: any) {
+    console.error('[ArasKargo] SetCanceledShipment error:', error);
+    return { success: false, error: `Bağlantı hatası: ${error.message}` };
+  }
+}
+
+// ── GetAddressList ────────────────────────────────────────────────────────
+// Returns the list of registered sender addresses (CustomerAddress[]).
+// Admin picks one to populate SenderAccountAddressId in settings.
+
+export interface ArasAddress {
+  addressId: string;
+  adres: string;
+  sube: string;
+  bolge: string;
+}
+
+export interface GetAddressListResult {
+  success: boolean;
+  addresses?: ArasAddress[];
+  error?: string;
+}
+
+export async function getAddressList(): Promise<GetAddressListResult> {
+  const creds = await getArasCredentials();
+
+  if (!creds.username || !creds.password) {
+    return { success: false, error: 'Aras Kargo API bilgileri eksik.' };
+  }
+
+  const soapBody = `<?xml version="1.0" encoding="utf-8"?>
+<soap12:Envelope xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:soap12="http://www.w3.org/2003/05/soap-envelope">
+  <soap12:Body>
+    <GetAddressList xmlns="http://tempuri.org/">
+      <userName>${escapeXml(creds.username)}</userName>
+      <password>${escapeXml(creds.password)}</password>
+    </GetAddressList>
+  </soap12:Body>
+</soap12:Envelope>`;
+
+  try {
+    const response = await fetch(creds.setorderUrl, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/soap+xml; charset=utf-8; action="http://tempuri.org/GetAddressList"',
+        'Accept': 'application/soap+xml, text/xml',
+      },
+      body: soapBody,
+      signal: AbortSignal.timeout(15000),
+    });
+
+    const text = await response.text();
+    console.log('[ArasKargo] GetAddressList response length:', text.length);
+
+    if (text.includes('<faultcode>') || text.includes('<Fault>')) {
+      const faultMsg = parseXmlText(text, 'faultstring') || parseXmlText(text, 'Reason');
+      return { success: false, error: faultMsg || 'Kimlik doğrulama hatası. Kullanıcı adı/şifre kontrol edin.' };
+    }
+
+    const addresses: ArasAddress[] = [];
+    const addrRe = /<(?:\w+:)?CustomerAddress[^>]*>([\s\S]*?)<\/(?:\w+:)?CustomerAddress>/gi;
+    let block;
+    while ((block = addrRe.exec(text)) !== null) {
+      const b = block[1];
+      const addressId = parseXmlText(b, 'AddressId') || parseXmlText(b, 'AddressIntegrationCode');
+      if (addressId) {
+        addresses.push({
+          addressId,
+          adres: parseXmlText(b, 'Adres'),
+          sube: parseXmlText(b, 'Sube'),
+          bolge: parseXmlText(b, 'Bolge'),
+        });
+      }
+    }
+
+    if (addresses.length === 0) {
+      return { success: false, error: 'Kayıtlı gönderici adresi bulunamadı. Önce Aras müşteri panelinizde adres tanımlayın.' };
+    }
+
+    return { success: true, addresses };
+  } catch (error: any) {
+    console.error('[ArasKargo] GetAddressList error:', error);
+    return { success: false, error: `Bağlantı hatası: ${error.message}` };
+  }
+}
+
+// ── GetCargoInfo ──────────────────────────────────────────────────────────
+// Returns real cargo delivery status via DataSet (XML diffgram).
+// Uses customerCode + integrationCode.
+
+export interface CargoStatusResult {
+  success: boolean;
+  found?: boolean;
+  cargoKey?: string;            // Aras internal key
+  status?: string;              // e.g. "Teslim Edildi"
+  deliveryDate?: string;
+  deliveryTime?: string;
+  deliveryBranch?: string;
+  waybillNo?: string;
+  rawRows?: Record<string, string>[];
+  error?: string;
+}
+
+export async function getCargoStatus(integrationCode: string): Promise<CargoStatusResult> {
+  const creds = await getArasCredentials();
+
+  if (!creds.username || !creds.password) {
+    return { success: false, error: 'Aras Kargo API bilgileri eksik.' };
+  }
+  if (!creds.customerCode) {
+    return { success: false, error: 'Müşteri kodu (CustomerCode) ayarlarda girilmemiş. GetCargoInfo için gereklidir.' };
+  }
+
+  const soapBody = `<?xml version="1.0" encoding="utf-8"?>
+<soap12:Envelope xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:soap12="http://www.w3.org/2003/05/soap-envelope">
+  <soap12:Body>
+    <GetCargoInfo xmlns="http://tempuri.org/">
+      <username>${escapeXml(creds.username)}</username>
+      <password>${escapeXml(creds.password)}</password>
+      <customerCode>${escapeXml(creds.customerCode)}</customerCode>
+      <integrationCode>${escapeXml(integrationCode.slice(0, 32))}</integrationCode>
+    </GetCargoInfo>
+  </soap12:Body>
+</soap12:Envelope>`;
+
+  try {
+    const response = await fetch(creds.setorderUrl, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/soap+xml; charset=utf-8; action="http://tempuri.org/GetCargoInfo"',
+        'Accept': 'application/soap+xml, text/xml',
+      },
+      body: soapBody,
+      signal: AbortSignal.timeout(20000),
+    });
+
+    const text = await response.text();
+    console.log('[ArasKargo] GetCargoInfo response length:', text.length, '| first 400:', text.slice(0, 400));
+
+    if (text.includes('<faultcode>') || text.includes('<Fault>')) {
+      const faultMsg = parseXmlText(text, 'faultstring') || parseXmlText(text, 'Reason');
+      return { success: false, error: faultMsg || 'SOAP hatası' };
+    }
+
+    // Response is a DataSet serialized as XML diffgram.
+    // Extract rows from NewDataSet or diffgram block.
+    // Typical shape: <NewDataSet><Table>...</Table><Table>...</Table></NewDataSet>
+    // OR: <diffgr:diffgram><NewDataSet><Table diffgr:id="...">...</Table></NewDataSet></diffgr:diffgram>
+    const rowRe = /<(?:\w+:)?(?:Table|IrsaliyeRow|Row|IrsaliyeData)[^>]*(?:diffgr:id[^>]*)?>([\s\S]*?)<\/(?:\w+:)?(?:Table|IrsaliyeRow|Row|IrsaliyeData)>/gi;
+    const rawRows: Record<string, string>[] = [];
+    let rowMatch;
+    while ((rowMatch = rowRe.exec(text)) !== null) {
+      const inner = rowMatch[1];
+      if (!inner.trim() || inner.includes('<xs:')) continue;
+      const row: Record<string, string> = {};
+      const fieldRe = /<(\w+)[^>]*>([^<]*)<\/\1>/g;
+      let fieldMatch;
+      while ((fieldMatch = fieldRe.exec(inner)) !== null) {
+        row[fieldMatch[1]] = fieldMatch[2].trim();
+      }
+      if (Object.keys(row).length > 0) rawRows.push(row);
+    }
+
+    if (rawRows.length === 0) {
+      return { success: true, found: false, error: 'Kargo bilgisi bulunamadı. Sipariş henüz Aras sisteminde aktif olmayabilir.' };
+    }
+
+    // Try to extract meaningful fields from first row (field names may vary)
+    const first = rawRows[0];
+    const status =
+      first['Durum'] || first['KargoDurumu'] || first['StatusCode'] || first['Status'] || '';
+    const deliveryDate =
+      first['TeslimTarihi'] || first['DeliveryDate'] || first['TeslimEdildiTarih'] || '';
+    const deliveryTime =
+      first['TeslimSaati'] || first['DeliveryTime'] || first['TeslimEdildiSaat'] || '';
+    const deliveryBranch =
+      first['TeslimSube'] || first['DeliveryUnitName'] || first['Sube'] || first['SubeAdi'] || '';
+    const waybillNo =
+      first['IrsaliyeNo'] || first['WaybillNo'] || first['KargoKey'] || first['BarcodeNumber'] || '';
+    const cargoKey =
+      first['KargoKey'] || first['CargoKey'] || first['IrsaliyeNo'] || '';
+
+    return {
+      success: true,
+      found: true,
+      status,
+      deliveryDate,
+      deliveryTime,
+      deliveryBranch,
+      waybillNo,
+      cargoKey,
+      rawRows,
+    };
+  } catch (error: any) {
+    console.error('[ArasKargo] GetCargoInfo error:', error);
+    return { success: false, error: `Bağlantı hatası: ${error.message}` };
+  }
+}

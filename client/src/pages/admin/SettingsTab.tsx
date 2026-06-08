@@ -1,6 +1,6 @@
 import { useQuery } from '@tanstack/react-query';
 import { useState, useEffect } from 'react';
-import { Settings, Mail, Loader2, CheckCircle2, XCircle, Send, Server, CreditCard, Copy, AlertTriangle, Wrench, MessageCircle, KeyRound, ShieldCheck, Truck } from 'lucide-react';
+import { Settings, Mail, Loader2, CheckCircle2, XCircle, Send, Server, CreditCard, Copy, AlertTriangle, Wrench, MessageCircle, KeyRound, ShieldCheck, Truck, MapPin } from 'lucide-react';
 import { BANK_TRANSFER_INFO } from '@shared/bankInfo';
 
 type WhatsAppEvent =
@@ -100,6 +100,75 @@ const WHATSAPP_VARIABLES = [
   '{{adminPanelUrl}}',
   '{{siteAdi}}',
 ];
+
+// ── Aras Sender Address Picker ─────────────────────────────────────────────
+function ArasSenderAddressPicker({ value, onChange }: { value: string; onChange: (v: string) => void }) {
+  const [loading, setLoading] = useState(false);
+  const [addresses, setAddresses] = useState<{ addressId: string; adres: string; sube: string; bolge: string }[]>([]);
+  const [error, setError] = useState<string | null>(null);
+
+  const fetchAddresses = async () => {
+    setLoading(true);
+    setError(null);
+    try {
+      const res = await fetch('/api/admin/aras-kargo/addresses', { credentials: 'include' });
+      const data = await res.json();
+      if (data.success && data.addresses?.length) {
+        setAddresses(data.addresses);
+      } else {
+        setError(data.error || 'Adres listesi alınamadı. Kullanıcı adı/şifre girilmiş ve kaydedilmiş olmalı.');
+      }
+    } catch {
+      setError('Bağlantı hatası.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return (
+    <div className="space-y-2">
+      <div className="flex gap-2">
+        <input
+          type="text"
+          value={value}
+          onChange={(e) => onChange(e.target.value)}
+          placeholder="SenderAccountAddressId"
+          className="flex-1 px-4 py-3 bg-neutral-50 border border-neutral-200 rounded-lg text-neutral-900 font-mono text-sm"
+          data-testid="input-aras-sender-address"
+        />
+        <button
+          type="button"
+          onClick={fetchAddresses}
+          disabled={loading}
+          title="Aras API'den kayıtlı adreslerinizi çeker"
+          className="inline-flex items-center gap-1.5 px-3 py-2 rounded-lg border border-neutral-200 bg-white text-xs font-semibold text-neutral-700 hover:bg-neutral-50 disabled:opacity-50 transition-colors shrink-0"
+          data-testid="button-aras-fetch-addresses"
+        >
+          {loading ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <MapPin className="w-3.5 h-3.5" />}
+          {loading ? 'Yükleniyor' : 'Listele'}
+        </button>
+      </div>
+      {error && <p className="text-[11px] text-red-600">{error}</p>}
+      {addresses.length > 0 && (
+        <div className="border border-neutral-200 rounded-lg overflow-hidden">
+          {addresses.map((a) => (
+            <button
+              key={a.addressId}
+              type="button"
+              onClick={() => { onChange(a.addressId); setAddresses([]); }}
+              className={`w-full text-left px-3 py-2 text-xs hover:bg-neutral-50 transition-colors border-b border-neutral-100 last:border-0 ${value === a.addressId ? 'bg-emerald-50 text-emerald-800 font-semibold' : 'text-neutral-700'}`}
+              data-testid={`option-aras-address-${a.addressId}`}
+            >
+              <span className="font-mono font-bold">{a.addressId}</span>
+              {a.adres && <span className="ml-2 text-neutral-500">{a.adres}</span>}
+              {a.sube && <span className="ml-1 text-neutral-400">— {a.sube}</span>}
+            </button>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
 
 export default function SettingsPanel() {
   const [settings, setSettings] = useState<Record<string, string>>({
@@ -841,13 +910,9 @@ export default function SettingsPanel() {
           </div>
           <div>
             <label className="block text-sm font-medium text-neutral-500 mb-2">Gönderici Adres ID <span className="text-neutral-400 font-normal">(opsiyonel)</span></label>
-            <input
-              type="text"
+            <ArasSenderAddressPicker
               value={settings.aras_kargo_sender_address_id}
-              onChange={(e) => setSettings(s => ({ ...s, aras_kargo_sender_address_id: e.target.value }))}
-              placeholder="SenderAccountAddressId"
-              className="w-full px-4 py-3 bg-neutral-50 border border-neutral-200 rounded-lg text-neutral-900 font-mono text-sm"
-              data-testid="input-aras-sender-address"
+              onChange={(v) => setSettings(s => ({ ...s, aras_kargo_sender_address_id: v }))}
             />
           </div>
         </div>

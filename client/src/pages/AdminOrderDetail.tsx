@@ -161,6 +161,8 @@ export default function AdminOrderDetail() {
   const [arasQuerying, setArasQuerying] = useState(false);
   const [arasMessage, setArasMessage] = useState<{ type: 'success' | 'error' | 'warn'; text: string } | null>(null);
   const [arasAlreadySent, setArasAlreadySent] = useState(false);
+  const [arasCargoInfo, setArasCargoInfo] = useState(false);
+  const [arasCargoStatus, setArasCargoStatus] = useState<{ status?: string; deliveryDate?: string; deliveryBranch?: string; waybillNo?: string } | null>(null);
   useEffect(() => {
     let cancelled = false;
     const fetchOrder = async () => {
@@ -345,6 +347,28 @@ export default function AdminOrderDetail() {
       setArasMessage({ type: 'error', text: 'Bağlantı hatası. Lütfen tekrar deneyin.' });
     } finally {
       setArasQuerying(false);
+    }
+  };
+
+  const handleArasCargoInfo = async () => {
+    if (!order) return;
+    setArasCargoInfo(true);
+    setArasMessage(null);
+    setArasCargoStatus(null);
+    try {
+      const res = await fetch(`/api/admin/orders/${order.id}/aras-kargo/cargo-info`, { credentials: 'include' });
+      const data = await res.json();
+      if (data.success && data.found) {
+        setArasCargoStatus({ status: data.status, deliveryDate: data.deliveryDate, deliveryBranch: data.deliveryBranch, waybillNo: data.waybillNo });
+        const parts = [data.status && `Durum: ${data.status}`, data.deliveryDate && `Teslim: ${data.deliveryDate}`, data.deliveryBranch && `Şube: ${data.deliveryBranch}`].filter(Boolean);
+        setArasMessage({ type: 'success', text: parts.join(' — ') || 'Kargo bilgisi alındı' });
+      } else {
+        setArasMessage({ type: 'error', text: data.error || 'Kargo bilgisi bulunamadı' });
+      }
+    } catch {
+      setArasMessage({ type: 'error', text: 'Bağlantı hatası.' });
+    } finally {
+      setArasCargoInfo(false);
     }
   };
 
@@ -864,7 +888,7 @@ export default function AdminOrderDetail() {
                 <div className="flex gap-2">
                   <button
                     type="button"
-                    onClick={handleArasCreate}
+                    onClick={() => handleArasCreate()}
                     disabled={arasCreating || arasQuerying || isTerminal}
                     className="flex-1 inline-flex items-center justify-center gap-1.5 h-9 rounded-md bg-neutral-900 text-white text-[12px] font-semibold hover:bg-neutral-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
                     data-testid="button-aras-create"
@@ -886,18 +910,31 @@ export default function AdminOrderDetail() {
                   </button>
                 </div>
 
-                {/* API Buttons — Row 2: Label print */}
-                <a
-                  href={order ? `/api/admin/orders/${order.id}/aras-kargo/label` : '#'}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="w-full inline-flex items-center justify-center gap-1.5 h-9 rounded-md border-2 border-orange-300 bg-orange-50 text-[12px] font-semibold text-orange-700 hover:bg-orange-100 hover:border-orange-400 transition-colors"
-                  data-testid="link-aras-label"
-                  title="A4 kargo etiketi + barkod — yeni sekmede açılır, otomatik yazdır çalışır"
-                >
-                  <Printer className="w-3.5 h-3.5" />
-                  Etiket Yazdır (A4 + Barkod)
-                </a>
+                {/* API Buttons — Row 2 */}
+                <div className="flex gap-2">
+                  <a
+                    href={order ? `/api/admin/orders/${order.id}/aras-kargo/label` : '#'}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="flex-1 inline-flex items-center justify-center gap-1.5 h-9 rounded-md border-2 border-orange-300 bg-orange-50 text-[12px] font-semibold text-orange-700 hover:bg-orange-100 hover:border-orange-400 transition-colors"
+                    data-testid="link-aras-label"
+                    title="A4 kargo etiketi + barkod — yeni sekmede açılır, otomatik yazdır çalışır"
+                  >
+                    <Printer className="w-3.5 h-3.5" />
+                    Etiket Yazdır
+                  </a>
+                  <button
+                    type="button"
+                    onClick={handleArasCargoInfo}
+                    disabled={arasCargoInfo || arasCreating || arasQuerying}
+                    className="flex-1 inline-flex items-center justify-center gap-1.5 h-9 rounded-md border border-sky-200 bg-sky-50 text-[12px] font-semibold text-sky-700 hover:bg-sky-100 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                    data-testid="button-aras-cargo-info"
+                    title="GetCargoInfo — gerçek kargo durumunu sorgular (teslim edildi, şubede, yolda)"
+                  >
+                    {arasCargoInfo ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Truck className="w-3.5 h-3.5" />}
+                    {arasCargoInfo ? 'Sorgulanıyor…' : 'Kargo Durumu'}
+                  </button>
+                </div>
 
                 {/* API result message */}
                 {arasMessage && (
