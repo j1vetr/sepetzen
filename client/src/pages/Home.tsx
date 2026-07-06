@@ -226,7 +226,8 @@ function FeaturedProducts({ products }: { products: Product[] }) {
             <motion.div
               key={p.id}
               initial={{ opacity: 0, y: 24 }}
-              animate={inView ? { opacity: 1, y: 0 } : {}}
+              whileInView={{ opacity: 1, y: 0 }}
+              viewport={{ once: true, amount: 0.05 }}
               transition={{ duration: 0.5, delay: i * 0.06, ease: [0.16, 1, 0.3, 1] }}
             >
               <ProductCard product={p} />
@@ -326,7 +327,8 @@ function CategoriesSection() {
             <motion.div
               key={cat.slug}
               initial={{ opacity: 0, scale: 0.97 }}
-              animate={inView ? { opacity: 1, scale: 1 } : {}}
+              whileInView={{ opacity: 1, scale: 1 }}
+              viewport={{ once: true, amount: 0.05 }}
               transition={{ duration: 0.5, delay: i * 0.07, ease: [0.16, 1, 0.3, 1] }}
               className={i === 0 ? 'lg:col-span-2 lg:row-span-2' : ''}
             >
@@ -379,7 +381,7 @@ function NewArrivals({ products }: { products: Product[] }) {
     return products.filter(p => (p.isNew || p.discountBadge) && p.images?.length).slice(0, 4);
   }, [products]);
 
-  if (items.length < 2) return null;
+  if (!items.length) return null;
 
   return (
     <section
@@ -413,7 +415,8 @@ function NewArrivals({ products }: { products: Product[] }) {
               <motion.div
                 key={p.id}
                 initial={{ opacity: 0, y: 24 }}
-                animate={inView ? { opacity: 1, y: 0 } : {}}
+                whileInView={{ opacity: 1, y: 0 }}
+                viewport={{ once: true, amount: 0.05 }}
                 transition={{ duration: 0.5, delay: i * 0.08, ease: [0.16, 1, 0.3, 1] }}
               >
                 <Link
@@ -511,7 +514,8 @@ function FinalCta() {
       <div className="max-w-[800px] mx-auto">
         <motion.div
           initial={{ opacity: 0, y: 32 }}
-          animate={inView ? { opacity: 1, y: 0 } : {}}
+          whileInView={{ opacity: 1, y: 0 }}
+          viewport={{ once: true, amount: 0.1 }}
           transition={{ duration: 0.6, ease: [0.16, 1, 0.3, 1] }}
         >
           <p className="text-[10px] font-mono tracking-[0.30em] uppercase text-black/40 mb-6">Dalaman / Muğla</p>

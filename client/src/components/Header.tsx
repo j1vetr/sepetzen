@@ -351,7 +351,7 @@ export function Header() {
             </div>
 
             {/* Orta: Desktop nav */}
-            <nav className="justify-self-center flex items-center gap-3 xl:gap-5 min-w-0 relative">
+            <nav className="justify-self-center flex items-center gap-3 xl:gap-5 min-w-0">
               {useMenuTree ? (
                 menuRoots.map((root) => {
                   const children = (root.children || []).filter(c => c.isActive);
@@ -447,142 +447,6 @@ export function Header() {
                 </DropdownMenu>
               )}
 
-              {/* ── MEGA MENU PANEL ── */}
-              <AnimatePresence>
-                {megaMenuId && activeMegaRoot && activeMegaRoot.type === 'submenu' && activeMegaChildren.length > 0 && (
-                  <motion.div
-                    key={megaMenuId}
-                    initial={{ opacity: 0, y: -6 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    exit={{ opacity: 0, y: -6 }}
-                    transition={{ duration: 0.26, ease: [0.16, 1, 0.3, 1] }}
-                    className="absolute top-[calc(100%+8px)] left-1/2 w-screen max-w-[100vw] bg-white shadow-[0_40px_80px_-16px_rgba(0,0,0,0.24)] z-50 overflow-hidden"
-                    style={{ left: '50%', transform: 'translateX(-50%)' }}
-                    onMouseEnter={cancelClose}
-                    onMouseLeave={closeMega}
-                    data-testid={`mega-panel-${megaMenuId}`}
-                  >
-                    <div className="max-w-[1400px] mx-auto flex min-h-[260px]">
-
-                      {/* ── LEFT: Dark green hero sidebar ── */}
-                      <div className="w-60 xl:w-72 shrink-0 bg-[#1a3a15] px-7 py-8 flex flex-col justify-between relative overflow-hidden">
-                        {/* Subtle dot texture */}
-                        <div
-                          className="absolute inset-0 opacity-[0.06] pointer-events-none"
-                          style={{ backgroundImage: 'radial-gradient(circle, #fff 1px, transparent 1px)', backgroundSize: '20px 20px' }}
-                        />
-                        <div className="relative z-10 flex flex-col h-full">
-                          {/* Icon badge */}
-                          <div className="w-11 h-11 rounded-xl bg-white/10 flex items-center justify-center mb-5 shrink-0">
-                            {(() => { const Icon = getMenuIcon(activeMegaRoot.title); return <Icon className="w-5 h-5 text-white" strokeWidth={1.75} />; })()}
-                          </div>
-                          {/* Title */}
-                          <h3 className="text-[22px] xl:text-[26px] font-black text-white leading-none tracking-tight mb-3">
-                            {activeMegaRoot.title}
-                          </h3>
-                          {/* Description */}
-                          <p className="text-white/55 text-[11.5px] leading-relaxed flex-1">
-                            {getCategoryDesc(activeMegaRoot.title)}
-                          </p>
-                          {/* CTA */}
-                          {activeMegaRoot.category && (
-                            <Link
-                              href={`/kategori/${activeMegaRoot.category.slug}`}
-                              onClick={() => setMegaMenuId(null)}
-                              className="mt-6 inline-flex items-center gap-2 text-[10.5px] tracking-[0.16em] uppercase font-bold text-[#1a3a15] bg-white hover:bg-white/90 transition-colors px-4 py-3 shrink-0 self-start"
-                              data-testid={`link-mega-all-${megaMenuId}`}
-                            >
-                              Tümünü Keşfet <ArrowUpRight className="w-3.5 h-3.5" />
-                            </Link>
-                          )}
-                        </div>
-                      </div>
-
-                      {/* ── MIDDLE: Subcategory grid ── */}
-                      <div className="flex-1 px-8 xl:px-10 py-8 border-r border-black/[0.06]">
-                        <div className="text-[9px] tracking-[0.30em] uppercase text-black/30 font-mono mb-5">
-                          Alt Kategoriler
-                        </div>
-                        <div className="grid grid-cols-2 xl:grid-cols-3 gap-x-3 gap-y-1">
-                          {activeMegaChildren.map((child) => {
-                            const childHref = hrefForMenu(child);
-                            const ChildIcon = getSubIcon(child.title);
-                            return (
-                              <Link
-                                key={child.id}
-                                href={childHref}
-                                onClick={() => setMegaMenuId(null)}
-                                className="group flex items-center gap-3 px-3 py-3 rounded-lg hover:bg-[#2D5A27]/[0.06] transition-all duration-150"
-                                data-testid={`link-mega-${child.id}`}
-                              >
-                                <span className="w-8 h-8 rounded-lg bg-[#2D5A27]/[0.08] group-hover:bg-[#2D5A27]/[0.16] flex items-center justify-center shrink-0 transition-colors">
-                                  <ChildIcon className="w-3.5 h-3.5 text-[#2D5A27]" strokeWidth={1.75} />
-                                </span>
-                                <span className="text-[12px] text-black/65 group-hover:text-black transition-colors font-medium leading-tight flex-1">
-                                  {child.title}
-                                </span>
-                                <ArrowUpRight className="w-3 h-3 text-transparent group-hover:text-[#2D5A27]/50 transition-colors shrink-0" />
-                              </Link>
-                            );
-                          })}
-                        </div>
-                      </div>
-
-                      {/* ── RIGHT: Featured products ── */}
-                      {megaFeaturedProducts.length > 0 && (
-                        <div className="w-52 xl:w-60 shrink-0 px-6 py-8">
-                          <div className="text-[9px] tracking-[0.30em] uppercase text-black/30 font-mono mb-5">
-                            Öne Çıkan
-                          </div>
-                          <div className="space-y-4">
-                            {megaFeaturedProducts.map((product: any) => (
-                              <Link
-                                key={product.id}
-                                href={`/urun/${product.slug}`}
-                                onClick={() => setMegaMenuId(null)}
-                                className="group flex gap-3 items-start"
-                                data-testid={`link-mega-product-${product.id}`}
-                              >
-                                <div className="w-[56px] h-[56px] rounded-lg overflow-hidden shrink-0 bg-black/[0.04]">
-                                  {product.images?.[0] ? (
-                                    <img
-                                      src={product.images[0]}
-                                      alt={product.name}
-                                      className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
-                                    />
-                                  ) : (
-                                    <div className="w-full h-full flex items-center justify-center">
-                                      {(() => { const Icon = getMenuIcon(activeMegaRoot.title); return <Icon className="w-5 h-5 text-black/20" />; })()}
-                                    </div>
-                                  )}
-                                </div>
-                                <div className="min-w-0 flex-1">
-                                  <p className="text-[11.5px] font-medium text-black/75 leading-snug line-clamp-2 group-hover:text-black transition-colors">
-                                    {product.name}
-                                  </p>
-                                  <p className="text-[13px] font-bold text-[#2D5A27] mt-1">
-                                    {Number(product.price).toLocaleString('tr-TR')} ₺
-                                  </p>
-                                </div>
-                              </Link>
-                            ))}
-                          </div>
-                          {activeMegaRoot.category && (
-                            <Link
-                              href={`/kategori/${activeMegaRoot.category.slug}`}
-                              onClick={() => setMegaMenuId(null)}
-                              className="mt-5 text-[9.5px] tracking-[0.18em] uppercase text-[#2D5A27] hover:text-[#2D5A27]/70 transition-colors font-semibold flex items-center gap-1"
-                            >
-                              Tüm ürünleri gör <ArrowUpRight className="w-3 h-3" />
-                            </Link>
-                          )}
-                        </div>
-                      )}
-
-                    </div>
-                  </motion.div>
-                )}
-              </AnimatePresence>
             </nav>
 
             {/* Right: Icons */}
@@ -671,6 +535,124 @@ export function Header() {
             </div>
           </div>
         </div>
+      {/* ── MEGA MENU PANEL ── (header'a göre absolute, tam genişlik) */}
+      <AnimatePresence>
+        {megaMenuId && activeMegaRoot && activeMegaRoot.type === 'submenu' && activeMegaChildren.length > 0 && (
+          <motion.div
+            key={megaMenuId}
+            initial={{ opacity: 0, y: -6 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -6 }}
+            transition={{ duration: 0.26, ease: [0.16, 1, 0.3, 1] }}
+            className="absolute top-full left-0 right-0 bg-white shadow-[0_40px_80px_-16px_rgba(0,0,0,0.24)] z-50 overflow-hidden"
+            onMouseEnter={cancelClose}
+            onMouseLeave={closeMega}
+            data-testid={`mega-panel-${megaMenuId}`}
+          >
+            <div className="max-w-[1400px] mx-auto flex min-h-[260px]">
+
+              {/* ── LEFT: Dark green hero sidebar ── */}
+              <div className="w-60 xl:w-72 shrink-0 bg-[#1a3a15] px-7 py-8 flex flex-col justify-between relative overflow-hidden">
+                <div
+                  className="absolute inset-0 opacity-[0.06] pointer-events-none"
+                  style={{ backgroundImage: 'radial-gradient(circle, #fff 1px, transparent 1px)', backgroundSize: '20px 20px' }}
+                />
+                <div className="relative z-10 flex flex-col h-full">
+                  <div className="w-11 h-11 rounded-xl bg-white/10 flex items-center justify-center mb-5 shrink-0">
+                    {(() => { const Icon = getMenuIcon(activeMegaRoot.title); return <Icon className="w-5 h-5 text-white" strokeWidth={1.75} />; })()}
+                  </div>
+                  <h3 className="text-[22px] xl:text-[26px] font-black text-white leading-none tracking-tight mb-3">
+                    {activeMegaRoot.title}
+                  </h3>
+                  <p className="text-white/55 text-[11.5px] leading-relaxed flex-1">
+                    {getCategoryDesc(activeMegaRoot.title)}
+                  </p>
+                  {activeMegaRoot.category && (
+                    <Link
+                      href={`/kategori/${activeMegaRoot.category.slug}`}
+                      onClick={() => setMegaMenuId(null)}
+                      className="mt-6 inline-flex items-center gap-2 text-[10.5px] tracking-[0.16em] uppercase font-bold text-[#1a3a15] bg-white hover:bg-white/90 transition-colors px-4 py-3 shrink-0 self-start"
+                      data-testid={`link-mega-all-${megaMenuId}`}
+                    >
+                      Tümünü Keşfet <ArrowUpRight className="w-3.5 h-3.5" />
+                    </Link>
+                  )}
+                </div>
+              </div>
+
+              {/* ── MIDDLE: Subcategory grid ── */}
+              <div className="flex-1 px-8 xl:px-10 py-8 border-r border-black/[0.06]">
+                <div className="text-[9px] tracking-[0.30em] uppercase text-black/30 font-mono mb-5">Alt Kategoriler</div>
+                <div className="grid grid-cols-2 xl:grid-cols-3 gap-x-3 gap-y-1">
+                  {activeMegaChildren.map((child) => {
+                    const childHref = hrefForMenu(child);
+                    const ChildIcon = getSubIcon(child.title);
+                    return (
+                      <Link
+                        key={child.id}
+                        href={childHref}
+                        onClick={() => setMegaMenuId(null)}
+                        className="group flex items-center gap-3 px-3 py-3 rounded-lg hover:bg-[#2D5A27]/[0.06] transition-all duration-150"
+                        data-testid={`link-mega-${child.id}`}
+                      >
+                        <span className="w-8 h-8 rounded-lg bg-[#2D5A27]/[0.08] group-hover:bg-[#2D5A27]/[0.16] flex items-center justify-center shrink-0 transition-colors">
+                          <ChildIcon className="w-3.5 h-3.5 text-[#2D5A27]" strokeWidth={1.75} />
+                        </span>
+                        <span className="text-[12px] text-black/65 group-hover:text-black transition-colors font-medium leading-tight flex-1">
+                          {child.title}
+                        </span>
+                        <ArrowUpRight className="w-3 h-3 text-transparent group-hover:text-[#2D5A27]/50 transition-colors shrink-0" />
+                      </Link>
+                    );
+                  })}
+                </div>
+              </div>
+
+              {/* ── RIGHT: Featured products ── */}
+              {megaFeaturedProducts.length > 0 && (
+                <div className="w-52 xl:w-60 shrink-0 px-6 py-8">
+                  <div className="text-[9px] tracking-[0.30em] uppercase text-black/30 font-mono mb-5">Öne Çıkan</div>
+                  <div className="space-y-4">
+                    {megaFeaturedProducts.map((product: any) => (
+                      <Link
+                        key={product.id}
+                        href={`/urun/${product.slug}`}
+                        onClick={() => setMegaMenuId(null)}
+                        className="group flex gap-3 items-start"
+                        data-testid={`link-mega-product-${product.id}`}
+                      >
+                        <div className="w-[56px] h-[56px] rounded-lg overflow-hidden shrink-0 bg-black/[0.04]">
+                          {product.images?.[0] ? (
+                            <img src={product.images[0]} alt={product.name} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300" />
+                          ) : (
+                            <div className="w-full h-full flex items-center justify-center">
+                              {(() => { const Icon = getMenuIcon(activeMegaRoot.title); return <Icon className="w-5 h-5 text-black/20" />; })()}
+                            </div>
+                          )}
+                        </div>
+                        <div className="min-w-0 flex-1">
+                          <p className="text-[11.5px] font-medium text-black/75 leading-snug line-clamp-2 group-hover:text-black transition-colors">{product.name}</p>
+                          <p className="text-[13px] font-bold text-[#2D5A27] mt-1">{Number(product.price).toLocaleString('tr-TR')} ₺</p>
+                        </div>
+                      </Link>
+                    ))}
+                  </div>
+                  {activeMegaRoot.category && (
+                    <Link
+                      href={`/kategori/${activeMegaRoot.category.slug}`}
+                      onClick={() => setMegaMenuId(null)}
+                      className="mt-5 text-[9.5px] tracking-[0.18em] uppercase text-[#2D5A27] hover:text-[#2D5A27]/70 transition-colors font-semibold flex items-center gap-1"
+                    >
+                      Tüm ürünleri gör <ArrowUpRight className="w-3 h-3" />
+                    </Link>
+                  )}
+                </div>
+              )}
+
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
       </motion.header>
 
       {/* ── Mobile editorial menu ── */}
