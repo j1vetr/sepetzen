@@ -40,39 +40,49 @@ const HERO_SLIDES = [
   },
 ];
 
-function HeroSlider() {
+function HeroSlider({ products }: { products: Product[] }) {
   const [active, setActive] = useState(0);
   const [dir, setDir] = useState(1);
-  const timerRef = useRef<ReturnType<typeof setTimeout>>();
+  const [cardsKey, setCardsKey] = useState(0);
+  const [pickedProducts, setPickedProducts] = useState<Product[]>([]);
+  const slideTimer = useRef<ReturnType<typeof setTimeout>>();
+  const cardTimer = useRef<ReturnType<typeof setInterval>>();
 
-  const go = (next: number, direction = 1) => {
-    setDir(direction);
-    setActive(next);
-  };
-
-  useEffect(() => {
-    timerRef.current = setTimeout(() => {
-      go((active + 1) % HERO_SLIDES.length, 1);
-    }, 6000);
-    return () => clearTimeout(timerRef.current);
-  }, [active]);
-
+  const go = (next: number, direction = 1) => { setDir(direction); setActive(next); };
   const prev = () => go((active - 1 + HERO_SLIDES.length) % HERO_SLIDES.length, -1);
   const next = () => go((active + 1) % HERO_SLIDES.length, 1);
+
+  // Slide auto-advance
+  useEffect(() => {
+    slideTimer.current = setTimeout(() => go((active + 1) % HERO_SLIDES.length, 1), 6000);
+    return () => clearTimeout(slideTimer.current);
+  }, [active]);
+
+  // Pick random products whenever products load or cardsKey changes
+  useEffect(() => {
+    if (!products.length) return;
+    const shuffled = [...products].sort(() => Math.random() - 0.5);
+    setPickedProducts(shuffled.slice(0, 2));
+  }, [products, cardsKey]);
+
+  // Rotate product cards every 7s
+  useEffect(() => {
+    cardTimer.current = setInterval(() => setCardsKey(k => k + 1), 7000);
+    return () => clearInterval(cardTimer.current);
+  }, []);
 
   const slide = HERO_SLIDES[active];
 
   return (
     <section
       className="relative w-full overflow-hidden bg-[#0c0a09]"
-      style={{ height: 'calc(100svh - 0px)', minHeight: 560 }}
+      style={{ minHeight: 'min(100svh, 900px)', height: 'calc(100svh - 0px)' }}
       data-testid="scene-hero"
     >
-      {/* Background image */}
+      {/* Full-bleed background */}
       <AnimatePresence initial={false} custom={dir}>
         <motion.div
           key={active}
-          custom={dir}
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}
@@ -83,98 +93,163 @@ function HeroSlider() {
           <img
             src={slide.image}
             alt={slide.title}
-            className="absolute inset-0 w-full h-full object-cover opacity-60"
-            style={{ objectPosition: 'center 30%' }}
+            className="absolute inset-0 w-full h-full object-cover opacity-55"
+            style={{ objectPosition: 'center 25%' }}
           />
-          {/* Vignette layers */}
-          <div className="absolute inset-0 bg-gradient-to-r from-black/75 via-black/30 to-transparent" />
-          <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-black/20" />
+          {/* Left-heavy vignette so right panel is darker */}
+          <div className="absolute inset-0 bg-gradient-to-r from-black/80 via-black/50 to-black/70" />
+          <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-black/25" />
         </motion.div>
       </AnimatePresence>
 
-      {/* Content */}
-      <div className="relative z-10 h-full max-w-[1400px] mx-auto px-6 lg:px-12 flex flex-col justify-center">
-        <AnimatePresence mode="wait" initial={false}>
-          <motion.div
-            key={active}
-            initial={{ opacity: 0, y: 30 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -20 }}
-            transition={{ duration: 0.55, ease: [0.16, 1, 0.3, 1] }}
-            className="max-w-[620px]"
-          >
-            <span className="inline-block text-[10px] tracking-[0.30em] uppercase text-[#4a9a42] font-mono mb-4">
-              {slide.eyebrow}
-            </span>
-            <h1
-              className="font-black text-white leading-[0.93] mb-5"
-              style={{ fontSize: 'clamp(52px, 8vw, 120px)', letterSpacing: '-0.03em' }}
+      {/* Split layout */}
+      <div className="relative z-10 h-full max-w-[1400px] mx-auto px-6 lg:px-12 grid grid-cols-1 lg:grid-cols-[1fr_360px] xl:grid-cols-[1fr_400px] gap-0">
+
+        {/* ── LEFT: Slide content ── */}
+        <div className="flex flex-col justify-center pb-20 lg:pb-24 pt-8 lg:pt-0">
+          <AnimatePresence mode="wait" initial={false}>
+            <motion.div
+              key={active}
+              initial={{ opacity: 0, y: 28 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -18 }}
+              transition={{ duration: 0.55, ease: [0.16, 1, 0.3, 1] }}
             >
-              {slide.title}
-            </h1>
-            <p className="text-white/65 text-[15px] lg:text-[16px] leading-relaxed max-w-[440px] mb-9">
-              {slide.desc}
-            </p>
-            <div className="flex items-center gap-4">
-              <Link href={slide.href}>
-                <motion.span
-                  whileHover={{ scale: 1.02 }}
-                  whileTap={{ scale: 0.97 }}
-                  className="inline-flex items-center gap-3 px-7 py-3.5 bg-[#2D5A27] text-white text-[11px] tracking-[0.22em] uppercase font-bold hover:bg-[#4a9a42] transition-colors cursor-pointer"
-                  data-testid="link-hero-cta"
-                >
-                  {slide.cta}
-                  <ArrowUpRight className="w-4 h-4" />
-                </motion.span>
-              </Link>
-              <Link href="/magaza">
-                <span className="text-[11px] tracking-[0.20em] uppercase text-white/50 hover:text-white transition-colors cursor-pointer font-medium">
-                  Tüm Ürünler
-                </span>
-              </Link>
+              <span className="inline-block text-[10px] tracking-[0.30em] uppercase text-[#4a9a42] font-mono mb-4">
+                {slide.eyebrow}
+              </span>
+              <h1
+                className="font-black text-white leading-[0.93] mb-5"
+                style={{ fontSize: 'clamp(48px, 7vw, 108px)', letterSpacing: '-0.03em' }}
+              >
+                {slide.title}
+              </h1>
+              <p className="text-white/60 text-[15px] lg:text-[16px] leading-relaxed max-w-[420px] mb-9">
+                {slide.desc}
+              </p>
+              <div className="flex items-center gap-4 flex-wrap">
+                <Link href={slide.href}>
+                  <motion.span
+                    whileHover={{ scale: 1.02 }}
+                    whileTap={{ scale: 0.97 }}
+                    className="inline-flex items-center gap-3 px-7 py-3.5 bg-[#2D5A27] text-white text-[11px] tracking-[0.22em] uppercase font-bold hover:bg-[#4a9a42] transition-colors cursor-pointer"
+                    data-testid="link-hero-cta"
+                  >
+                    {slide.cta} <ArrowUpRight className="w-4 h-4" />
+                  </motion.span>
+                </Link>
+                <Link href="/magaza">
+                  <span className="text-[11px] tracking-[0.20em] uppercase text-white/45 hover:text-white transition-colors cursor-pointer font-medium">
+                    Tüm Ürünler
+                  </span>
+                </Link>
+              </div>
+            </motion.div>
+          </AnimatePresence>
+
+          {/* Slide controls */}
+          <div className="mt-12 lg:mt-16 flex items-center gap-6">
+            <div className="flex items-center gap-2">
+              {HERO_SLIDES.map((_, i) => (
+                <button
+                  key={i}
+                  onClick={() => go(i, i > active ? 1 : -1)}
+                  className="relative h-[2px] rounded-full overflow-hidden transition-all duration-300"
+                  style={{ width: i === active ? 40 : 16, backgroundColor: i === active ? '#4a9a42' : 'rgba(255,255,255,0.22)' }}
+                  data-testid={`button-hero-slide-${i}`}
+                  aria-label={`Slayt ${i + 1}`}
+                />
+              ))}
             </div>
-          </motion.div>
-        </AnimatePresence>
-
-        {/* Slide controls */}
-        <div className="absolute bottom-10 left-6 lg:left-12 flex items-center gap-6">
-          {/* Progress lines */}
-          <div className="flex items-center gap-2">
-            {HERO_SLIDES.map((_, i) => (
-              <button
-                key={i}
-                onClick={() => go(i, i > active ? 1 : -1)}
-                className="relative h-[2px] rounded-full overflow-hidden transition-all duration-300"
-                style={{ width: i === active ? 40 : 16, backgroundColor: i === active ? '#4a9a42' : 'rgba(255,255,255,0.25)' }}
-                data-testid={`button-hero-slide-${i}`}
-                aria-label={`Slayt ${i + 1}`}
-              />
-            ))}
+            <span className="text-[10px] font-mono text-white/30 tracking-[0.22em]">
+              {String(active + 1).padStart(2, '0')} / {String(HERO_SLIDES.length).padStart(2, '0')}
+            </span>
+            <div className="flex items-center gap-1.5 ml-auto">
+              <button onClick={prev} className="w-9 h-9 rounded-full border border-white/18 flex items-center justify-center text-white/55 hover:text-white hover:border-white/45 transition-colors" aria-label="Önceki" data-testid="button-hero-prev">
+                <ChevronLeft className="w-3.5 h-3.5" />
+              </button>
+              <button onClick={next} className="w-9 h-9 rounded-full border border-white/18 flex items-center justify-center text-white/55 hover:text-white hover:border-white/45 transition-colors" aria-label="Sonraki" data-testid="button-hero-next">
+                <ChevronRight className="w-3.5 h-3.5" />
+              </button>
+            </div>
           </div>
-          <span className="text-[10px] font-mono text-white/35 tracking-[0.22em]">
-            {String(active + 1).padStart(2, '0')} / {String(HERO_SLIDES.length).padStart(2, '0')}
-          </span>
         </div>
 
-        {/* Arrow controls */}
-        <div className="absolute bottom-8 right-6 lg:right-12 flex items-center gap-2">
-          <button
-            onClick={prev}
-            className="w-10 h-10 rounded-full border border-white/20 flex items-center justify-center text-white/60 hover:text-white hover:border-white/50 transition-colors"
-            aria-label="Önceki slayt"
-            data-testid="button-hero-prev"
-          >
-            <ChevronLeft className="w-4 h-4" />
-          </button>
-          <button
-            onClick={next}
-            className="w-10 h-10 rounded-full border border-white/20 flex items-center justify-center text-white/60 hover:text-white hover:border-white/50 transition-colors"
-            aria-label="Sonraki slayt"
-            data-testid="button-hero-next"
-          >
-            <ChevronRight className="w-4 h-4" />
-          </button>
+        {/* ── RIGHT: Random product cards (desktop only) ── */}
+        <div className="hidden lg:flex flex-col justify-center gap-4 pl-8 xl:pl-12 py-16">
+          {/* Label */}
+          <div className="flex items-center justify-between mb-1">
+            <span className="text-[9px] font-mono tracking-[0.26em] uppercase text-white/30">Öne Çıkan</span>
+            <span className="text-[9px] font-mono text-white/20">↻ 7s</span>
+          </div>
+
+          <AnimatePresence mode="wait">
+            <motion.div
+              key={cardsKey}
+              initial={{ opacity: 0, y: 12 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -10 }}
+              transition={{ duration: 0.5, ease: [0.16, 1, 0.3, 1] }}
+              className="flex flex-col gap-3"
+            >
+              {pickedProducts.length > 0 ? pickedProducts.map((p) => {
+                const price = parseFloat(String(p.basePrice || '0')) || 0;
+                return (
+                  <Link key={p.id} href={`/urun/${p.slug}`} data-testid={`link-hero-product-${p.id}`}>
+                    <div className="group flex items-center gap-3.5 bg-white/[0.06] hover:bg-white/[0.11] border border-white/[0.08] hover:border-white/[0.18] backdrop-blur-sm p-3 transition-all duration-300 cursor-pointer">
+                      {/* Image */}
+                      <div className="w-[72px] h-[72px] shrink-0 overflow-hidden bg-black/20">
+                        {p.images?.[0] ? (
+                          <img
+                            src={p.images[0]}
+                            alt={p.name}
+                            className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+                          />
+                        ) : (
+                          <div className="w-full h-full bg-white/5" />
+                        )}
+                      </div>
+                      {/* Info */}
+                      <div className="flex-1 min-w-0">
+                        {p.isNew && (
+                          <span className="text-[8px] tracking-[0.2em] uppercase text-[#4a9a42] font-mono">Yeni</span>
+                        )}
+                        {p.discountBadge && (
+                          <span className="text-[8px] tracking-[0.2em] uppercase text-[#4a9a42] font-mono">{p.discountBadge}</span>
+                        )}
+                        <p className="text-[12px] font-medium text-white/80 group-hover:text-white transition-colors leading-snug line-clamp-2 mt-0.5">
+                          {p.name}
+                        </p>
+                        <p className="text-[13px] font-bold text-[#4a9a42] mt-1">
+                          {price.toLocaleString('tr-TR')} ₺
+                        </p>
+                      </div>
+                      <ArrowUpRight className="w-3.5 h-3.5 text-white/25 group-hover:text-white/70 shrink-0 transition-colors" />
+                    </div>
+                  </Link>
+                );
+              }) : (
+                // Skeleton while loading
+                Array.from({ length: 2 }).map((_, i) => (
+                  <div key={i} className="flex items-center gap-3.5 bg-white/[0.04] border border-white/[0.06] p-3 animate-pulse">
+                    <div className="w-[72px] h-[72px] bg-white/10 shrink-0" />
+                    <div className="flex-1 space-y-2">
+                      <div className="h-2.5 bg-white/10 rounded w-3/4" />
+                      <div className="h-2.5 bg-white/10 rounded w-1/2" />
+                      <div className="h-3 bg-white/15 rounded w-1/3" />
+                    </div>
+                  </div>
+                ))
+              )}
+            </motion.div>
+          </AnimatePresence>
+
+          {/* View all link */}
+          <Link href="/magaza" className="mt-1 text-[10px] tracking-[0.20em] uppercase text-white/30 hover:text-[#4a9a42] transition-colors flex items-center gap-1.5 font-mono">
+            Tüm Ürünleri Gör <ArrowUpRight className="w-3 h-3" />
+          </Link>
         </div>
+
       </div>
     </section>
   );
@@ -571,7 +646,7 @@ export default function Home() {
       />
       <Header />
       <main>
-        <HeroSlider />
+        <HeroSlider products={products} />
         <FeaturedProducts products={products} />
         <CategoriesSection />
         <NewArrivals products={products} />
