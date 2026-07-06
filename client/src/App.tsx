@@ -92,7 +92,7 @@ function App() {
         <CartProvider>
           <CartModalProvider>
             <TooltipProvider>
-              <div className="relative w-full pb-[58px] lg:pb-0">
+              <div className="relative w-full lg:pb-0" style={{ paddingBottom: 'var(--mobile-nav-total, 58px)' }}>
                 <SmoothScroll />
                 <Toaster />
                 <Router />

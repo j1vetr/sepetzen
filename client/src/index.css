@@ -48,6 +48,10 @@
 }
 
 :root {
+  /* Mobile bottom nav height token — used for padding/offset across the app */
+  --mobile-nav-bar-h: 58px;
+  --mobile-nav-total: calc(var(--mobile-nav-bar-h) + env(safe-area-inset-bottom, 0px));
+
   --background: 120 5% 98%;
   --foreground: 120 8% 10%;
   --card: 0 0% 100%;

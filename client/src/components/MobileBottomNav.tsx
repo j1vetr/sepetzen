@@ -52,10 +52,11 @@ export function MobileBottomNav() {
       style={{
         paddingBottom: 'env(safe-area-inset-bottom, 0px)',
         boxShadow: '0 -4px 24px rgba(0,0,0,0.45)',
+        height: 'calc(var(--mobile-nav-bar-h, 58px) + env(safe-area-inset-bottom, 0px))',
       }}
       data-testid="mobile-bottom-nav"
     >
-      <div className="grid grid-cols-4 h-[58px]">
+      <div className="grid grid-cols-4" style={{ height: 'var(--mobile-nav-bar-h, 58px)' }}>
         {tabs.map((tab) => {
           const isActive = tab.matchFn ? tab.matchFn(location) : location === tab.href;
           const Icon = tab.icon;
@@ -76,7 +77,7 @@ export function MobileBottomNav() {
                 <span className="relative">
                   <Icon
                     className="w-[22px] h-[22px] transition-colors duration-200"
-                    style={{ color: isActive ? '#4a9a42' : 'rgba(255,255,255,0.45)' }}
+                    style={{ color: isActive ? '#2D5A27' : 'rgba(255,255,255,0.45)' }}
                     strokeWidth={isActive ? 2.2 : 1.75}
                   />
 
@@ -103,7 +104,7 @@ export function MobileBottomNav() {
                 {/* Label */}
                 <span
                   className="text-[10px] font-medium tracking-[0.06em] transition-colors duration-200 leading-none"
-                  style={{ color: isActive ? '#4a9a42' : 'rgba(255,255,255,0.40)' }}
+                  style={{ color: isActive ? '#2D5A27' : 'rgba(255,255,255,0.40)' }}
                 >
                   {tab.label}
                 </span>
@@ -112,7 +113,7 @@ export function MobileBottomNav() {
                 {isActive && (
                   <motion.span
                     layoutId="bottom-nav-dot"
-                    className="absolute -top-[14px] left-1/2 -translate-x-1/2 w-[18px] h-[2px] rounded-full bg-[#4a9a42]"
+                    className="absolute -top-[14px] left-1/2 -translate-x-1/2 w-[18px] h-[2px] rounded-full bg-[#2D5A27]"
                     transition={{ type: 'spring', stiffness: 400, damping: 30 }}
                   />
                 )}
