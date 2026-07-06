@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect, useCallback } from 'react';
+import { useState, useRef, useEffect, useCallback, useMemo } from 'react';
 import { useQuery } from '@tanstack/react-query';
 
 interface TurnstileApi {
@@ -41,6 +41,11 @@ import {
   Star,
   Send,
   Check,
+  MessageCircle,
+  Ruler,
+  Wrench,
+  Target,
+  Gift,
 } from 'lucide-react';
 
 import { Header } from '@/components/Header';
@@ -99,6 +104,204 @@ function StarRating({
     </div>
   );
 }
+
+// ─── Description HTML → Section Parser ──────────────────────────────────────
+
+interface DescSection {
+  emoji: string;
+  title: string;
+  type: 'specs' | 'material' | 'usage' | 'gift' | 'generic';
+  items: string[];
+  prose: string;
+}
+
+const SECTION_EMOJIS = ['📐', '🔩', '🎯', '🎁'] as const;
+type SectionEmoji = (typeof SECTION_EMOJIS)[number];
+
+function emojiToType(emoji: string, title: string): DescSection['type'] {
+  if (emoji === '📐' || /teknik/i.test(title)) return 'specs';
+  if (emoji === '🔩' || /materyal/i.test(title)) return 'material';
+  if (emoji === '🎯' || /kullanım/i.test(title)) return 'usage';
+  if (emoji === '🎁' || /hediye/i.test(title)) return 'gift';
+  return 'generic';
+}
+
+function parseProductSections(html: string): DescSection[] {
+  if (!html) return [];
+
+  // ── Strategy A: h2/h3/h4 headings (future-proof) ──────────────────────────
+  const headingRe = /<h[2-4][^>]*>([\s\S]*?)<\/h[2-4]>/gi;
+  const hMatches = [...html.matchAll(headingRe)];
+  if (hMatches.length > 0) {
+    return hMatches.map((m, i) => {
+      const end = m.index! + m[0].length;
+      const nextStart = hMatches[i + 1]?.index ?? html.length;
+      const bodyHtml = html.slice(end, nextStart);
+      const text = m[1].replace(/<[^>]+>/g, '').trim();
+      const emoji = SECTION_EMOJIS.find(e => text.includes(e)) ?? '';
+      const title = text.replace(/^[^\p{L}\p{N}]+/u, '').trim() || text;
+      const items = [...bodyHtml.matchAll(/<li[^>]*>([\s\S]*?)<\/li>/gi)]
+        .map(lm => lm[1].replace(/<[^>]+>/g, '').trim()).filter(Boolean);
+      const prose = [...bodyHtml.matchAll(/<p[^>]*>([\s\S]*?)<\/p>/gi)]
+        .map(pm => pm[1].replace(/<[^>]+>/g, '').trim()).filter(Boolean).join(' ');
+      return { emoji, title, type: emojiToType(emoji, title), items, prose };
+    });
+  }
+
+  // ── Strategy B: emoji-span pattern (actual AI-generated descriptions) ──────
+  // The AI descriptions use <span>📐</span><span>Title</span> inside a flex div.
+  // We detect section starts by finding emoji-only spans, then collect until next.
+  if (typeof window === 'undefined') return []; // SSR guard
+
+  const doc = new DOMParser().parseFromString(html, 'text/html');
+
+  const sectionHeaders: { emoji: SectionEmoji; title: string; container: Element }[] = [];
+
+  doc.body.querySelectorAll('span').forEach(span => {
+    const txt = span.textContent?.trim() ?? '';
+    const emoji = SECTION_EMOJIS.find(e => txt === e);
+    if (!emoji) return;
+    const titleSpan = span.nextElementSibling;
+    const title = titleSpan?.textContent?.trim() ?? '';
+    // Walk up to find the section wrapper (typically 2 levels: flex-div → section-div)
+    const flexDiv = span.parentElement;
+    const container = flexDiv?.parentElement;
+    if (container) sectionHeaders.push({ emoji, title, container });
+  });
+
+  if (sectionHeaders.length === 0) return [];
+
+  return sectionHeaders.map(({ emoji, title, container }) => {
+    const clone = container.cloneNode(true) as Element;
+    // Remove the header flex div so we only get body content
+    const flexDiv = clone.querySelector('[style*="display:flex"]');
+    flexDiv?.remove();
+    const items = [...clone.querySelectorAll('li')]
+      .map(li => li.textContent?.trim() ?? '').filter(Boolean);
+    const prose = [...clone.querySelectorAll('p')]
+      .map(p => p.textContent?.trim() ?? '').filter(Boolean).join(' ');
+    return { emoji, title, type: emojiToType(emoji, title), items, prose };
+  });
+}
+
+function ProductDescriptionSections({ html }: { html: string }) {
+  const sections = useMemo(() => parseProductSections(html), [html]);
+
+  if (sections.length === 0) {
+    return (
+      <div
+        className="text-sm text-black/60 leading-relaxed prose prose-sm max-w-none"
+        dangerouslySetInnerHTML={{ __html: html }}
+      />
+    );
+  }
+
+  return (
+    <div className="space-y-2.5 mt-1">
+      {sections.map((section, i) => {
+        if (section.type === 'specs') {
+          return (
+            <div key={i} className="border border-black/8 bg-stone-50/80 overflow-hidden">
+              <div className="flex items-center gap-2 px-4 py-2.5 bg-[#2D5A27]/[0.07] border-b border-black/6">
+                <Ruler className="w-3.5 h-3.5 text-[#2D5A27] shrink-0" strokeWidth={2} />
+                <h4 className="text-[10.5px] font-semibold tracking-[0.18em] uppercase text-black/65">{section.title}</h4>
+              </div>
+              {section.items.length > 0 ? (
+                <dl className="divide-y divide-black/[0.05]">
+                  {section.items.map((item, j) => {
+                    const colonIdx = item.indexOf(':');
+                    const hasColon = colonIdx > 0 && colonIdx < 40;
+                    const label = hasColon ? item.slice(0, colonIdx).trim() : null;
+                    const value = hasColon ? item.slice(colonIdx + 1).trim() : item;
+                    return (
+                      <div key={j} className="flex items-start gap-2 px-4 py-[7px]">
+                        {label && (
+                          <dt className="text-[11px] text-black/40 min-w-[110px] shrink-0 leading-snug">{label}</dt>
+                        )}
+                        <dd className="text-[12px] text-black/80 font-medium leading-snug">{value}</dd>
+                      </div>
+                    );
+                  })}
+                </dl>
+              ) : (
+                <p className="px-4 py-3 text-[13px] text-black/65 leading-relaxed">{section.prose}</p>
+              )}
+            </div>
+          );
+        }
+
+        if (section.type === 'material') {
+          return (
+            <div key={i} className="border border-black/8 bg-stone-50/80 overflow-hidden">
+              <div className="flex items-center gap-2 px-4 py-2.5 bg-[#2D5A27]/[0.07] border-b border-black/6">
+                <Wrench className="w-3.5 h-3.5 text-[#2D5A27] shrink-0" strokeWidth={2} />
+                <h4 className="text-[10.5px] font-semibold tracking-[0.18em] uppercase text-black/65">{section.title}</h4>
+              </div>
+              <p className="px-4 py-3 text-[13px] text-black/65 leading-relaxed">
+                {section.prose || section.items.join(' · ')}
+              </p>
+            </div>
+          );
+        }
+
+        if (section.type === 'usage') {
+          const chips = section.items.length > 0
+            ? section.items
+            : section.prose.split(/[,·]/).map(s => s.trim()).filter(Boolean);
+          return (
+            <div key={i} className="border border-black/8 bg-stone-50/80 overflow-hidden">
+              <div className="flex items-center gap-2 px-4 py-2.5 bg-[#2D5A27]/[0.07] border-b border-black/6">
+                <Target className="w-3.5 h-3.5 text-[#2D5A27] shrink-0" strokeWidth={2} />
+                <h4 className="text-[10.5px] font-semibold tracking-[0.18em] uppercase text-black/65">{section.title}</h4>
+              </div>
+              <div className="px-4 py-3 flex flex-wrap gap-1.5">
+                {chips.length > 0 ? chips.map((chip, j) => (
+                  <span
+                    key={j}
+                    className="inline-flex items-center px-2.5 py-1 bg-[#2D5A27]/[0.07] text-[11px] text-[#2D5A27] font-semibold rounded-full border border-[#2D5A27]/20"
+                  >
+                    {chip}
+                  </span>
+                )) : (
+                  <p className="text-[13px] text-black/65">{section.prose}</p>
+                )}
+              </div>
+            </div>
+          );
+        }
+
+        if (section.type === 'gift') {
+          return (
+            <div key={i} className="bg-[#2D5A27] overflow-hidden">
+              <div className="flex items-start gap-3 px-4 py-4">
+                <Gift className="w-5 h-5 text-white/70 shrink-0 mt-0.5" strokeWidth={1.75} />
+                <div>
+                  <h4 className="text-[10.5px] font-semibold tracking-[0.18em] uppercase text-white/60 mb-1">{section.title}</h4>
+                  <p className="text-[13px] text-white/90 leading-relaxed">
+                    {section.prose || section.items.join(' ')}
+                  </p>
+                </div>
+              </div>
+            </div>
+          );
+        }
+
+        return (
+          <div key={i} className="border border-black/8 bg-stone-50/80 overflow-hidden">
+            {section.title && (
+              <div className="flex items-center gap-2 px-4 py-2.5 bg-black/[0.03] border-b border-black/6">
+                <h4 className="text-[10.5px] font-semibold tracking-[0.18em] uppercase text-black/65">{section.title}</h4>
+              </div>
+            )}
+            <p className="px-4 py-3 text-[13px] text-black/65 leading-relaxed">{section.prose || section.items.join(', ')}</p>
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
 
 export default function ProductDetail() {
   const params = useParams<{ slug: string }>();
@@ -673,10 +876,10 @@ export default function ProductDetail() {
                       key={i}
                       type="button"
                       onClick={() => setSelectedImage(i)}
-                      className={`relative aspect-[4/5] overflow-hidden bg-stone-100 transition-all ${
+                      className={`relative aspect-square overflow-hidden bg-stone-100 transition-all ${
                         i === selectedImage
-                          ? 'ring-1 ring-black opacity-100'
-                          : 'opacity-50 hover:opacity-100'
+                          ? 'ring-2 ring-[#2D5A27] opacity-100'
+                          : 'opacity-45 hover:opacity-90'
                       }`}
                       data-testid={`button-thumbnail-${i}`}
                       aria-label={`Görsel ${i + 1}`}
@@ -739,9 +942,9 @@ export default function ProductDetail() {
                 </div>
 
                 {/* Mobile carousel */}
-                <div className="sm:hidden">
+                <div className="sm:hidden -mx-4">
                   <div
-                    className="relative aspect-[4/5] bg-stone-100 overflow-hidden"
+                    className="relative aspect-square bg-stone-100 overflow-hidden"
                     ref={emblaRef}
                   >
                     <div className="flex h-full">
@@ -784,7 +987,7 @@ export default function ProductDetail() {
                           key={i}
                           onClick={() => setSelectedImage(i)}
                           className={`h-1.5 rounded-full transition-all ${
-                            i === selectedImage ? 'bg-black w-6' : 'bg-black/20 w-1.5'
+                            i === selectedImage ? 'bg-[#2D5A27] w-6' : 'bg-black/20 w-1.5'
                           }`}
                           aria-label={`Görsel ${i + 1}`}
                         />
@@ -803,7 +1006,7 @@ export default function ProductDetail() {
               {/* Category eyebrow */}
               {category && (
                 <Link href={`/kategori/${category.slug}`}>
-                  <span className="inline-block text-[10px] text-polen-orange uppercase tracking-[0.3em] mb-4 hover:underline">
+                  <span className="inline-block text-[10px] text-[#2D5A27] uppercase tracking-[0.3em] mb-4 hover:underline">
                     {category.name}
                   </span>
                 </Link>
@@ -838,37 +1041,17 @@ export default function ProductDetail() {
                   </span>
                 )}
                 <span
-                  className="font-display text-3xl text-black tabular-nums"
+                  className="font-display text-4xl text-[#2D5A27] tabular-nums"
                   data-testid="text-product-price"
                 >
                   {price.toLocaleString('tr-TR', { minimumFractionDigits: 2 })} ₺
                 </span>
               </div>
 
-              {/* Short description / accordion */}
+              {/* Description sections */}
               {product.description && (
                 <div className="mb-6">
-                  <div
-                    className={`relative overflow-hidden ${
-                      showFullDesc ? '' : 'max-h-[120px]'
-                    }`}
-                  >
-                    <div
-                      className="text-sm text-black/60 leading-relaxed prose prose-sm max-w-none [&_p]:mb-3 [&_ul]:my-3 [&_li]:mb-1 [&_strong]:text-black [&_h3]:text-black [&_h4]:text-black"
-                      dangerouslySetInnerHTML={{ __html: product.description }}
-                    />
-                    {!showFullDesc && (
-                      <div className="pointer-events-none absolute bottom-0 left-0 right-0 h-12 bg-gradient-to-t from-white to-transparent" />
-                    )}
-                  </div>
-                  <button
-                    type="button"
-                    onClick={() => setShowFullDesc((v) => !v)}
-                    className="mt-2 text-[11px] font-semibold text-black/55 hover:text-polen-orange uppercase tracking-[0.18em] transition-colors"
-                    data-testid="button-toggle-description"
-                  >
-                    {showFullDesc ? 'Gizle ↑' : 'Devamını Oku ↓'}
-                  </button>
+                  <ProductDescriptionSections html={product.description} />
                 </div>
               )}
 
@@ -914,7 +1097,7 @@ export default function ProductDetail() {
                     className={`group flex-1 h-12 font-semibold text-xs uppercase tracking-[0.2em] transition-colors flex items-center justify-center gap-2 ${
                       isOutOfStock
                         ? 'bg-black/8 text-black/35 cursor-not-allowed'
-                        : 'bg-black hover:bg-polen-orange text-white'
+                        : 'bg-black hover:bg-[#2D5A27] text-white'
                     } disabled:cursor-not-allowed`}
                     data-testid="button-add-to-cart"
                   >
@@ -933,7 +1116,7 @@ export default function ProductDetail() {
                     disabled={isFavoriteLoading}
                     className={`w-12 h-12 border flex items-center justify-center transition-colors ${
                       isLiked
-                        ? 'bg-polen-orange border-polen-orange text-white'
+                        ? 'bg-[#2D5A27] border-[#2D5A27] text-white'
                         : 'border-black/15 hover:border-black text-black'
                     } ${isFavoriteLoading ? 'opacity-50' : ''}`}
                     aria-label="Favorilere ekle"
@@ -995,21 +1178,35 @@ export default function ProductDetail() {
                 </div>
               </div>
 
+              {/* WhatsApp order link */}
+              {!isOutOfStock && (
+                <a
+                  href={`https://wa.me/905366301138?text=${encodeURIComponent(`Merhaba, "${product.name}" ürününü sipariş vermek istiyorum. ${typeof window !== 'undefined' ? window.location.href : ''}`)}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="flex items-center justify-center gap-2.5 w-full h-11 border border-[#25D366]/40 text-[#25D366] hover:bg-[#25D366]/8 transition-colors text-[11px] font-semibold tracking-[0.18em] uppercase mb-4"
+                  data-testid="link-whatsapp-order"
+                >
+                  <MessageCircle className="w-4 h-4" strokeWidth={2} />
+                  WhatsApp ile Sipariş Ver
+                </a>
+              )}
+
               {/* Sentinel — when this leaves viewport, show mobile sticky CTA */}
               <div ref={ctaSentinelRef} aria-hidden="true" className="h-px" />
 
               {/* Trust strip */}
               <div className="grid grid-cols-3 gap-3 py-5 border-t border-b border-black/8 mb-6">
                 {[
-                  { icon: Truck, title: 'Ücretsiz Kargo', sub: '2.500 ₺ üzeri' },
+                  { icon: Truck, title: 'Ücretsiz Kargo', sub: '1.500 ₺ üzeri' },
                   { icon: RotateCcw, title: 'Kolay İade', sub: '14 gün içinde' },
                   { icon: Shield, title: 'Güvenli Ödeme', sub: 'SSL korumalı' },
                 ].map((it) => (
                   <div key={it.title} className="text-center">
-                    <div className="w-9 h-9 mx-auto mb-2 border border-black/10 flex items-center justify-center">
-                      <it.icon className="w-4 h-4 text-black/45" />
+                    <div className="w-9 h-9 mx-auto mb-2 bg-[#2D5A27]/[0.07] border border-[#2D5A27]/15 flex items-center justify-center">
+                      <it.icon className="w-4 h-4 text-[#2D5A27]" />
                     </div>
-                    <p className="text-[11px] font-medium text-black leading-tight">
+                    <p className="text-[11px] font-semibold text-black leading-tight">
                       {it.title}
                     </p>
                     <p className="text-[10px] text-black/40">{it.sub}</p>
@@ -1306,7 +1503,7 @@ export default function ProductDetail() {
               className={`h-11 px-5 font-semibold text-xs uppercase tracking-[0.2em] flex items-center justify-center gap-2 ${
                 isOutOfStock
                   ? 'bg-black/8 text-black/35 cursor-not-allowed'
-                  : 'bg-black text-white hover:bg-polen-orange'
+                  : 'bg-[#2D5A27] text-white hover:bg-[#234a1e]'
               }`}
               data-testid="button-add-to-cart-mobile"
             >
