@@ -1,9 +1,9 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect, useCallback } from 'react';
 import { Header } from '@/components/Header';
 import { Footer } from '@/components/Footer';
 import { SEO } from '@/components/SEO';
 import { ProductCard } from '@/components/ProductCard';
-import { Link, useParams } from 'wouter';
+import { Link, useParams, useSearch } from 'wouter';
 import { ChevronRight, X, SlidersHorizontal } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useProducts, useCategories, type ProductFilters } from '@/hooks/useProducts';
@@ -23,18 +23,105 @@ const sortOptions = [
   { value: 'popular', label: 'En Popüler' },
 ];
 
+function parseSearchParams(search: string) {
+  const params = new URLSearchParams(search);
+  const sort = (params.get('sort') || 'newest') as ProductFilters['sort'];
+  const minPrice = parseInt(params.get('minPrice') || '0', 10);
+  const maxPrice = parseInt(params.get('maxPrice') || '10000', 10);
+  const isNew = params.get('isNew') === '1';
+  const discounted = params.get('discounted') === '1';
+  return { sort, minPrice, maxPrice, isNew, discounted };
+}
+
 export default function Category() {
   const params = useParams<{ slug: string }>();
   const slug = params.slug || '';
+  const search = useSearch();
 
   const { data: categories = [], isLoading: categoriesLoading } = useCategories();
   const category = categories.find(c => c.slug === slug);
 
-  const [sortBy, setSortBy] = useState<ProductFilters['sort']>('newest');
-  const [priceRange, setPriceRange] = useState<[number, number]>([0, 10000]);
-  const [showOnlyNew, setShowOnlyNew] = useState(false);
-  const [showOnlyDiscounted, setShowOnlyDiscounted] = useState(false);
+  const parsed = useMemo(() => parseSearchParams(search), [search]);
+
+  const [sortBy, setSortBy] = useState<ProductFilters['sort']>(parsed.sort);
+  const [priceRange, setPriceRange] = useState<[number, number]>([parsed.minPrice, parsed.maxPrice]);
+  const [showOnlyNew, setShowOnlyNew] = useState(parsed.isNew);
+  const [showOnlyDiscounted, setShowOnlyDiscounted] = useState(parsed.discounted);
   const [filterOpen, setFilterOpen] = useState(false);
+
+  const updateUrl = useCallback(
+    (overrides?: {
+      sort?: ProductFilters['sort'];
+      minPrice?: number;
+      maxPrice?: number;
+      isNew?: boolean;
+      discounted?: boolean;
+    }) => {
+      const p = new URLSearchParams();
+      const s = overrides?.sort ?? sortBy;
+      const minP = overrides?.minPrice ?? priceRange[0];
+      const maxP = overrides?.maxPrice ?? priceRange[1];
+      const n = overrides?.isNew ?? showOnlyNew;
+      const d = overrides?.discounted ?? showOnlyDiscounted;
+
+      if (s && s !== 'newest') p.set('sort', s);
+      if (minP > 0) p.set('minPrice', String(minP));
+      if (maxP < 10000) p.set('maxPrice', String(maxP));
+      if (n) p.set('isNew', '1');
+      if (d) p.set('discounted', '1');
+
+      const qs = p.toString();
+      const newUrl = `${window.location.pathname}${qs ? `?${qs}` : ''}`;
+      window.history.replaceState(null, '', newUrl);
+    },
+    [sortBy, priceRange, showOnlyNew, showOnlyDiscounted]
+  );
+
+  const handleSortChange = useCallback(
+    (v: string) => {
+      const val = v as ProductFilters['sort'];
+      setSortBy(val);
+      updateUrl({ sort: val });
+    },
+    [updateUrl]
+  );
+
+  const handlePriceChange = useCallback(
+    (v: number[]) => {
+      const range = v as [number, number];
+      setPriceRange(range);
+      updateUrl({ minPrice: range[0], maxPrice: range[1] });
+    },
+    [updateUrl]
+  );
+
+  const handleToggleNew = useCallback(() => {
+    const next = !showOnlyNew;
+    setShowOnlyNew(next);
+    updateUrl({ isNew: next });
+  }, [showOnlyNew, updateUrl]);
+
+  const handleToggleDiscounted = useCallback(() => {
+    const next = !showOnlyDiscounted;
+    setShowOnlyDiscounted(next);
+    updateUrl({ discounted: next });
+  }, [showOnlyDiscounted, updateUrl]);
+
+  const clearFilters = useCallback(() => {
+    setShowOnlyNew(false);
+    setShowOnlyDiscounted(false);
+    setSortBy('newest');
+    setPriceRange([0, 10000]);
+    window.history.replaceState(null, '', window.location.pathname);
+  }, []);
+
+  useEffect(() => {
+    const reparsed = parseSearchParams(window.location.search);
+    setSortBy(reparsed.sort);
+    setPriceRange([reparsed.minPrice, reparsed.maxPrice]);
+    setShowOnlyNew(reparsed.isNew);
+    setShowOnlyDiscounted(reparsed.discounted);
+  }, [slug]);
 
   const filters: ProductFilters = {
     categoryId: category?.id,
@@ -48,17 +135,10 @@ export default function Category() {
 
   const filteredProducts = useMemo(() => {
     let result = products;
-    if (showOnlyNew) result = result.filter((p) => (p as any).isNew);
-    if (showOnlyDiscounted) result = result.filter((p) => (p as any).discountBadge);
+    if (showOnlyNew) result = result.filter((p) => p.isNew);
+    if (showOnlyDiscounted) result = result.filter((p) => !!p.discountBadge);
     return result;
   }, [products, showOnlyNew, showOnlyDiscounted]);
-
-  const clearFilters = () => {
-    setShowOnlyNew(false);
-    setShowOnlyDiscounted(false);
-    setSortBy('newest');
-    setPriceRange([0, 10000]);
-  };
 
   const priceActive = priceRange[0] > 0 || priceRange[1] < 10000;
   const hasActiveFilters = showOnlyNew || showOnlyDiscounted || priceActive;
@@ -174,10 +254,10 @@ export default function Category() {
                 )}
               </button>
 
-              {/* Active toggles */}
+              {/* Active filter chips */}
               {showOnlyNew && (
                 <button
-                  onClick={() => setShowOnlyNew(false)}
+                  onClick={() => { setShowOnlyNew(false); updateUrl({ isNew: false }); }}
                   className="flex items-center gap-1 text-[10px] tracking-[0.1em] uppercase border border-black text-black px-2.5 py-1 shrink-0 hover:bg-black hover:text-white transition-colors"
                   data-testid="button-remove-filter-new"
                 >
@@ -187,11 +267,21 @@ export default function Category() {
               )}
               {showOnlyDiscounted && (
                 <button
-                  onClick={() => setShowOnlyDiscounted(false)}
-                  className="flex items-center gap-1 text-[10px] tracking-[0.1em] uppercase border border-polen-orange text-polen-orange px-2.5 py-1 shrink-0 hover:bg-polen-orange hover:text-white transition-colors"
+                  onClick={() => { setShowOnlyDiscounted(false); updateUrl({ discounted: false }); }}
+                  className="flex items-center gap-1 text-[10px] tracking-[0.1em] uppercase border border-[var(--sepetzen-green)] text-[var(--sepetzen-green)] px-2.5 py-1 shrink-0 hover:bg-[var(--sepetzen-green)] hover:text-white transition-colors"
                   data-testid="button-remove-filter-discount"
                 >
                   İndirimli
+                  <X className="w-2.5 h-2.5" />
+                </button>
+              )}
+              {priceActive && (
+                <button
+                  onClick={() => { setPriceRange([0, 10000]); updateUrl({ minPrice: 0, maxPrice: 10000 }); }}
+                  className="flex items-center gap-1 text-[10px] tracking-[0.1em] uppercase border border-black/30 text-black/60 px-2.5 py-1 shrink-0 hover:border-black hover:text-black transition-colors"
+                  data-testid="button-remove-filter-price"
+                >
+                  {priceRange[0].toLocaleString('tr-TR')}–{priceRange[1].toLocaleString('tr-TR')} ₺
                   <X className="w-2.5 h-2.5" />
                 </button>
               )}
@@ -209,7 +299,7 @@ export default function Category() {
 
             {/* Right: sort */}
             <div className="shrink-0">
-              <Select value={sortBy} onValueChange={(v) => setSortBy(v as ProductFilters['sort'])}>
+              <Select value={sortBy} onValueChange={handleSortChange}>
                 <SelectTrigger
                   className="h-8 border-0 bg-transparent text-[11px] tracking-[0.12em] uppercase font-medium text-black/50 hover:text-black focus:ring-0 focus:ring-offset-0 gap-1 pr-0 shadow-none"
                   data-testid="select-sort"
@@ -246,12 +336,12 @@ export default function Category() {
             <div className="max-w-[1400px] mx-auto px-5 lg:px-8 py-8">
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-10 max-w-xl">
 
-                {/* Price */}
+                {/* Price range */}
                 <div>
                   <h4 className="text-[10px] font-semibold tracking-[0.25em] uppercase text-black/40 mb-5">Fiyat Aralığı</h4>
                   <Slider
                     value={priceRange}
-                    onValueChange={(v) => setPriceRange(v as [number, number])}
+                    onValueChange={handlePriceChange}
                     min={0}
                     max={10000}
                     step={100}
@@ -259,8 +349,8 @@ export default function Category() {
                     data-testid="slider-price-range"
                   />
                   <div className="flex justify-between text-xs text-black/50">
-                    <span>{priceRange[0].toLocaleString('tr-TR')} ₺</span>
-                    <span>{priceRange[1].toLocaleString('tr-TR')} ₺</span>
+                    <span data-testid="text-price-min">{priceRange[0].toLocaleString('tr-TR')} ₺</span>
+                    <span data-testid="text-price-max">{priceRange[1].toLocaleString('tr-TR')} ₺</span>
                   </div>
                 </div>
 
@@ -269,7 +359,7 @@ export default function Category() {
                   <h4 className="text-[10px] font-semibold tracking-[0.25em] uppercase text-black/40 mb-5">Hızlı Filtre</h4>
                   <div className="flex flex-wrap gap-2">
                     <button
-                      onClick={() => setShowOnlyNew((v) => !v)}
+                      onClick={handleToggleNew}
                       className={`px-4 h-11 border text-[11px] tracking-[0.12em] uppercase font-medium transition-all ${
                         showOnlyNew
                           ? 'bg-black text-white border-black'
@@ -280,11 +370,11 @@ export default function Category() {
                       Yeni Gelenler
                     </button>
                     <button
-                      onClick={() => setShowOnlyDiscounted((v) => !v)}
+                      onClick={handleToggleDiscounted}
                       className={`px-4 h-11 border text-[11px] tracking-[0.12em] uppercase font-medium transition-all ${
                         showOnlyDiscounted
-                          ? 'bg-polen-orange text-white border-polen-orange'
-                          : 'border-black/20 text-black hover:border-polen-orange hover:text-polen-orange'
+                          ? 'bg-[var(--sepetzen-green)] text-white border-[var(--sepetzen-green)]'
+                          : 'border-black/20 text-black hover:border-[var(--sepetzen-green)] hover:text-[var(--sepetzen-green)]'
                       }`}
                       data-testid="button-filter-discounted"
                     >
