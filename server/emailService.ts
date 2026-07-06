@@ -152,7 +152,7 @@ function brandHeader(): string {
         </tr>
         <tr>
           <td align="center" style="padding-top:6px;font-family:Helvetica,Arial,sans-serif;color:${BRAND.muted};font-size:10px;font-weight:600;letter-spacing:3px;text-transform:uppercase;">
-            Doğal Taş &amp; Mermer
+            Kamp, Outdoor & Bıçak
           </td>
         </tr>
       </table>

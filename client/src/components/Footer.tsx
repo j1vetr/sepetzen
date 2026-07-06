@@ -6,16 +6,16 @@ const kurumsalLinks = [
   { href: '/sayfa/mesafeli-satis-sozlesmesi', label: 'Mesafeli Satış Sözleşmesi' },
   { href: '/sayfa/on-bilgilendirme-formu',   label: 'Ön Bilgilendirme Formu' },
   { href: '/sayfa/uyelik-sozlesmesi',         label: 'Üyelik Sözleşmesi' },
-  { href: '/sayfa/iletisim',                  label: 'İletişim' },
+  { href: '/sayfa/kvkk-aydinlatma-metni',    label: 'KVKK Aydınlatma Metni' },
+  { href: '/sayfa/gizlilik-guvenlik',        label: 'Gizlilik & Güvenlik' },
+  { href: '/sayfa/cerez-politikasi',         label: 'Çerez Politikası' },
 ];
 
 const yardimLinks = [
   { href: '/sayfa/kargo-sureci',            label: 'Kargo Süreci' },
   { href: '/sayfa/iade-sureci',             label: 'İade Süreci' },
   { href: '/sayfa/iptal-ve-iade-sartlari', label: 'İptal & İade Şartları' },
-  { href: '/sayfa/kvkk-aydinlatma-metni',  label: 'KVKK Aydınlatma Metni' },
-  { href: '/sayfa/gizlilik-guvenlik',       label: 'Gizlilik & Güvenlik' },
-  { href: '/sayfa/cerez-politikasi',        label: 'Çerez Politikası' },
+  { href: '/sayfa/iletisim',                label: 'İletişim' },
 ];
 
 export function Footer() {
@@ -82,7 +82,7 @@ export function Footer() {
                 className="inline-flex items-center gap-2 text-white/75 hover:text-[#4a9a42] transition-colors group"
                 data-testid="link-etsy-footer"
               >
-                <span className="w-9 h-9 rounded-full border border-white/15 group-hover:border-[#4a9a42] flex items-center justify-center transition-colors text-[11px] font-bold">
+                <span className="w-9 h-9 rounded-full border border-white/15 group-hover:border-[#4a9a42] flex items-center justify-center text-[11px] font-bold transition-colors">
                   E
                 </span>
                 <span className="text-[12px]">Etsy</span>

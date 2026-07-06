@@ -192,7 +192,7 @@ async function generateQuotePdfBuffer(quote: any, dealer: any, items: any[]): Pr
       }
       
       if (!logoAdded) {
-        doc.fontSize(28).font(fontBold).fillColor('#000000').text('Polen Stone', 50, 50);
+        doc.fontSize(28).font(fontBold).fillColor('#000000').text('Sepetzen', 50, 50);
       }
       
       // Quote title
@@ -313,7 +313,7 @@ async function generateQuotePdfBuffer(quote: any, dealer: any, items: any[]): Pr
       
       // Footer
       doc.fontSize(8).font(fontRegular).fillColor('#999999');
-      doc.text('Polen Stone Doğal Taş & Mermer | www.polenstone.com | info@polenstone.com', 50, 780, { align: 'center', width: 495 });
+      doc.text('Sepetzen Kamp & Outdoor | www.sepetzen.com | sepetzen@gmail.com', 50, 780, { align: 'center', width: 495 });
       
       doc.end();
     } catch (error) {
@@ -345,7 +345,7 @@ export async function registerRoutes(
   // Dynamic sitemap.xml — categories + products + static pages
   app.get(["/sitemap.xml", "/sitemap_index.xml"], async (_req, res) => {
     try {
-      const baseUrl = "https://polenstone.com";
+      const baseUrl = "https://sepetzen.com";
       const today = new Date().toISOString().split("T")[0];
 
       const staticPages: Array<{ loc: string; priority: string; changefreq: string }> = [
@@ -466,14 +466,14 @@ export async function registerRoutes(
       const price = parseFloat(product.basePrice || '0');
       const description = product.description 
         ? escapeHtml(product.description.substring(0, 200))
-        : `${escapeHtml(product.name)} - Polen Stone premium doğal taş ve mermer`;
+        : `${escapeHtml(product.name)} - Sepetzen kamp, outdoor ve bıçak ürünleri`;
 
       const html = `<!DOCTYPE html>
 <html lang="tr">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>${escapeHtml(product.name)} | Polen Stone</title>
+  <title>${escapeHtml(product.name)} | Sepetzen</title>
   <meta name="description" content="${description}">
   
   <!-- Open Graph -->
@@ -484,7 +484,7 @@ export async function registerRoutes(
   <meta property="og:image:width" content="1200">
   <meta property="og:image:height" content="630">
   <meta property="og:url" content="${pageUrl}">
-  <meta property="og:site_name" content="Polen Stone">
+  <meta property="og:site_name" content="Sepetzen">
   <meta property="og:locale" content="tr_TR">
   <meta property="product:price:amount" content="${price}">
   <meta property="product:price:currency" content="TRY">
@@ -533,30 +533,30 @@ export async function registerRoutes(
       const mainImage = category.image 
         ? normalizeImageUrl(baseUrl, category.image)
         : `${baseUrl}/logo.png`;
-      const description = `${escapeHtml(category.name)} koleksiyonu - Polen Stone premium doğal taş ve mermer`;
+      const description = `${escapeHtml(category.name)} koleksiyonu - Sepetzen kamp, outdoor ve bıçak ürünleri`;
 
       const html = `<!DOCTYPE html>
 <html lang="tr">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>${escapeHtml(category.name)} | Polen Stone</title>
+  <title>${escapeHtml(category.name)} | Sepetzen</title>
   <meta name="description" content="${description}">
   
   <!-- Open Graph -->
   <meta property="og:type" content="website">
-  <meta property="og:title" content="${escapeHtml(category.name)} | Polen Stone">
+  <meta property="og:title" content="${escapeHtml(category.name)} | Sepetzen">
   <meta property="og:description" content="${description}">
   <meta property="og:image" content="${mainImage}">
   <meta property="og:image:width" content="1200">
   <meta property="og:image:height" content="630">
   <meta property="og:url" content="${pageUrl}">
-  <meta property="og:site_name" content="Polen Stone">
+  <meta property="og:site_name" content="Sepetzen">
   <meta property="og:locale" content="tr_TR">
   
   <!-- Twitter Card -->
   <meta name="twitter:card" content="summary_large_image">
-  <meta name="twitter:title" content="${escapeHtml(category.name)} | Polen Stone">
+  <meta name="twitter:title" content="${escapeHtml(category.name)} | Sepetzen">
   <meta name="twitter:description" content="${description}">
   <meta name="twitter:image" content="${mainImage}">
   
@@ -1335,7 +1335,7 @@ export async function registerRoutes(
         await storage.setProductCategories(product.id, [product.categoryId]);
       }
       
-      // Auto-create variants — bedensiz mantık (Polen Stone: ev ürünleri)
+      // Auto-create variants — bedensiz mantık (Sepetzen: ev ürünleri)
       const sizes = product.availableSizes || [];
       const colors = product.availableColors || [];
       const baseSku = product.sku || '';
@@ -1694,7 +1694,7 @@ export async function registerRoutes(
         return res.status(400).json({ error: "Geçersiz ürün" });
       }
 
-      // Polen Stone artık varyantsız (her ürün tek başına). Eğer client variant
+      // Sepetzen artık varyantsız (her ürün tek başına). Eğer client variant
       // göndermediyse ürünün ilk aktif & stoklu varyantını otomatik seçeriz —
       // böylece "Lütfen beden seçimi yapın" hatası alınmaz ve stok yine
       // varyant bazlı olarak doğru düşer.
@@ -2182,8 +2182,8 @@ export async function registerRoutes(
             iyzicoBasketItems.push({
               id: `${product.id}-${variant?.id || 'base'}-${qi}`,
               name: product.name.substring(0, 250),
-              category1: 'Doğal Taş',
-              category2: 'Mermer',
+              category1: 'Kamp & Outdoor',
+              category2: 'Bıçak & Bahçe',
               itemType: 'PHYSICAL',
               price: itemPrice.toFixed(2),
             });
@@ -2254,7 +2254,7 @@ export async function registerRoutes(
 
       // Get base URL for callback - use production domain in prod
       const baseUrl = process.env.NODE_ENV === 'production' 
-        ? (process.env.PUBLIC_BASE_URL || 'https://polenstone.com')
+        ? (process.env.PUBLIC_BASE_URL || 'https://sepetzen.com')
         : `${req.headers['x-forwarded-proto'] || 'https'}://${req.headers.host || 'localhost:5000'}`;
 
       // Add shipping as a basket line so sum(basketItems.price) === priceTry
@@ -2567,7 +2567,7 @@ export async function registerRoutes(
   // The legacy /api/payment/callback path is kept as an alias for older webhooks.
   const iyzicoCallbackHandler = async (req: Request, res: Response) => {
     const baseUrl = process.env.NODE_ENV === 'production'
-      ? (process.env.PUBLIC_BASE_URL || 'https://polenstone.com')
+      ? (process.env.PUBLIC_BASE_URL || 'https://sepetzen.com')
       : `${req.headers['x-forwarded-proto'] || 'https'}://${req.headers.host || 'localhost:5000'}`;
 
     const sendRedirect = (path: string) => res.redirect(303, `${baseUrl}${path}`);
@@ -2887,7 +2887,7 @@ export async function registerRoutes(
     try {
       const apiKey = (await storage.getSiteSetting('iyzico_api_key')) || '';
       const secretKey = (await storage.getSiteSetting('iyzico_secret_key')) || '';
-      const baseUrl = process.env.PUBLIC_BASE_URL || 'https://polenstone.com';
+      const baseUrl = process.env.PUBLIC_BASE_URL || 'https://sepetzen.com';
       res.json({
         configured: Boolean(apiKey && secretKey),
         apiKeyMasked: maskSecret(apiKey),
@@ -4307,7 +4307,7 @@ export async function registerRoutes(
       const receiverCity = [model?.ReceiverTown, model?.ReceiverCity].filter(Boolean).join(' / ') || (addr?.city || '');
       const receiverPhone = model?.ReceiverPhone || order.customerPhone || '';
       const senderName = model?.SenderAccountName || 'POLEN STONE';
-      const senderAddr = [model?.SenderAddress, model?.SenderAddress2].filter(Boolean).join(', ') || 'Polen Stone Doğal Taş & Mermer';
+      const senderAddr = [model?.SenderAddress, model?.SenderAddress2].filter(Boolean).join(', ') || 'Sepetzen Kamp & Outdoor';
       const barcodeNumber = model?.BarcodeNumber || order.orderNumber;
       const trackingNumber = label.trackingNumber || order.trackingNumber || '-';
       const deliveryUnit = model?.DeliveryUnitName || '';
@@ -4516,8 +4516,8 @@ export async function registerRoutes(
   <div class="header">
     <div class="header-brand">POLEN <span>STONE</span></div>
     <div class="header-sub">
-      Doğal Taş &amp; Mermer<br>
-      polenstone.com · info@polenstone.com
+      Kamp, Outdoor &amp; Bıçak<br>
+      sepetzen.com · sepetzen@gmail.com
     </div>
   </div>
 
@@ -5685,9 +5685,9 @@ window.addEventListener('load', function() {
   // Robots.txt
   app.get("/robots.txt", (req, res) => {
     const host = req.get('host') || '';
-    const isProd = host.includes('polenstone.com');
+    const isProd = host.includes('sepetzen.com');
     const baseUrl = isProd
-      ? 'https://polenstone.com'
+      ? 'https://sepetzen.com'
       : `${req.protocol}://${host}`;
     const robotsTxt = `User-agent: *
 Allow: /
@@ -6028,7 +6028,7 @@ Sitemap: ${baseUrl}/sitemap.xml
       }
       
       if (!logoAdded) {
-        doc.fontSize(28).font(fontBold).fillColor('#000000').text('Polen Stone', 50, 50);
+        doc.fontSize(28).font(fontBold).fillColor('#000000').text('Sepetzen', 50, 50);
       }
       
       // Quote title
@@ -6100,7 +6100,7 @@ Sitemap: ${baseUrl}/sitemap.xml
           try {
             let imageUrl = item.productImage;
             if (imageUrl.startsWith('/uploads/')) {
-              imageUrl = `https://polenstone.com${imageUrl}`;
+              imageUrl = `https://sepetzen.com${imageUrl}`;
             }
             
             if (imageUrl.startsWith('http://') || imageUrl.startsWith('https://')) {
@@ -6171,7 +6171,7 @@ Sitemap: ${baseUrl}/sitemap.xml
       
       // Footer
       doc.fontSize(8).font(fontRegular).fillColor('#999999');
-      doc.text('Polen Stone Doğal Taş & Mermer | www.polenstone.com | info@polenstone.com', 50, 780, { align: 'center', width: 495 });
+      doc.text('Sepetzen Kamp & Outdoor | www.sepetzen.com | sepetzen@gmail.com', 50, 780, { align: 'center', width: 495 });
       
       doc.end();
     } catch (error) {
@@ -6778,7 +6778,7 @@ Sitemap: ${baseUrl}/sitemap.xml
       const allCategories = await storage.getCategories();
       const categoryMap = new Map(allCategories.map(c => [c.id, c.name]));
 
-      const baseUrl = "https://polenstone.com";
+      const baseUrl = "https://sepetzen.com";
       const items: string[] = [];
 
       for (const product of allProducts) {
@@ -6872,9 +6872,9 @@ ${additionalImages}
       const xml = `<?xml version="1.0" encoding="UTF-8"?>
 <rss version="2.0" xmlns:g="http://base.google.com/ns/1.0">
   <channel>
-    <title>Polen Stone — Doğal Taş &amp; Mermer</title>
+    <title>Sepetzen — Kamp, Outdoor &amp; Mermer</title>
     <link>${baseUrl}</link>
-    <description>Polen Stone — Premium doğal taş ve mermer markası</description>
+    <description>Sepetzen — Premium kamp, outdoor ve bıçak ürünleri</description>
 ${items.join("\n")}
   </channel>
 </rss>`;
@@ -7018,7 +7018,7 @@ ${items.join("\n")}
         }
       }
       if (!logoAdded) {
-        doc.fontSize(22).font(fontB).fillColor(darkColor).text('Polen Stone', marginL, logoTopY + 15);
+        doc.fontSize(22).font(fontB).fillColor(darkColor).text('Sepetzen', marginL, logoTopY + 15);
       }
 
       const dateStr = new Date().toLocaleDateString('tr-TR', {
@@ -7085,7 +7085,7 @@ ${items.join("\n")}
         return y + 20;
       };
 
-      const allowedHosts = ['polenstone.com', 'cdn.polenstone.com', 'img.trendyol.com', 'cdn.dsmcdn.com'];
+      const allowedHosts = ['sepetzen.com', 'cdn.sepetzen.com', 'img.trendyol.com', 'cdn.dsmcdn.com'];
       const isAllowedHost = (url: string): boolean => {
         try {
           const u = new URL(url);
@@ -7098,7 +7098,7 @@ ${items.join("\n")}
         try {
           let imageUrl = src;
           if (imageUrl.startsWith('/uploads/')) {
-            imageUrl = `https://polenstone.com${imageUrl}`;
+            imageUrl = `https://sepetzen.com${imageUrl}`;
           }
           if (!isAllowedHost(imageUrl)) return null;
           const controller = new AbortController();
@@ -7218,7 +7218,7 @@ ${items.join("\n")}
         doc.switchToPage(pi);
         doc.rect(marginL, pageBottom - 2, usableW, 0.5).fill('#e5e5e5');
         doc.fontSize(7).font(fontR).fillColor('#999999');
-        doc.text('polenstone.com', marginL, pageBottom + 4);
+        doc.text('sepetzen.com', marginL, pageBottom + 4);
         doc.text(
           `Sayfa ${pi + 1} / ${range.count}`,
           marginL,

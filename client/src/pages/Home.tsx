@@ -194,12 +194,12 @@ function HeroOverlayContent({ animated = false }: { animated?: boolean }) {
       <div className="lg:hidden h-full w-full flex flex-col items-center justify-center text-center px-6">
         <Wrap {...wrapProps}>
           <h1
-            className="font-display text-white uppercase leading-[1.05]"
-            style={{ fontSize: 'clamp(40px, 11vw, 64px)', letterSpacing: '-0.02em', fontWeight: 700 }}
+            className="font-display text-white uppercase leading-[1.0]"
+            style={{ fontSize: 'clamp(48px, 13vw, 72px)', letterSpacing: '-0.02em', fontWeight: 700 }}
             data-testid="text-hero-title-mobile"
           >
-            Doğada
-            <span className="block text-[#4a9a42] mt-5">Özgürlük</span>
+            <span className="block">SEPET<span className="text-[#4a9a42]">ZEN</span></span>
+            <span className="block text-[#4a9a42] mt-2" style={{ fontSize: 'clamp(14px, 3.5vw, 20px)', letterSpacing: '0.25em', fontWeight: 400 }}>OUTDOOR GEAR</span>
           </h1>
           <p className="mt-5 text-[11px] tracking-[0.22em] uppercase text-white/75 font-mono">
             Kamp · Outdoor · Bıçak · Bağ & Bahçe
@@ -220,16 +220,23 @@ function HeroOverlayContent({ animated = false }: { animated?: boolean }) {
         <div className="w-full max-w-[1500px] mx-auto px-10 py-16 xl:py-20 text-center">
           <Wrap {...wrapProps} className="flex flex-col items-center">
             <h1
-              className="font-display text-white uppercase whitespace-nowrap"
+              className="font-display text-white uppercase"
               style={{
-                fontSize: 'clamp(40px, 4.6vw, 84px)',
-                lineHeight: 1,
-                letterSpacing: '-0.03em',
+                lineHeight: 1.05,
+                letterSpacing: '-0.02em',
                 fontWeight: 700,
               }}
               data-testid="text-hero-title"
             >
-              Doğada <span className="text-[#4a9a42]">Özgürlük</span>
+              <span style={{ fontSize: 'clamp(56px, 6.2vw, 112px)', display: 'block' }}>
+                SEPET<span className="text-[#4a9a42]">ZEN</span>
+              </span>
+              <span
+                className="text-[#4a9a42]"
+                style={{ fontSize: 'clamp(14px, 1.5vw, 26px)', letterSpacing: '0.35em', fontWeight: 400, display: 'block', marginTop: '10px' }}
+              >
+                OUTDOOR GEAR
+              </span>
             </h1>
 
             <span aria-hidden className="block w-16 h-px bg-[#2D5A27] mt-8 mb-6" />
@@ -405,16 +412,18 @@ function StatementMarqueeScene() {
   const items = [
     'SEPETZEN',
     '◆',
-    'KAMP & OUTDOOR',
+    'EL YAPIMI BIÇAKLAR',
     '✦',
-    'TÜRKİYE GENELİ KARGO',
+    'OUTDOOR EKİPMANLARI',
     '◆',
-    'KAPIDAN TESLİMAT',
+    'KAMP ÇAKILARI',
     '✦',
-    'GÜVENLİ ÖDEME',
+    'BAHÇE ALETLERİ',
     '◆',
-    'ÇAKI · BIÇAK · BAĞ & BAHÇE · MANGAL',
+    'DOĞAL MALZEME',
     '✦',
+    'TÜRK USTALIGI',
+    '◆',
   ];
   const doubled = [...items, ...items, ...items];
 
