@@ -13,8 +13,8 @@ const kurumsalLinks = [
 
 const yardimLinks = [
   { href: '/sayfa/kvkk-aydinlatma-metni', label: 'KVKK Aydınlatma Metni' },
-  { href: '/sayfa/gizlilik', label: 'Gizlilik Politikası' },
-  { href: '/sayfa/cerez', label: 'Çerez Politikası' },
+  { href: '/sayfa/gizlilik-guvenlik', label: 'Gizlilik & Güvenlik' },
+  { href: '/sayfa/cerez-politikasi', label: 'Çerez Politikası' },
   { href: '/sayfa/iade-sureci', label: 'İade Formu' },
 ];
 

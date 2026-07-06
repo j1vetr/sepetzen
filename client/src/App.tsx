@@ -71,6 +71,8 @@ function Router() {
         <Route path="/mesafeli-satis-sozlesmesi"><Redirect to="/sayfa/mesafeli-satis-sozlesmesi" /></Route>
         <Route path="/iptal-ve-iade"><Redirect to="/sayfa/iptal-ve-iade-sartlari" /></Route>
         <Route path="/kvkk"><Redirect to="/sayfa/kvkk-aydinlatma-metni" /></Route>
+        <Route path="/sayfa/gizlilik"><Redirect to="/sayfa/gizlilik-guvenlik" /></Route>
+        <Route path="/sayfa/cerez"><Redirect to="/sayfa/cerez-politikasi" /></Route>
         <Route path="/sayfa/:slug" component={StaticPage} />
         <Route path="/toov-admin/login" component={AdminLogin} />
         <Route path="/toov-admin/orders/:id" component={AdminOrderDetail} />

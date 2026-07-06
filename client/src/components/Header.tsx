@@ -110,10 +110,10 @@ export function Header() {
     <>
       {/* ── Announcement Bar ── */}
       <div
-        className="bg-[#2D5A27] text-white text-center py-2.5 px-4 text-[11.5px] tracking-[0.06em] font-medium"
+        className="bg-[#2D5A27] text-white text-center py-2 px-4 text-[11px] tracking-[0.04em] font-medium"
         data-testid="announcement-bar"
       >
-        🚚 <strong>1.500 TL</strong> üzeri alışverişlerde kargo <strong>ÜCRETSİZ!</strong> — Türkiye geneli hızlı teslimat
+        1500 TL ve Üzeri Ücretsiz Kargo! &nbsp;|&nbsp; İlk Siparişinize Sepette %10 İndirim! &nbsp;|&nbsp; Havale/EFT'de %3 İndirim
       </div>
 
       {/* ── Brand bar (desktop): E-Posta · Logo · Telefon
@@ -137,10 +137,11 @@ export function Header() {
           </a>
 
           {/* Orta: Logo */}
-          <Link href="/" data-testid="link-logo" className="justify-self-center block">
-            <span className="font-display text-[26px] tracking-widest" data-testid="img-logo">
+          <Link href="/" data-testid="link-logo" className="justify-self-center block text-center">
+            <span className="font-display text-[26px] tracking-widest block leading-tight" data-testid="img-logo">
               <span className="text-black">SEPET</span><span className="text-[#2D5A27]">ZEN</span>
             </span>
+            <span className="text-[8.5px] tracking-[0.38em] uppercase text-[#2D5A27] font-semibold block">Outdoor Gear</span>
           </Link>
 
           {/* Sağ: Telefon */}
@@ -183,10 +184,11 @@ export function Header() {
               <span className="block h-px w-6 bg-black" />
             </button>
 
-            <Link href="/" data-testid="link-logo-mobile-header" className="justify-self-center block">
-              <span className="font-display text-[20px] tracking-widest" data-testid="img-logo-mobile-header">
+            <Link href="/" data-testid="link-logo-mobile-header" className="justify-self-center block text-center">
+              <span className="font-display text-[20px] tracking-widest block leading-tight" data-testid="img-logo-mobile-header">
                 <span className="text-black">SEPET</span><span className="text-[#2D5A27]">ZEN</span>
               </span>
+              <span className="text-[7px] tracking-[0.35em] uppercase text-[#2D5A27] font-semibold block">Outdoor Gear</span>
             </Link>
 
             <div className="justify-self-end flex items-center gap-0.5">
@@ -238,10 +240,11 @@ export function Header() {
                     exit={{ opacity: 0, x: -10 }}
                     transition={{ duration: 0.3, ease: [0.33, 1, 0.68, 1] }}
                   >
-                    <Link href="/" data-testid="link-logo-compact" className="block shrink-0">
-                      <span className="font-display text-[18px] tracking-widest">
+                    <Link href="/" data-testid="link-logo-compact" className="block shrink-0 text-center">
+                      <span className="font-display text-[18px] tracking-widest block leading-tight">
                         <span className="text-black">SEPET</span><span className="text-[#2D5A27]">ZEN</span>
                       </span>
+                      <span className="text-[7px] tracking-[0.35em] uppercase text-[#2D5A27] font-semibold block">Outdoor Gear</span>
                     </Link>
                   </motion.div>
                 )}
@@ -473,12 +476,13 @@ export function Header() {
                 <Link
                   href="/"
                   onClick={() => setMobileOpen(false)}
-                  className="block"
+                  className="block text-center"
                   data-testid="link-mobile-logo"
                 >
-                  <span className="font-display text-[28px] tracking-widest" data-testid="img-logo-mobile-drawer">
+                  <span className="font-display text-[28px] tracking-widest block leading-tight" data-testid="img-logo-mobile-drawer">
                     <span className="text-white">SEPET</span><span className="text-[#4a9a42]">ZEN</span>
                   </span>
+                  <span className="text-[8px] tracking-[0.35em] uppercase text-[#4a9a42] font-semibold block">Outdoor Gear</span>
                 </Link>
               </div>
 

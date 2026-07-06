@@ -4,10 +4,11 @@
  *
  * Yapar:
  * 1. Mevcut ürün & kategori verilerini temizler (display_order < 100)
- * 2. Sepetzen kategorilerini ekler (6 ana kategori)
+ * 2. Sepetzen 28 kategorisini (7 ana + alt) ekler
  * 3. 7 ürün görselini CDN'den indirip yerel diske kaydeder
- * 4. 7 ürünü DB'ye ekler
- * 5. 11 statik sayfayı DB'ye ekler
+ * 4. 7 ürünü DB'ye ekler (tam doğru isimler ve fiyatlar)
+ * 5. menu_items hiyerarşisini oluşturur
+ * 6. 11 statik sayfayı DB'ye ekler
  */
 
 import { db } from "./db";
@@ -25,7 +26,6 @@ import path from "path";
 import https from "https";
 import http from "http";
 import sharp from "sharp";
-import crypto from "crypto";
 
 const UPLOAD_DIR = path.join(process.cwd(), "client/public/uploads/products");
 
@@ -68,7 +68,6 @@ async function downloadImage(url: string, filename: string): Promise<string> {
     return `/uploads/products/${filename}`;
   } catch (err) {
     console.warn(`  [warn] Could not download ${url}: ${err}`);
-    // NEVER return a remote URL — save placeholder locally so all image paths stay local
     const placeholderLocal = path.join(UPLOAD_DIR, "placeholder.svg");
     if (!fs.existsSync(placeholderLocal)) {
       const svgContent = `<svg xmlns="http://www.w3.org/2000/svg" width="800" height="800" viewBox="0 0 800 800"><rect width="800" height="800" fill="#1a2e19"/><rect x="340" y="340" width="120" height="120" rx="8" fill="none" stroke="#2D5A27" stroke-width="3"/><line x1="340" y1="400" x2="460" y2="400" stroke="#2D5A27" stroke-width="2"/><line x1="400" y1="340" x2="400" y2="460" stroke="#2D5A27" stroke-width="2"/><text x="400" y="520" text-anchor="middle" font-family="sans-serif" font-size="28" fill="#2D5A27" letter-spacing="8">SEPETZEN</text></svg>`;
@@ -82,15 +81,13 @@ async function downloadImage(url: string, filename: string): Promise<string> {
 async function main() {
   console.log("\n🌿 Sepetzen seed başlıyor...\n");
 
-  // ── 1. Eski Polen Stone menu items ve kategorileri temizle ──────────────────
+  // ── 1. Eski verileri temizle ────────────────────────────────────────────────
   console.log("1. Eski verileri temizleniyor...");
   try {
     await db.delete(menuItems);
     console.log("   menu_items temizlendi");
   } catch (e) { console.log("   menu_items:", e); }
 
-  // Eski ürünleri ve kategorileri temizle (display_order < 100 olanlar aktif olanlardır)
-  // Önce product_categories, sonra products, sonra product_variants, sonra categories
   try {
     const oldCats = await db.select({ id: categories.id }).from(categories).where(lt(categories.displayOrder, 100));
     if (oldCats.length > 0) {
@@ -111,20 +108,45 @@ async function main() {
     console.log("   ürünler & kategoriler temizlendi");
   } catch (e) { console.log("   temizleme hatası:", e); }
 
-  // ── 2. Kategoriler ─────────────────────────────────────────────────────────
+  // ── 2. Tam Sepetzen kategori ağacı (7 ana + 21 alt) ────────────────────────
   console.log("\n2. Kategoriler ekleniyor...");
   const catDefs = [
-    { name: "Kamp & Outdoor", slug: "kamp-outdoor", displayOrder: 1 },
-    { name: "Av Bıçakları", slug: "av-bicaklari", displayOrder: 2 },
-    { name: "Kamp Çakıları", slug: "kamp-cakilari", displayOrder: 3 },
-    { name: "Bağ & Bahçe", slug: "bag-bahce", displayOrder: 4 },
-    { name: "Outdoor Ekipman", slug: "outdoor-ekipman", displayOrder: 5 },
-    { name: "Tüm Ürünler", slug: "tum-urunler", displayOrder: 6 },
+    // Ana kategoriler
+    { name: "Çakılar",                        slug: "cakilar",                     displayOrder: 1  },
+    { name: "Kamp Çakıları",                  slug: "kamp-cakilari",               displayOrder: 2  },
+    { name: "Outdoor & Kamp Çakıları",        slug: "outdoor-kamp-cakisi",         displayOrder: 3  },
+    { name: "Aşı Çakıları",                  slug: "asi-cakisi",                  displayOrder: 4  },
+    { name: "İthal Çakılar",                 slug: "ithal-caki",                  displayOrder: 5  },
+    { name: "Bıçaklar",                       slug: "bicaklar",                    displayOrder: 6  },
+    { name: "Kamp Bıçakları",                 slug: "kamp-bicaklari",              displayOrder: 7  },
+    { name: "Mutfak Bıçakları",               slug: "mutfak-bicaklari",            displayOrder: 8  },
+    { name: "Şef Bıçakları",                  slug: "sef-bicaklari",               displayOrder: 9  },
+    { name: "Kasap Bıçakları",                slug: "kasap-bicaklari",             displayOrder: 10 },
+    { name: "Balık Bıçağı",                   slug: "balik-bicagi",                displayOrder: 11 },
+    { name: "Bıçaklık",                       slug: "bicaklik",                    displayOrder: 12 },
+    { name: "Bağ & Bahçe Aletleri",           slug: "bag-bahce-aletleri",          displayOrder: 13 },
+    { name: "Budama & Kesme",                  slug: "budama-kesme",                displayOrder: 14 },
+    { name: "Toprak İşleme Aletleri",         slug: "toprak-isleme-aletleri",      displayOrder: 15 },
+    { name: "Sulama Sistemleri",               slug: "sulama-sistemleri",           displayOrder: 16 },
+    { name: "Koruyucu Ekipmanlar",             slug: "koruyucu-ekipmanlar",         displayOrder: 17 },
+    { name: "Pet Shop & Çiftlik Ekipmanları", slug: "pet-shop-ciftlik-ekipmanlari",displayOrder: 18 },
+    { name: "Evcil Hayvan Ürünleri",          slug: "evcil-hayvan-urunleri",       displayOrder: 19 },
+    { name: "Yular & Halatlar",               slug: "yular-halatlar",              displayOrder: 20 },
+    { name: "Zincir & Bağlama",               slug: "zincir-baglama",              displayOrder: 21 },
+    { name: "Saraciye Ürünleri",              slug: "saraciye-urunleri",           displayOrder: 22 },
+    { name: "Nalbur & Hırdavat",             slug: "nalbur-hirdavat",             displayOrder: 23 },
+    { name: "Mangal & Izgara & Ahşap",       slug: "mangal-izgara-ahsap",         displayOrder: 24 },
+    { name: "Mangal & Izgaralar",             slug: "mangal-izgaralar",            displayOrder: 25 },
+    { name: "Izgara Ekipmanları",             slug: "izgara-ekipmanlari",          displayOrder: 26 },
+    { name: "Ahşap Ürünler",                 slug: "ahsap-urunler",               displayOrder: 27 },
+    { name: "Tüm Ürünler",                   slug: "tum-urunler",                 displayOrder: 28 },
   ];
 
   const insertedCats: Record<string, string> = {};
   for (const c of catDefs) {
-    const [cat] = await db.insert(categories).values(c).onConflictDoUpdate({ target: categories.slug, set: { name: c.name } }).returning();
+    const [cat] = await db.insert(categories).values(c)
+      .onConflictDoUpdate({ target: categories.slug, set: { name: c.name, displayOrder: c.displayOrder } })
+      .returning();
     insertedCats[c.slug] = cat.id;
     console.log(`   + ${c.name}`);
   }
@@ -133,88 +155,95 @@ async function main() {
   console.log("\n3. Ürün görselleri indiriliyor...");
   const productDefs = [
     {
-      name: "Sepetzen Av Bıçağı",
-      slug: "sepetzen-av-bicagi",
+      name: "Ahşap Saplı İşlemeli Katlanır Çakı – Kamp, Outdoor ve Günlük Kullanım için Şık Tasarım",
+      slug: "ahsap-sapli-islemeli-katlanir-caki",
       sku: "SPZ-001",
-      basePrice: "850.00",
-      description: "<p>El yapımı av bıçağı. Paslanmaz çelik bıçak, ergonomik ahşap sap. Kılıfı ile birlikte gelir. Outdoor ve av aktiviteleriniz için ideal.</p>",
-      imgUrl: "https://sepetzen.com/images/product/product_sepetzen-av-b%C4%B1%C3%A7a%C4%9F%C4%B11916-696x600.jpg",
-      imgFile: "sepetzen-av-bicagi-1.webp",
-      cats: ["av-bicaklari", "tum-urunler"],
+      basePrice: "2000.00",
+      description: "<p>El işçiliğiyle üretilmiş, özel ahşap saplı katlanır çakı. Kamp, outdoor ve günlük kullanım için ideal şık tasarım. Paslanmaz çelik bıçak, kilit mekanizması ve şık ahşap işleme detaylarıyla öne çıkar.</p>",
+      imgUrl: "https://sepetzen.com/images/product/product_sepetzen-av-b%C4%B1%C3%A7a%C4%9F%C4%B11916358380565.jpg",
+      imgFile: "spz-001-ahsap-sapli-katlanir-caki.webp",
+      cats: ["cakilar", "tum-urunler"],
       isFeatured: true,
       isNew: false,
+      discountBadge: "Ücretsiz Kargo",
     },
     {
-      name: "Av & Outdoor Kamp Çakısı",
-      slug: "av-outdoor-kamp-cakisi",
+      name: "El Yapımı Epoksi Saplı Katlanır Çakı – Paslanmaz Çelik Outdoor Tasarım",
+      slug: "el-yapimi-epoksi-sapli-katlanir-caki",
       sku: "SPZ-002",
-      basePrice: "650.00",
-      description: "<p>Çok fonksiyonlu av ve outdoor çakısı. Dayanıklı çelik bıçak, rahat tutuş. Hem kamp hem de outdoor aktivitelerinde kullanım için uygundur.</p>",
-      imgUrl: "https://sepetzen.com/images/product/product_av-outdoor-kamp-%C3%A7ak%C4%B1s%C4%B1-696x600.jpg",
-      imgFile: "av-outdoor-kamp-cakisi.webp",
-      cats: ["kamp-cakilari", "kamp-outdoor", "tum-urunler"],
+      basePrice: "1199.00",
+      description: "<p>Özel epoksi sap, paslanmaz çelik bıçak. Outdoor ve kamp kullanımı için dayanıklı, ergonomik tasarım. El yapımı üretim kalitesiyle uzun ömürlü kullanım sunar.</p>",
+      imgUrl: "https://sepetzen.com/images/product/product_av-outdoor-kamp-cak%C4%B1s%C4%B159919490933756.jpg",
+      imgFile: "spz-002-epoksi-sapli-katlanir-caki.webp",
+      cats: ["cakilar", "tum-urunler"],
       isFeatured: true,
       isNew: false,
+      discountBadge: null,
     },
     {
-      name: "Sepetzen Knife 3 Pro",
-      slug: "sepetzen-knife-3-pro",
+      name: "El Yapımı Oymalı Katlanır Çakı – Keklik Desenli Sert Ahşap Saplı Özel Tasarım",
+      slug: "el-yapimi-oymali-katlanir-caki-keklik-desenli",
       sku: "SPZ-003",
-      basePrice: "1250.00",
-      description: "<p>Premium serisi Sepetzen Knife 3 Pro. Yüksek karbonlu çelik bıçak, G10 sap malzemesi. Keskin kenar tutma kapasitesi ile uzun ömürlü kullanım sağlar.</p>",
-      imgUrl: "https://sepetzen.com/images/product/product_sepetzen-knife-3--696x600.png",
-      imgFile: "sepetzen-knife-3-pro.webp",
-      cats: ["av-bicaklari", "tum-urunler"],
-      isFeatured: false,
+      basePrice: "2000.00",
+      description: "<p>Keklik motifiyle oyulmuş sert ahşap sap, özel tasarım çakı. El yapımı üretim, kaliteli çelik bıçak. Hem kullanım hem koleksiyon amaçlı idealdir.</p>",
+      imgUrl: "https://sepetzen.com/images/product/product_sepetzen-knife-3-49106519989528.png",
+      imgFile: "spz-003-oymali-katlanir-caki.webp",
+      cats: ["cakilar", "tum-urunler"],
+      isFeatured: true,
       isNew: true,
+      discountBadge: "Ücretsiz Kargo",
     },
     {
-      name: "Kamp Çakısı Serisi I",
-      slug: "kamp-cakisi-serisi-1",
+      name: "Epoksi Saplı El Yapımı Çakı Bıçağı",
+      slug: "epoksi-sapli-el-yapimi-caki-bicagi",
       sku: "SPZ-004",
-      basePrice: "420.00",
-      description: "<p>Klasik kamp çakısı serisi. Günlük outdoor aktiviteleri için tasarlanmış, kompakt ve hafif yapısı ile kolayca taşınabilir.</p>",
-      imgUrl: "https://sepetzen.com/images/product/product_kamp-%C3%A7ak%C4%B1s%C4%B1-1-696x600.jpg",
-      imgFile: "kamp-cakisi-serisi-1.webp",
-      cats: ["kamp-cakilari", "tum-urunler"],
+      basePrice: "1099.00",
+      description: "<p>Epoksi reçine saplı, el yapımı çakı bıçağı. Dayanıklı paslanmaz çelik bıçak, ergonomik tutuş. Kamp ve outdoor için güvenilir bir ekipman.</p>",
+      imgUrl: "https://sepetzen.com/images/product/product_kamp-cak%C4%B1s%C4%B1-1-83828220467321.jpg",
+      imgFile: "spz-004-epoksi-sapli-caki.webp",
+      cats: ["cakilar", "tum-urunler"],
       isFeatured: false,
       isNew: false,
+      discountBadge: null,
     },
     {
-      name: "Kamp Çakısı Serisi II",
-      slug: "kamp-cakisi-serisi-2",
+      name: "Paslanmaz Çelik Katlanır Çakı – Kamp ve Outdoor Kullanım için El Yapımı Tasarım",
+      slug: "paslanmaz-celik-katlanir-caki-kamp",
       sku: "SPZ-005",
-      basePrice: "480.00",
-      description: "<p>Kamp çakısı serisinin ikinci modeli. Geliştirilmiş bıçak geometrisi, tam tang yapısı ve renkli kompozit sap. Güven veren bir kamp ekipmanı.</p>",
-      imgUrl: "https://sepetzen.com/images/product/product_kamp-%C3%A7ak%C4%B1s%C4%B1-696x600.jpg",
-      imgFile: "kamp-cakisi-serisi-2.webp",
-      cats: ["kamp-cakilari", "tum-urunler"],
+      basePrice: "1099.00",
+      description: "<p>Paslanmaz çelik bıçak, el yapımı üretim. Kamp ve outdoor kullanımı için tasarlanmış katlanır çakı. Kompakt yapısıyla kolayca taşınır.</p>",
+      imgUrl: "https://sepetzen.com/images/product/product_kamp-cak%C4%B1s%C4%B159923582323799.jpg",
+      imgFile: "spz-005-paslanmaz-celik-katlanir-caki.webp",
+      cats: ["cakilar", "tum-urunler"],
       isFeatured: false,
       isNew: false,
+      discountBadge: null,
     },
     {
-      name: "Sepetzen 16 Fonksiyon Çakı",
-      slug: "sepetzen-16-fonksiyon-caki",
+      name: "Oymalı Paslanmaz Çelik Detaylı, Reçine Saplı El Yapımı Katlanır Çakı",
+      slug: "oymali-paslanmaz-celik-recine-sapli-katlanir-caki",
       sku: "SPZ-006",
-      basePrice: "780.00",
-      description: "<p>16 farklı fonksiyon sunan çok amaçlı çakı seti. Bıçak, tornavida, makas, testere, açacak ve daha fazlası. Kamp ve outdoor için vazgeçilmez bir alet.</p>",
-      imgUrl: "https://sepetzen.com/images/product/product_sepetzen-16--696x600.png",
-      imgFile: "sepetzen-16-fonksiyon-caki.webp",
-      cats: ["kamp-cakilari", "outdoor-ekipman", "tum-urunler"],
+      basePrice: "1299.00",
+      description: "<p>Reçine sap üzerine oymalı paslanmaz çelik detaylarla süslenmiş el yapımı katlanır çakı. Koleksiyon kalitesinde tasarım ve outdoor dayanıklılığı bir arada.</p>",
+      imgUrl: "https://sepetzen.com/images/product/product_sepetzen-16-43361700228808.png",
+      imgFile: "spz-006-oymali-recine-sapli-caki.webp",
+      cats: ["cakilar", "tum-urunler"],
       isFeatured: true,
       isNew: false,
+      discountBadge: null,
     },
     {
-      name: "Sepetzen Av Bıçağı Premium",
-      slug: "sepetzen-av-bicagi-premium",
+      name: "Premium El Yapımı Katlanır Çakı – Sert Ağaç Saplı Outdoor ve Günlük Kullanım Tasarımı",
+      slug: "premium-el-yapimi-katlanir-caki-sert-agac-sapli",
       sku: "SPZ-007",
-      basePrice: "1100.00",
-      description: "<p>Premium av bıçağı koleksiyonunun gözdesi. Tam tang, Micarta sap, çift kenarlı Böhler çelik bıçak. Deri kılıf dahil. Ciddi av ve outdoor kullanımı için.</p>",
-      imgUrl: "https://sepetzen.com/images/product/product_sepetzen-av-b%C4%B1%C3%A7a%C4%9F%C4%B1-1--696x600.jpg",
-      imgFile: "sepetzen-av-bicagi-premium.webp",
-      cats: ["av-bicaklari", "tum-urunler"],
+      basePrice: "1299.00",
+      description: "<p>Premium serisi sert ağaç saplı katlanır çakı. El yapımı üretim, yüksek karbonlu çelik bıçak. Outdoor aktiviteleri ve günlük kullanım için mükemmel seçim.</p>",
+      imgUrl: "https://sepetzen.com/images/product/product_sepetzen-av-b%C4%B1%C3%A7a%C4%9F%C4%B1-1-59740843786625.jpg",
+      imgFile: "spz-007-premium-katlanir-caki.webp",
+      cats: ["cakilar", "tum-urunler"],
       isFeatured: true,
       isNew: true,
+      discountBadge: null,
     },
   ];
 
@@ -238,6 +267,8 @@ async function main() {
       isActive: true,
       isFeatured: pd.isFeatured,
       isNew: pd.isNew,
+      discountBadge: pd.discountBadge,
+      categoryId: insertedCats[pd.cats[0]],
     }).onConflictDoUpdate({
       target: products.slug,
       set: {
@@ -246,20 +277,17 @@ async function main() {
         images: [localImages[pd.slug]],
         isFeatured: pd.isFeatured,
         isNew: pd.isNew,
+        discountBadge: pd.discountBadge,
+        categoryId: insertedCats[pd.cats[0]],
       },
     }).returning();
 
-    // Kategori bağlantıları
     for (const catSlug of pd.cats) {
       const catId = insertedCats[catSlug];
       if (!catId) continue;
       await db.insert(productCategories).values({ productId: prod.id, categoryId: catId }).onConflictDoNothing();
     }
-    // Primary category
-    const primaryCatSlug = pd.cats[0];
-    await db.update(products).set({ categoryId: insertedCats[primaryCatSlug] }).where(eq(products.id, prod.id));
 
-    // Varyant (stok için)
     await db.insert(productVariants).values({
       productId: prod.id,
       sku: `${pd.sku}-V1`,
@@ -268,18 +296,93 @@ async function main() {
       isActive: true,
     }).onConflictDoNothing();
 
-    console.log(`   + ${pd.name} — ${localImages[pd.slug]}`);
+    console.log(`   + ${pd.name} — ${pd.basePrice} TL`);
   }
 
-  // ── 5. Statik sayfalar ─────────────────────────────────────────────────────
-  console.log("\n5. Statik sayfalar ekleniyor...");
+  // ── 5. menu_items hiyerarşisi ───────────────────────────────────────────────
+  console.log("\n5. Menu items oluşturuluyor...");
+  const catId = (slug: string) => insertedCats[slug];
+
+  // 7 kök öğe
+  const rootDefs = [
+    { title: "Çakılar",              type: "submenu",  slug: "cakilar",                     displayOrder: 10 },
+    { title: "Bıçaklar",             type: "submenu",  slug: "bicaklar",                    displayOrder: 20 },
+    { title: "Bağ & Bahçe Aletleri", type: "submenu",  slug: "bag-bahce-aletleri",           displayOrder: 30 },
+    { title: "Pet Shop & Çiftlik",   type: "submenu",  slug: "pet-shop-ciftlik-ekipmanlari", displayOrder: 40 },
+    { title: "Nalbur & Hırdavat",   type: "category", slug: "nalbur-hirdavat",             displayOrder: 50 },
+    { title: "Mangal & Izgara & Ahşap", type: "submenu", slug: "mangal-izgara-ahsap",       displayOrder: 60 },
+    { title: "Tüm Ürünler",         type: "category", slug: "tum-urunler",                 displayOrder: 70 },
+  ] as const;
+
+  const rootIds: Record<string, string> = {};
+  for (const r of rootDefs) {
+    const [item] = await db.insert(menuItems).values({
+      title: r.title,
+      type: r.type,
+      categoryId: catId(r.slug),
+      url: null,
+      parentId: null,
+      displayOrder: r.displayOrder,
+      isActive: true,
+      openInNewTab: false,
+    }).returning();
+    rootIds[r.slug] = item.id;
+    console.log(`   + ${r.title}`);
+  }
+
+  // Alt menü öğeleri
+  const childDefs = [
+    // Çakılar altındakiler
+    { title: "Kamp Çakıları",           slug: "kamp-cakilari",          parent: "cakilar",                     order: 11 },
+    { title: "Outdoor & Kamp Çakıları", slug: "outdoor-kamp-cakisi",    parent: "cakilar",                     order: 12 },
+    { title: "Aşı Çakıları",           slug: "asi-cakisi",             parent: "cakilar",                     order: 13 },
+    { title: "İthal Çakılar",          slug: "ithal-caki",             parent: "cakilar",                     order: 14 },
+    // Bıçaklar altındakiler
+    { title: "Kamp Bıçakları",          slug: "kamp-bicaklari",         parent: "bicaklar",                    order: 21 },
+    { title: "Mutfak Bıçakları",        slug: "mutfak-bicaklari",       parent: "bicaklar",                    order: 22 },
+    { title: "Şef Bıçakları",           slug: "sef-bicaklari",          parent: "bicaklar",                    order: 23 },
+    { title: "Kasap Bıçakları",         slug: "kasap-bicaklari",        parent: "bicaklar",                    order: 24 },
+    { title: "Balık Bıçağı",           slug: "balik-bicagi",           parent: "bicaklar",                    order: 25 },
+    { title: "Bıçaklık",               slug: "bicaklik",               parent: "bicaklar",                    order: 26 },
+    // Bağ & Bahçe altındakiler
+    { title: "Budama & Kesme",           slug: "budama-kesme",           parent: "bag-bahce-aletleri",          order: 31 },
+    { title: "Toprak İşleme Aletleri", slug: "toprak-isleme-aletleri", parent: "bag-bahce-aletleri",          order: 32 },
+    { title: "Sulama Sistemleri",        slug: "sulama-sistemleri",      parent: "bag-bahce-aletleri",          order: 33 },
+    { title: "Koruyucu Ekipmanlar",      slug: "koruyucu-ekipmanlar",    parent: "bag-bahce-aletleri",          order: 34 },
+    // Pet Shop altındakiler
+    { title: "Evcil Hayvan Ürünleri",  slug: "evcil-hayvan-urunleri",  parent: "pet-shop-ciftlik-ekipmanlari",order: 41 },
+    { title: "Yular & Halatlar",        slug: "yular-halatlar",         parent: "pet-shop-ciftlik-ekipmanlari",order: 42 },
+    { title: "Zincir & Bağlama",        slug: "zincir-baglama",         parent: "pet-shop-ciftlik-ekipmanlari",order: 43 },
+    { title: "Saraciye Ürünleri",       slug: "saraciye-urunleri",      parent: "pet-shop-ciftlik-ekipmanlari",order: 44 },
+    // Mangal & Izgara altındakiler
+    { title: "Mangal & Izgaralar",      slug: "mangal-izgaralar",       parent: "mangal-izgara-ahsap",         order: 61 },
+    { title: "Izgara Ekipmanları",      slug: "izgara-ekipmanlari",     parent: "mangal-izgara-ahsap",         order: 62 },
+    { title: "Ahşap Ürünler",          slug: "ahsap-urunler",          parent: "mangal-izgara-ahsap",         order: 63 },
+  ];
+
+  for (const ch of childDefs) {
+    await db.insert(menuItems).values({
+      title: ch.title,
+      type: "category",
+      categoryId: catId(ch.slug),
+      url: null,
+      parentId: rootIds[ch.parent],
+      displayOrder: ch.order,
+      isActive: true,
+      openInNewTab: false,
+    });
+    console.log(`     └ ${ch.title}`);
+  }
+
+  // ── 6. Statik sayfalar ─────────────────────────────────────────────────────
+  console.log("\n6. Statik sayfalar ekleniyor...");
   const pageDefs = [
     {
       slug: "hakkimizda",
       title: "Hakkımızda",
       content: `<h2>Sepetzen Kimdir?</h2>
-<p>Sepetzen, 2020 yılında Dalaman, Muğla'da kurulmuş bir kamp, outdoor ve bıçak markasıdır. Doğanın içinde zaman geçiren insanların ihtiyaçlarını karşılamak amacıyla yola çıktık.</p>
-<p>Ahmet Uğur Durmaz liderliğinde küçük bir ekip tarafından yönetilen Sepetzen; av bıçakları, kamp çakıları, outdoor ekipmanları ve bağ & bahçe ürünleri alanlarında faaliyet göstermektedir.</p>
+<p>Sepetzen, 2009 yılında Dalaman, Muğla'da temelleri atılmış bir kamp, outdoor, bıçak ve bağ & bahçe markasıdır. Doğanın içinde zaman geçiren insanların ihtiyaçlarını karşılamak amacıyla yola çıktık.</p>
+<p>Ahmet Uğur Durmaz liderliğinde yönetilen Sepetzen; av bıçakları, kamp çakıları, outdoor ekipmanları, bağ & bahçe aletleri, pet shop ekipmanları ve mangal ürünleri alanlarında faaliyet göstermektedir.</p>
 <h2>Vizyonumuz</h2>
 <p>Türkiye'nin doğal zenginliklerine duyulan saygıyı, kaliteli ürünlerle buluşturmak. Her bıçak, her ekipman; bir hikâyenin parçasıdır.</p>
 <h2>Neden Sepetzen?</h2>
@@ -290,6 +393,7 @@ async function main() {
 <li>Dalaman merkezli, Türkiye geneli hizmet</li>
 </ul>
 <h2>İletişim</h2>
+<p><strong>Yetkili:</strong> Ahmet Uğur Durmaz</p>
 <p><strong>Adres:</strong> Karaçalı Mah. Nergiz Sk. No.8/A Dalaman / Muğla</p>
 <p><strong>Telefon:</strong> 0536 630 11 38</p>
 <p><strong>E-posta:</strong> sepetzen@gmail.com</p>`,
@@ -379,7 +483,7 @@ Telefon: 0536 630 11 38 | E-posta: sepetzen@gmail.com</p>
     },
     {
       slug: "iptal-ve-iade-sartlari",
-      title: "İptal & İade Politikası",
+      title: "İptal ve İade Şartları",
       content: `<h2>İPTAL VE İADE POLİTİKASI</h2>
 <h3>Sipariş İptali</h3>
 <p>Kargoya verilmeden önce siparişinizi sepetzen@gmail.com adresine e-posta göndererek iptal edebilirsiniz.</p>
@@ -393,9 +497,9 @@ Telefon: 0536 630 11 38 | E-posta: sepetzen@gmail.com</p>
 <p>İade taleplerini sepetzen@gmail.com adresine bildirin. Ürünü Dalaman adresimize gönderin. İade onayından sonra 7-10 iş günü içinde ödeme iadeniz gerçekleştirilir.</p>`,
     },
     {
-      slug: "gizlilik",
-      title: "Gizlilik Politikası",
-      content: `<h2>GİZLİLİK POLİTİKASI</h2>
+      slug: "gizlilik-guvenlik",
+      title: "Gizlilik & Güvenlik",
+      content: `<h2>GİZLİLİK & GÜVENLİK POLİTİKASI</h2>
 <p>Sepetzen olarak gizliliğinize saygı duyuyoruz. Bu politika, web sitemizi ziyaret ettiğinizde toplanan bilgileri ve bu bilgilerin nasıl kullanıldığını açıklamaktadır.</p>
 <h3>Toplanan Bilgiler</h3>
 <ul>
@@ -405,10 +509,10 @@ Telefon: 0536 630 11 38 | E-posta: sepetzen@gmail.com</p>
 <h3>Bilgilerin Kullanımı</h3>
 <p>Bilgileriniz yalnızca sipariş işlemleri ve sizinle iletişim kurulması amacıyla kullanılmaktadır. Üçüncü taraflarla satılmaz veya paylaşılmaz.</p>
 <h3>Güvenlik</h3>
-<p>Verileriniz SSL şifrelemesi ile korunmaktadır.</p>`,
+<p>Verileriniz SSL şifrelemesi ile korunmaktadır. Ödeme bilgileriniz iyzico güvencesiyle 3D Secure sisteminden geçmektedir.</p>`,
     },
     {
-      slug: "cerez",
+      slug: "cerez-politikasi",
       title: "Çerez Politikası",
       content: `<h2>ÇEREZ POLİTİKASI</h2>
 <p>sepetzen.com, deneyiminizi iyileştirmek için çerezler kullanmaktadır.</p>
@@ -422,7 +526,7 @@ Telefon: 0536 630 11 38 | E-posta: sepetzen@gmail.com</p>
     },
     {
       slug: "kargo-sureci",
-      title: "Kargo Bilgileri",
+      title: "Kargo Süreci",
       content: `<h2>KARGO VE TESLİMAT</h2>
 <h3>Teslimat Süresi</h3>
 <p>Siparişleriniz, onaydan itibaren 1-3 iş günü içinde hazırlanır ve 1-4 iş günü içinde teslim edilir (toplam 3-7 iş günü).</p>
@@ -438,8 +542,8 @@ Telefon: 0536 630 11 38 | E-posta: sepetzen@gmail.com</p>
     },
     {
       slug: "iade-sureci",
-      title: "İade Formu",
-      content: `<h2>İADE FORMU</h2>
+      title: "İade Süreci",
+      content: `<h2>İADE SÜRECİ</h2>
 <p>İade talebiniz için aşağıdaki bilgileri doldurup <strong>sepetzen@gmail.com</strong> adresine gönderin:</p>
 <table>
 <tr><th>Alan</th><th>Bilgi</th></tr>
@@ -460,8 +564,8 @@ Telefon: 0536 630 11 38 | E-posta: sepetzen@gmail.com</p>
     console.log(`   + ${p.title}`);
   }
 
-  // ── 6. Site ayarları güncelle ──────────────────────────────────────────────
-  console.log("\n6. Site ayarları güncelleniyor...");
+  // ── 7. Site ayarları güncelle ──────────────────────────────────────────────
+  console.log("\n7. Site ayarları güncelleniyor...");
   try {
     const { siteSettings } = await import("@shared/schema");
     const settingUpdates = [
@@ -469,7 +573,7 @@ Telefon: 0536 630 11 38 | E-posta: sepetzen@gmail.com</p>
       { key: "contact_email", value: "sepetzen@gmail.com" },
       { key: "contact_phone", value: "0536 630 11 38" },
       { key: "whatsapp_number", value: "905366301138" },
-      { key: "announcement_bar", value: "1500 TL üzeri alışverişlerde kargo ÜCRETSİZ! 🚚" },
+      { key: "announcement_bar", value: "1500 TL ve Üzeri Ücretsiz Kargo! | İlk Siparişinize Sepette %10 İndirim! | Havale/EFT'de %3 İndirim" },
       { key: "site_address", value: "Karaçalı Mah. Nergiz Sk. No.8/A Dalaman / Muğla" },
       { key: "free_shipping_threshold", value: "1500" },
     ];
