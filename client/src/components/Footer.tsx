@@ -179,17 +179,20 @@ export function Footer() {
 
           <div className="flex items-center gap-5 flex-wrap justify-center">
             {/* Marka Tescil Rozeti */}
-            <div
-              className="flex items-center gap-2.5 border border-white/10 rounded px-3 py-2 bg-white/[0.03]"
-              data-testid="badge-marka-tescil"
-              title="Tescilli Marka – No: 2024/093667"
+            <a
+              href="/uploads/branding/sepetzen-marka-tescil.pdf"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="flex items-center gap-2.5 border border-white/10 rounded px-3 py-2 bg-white/[0.03] hover:bg-white/[0.07] hover:border-white/20 transition-colors"
+              data-testid="link-marka-tescil"
+              title="Tescil Belgesini Görüntüle – No: 2024/093667"
             >
               <div className="flex flex-col leading-none">
                 <span className="text-[9px] font-mono tracking-[0.18em] uppercase text-white/35">Tescilli Marka</span>
                 <span className="text-[12px] font-bold text-white/70 mt-0.5">SEPETZEN <sup className="text-[8px] text-[#4a9a42]">®</sup></span>
                 <span className="text-[8.5px] font-mono text-white/30 mt-0.5">No: 2024/093667</span>
               </div>
-            </div>
+            </a>
 
             {/* ETBİS Logosu */}
             <a
