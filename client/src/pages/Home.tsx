@@ -403,9 +403,9 @@ function ProductGridScene({ products }: { products: Product[] }) {
 
 function StatementMarqueeScene() {
   const items = [
-    'POLEN STONE',
+    'SEPETZEN',
     '◆',
-    'ANADOLU\'DAN MEKÂNINIZA',
+    'KAMP & OUTDOOR',
     '✦',
     'TÜRKİYE GENELİ KARGO',
     '◆',
@@ -413,14 +413,14 @@ function StatementMarqueeScene() {
     '✦',
     'GÜVENLİ ÖDEME',
     '◆',
-    'MERMER · GRANİT · TRAVERTEN · ONİKS',
+    'ÇAKI · BIÇAK · BAĞ & BAHÇE · MANGAL',
     '✦',
   ];
   const doubled = [...items, ...items, ...items];
 
   return (
     <section
-      className="relative bg-[hsl(var(--polen-stone))] text-white overflow-hidden border-y border-white/10"
+      className="relative bg-[#2D5A27] text-white overflow-hidden border-y border-white/10"
       data-testid="scene-statement-marquee"
       aria-label="Marka bilgi şeridi"
     >

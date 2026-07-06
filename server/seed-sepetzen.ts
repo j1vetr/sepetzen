@@ -140,6 +140,8 @@ async function main() {
     { name: "Izgara Ekipmanları",             slug: "izgara-ekipmanlari",          displayOrder: 26 },
     { name: "Ahşap Ürünler",                 slug: "ahsap-urunler",               displayOrder: 27 },
     { name: "Tüm Ürünler",                   slug: "tum-urunler",                 displayOrder: 28 },
+    { name: "Mangal Aksesuarları",           slug: "mangal-aksesuarlari",         displayOrder: 29 },
+    { name: "Kömür & Tutuşturucu",          slug: "komur-tutusturucu",           displayOrder: 30 },
   ];
 
   const insertedCats: Record<string, string> = {};
@@ -358,6 +360,8 @@ async function main() {
     { title: "Mangal & Izgaralar",      slug: "mangal-izgaralar",       parent: "mangal-izgara-ahsap",         order: 61 },
     { title: "Izgara Ekipmanları",      slug: "izgara-ekipmanlari",     parent: "mangal-izgara-ahsap",         order: 62 },
     { title: "Ahşap Ürünler",          slug: "ahsap-urunler",          parent: "mangal-izgara-ahsap",         order: 63 },
+    { title: "Mangal Aksesuarları",     slug: "mangal-aksesuarlari",    parent: "mangal-izgara-ahsap",         order: 64 },
+    { title: "Kömür & Tutuşturucu",   slug: "komur-tutusturucu",      parent: "mangal-izgara-ahsap",         order: 65 },
   ];
 
   for (const ch of childDefs) {
