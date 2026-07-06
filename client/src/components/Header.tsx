@@ -489,24 +489,38 @@ export function Header() {
                   </DropdownMenuContent>
                 </DropdownMenu>
               ) : (
-                <div className={`flex items-center gap-2 xl:gap-3 ml-2 pl-4 xl:pl-5 border-l ${scrolled ? 'border-white/15' : 'border-black/10'}`}>
-                  <Link href="/giris" data-testid="link-header-giris" aria-label="Giriş Yap">
-                    <motion.span
-                      whileTap={{ scale: 0.97 }}
-                      className={`inline-flex items-center whitespace-nowrap px-3 xl:px-4 py-2 text-[10.5px] xl:text-[11px] tracking-[0.14em] xl:tracking-[0.18em] uppercase font-medium transition-colors cursor-pointer ${scrolled ? 'text-white/70 hover:text-white' : 'text-black/70 hover:text-[#2D5A27]'}`}
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <motion.button
+                      whileTap={{ scale: 0.9 }}
+                      className={`p-3 transition-colors flex items-center gap-1.5 ${scrolled ? 'text-white/65 hover:text-white' : 'text-black/65 hover:text-[#2D5A27]'}`}
+                      data-testid="button-account-guest"
+                      aria-label="Giriş Yap"
                     >
+                      <User className="w-[22px] h-[22px]" strokeWidth={1.75} />
+                    </motion.button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="end" className="bg-white border-black/8 shadow-lg rounded-none min-w-[190px] p-1">
+                    <DropdownMenuItem
+                      onClick={() => navigate('/giris')}
+                      className="text-[11px] tracking-[0.14em] uppercase text-black hover:bg-black/5 cursor-pointer py-3 px-4 gap-2.5"
+                      data-testid="link-header-giris"
+                    >
+                      <User className="w-4 h-4 shrink-0 text-black/40" strokeWidth={1.75} />
                       Giriş Yap
-                    </motion.span>
-                  </Link>
-                  <Link href="/kayit" data-testid="link-header-kayit">
-                    <motion.span
-                      whileTap={{ scale: 0.97 }}
-                      className="inline-flex items-center whitespace-nowrap px-3.5 xl:px-5 py-2 text-[10.5px] xl:text-[11px] tracking-[0.14em] xl:tracking-[0.18em] uppercase font-bold text-white bg-[#2D5A27] hover:bg-[#4a9a42] transition-colors cursor-pointer"
-                    >
-                      Kayıt Ol
-                    </motion.span>
-                  </Link>
-                </div>
+                    </DropdownMenuItem>
+                    <div className="px-2 pb-1">
+                      <button
+                        type="button"
+                        onClick={() => navigate('/kayit')}
+                        className="w-full mt-0.5 py-2.5 text-[11px] tracking-[0.14em] uppercase font-bold text-white bg-[#2D5A27] hover:bg-[#234a1e] transition-colors cursor-pointer text-center"
+                        data-testid="link-header-kayit"
+                      >
+                        Kayıt Ol
+                      </button>
+                    </div>
+                  </DropdownMenuContent>
+                </DropdownMenu>
               )}
 
               <Link href="/sepet">
@@ -572,7 +586,7 @@ export function Header() {
                     src="/uploads/branding/sepetzen-logo-white.png"
                     alt="Sepetzen"
                     data-testid="img-logo-mobile-drawer"
-                    className="h-10 w-auto object-contain"
+                    className="h-16 w-auto object-contain"
                   />
                 </Link>
               </div>
