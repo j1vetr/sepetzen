@@ -119,6 +119,7 @@ interface DescSection {
   type: 'specs' | 'material' | 'usage' | 'gift' | 'generic';
   items: string[];
   prose: string;
+  bodyHtml: string;
 }
 
 const SECTION_EMOJIS = ['📐', '🔩', '🎯', '🎁'] as const;
@@ -152,7 +153,7 @@ function parseProductSections(html: string): DescSection[] {
         .map((pm) => pm[1].replace(/<[^>]+>/g, '').trim())
         .filter(Boolean)
         .join(' ');
-      return { emoji, title, type: emojiToType(emoji, title), items, prose };
+      return { emoji, title, type: emojiToType(emoji, title), items, prose, bodyHtml };
     });
   }
 
@@ -185,7 +186,7 @@ function parseProductSections(html: string): DescSection[] {
       .map((p) => p.textContent?.trim() ?? '')
       .filter(Boolean)
       .join(' ');
-    return { emoji, title, type: emojiToType(emoji, title), items, prose };
+    return { emoji, title, type: emojiToType(emoji, title), items, prose, bodyHtml: clone.innerHTML };
   });
 }
 
@@ -310,6 +311,263 @@ function ProductDescriptionSections({ html }: { html: string }) {
       ))}
     </div>
   );
+}
+
+// ─── Feature Highlights Strip ─────────────────────────────────────────────────
+
+function ProductFeatureHighlights({ html }: { html: string }) {
+  const sections = useMemo(() => parseProductSections(html), [html]);
+  if (sections.length === 0) return null;
+  const highlights = sections.slice(0, 4);
+  return (
+    <div className="grid grid-cols-2 lg:grid-cols-4 border-t border-b border-black/8">
+      {highlights.map((sec, i) => (
+        <div
+          key={i}
+          className={`flex items-start gap-3 px-5 py-5 ${i < highlights.length - 1 ? 'border-r border-black/8' : ''}`}
+        >
+          <span className="text-xl leading-none shrink-0 mt-0.5">{sec.emoji || '✦'}</span>
+          <div className="min-w-0">
+            <p className="text-[12px] font-semibold text-black leading-tight mb-1">{sec.title}</p>
+            <p className="text-[11.5px] text-black/45 leading-snug line-clamp-2">
+              {sec.items[0] || (sec.prose ? sec.prose.split(/[.!]/)[0] : '') || ''}
+            </p>
+          </div>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+// ─── Product Tabs ──────────────────────────────────────────────────────────────
+
+function ProductTabs({ html }: { html: string }) {
+  const [active, setActive] = useState<'desc' | 'specs' | 'usage' | 'delivery' | 'faq'>('desc');
+  const sections = useMemo(() => parseProductSections(html), [html]);
+
+  const specs = sections.find((s) => s.type === 'specs');
+  const material = sections.find((s) => s.type === 'material');
+  const usage = sections.find((s) => s.type === 'usage');
+  const gift = sections.find((s) => s.type === 'gift');
+  const generics = sections.filter((s) => s.type === 'generic');
+
+  const TABS = [
+    { id: 'desc', label: 'Ürün Açıklaması' },
+    { id: 'specs', label: 'Teknik Özellikler' },
+    { id: 'usage', label: 'Kullanım Alanları' },
+    { id: 'delivery', label: 'Teslimat ve İade' },
+    { id: 'faq', label: 'Sık Sorulan Sorular' },
+  ] as const;
+
+  return (
+    <div className="mt-8 border-t border-black/8">
+      {/* Tab bar */}
+      <div className="flex border-b border-black/8 overflow-x-auto">
+        {TABS.map((tab) => (
+          <button
+            key={tab.id}
+            type="button"
+            onClick={() => setActive(tab.id)}
+            className={`px-4 lg:px-6 py-3.5 text-[11px] font-semibold tracking-[0.16em] uppercase whitespace-nowrap border-b-2 -mb-px transition-colors ${
+              active === tab.id
+                ? 'border-[#2D5A27] text-[#2D5A27]'
+                : 'border-transparent text-black/40 hover:text-black/70'
+            }`}
+          >
+            {tab.label}
+          </button>
+        ))}
+      </div>
+
+      {/* Tab content */}
+      <div className="py-8">
+        {/* ── Ürün Açıklaması ── */}
+        {active === 'desc' && (
+          <div className="space-y-6 max-w-2xl">
+            {material && (
+              <div>
+                <h3 className="text-[11px] font-semibold tracking-[0.22em] uppercase text-black/35 mb-4">
+                  {material.title}
+                </h3>
+                <p className="text-[14px] text-black/65 leading-[1.75]">
+                  {material.prose || material.items.join(' · ')}
+                </p>
+              </div>
+            )}
+            {gift && (
+              <div className="border-l-2 border-[#2D5A27] pl-5 py-1">
+                <h3 className="text-[11px] font-semibold tracking-[0.22em] uppercase text-[#2D5A27]/60 mb-2">
+                  {gift.title}
+                </h3>
+                <p className="text-[14px] text-black/70 leading-[1.75]">
+                  {gift.prose || gift.items.join(' ')}
+                </p>
+              </div>
+            )}
+            {generics.map((s, i) => (
+              <div key={i}>
+                {s.title && (
+                  <h3 className="text-[11px] font-semibold tracking-[0.22em] uppercase text-black/35 mb-4">
+                    {s.title}
+                  </h3>
+                )}
+                <p className="text-[14px] text-black/65 leading-[1.75]">
+                  {s.prose || s.items.join(', ')}
+                </p>
+              </div>
+            ))}
+            {!material && !gift && generics.length === 0 && (
+              <p className="text-[13px] text-black/35 italic">Bu ürün için açıklama eklenmemiştir.</p>
+            )}
+          </div>
+        )}
+
+        {/* ── Teknik Özellikler ── */}
+        {active === 'specs' && (
+          <div>
+            {specs ? (
+              specs.items.length > 0 ? (
+                <dl className="max-w-lg">
+                  {specs.items.map((item, j) => {
+                    const ci = item.indexOf(':');
+                    const hasColon = ci > 0 && ci < 60;
+                    const label = hasColon ? item.slice(0, ci).trim() : null;
+                    const value = hasColon ? item.slice(ci + 1).trim() : item;
+                    return (
+                      <div
+                        key={j}
+                        className="flex items-baseline justify-between py-2.5 border-b border-black/[0.06] gap-4"
+                      >
+                        <dt className="text-[12px] text-black/45 shrink-0">{label ?? '—'}</dt>
+                        <dd className="text-[13px] text-black/80 font-medium text-right">{value}</dd>
+                      </div>
+                    );
+                  })}
+                </dl>
+              ) : (
+                <p className="text-[14px] text-black/60 leading-relaxed">{specs.prose}</p>
+              )
+            ) : (
+              <p className="text-[13px] text-black/35 italic">Teknik özellik bilgisi bulunmamaktadır.</p>
+            )}
+          </div>
+        )}
+
+        {/* ── Kullanım Alanları ── */}
+        {active === 'usage' && (
+          <div>
+            {usage ? (
+              usage.items.length > 0 ? (
+                <div className="flex flex-wrap gap-2">
+                  {usage.items.map((chip, j) => (
+                    <span
+                      key={j}
+                      className="px-3 py-1.5 border border-[#2D5A27]/20 text-[12px] text-[#2D5A27] font-medium"
+                    >
+                      {chip}
+                    </span>
+                  ))}
+                </div>
+              ) : (
+                <p className="text-[14px] text-black/65 leading-[1.75]">{usage.prose}</p>
+              )
+            ) : (
+              <p className="text-[13px] text-black/35 italic">Kullanım alanı bilgisi bulunmamaktadır.</p>
+            )}
+          </div>
+        )}
+
+        {/* ── Teslimat ve İade ── */}
+        {active === 'delivery' && (
+          <div className="space-y-8 max-w-2xl">
+            <div>
+              <h3 className="text-[11px] font-semibold tracking-[0.22em] uppercase text-black/35 mb-4">
+                Kargo & Teslimat
+              </h3>
+              <dl>
+                {[
+                  ['Kargo Süresi', '1–3 iş günü'],
+                  ['Ücretsiz Kargo', '1.500 ₺ ve üzeri siparişlerde'],
+                  ['Kargo Firması', 'MNG Kargo / Yurtiçi Kargo'],
+                  ['Aynı Gün Kargo', 'Hafta içi 14:00\'a kadar verilen siparişler'],
+                ].map(([k, v]) => (
+                  <div key={k} className="flex items-baseline justify-between py-2.5 border-b border-black/[0.06] gap-4">
+                    <dt className="text-[12px] text-black/45 shrink-0">{k}</dt>
+                    <dd className="text-[13px] text-black/80 font-medium text-right">{v}</dd>
+                  </div>
+                ))}
+              </dl>
+            </div>
+            <div>
+              <h3 className="text-[11px] font-semibold tracking-[0.22em] uppercase text-black/35 mb-4">
+                İade & İptal
+              </h3>
+              <dl>
+                {[
+                  ['İade Süresi', '14 gün içinde'],
+                  ['İade Şartı', 'Açılmamış, kullanılmamış, orijinal ambalajında'],
+                  ['İade Yöntemi', 'Banka havalesi veya kart iadesi'],
+                  ['İptal', 'Kargoya verilmemiş siparişler iptal edilebilir'],
+                ].map(([k, v]) => (
+                  <div key={k} className="flex items-baseline justify-between py-2.5 border-b border-black/[0.06] gap-4">
+                    <dt className="text-[12px] text-black/45 shrink-0">{k}</dt>
+                    <dd className="text-[13px] text-black/80 font-medium text-right">{v}</dd>
+                  </div>
+                ))}
+              </dl>
+            </div>
+          </div>
+        )}
+
+        {/* ── Sık Sorulan Sorular ── */}
+        {active === 'faq' && (
+          <div className="space-y-2 max-w-2xl">
+            {(
+              [
+                ['Ürünün garantisi var mı?', 'Evet, tüm ürünlerimiz 2 yıl üretici garantisi kapsamındadır.'],
+                ['Kargo ücreti ne kadar?', '1.500 ₺ ve üzeri siparişlerde kargo tamamen ücretsizdir. Altındaki siparişlerde kargo ücreti sepette hesaplanır.'],
+                ['Havale/EFT ile ödeme yapabilir miyim?', 'Evet. Havale/EFT ile ödeme seçeneğinde sipariş toplamından %3 indirim uygulanır.'],
+                ['Ürünü iade edebilir miyim?', 'Teslim tarihinden itibaren 14 gün içinde, kullanılmamış ve orijinal ambalajında iade edilebilir.'],
+                ['Fatura kesilecek mi?', 'Evet, tüm siparişlerinize e-fatura kesilmektedir.'],
+              ] as [string, string][]
+            ).map(([q, a]) => (
+              <details key={q} className="group border-b border-black/6 pb-0">
+                <summary className="text-[13px] font-semibold text-black cursor-pointer list-none flex items-center justify-between gap-3 py-4">
+                  {q}
+                  <span className="text-black/30 group-open:rotate-180 transition-transform duration-200 shrink-0 text-xs">▾</span>
+                </summary>
+                <p className="text-[13px] text-black/55 leading-relaxed pb-4">{a}</p>
+              </details>
+            ))}
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
+// ─── Blurb Extractor ──────────────────────────────────────────────────────────
+
+function extractBlurb(html: string): string {
+  if (!html) return '';
+  // First try: look for a leading <p> before any section heading
+  const firstPMatch = html.match(/<p[^>]*>([\s\S]*?)<\/p>/i);
+  if (firstPMatch) {
+    const text = firstPMatch[1].replace(/<[^>]+>/g, '').trim();
+    if (text.length > 20) return text;
+  }
+  // Second try: find a parsed section with prose text (not specs)
+  const sections = parseProductSections(html);
+  const blurbSection = sections.find((s) => s.prose && s.type !== 'specs');
+  if (blurbSection?.prose) {
+    const sentenceEnd = blurbSection.prose.search(/[.!?]/);
+    if (sentenceEnd > 20) return blurbSection.prose.slice(0, sentenceEnd + 1).trim();
+    return blurbSection.prose.slice(0, 160);
+  }
+  // Fallback: strip all HTML, find first sentence within 240 chars
+  const text = html.replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim();
+  const match = text.slice(0, 240).match(/^(.*?[.!?])\s/);
+  return match ? match[1] : text.slice(0, 160);
 }
 
 // ─── Carousel Options ─────────────────────────────────────────────────────────
@@ -862,8 +1120,8 @@ export default function ProductDetail() {
               </div>
             </div>
 
-            {/* RIGHT — Info column (flows naturally, no sticky) */}
-            <div>
+            {/* RIGHT — Info card */}
+            <div className="border border-black/8 p-5 lg:p-6">
 
               {/* Category */}
               {category && (
@@ -893,7 +1151,7 @@ export default function ProductDetail() {
               )}
 
               {/* Price */}
-              <div className="flex items-baseline gap-3 mb-7">
+              <div className="flex items-baseline gap-3 mb-3">
                 {originalPrice && (
                   <span className="text-base text-black/30 line-through" data-testid="text-original-price">
                     {originalPrice.toLocaleString('tr-TR', { maximumFractionDigits: 0 })} ₺
@@ -907,9 +1165,28 @@ export default function ProductDetail() {
                 </span>
               </div>
 
-              <div className="border-t border-black/6 pt-6 space-y-4">
-                {/* Shipping countdown */}
-                <ShippingCountdown />
+              {/* Blurb */}
+              {product.description && (() => {
+                const blurb = extractBlurb(product.description);
+                return blurb ? (
+                  <p className="text-[13px] text-black/50 leading-relaxed mb-5">{blurb}</p>
+                ) : null;
+              })()}
+
+              <div className="border-t border-black/6 pt-5 space-y-3">
+                {/* Stock status + Shipping countdown */}
+                <div className="flex items-center gap-3 flex-wrap">
+                  {isOutOfStock ? (
+                    <span className="text-[12px] text-red-500 font-medium">Tükendi</span>
+                  ) : (
+                    <span className="flex items-center gap-1.5 text-[12px] text-[#2D5A27] font-semibold">
+                      <Check className="w-3.5 h-3.5" strokeWidth={2.5} />
+                      Stokta var
+                    </span>
+                  )}
+                  <span className="text-black/15 text-xs">|</span>
+                  <ShippingCountdown />
+                </div>
 
                 {/* Quantity + Add to cart */}
                 <div className="flex items-center gap-2">
@@ -932,37 +1209,52 @@ export default function ProductDetail() {
                     onClick={handleAddToCart}
                     disabled={isAdding || isOutOfStock}
                     className={`flex-1 h-11 font-semibold text-[11px] uppercase tracking-[0.2em] transition-colors flex items-center justify-center gap-2 ${
-                      isOutOfStock ? 'bg-black/8 text-black/30 cursor-not-allowed' : 'bg-black hover:bg-[#2D5A27] text-white'
+                      isOutOfStock ? 'bg-black/8 text-black/30 cursor-not-allowed' : 'bg-[#2D5A27] hover:bg-[#234a1e] text-white'
                     }`}
                     data-testid="button-add-to-cart"
                   >
                     {isAdding ? <Loader2 className="w-4 h-4 animate-spin" /> : <span>{isOutOfStock ? 'Tükendi' : 'Sepete Ekle'}</span>}
                   </button>
+                </div>
 
-                  {/* Favorite */}
+                {/* WhatsApp */}
+                {!isOutOfStock && (
+                  <a
+                    href={`https://wa.me/905366301138?text=${encodeURIComponent(`Merhaba, "${product.name}" ürününü sipariş vermek istiyorum. ${typeof window !== 'undefined' ? window.location.href : ''}`)}`}
+                    target="_blank" rel="noopener noreferrer"
+                    className="flex items-center justify-center gap-2 w-full h-10 border border-[#25D366]/30 text-[#25D366] hover:bg-[#25D366]/6 transition-colors text-[11px] font-semibold tracking-[0.16em] uppercase"
+                    data-testid="link-whatsapp-order"
+                  >
+                    <WhatsAppIcon className="w-4 h-4" />
+                    WhatsApp ile Sipariş Ver
+                  </a>
+                )}
+
+                {/* Favorilere Ekle + Paylaş */}
+                <div className="flex items-center gap-5 pt-1">
                   <button
                     type="button"
                     onClick={() => product && !isFavoriteLoading && toggleFavorite(product.id, isLiked)}
                     disabled={isFavoriteLoading}
-                    className={`w-11 h-11 border flex items-center justify-center transition-colors shrink-0 ${
-                      isLiked ? 'bg-[#2D5A27] border-[#2D5A27] text-white' : 'border-black/12 hover:border-black/30 text-black'
-                    }`}
+                    className="flex items-center gap-1.5 text-[12px] text-black/50 hover:text-black transition-colors"
                     aria-label="Favorilere ekle" data-testid="button-like"
                   >
-                    {isFavoriteLoading ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Heart className={`w-3.5 h-3.5 ${isLiked ? 'fill-current' : ''}`} />}
+                    {isFavoriteLoading
+                      ? <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                      : <Heart className={`w-3.5 h-3.5 ${isLiked ? 'fill-[#2D5A27] text-[#2D5A27]' : ''}`} />
+                    }
+                    <span>{isLiked ? 'Favorilerde' : 'Favorilere Ekle'}</span>
                   </button>
 
-                  {/* Share */}
-                  <div className="relative shrink-0">
+                  <div className="relative">
                     <button
                       type="button"
                       onClick={() => setShowShareMenu((v) => !v)}
-                      className={`w-11 h-11 border flex items-center justify-center transition-colors ${
-                        showShareMenu ? 'bg-[#2D5A27] border-[#2D5A27] text-white' : 'border-black/12 hover:border-black/30 text-black'
-                      }`}
+                      className="flex items-center gap-1.5 text-[12px] text-black/50 hover:text-black transition-colors"
                       aria-label="Paylaş" data-testid="button-share"
                     >
                       <Share2 className="w-3.5 h-3.5" />
+                      <span>Paylaş</span>
                     </button>
                     <AnimatePresence>
                       {showShareMenu && (
@@ -970,7 +1262,7 @@ export default function ProductDetail() {
                           initial={{ opacity: 0, y: 6 }}
                           animate={{ opacity: 1, y: 0 }}
                           exit={{ opacity: 0, y: 6 }}
-                          className="absolute bottom-full right-0 mb-2 bg-white border border-black/10 shadow-xl min-w-[170px] z-30"
+                          className="absolute bottom-full left-0 mb-2 bg-white border border-black/10 shadow-xl min-w-[170px] z-30"
                         >
                           {socialLinks.map((s) => (
                             <a key={s.name} href={s.url} target="_blank" rel="noopener noreferrer"
@@ -988,19 +1280,6 @@ export default function ProductDetail() {
                     </AnimatePresence>
                   </div>
                 </div>
-
-                {/* WhatsApp */}
-                {!isOutOfStock && (
-                  <a
-                    href={`https://wa.me/905366301138?text=${encodeURIComponent(`Merhaba, "${product.name}" ürününü sipariş vermek istiyorum. ${typeof window !== 'undefined' ? window.location.href : ''}`)}`}
-                    target="_blank" rel="noopener noreferrer"
-                    className="flex items-center justify-center gap-2 w-full h-10 border border-[#25D366]/30 text-[#25D366] hover:bg-[#25D366]/6 transition-colors text-[11px] font-semibold tracking-[0.16em] uppercase"
-                    data-testid="link-whatsapp-order"
-                  >
-                    <WhatsAppIcon className="w-4 h-4" />
-                    WhatsApp ile Sipariş Ver
-                  </a>
-                )}
 
                 {/* Sentinel for mobile sticky bar */}
                 <div ref={ctaSentinelRef} aria-hidden="true" className="h-px" />
@@ -1028,20 +1307,14 @@ export default function ProductDetail() {
                 )}
               </div>
 
-              {/* ── Description inside right column ── */}
-              {product.description ? (
-                <div className="mt-8 pt-8 border-t border-black/6">
-                  <ProductDescriptionSections html={product.description} />
-                </div>
-              ) : (
-                <div className="mt-8 pt-8 border-t border-black/6">
-                  <p className="text-[13px] text-black/35 italic">
-                    Bu ürün için henüz açıklama eklenmemiştir.
-                  </p>
-                </div>
-              )}
             </div>
           </div>
+
+          {/* ── Feature highlights strip ── */}
+          {product.description && <ProductFeatureHighlights html={product.description} />}
+
+          {/* ── Description tabs ── */}
+          <ProductTabs html={product.description || ''} />
 
           {/* ── Reviews ── */}
           <motion.section
@@ -1236,7 +1509,7 @@ export default function ProductDetail() {
               transition={{ duration: 0.45 }}
               className="mt-16 lg:mt-20 pt-12 border-t border-black/6"
             >
-              <h2 className="text-lg font-bold text-black mb-8 tracking-[-0.01em]">Beğenebileceğiniz Ürünler</h2>
+              <h2 className="text-lg font-bold text-black mb-8 tracking-[-0.01em]">Birlikte Alınabilir</h2>
               <div className="grid grid-cols-2 lg:grid-cols-4 gap-x-4 gap-y-10 sm:gap-x-6">
                 {moreProducts.map((p) => (
                   <ProductCard key={p.id} product={p} />
