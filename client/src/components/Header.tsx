@@ -108,6 +108,14 @@ export function Header() {
 
   return (
     <>
+      {/* ── Announcement Bar ── */}
+      <div
+        className="bg-[#2D5A27] text-white text-center py-2.5 px-4 text-[11.5px] tracking-[0.06em] font-medium"
+        data-testid="announcement-bar"
+      >
+        🚚 <strong>1.500 TL</strong> üzeri alışverişlerde kargo <strong>ÜCRETSİZ!</strong> — Türkiye geneli hızlı teslimat
+      </div>
+
       {/* ── Brand bar (desktop): E-Posta · Logo · Telefon
           Normal akışta durur; scroll edilince doğal olarak yukarı kayar. ── */}
       <div className="hidden lg:block bg-white border-b border-black/[0.06]">

@@ -4,18 +4,18 @@ import { Instagram, MapPin, Phone, Mail } from 'lucide-react';
 const kurumsalLinks = [
   { href: '/sayfa/hakkimizda', label: 'Hakkımızda' },
   { href: '/sayfa/iletisim', label: 'İletişim' },
-  { href: '/sayfa/kargo', label: 'Kargo Bilgileri' },
-  { href: '/sayfa/iptal-iade', label: 'İptal & İade' },
+  { href: '/sayfa/kargo-sureci', label: 'Kargo Bilgileri' },
+  { href: '/sayfa/iptal-ve-iade-sartlari', label: 'İptal & İade' },
   { href: '/sayfa/mesafeli-satis-sozlesmesi', label: 'Mesafeli Satış Sözleşmesi' },
-  { href: '/sayfa/on-bilgilendirme', label: 'Ön Bilgilendirme Formu' },
+  { href: '/sayfa/on-bilgilendirme-formu', label: 'Ön Bilgilendirme Formu' },
   { href: '/sayfa/uyelik-sozlesmesi', label: 'Üyelik Sözleşmesi' },
 ];
 
 const yardimLinks = [
-  { href: '/sayfa/kvkk', label: 'KVKK Aydınlatma Metni' },
+  { href: '/sayfa/kvkk-aydinlatma-metni', label: 'KVKK Aydınlatma Metni' },
   { href: '/sayfa/gizlilik', label: 'Gizlilik Politikası' },
   { href: '/sayfa/cerez', label: 'Çerez Politikası' },
-  { href: '/sayfa/iade', label: 'İade Formu' },
+  { href: '/sayfa/iade-sureci', label: 'İade Formu' },
 ];
 
 export function Footer() {

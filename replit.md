@@ -1,7 +1,7 @@
-# Polen Stone E-Commerce Platform
+# Sepetzen E-Commerce Platform
 
 ## Overview
-Polen Stone (Polen Stone Doğal Taş & Mermer) is a full-stack e-commerce platform for natural stone and marble products in the Turkish market. Customers browse marble, granite, travertine, and onyx categories, request samples, and place orders; administrators manage products, categories, and orders. The brand identity centers on Turkish stone craftsmanship, with a warm cream/stone palette and a terracotta-orange accent.
+Sepetzen is a full-stack Turkish e-commerce platform specializing in Kamp (Camping), Outdoor, Bıçak (Knives), and Bağ & Bahçe (Garden) products. Customers browse hunting knives, camp folding knives, outdoor gear, and garden tools; administrators manage products, categories, and orders. The brand identity centers on outdoor craftsmanship and nature, with a dark forest-green accent color. Contact person: Ahmet Uğur Durmaz — 0536 630 11 38 — sepetzen@gmail.com — Karaçalı Mah. Nergiz Sk. No.8/A Dalaman/Muğla.
 
 ## User Preferences
 Preferred communication style: Simple, everyday language.
@@ -10,14 +10,16 @@ Preferred communication style: Simple, everyday language.
 All user-visible date/time rendering for orders (admin panel, customer profile, order tracking, emails, WhatsApp messages) uses helpers in `shared/dateFormat.ts` (`formatTRDate`, `formatTRDateTime`, `formatTRDateNumeric`, `formatTRDateShort`, `formatTRTime`, `formatTRDateTimeNumeric`). Helpers always render in `Europe/Istanbul` timezone with `tr-TR` locale via `Intl.DateTimeFormat`, so the production server's UTC clock does not bleed into the UI. Do not call `toLocaleString('tr-TR')` or `date-fns/format` directly on order timestamps — use the helpers.
 
 ## Brand & Theme
-- **Brand**: Polen Stone Doğal Taş & Mermer
-- **Domain**: polenstone.com · **Email**: info@polenstone.com · **Instagram**: @polenstone
-- **Logo**: Text wordmark "POLEN STONE" (orange "STONE"). User will upload a custom logo asset later.
+- **Brand**: Sepetzen — Kamp, Outdoor, Bıçak & Bağ Bahçe
+- **Contact**: sepetzen@gmail.com · **Phone**: 0536 630 11 38 · **Instagram**: @sepetzen
+- **Address**: Karaçalı Mah. Nergiz Sk. No.8/A Dalaman / Muğla
+- **Logo**: Text wordmark "SEPETZEN" (dark black "SEPET" + forest green "ZEN"). User will upload a custom logo asset later.
 - **Color tokens** (in `client/src/index.css`):
-  - `--polen-orange` — terracotta accent
-  - `--polen-stone` — deep stone gray
-  - `--polen-cream` — warm off-white background
-- **Typography**: Existing display font kept; orange accent reserved for stroke headlines and brand wordmark.
+  - `--sepetzen-green` — dark forest green `#2D5A27` (primary accent, formerly `--polen-orange`)
+  - `--sepetzen-light` — lighter forest green `#4a9a42`
+  - Legacy `--polen-orange` kept as alias for backward compatibility
+- **Free shipping threshold**: 1500 TL (shown in announcement bar and cart)
+- **Typography**: Existing display font kept; green accent for wordmark and CTAs.
 
 ## System Architecture
 

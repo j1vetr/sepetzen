@@ -68,7 +68,14 @@ async function downloadImage(url: string, filename: string): Promise<string> {
     return `/uploads/products/${filename}`;
   } catch (err) {
     console.warn(`  [warn] Could not download ${url}: ${err}`);
-    return url;
+    // NEVER return a remote URL — save placeholder locally so all image paths stay local
+    const placeholderLocal = path.join(UPLOAD_DIR, "placeholder.svg");
+    if (!fs.existsSync(placeholderLocal)) {
+      const svgContent = `<svg xmlns="http://www.w3.org/2000/svg" width="800" height="800" viewBox="0 0 800 800"><rect width="800" height="800" fill="#1a2e19"/><rect x="340" y="340" width="120" height="120" rx="8" fill="none" stroke="#2D5A27" stroke-width="3"/><line x1="340" y1="400" x2="460" y2="400" stroke="#2D5A27" stroke-width="2"/><line x1="400" y1="340" x2="400" y2="460" stroke="#2D5A27" stroke-width="2"/><text x="400" y="520" text-anchor="middle" font-family="sans-serif" font-size="28" fill="#2D5A27" letter-spacing="8">SEPETZEN</text></svg>`;
+      fs.writeFileSync(placeholderLocal, svgContent, "utf-8");
+    }
+    console.log(`  [placeholder] Download failed — using local placeholder image`);
+    return `/uploads/products/placeholder.svg`;
   }
 }
 
@@ -322,7 +329,7 @@ async function main() {
 <p>Bu sözleşmeden doğacak uyuşmazlıklarda Dalaman Tüketici Hakem Heyeti ve Dalaman Mahkemeleri yetkilidir.</p>`,
     },
     {
-      slug: "kvkk",
+      slug: "kvkk-aydinlatma-metni",
       title: "KVKK Aydınlatma Metni",
       content: `<h2>KİŞİSEL VERİLERİN KORUNMASI (KVKK) AYDINLATMA METNİ</h2>
 <p>6698 sayılı Kişisel Verilerin Korunması Kanunu kapsamında, veri sorumlusu sıfatıyla Ahmet Uğur Durmaz (Sepetzen) olarak kişisel verilerinizi aşağıdaki amaçlarla işlemekteyiz:</p>
@@ -342,7 +349,7 @@ async function main() {
 <p>KVKK'nın 11. maddesi kapsamında; kişisel verilerinize erişim, düzeltme, silme ve işlemenin kısıtlanmasını talep etme haklarına sahipsiniz. Talepleriniz için: sepetzen@gmail.com</p>`,
     },
     {
-      slug: "on-bilgilendirme",
+      slug: "on-bilgilendirme-formu",
       title: "Ön Bilgilendirme Formu",
       content: `<h2>ÖN BİLGİLENDİRME FORMU</h2>
 <h3>Satıcı Bilgileri</h3>
@@ -371,7 +378,7 @@ Telefon: 0536 630 11 38 | E-posta: sepetzen@gmail.com</p>
 <p>Kullanıcı dilediği zaman üyeliğini sonlandırabilir. Sepetzen, kurallara aykırı davranış halinde üyeliği askıya alabilir.</p>`,
     },
     {
-      slug: "iptal-iade",
+      slug: "iptal-ve-iade-sartlari",
       title: "İptal & İade Politikası",
       content: `<h2>İPTAL VE İADE POLİTİKASI</h2>
 <h3>Sipariş İptali</h3>
@@ -414,7 +421,7 @@ Telefon: 0536 630 11 38 | E-posta: sepetzen@gmail.com</p>
 <p>Tarayıcı ayarlarınızdan çerezleri yönetebilir veya reddedebilirsiniz. Ancak bazı çerezlerin devre dışı bırakılması site işlevselliğini olumsuz etkileyebilir.</p>`,
     },
     {
-      slug: "kargo",
+      slug: "kargo-sureci",
       title: "Kargo Bilgileri",
       content: `<h2>KARGO VE TESLİMAT</h2>
 <h3>Teslimat Süresi</h3>
@@ -430,7 +437,7 @@ Telefon: 0536 630 11 38 | E-posta: sepetzen@gmail.com</p>
 <p>Yanlış adres bilgisi nedeniyle oluşan kargo giderleri alıcıya aittir.</p>`,
     },
     {
-      slug: "iade",
+      slug: "iade-sureci",
       title: "İade Formu",
       content: `<h2>İADE FORMU</h2>
 <p>İade talebiniz için aşağıdaki bilgileri doldurup <strong>sepetzen@gmail.com</strong> adresine gönderin:</p>
@@ -459,8 +466,10 @@ Telefon: 0536 630 11 38 | E-posta: sepetzen@gmail.com</p>
     const { siteSettings } = await import("@shared/schema");
     const settingUpdates = [
       { key: "site_name", value: "Sepetzen" },
-      { key: "site_email", value: "sepetzen@gmail.com" },
-      { key: "site_phone", value: "0536 630 11 38" },
+      { key: "contact_email", value: "sepetzen@gmail.com" },
+      { key: "contact_phone", value: "0536 630 11 38" },
+      { key: "whatsapp_number", value: "905366301138" },
+      { key: "announcement_bar", value: "1500 TL üzeri alışverişlerde kargo ÜCRETSİZ! 🚚" },
       { key: "site_address", value: "Karaçalı Mah. Nergiz Sk. No.8/A Dalaman / Muğla" },
       { key: "free_shipping_threshold", value: "1500" },
     ];

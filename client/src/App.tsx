@@ -67,10 +67,10 @@ function Router() {
         <Route path="/hesabim" component={Profile} />
         <Route path="/hesabim/siparislerim" component={Profile} />
         <Route path="/hakkimizda"><Redirect to="/sayfa/hakkimizda" /></Route>
-        <Route path="/teslimat-kosullari"><Redirect to="/sayfa/kargo" /></Route>
+        <Route path="/teslimat-kosullari"><Redirect to="/sayfa/kargo-sureci" /></Route>
         <Route path="/mesafeli-satis-sozlesmesi"><Redirect to="/sayfa/mesafeli-satis-sozlesmesi" /></Route>
-        <Route path="/iptal-ve-iade"><Redirect to="/sayfa/iptal-iade" /></Route>
-        <Route path="/kvkk"><Redirect to="/sayfa/kvkk" /></Route>
+        <Route path="/iptal-ve-iade"><Redirect to="/sayfa/iptal-ve-iade-sartlari" /></Route>
+        <Route path="/kvkk"><Redirect to="/sayfa/kvkk-aydinlatma-metni" /></Route>
         <Route path="/sayfa/:slug" component={StaticPage} />
         <Route path="/toov-admin/login" component={AdminLogin} />
         <Route path="/toov-admin/orders/:id" component={AdminOrderDetail} />
