@@ -213,7 +213,7 @@ function ProductDescriptionSections({ html }: { html: string }) {
     <div className="space-y-6">
       {/* Specs + Material side by side */}
       {(specs || material) && (
-        <div className="grid sm:grid-cols-2 gap-5">
+        <div className="grid md:grid-cols-2 gap-5">
           {/* Teknik Özellikler */}
           {specs && (
             <div>
@@ -1128,7 +1128,7 @@ export default function ProductDetail() {
                         <StarRating rating={reviewRating} size={24} interactive onChange={setReviewRating} />
                       </div>
                       {!user && (
-                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                           <input type="text" required placeholder="Adınız *" value={reviewGuestName} onChange={(e) => setReviewGuestName(e.target.value)} maxLength={100}
                             className="w-full px-4 py-3 bg-white border border-black/10 text-black placeholder:text-black/28 focus:outline-none focus:border-black/30 transition-colors text-sm"
                             data-testid="input-review-guest-name" />
@@ -1186,7 +1186,7 @@ export default function ProductDetail() {
 
             {/* Reviews grid */}
             {reviews.filter((r) => r.id !== userReview?.id).length > 0 ? (
-              <div className="grid sm:grid-cols-2 gap-4">
+              <div className="grid md:grid-cols-2 gap-4">
                 {reviews.filter((r) => r.id !== userReview?.id).map((review) => {
                   const mask = (n?: string | null) => !n ? '***' : n.slice(0, 2) + '***';
                   return (
