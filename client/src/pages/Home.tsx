@@ -199,7 +199,7 @@ function HeroOverlayContent({ animated = false }: { animated?: boolean }) {
             data-testid="text-hero-title-mobile"
           >
             Doğanın
-            <span className="block text-polen-orange mt-5">Ruhunu Taşı</span>
+            <span className="block text-[#4a9a42] mt-5">Ruhunu Taşı</span>
           </h1>
           <p className="mt-5 text-[11px] tracking-[0.22em] uppercase text-white/75 font-mono">
             Kamp · Outdoor · Bıçak · Bağ & Bahçe
@@ -207,7 +207,7 @@ function HeroOverlayContent({ animated = false }: { animated?: boolean }) {
           <Link
             href="/magaza"
             data-testid="link-hero-cta-mobile"
-            className="inline-flex items-center gap-2 mt-8 px-6 py-3 bg-polen-orange text-white text-[11px] tracking-[0.22em] uppercase font-semibold hover:bg-polen-orange/90 transition-colors"
+            className="inline-flex items-center gap-2 mt-8 px-6 py-3 bg-[#2D5A27] text-white text-[11px] tracking-[0.22em] uppercase font-semibold hover:bg-[#2D5A27]/90 transition-colors"
           >
             Ürünleri Keşfet
             <ArrowUpRight className="w-3.5 h-3.5" />
@@ -229,10 +229,10 @@ function HeroOverlayContent({ animated = false }: { animated?: boolean }) {
               }}
               data-testid="text-hero-title"
             >
-              Doğanın Ruhunu <span className="text-polen-orange">Sepetle Taşı</span>
+              Doğanın Ruhunu <span className="text-[#4a9a42]">Sepetle Taşı</span>
             </h1>
 
-            <span aria-hidden className="block w-16 h-px bg-polen-orange mt-8 mb-6" />
+            <span aria-hidden className="block w-16 h-px bg-[#2D5A27] mt-8 mb-6" />
 
             <p className="max-w-[640px] text-[14px] xl:text-[15px] leading-relaxed text-white/80">
               Av bıçakları, kamp çakıları, outdoor ekipmanları ve bağ & bahçe ürünleri. Dalaman'dan Türkiye'nin dört bir yanına güvenli teslimat.
@@ -241,7 +241,7 @@ function HeroOverlayContent({ animated = false }: { animated?: boolean }) {
             <Link
               href="/magaza"
               data-testid="link-hero-cta"
-              className="inline-flex items-center gap-3 mt-10 px-8 py-4 bg-polen-orange text-white text-[12px] tracking-[0.24em] uppercase font-semibold hover:bg-polen-orange/90 transition-colors"
+              className="inline-flex items-center gap-3 mt-10 px-8 py-4 bg-[#2D5A27] text-white text-[12px] tracking-[0.24em] uppercase font-semibold hover:bg-[#2D5A27]/90 transition-colors"
             >
               Ürünleri Keşfet
               <ArrowUpRight className="w-4 h-4" />
@@ -279,7 +279,7 @@ function PinnedShowcaseScene({ products }: { products: Product[] }) {
         <Link
           href="/magaza"
           data-testid="link-showcase-all"
-          className="hover:text-polen-orange transition-colors inline-flex items-center gap-2"
+          className="hover:text-[#4a9a42] transition-colors inline-flex items-center gap-2"
           aria-label="Tüm ürünleri gör"
         >
           Tümü <ArrowUpRight className="w-3 h-3" />
@@ -315,7 +315,7 @@ function PinnedShowcaseScene({ products }: { products: Product[] }) {
                     />
                     <div className="absolute inset-x-0 bottom-0 h-1/2 bg-gradient-to-t from-black/85 to-transparent" />
                     {p.discountBadge && (
-                      <div className="absolute top-3 right-3 bg-polen-orange text-white text-[10px] font-bold tracking-[0.2em] px-2 py-1 uppercase">
+                      <div className="absolute top-3 right-3 bg-[#2D5A27] text-white text-[10px] font-bold tracking-[0.2em] px-2 py-1 uppercase">
                         {p.discountBadge}
                       </div>
                     )}
@@ -328,7 +328,7 @@ function PinnedShowcaseScene({ products }: { products: Product[] }) {
                           {p.name}
                         </div>
                       </div>
-                      <div className="text-sm lg:text-base font-semibold text-polen-orange whitespace-nowrap">
+                      <div className="text-sm lg:text-base font-semibold text-[#4a9a42] whitespace-nowrap">
                         {formatPrice(p.basePrice)} ₺
                       </div>
                     </div>
@@ -383,7 +383,7 @@ function ProductGridScene({ products }: { products: Product[] }) {
         <Link
           href="/magaza"
           data-testid="link-grid-all"
-          className="shrink-0 inline-flex items-center gap-2 text-[11px] font-mono tracking-[0.24em] uppercase text-black/70 hover:text-polen-orange transition-colors"
+          className="shrink-0 inline-flex items-center gap-2 text-[11px] font-mono tracking-[0.24em] uppercase text-black/70 hover:text-[#4a9a42] transition-colors"
           aria-label="Tüm ürünleri gör"
         >
           Tümünü Gör <ArrowUpRight className="w-3.5 h-3.5" />
@@ -434,7 +434,7 @@ function StatementMarqueeScene() {
               key={i}
               className={`font-display uppercase ${
                 t.length === 1
-                  ? 'text-polen-orange text-base lg:text-xl'
+                  ? 'text-[#4a9a42] text-base lg:text-xl'
                   : 'text-base lg:text-2xl tracking-[0.04em]'
               }`}
             >
@@ -489,7 +489,7 @@ function FinalCtaScene() {
             initial={{ opacity: 0, y: 40 }}
             animate={inView ? { opacity: 1, y: 0 } : {}}
             transition={{ duration: 0.45, delay: 0.12, ease: [0.16, 1, 0.3, 1] }}
-            className="block text-polen-orange"
+            className="block text-[#4a9a42]"
           >
             getiriyoruz.
           </motion.span>
@@ -514,10 +514,10 @@ function FinalCtaScene() {
               aria-label="Tüm koleksiyonu keşfet"
               className="group inline-flex items-center gap-4"
             >
-              <span className="inline-flex items-center justify-center w-16 h-16 lg:w-20 lg:h-20 rounded-full bg-black text-white group-hover:bg-polen-orange transition-colors">
+              <span className="inline-flex items-center justify-center w-16 h-16 lg:w-20 lg:h-20 rounded-full bg-black text-white group-hover:bg-[#2D5A27] transition-colors">
                 <ArrowUpRight className="w-6 h-6 lg:w-7 lg:h-7" />
               </span>
-              <span className="text-sm lg:text-base font-medium tracking-[0.18em] uppercase text-black group-hover:text-polen-orange transition-colors">
+              <span className="text-sm lg:text-base font-medium tracking-[0.18em] uppercase text-black group-hover:text-[#4a9a42] transition-colors">
                 Koleksiyonu Keşfet
               </span>
             </Link>
@@ -541,7 +541,7 @@ function FinalCtaScene() {
                   <path d="M19.05 4.91A10 10 0 0 0 12 2a10 10 0 0 0-8.66 14.95L2 22l5.21-1.34A10 10 0 0 0 22 12a9.93 9.93 0 0 0-2.95-7.09Zm-7.05 15A8.07 8.07 0 0 1 7.9 18.7l-.28-.17-3.09.79.83-3-.18-.3a8 8 0 1 1 6.82 3.86Zm4.41-5.96c-.24-.12-1.42-.7-1.64-.78s-.38-.12-.54.12-.62.78-.76.94-.28.18-.52.06a6.6 6.6 0 0 1-1.95-1.2 7.32 7.32 0 0 1-1.35-1.68c-.14-.24 0-.37.1-.49s.24-.28.36-.42a1.65 1.65 0 0 0 .24-.4.44.44 0 0 0 0-.42c-.06-.12-.54-1.3-.74-1.78s-.39-.4-.54-.41h-.46a.89.89 0 0 0-.64.3 2.7 2.7 0 0 0-.84 2c0 1.18.86 2.32.98 2.48s1.69 2.59 4.1 3.63a13.8 13.8 0 0 0 1.37.51 3.31 3.31 0 0 0 1.51.1 2.48 2.48 0 0 0 1.62-1.14 2 2 0 0 0 .14-1.14c-.06-.12-.22-.18-.46-.3Z" />
                 </svg>
               </span>
-              <span className="text-sm lg:text-base font-medium tracking-[0.18em] uppercase text-black group-hover:text-polen-orange transition-colors">
+              <span className="text-sm lg:text-base font-medium tracking-[0.18em] uppercase text-black group-hover:text-[#4a9a42] transition-colors">
                 WhatsApp
               </span>
             </a>

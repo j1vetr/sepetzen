@@ -422,111 +422,283 @@ async function main() {
       slug: "mesafeli-satis-sozlesmesi",
       title: "Mesafeli Satış Sözleşmesi",
       content: `<h2>MESAFELİ SATIŞ SÖZLEŞMESİ</h2>
+<p>Bu Mesafeli Satış Sözleşmesi ("Sözleşme"), aşağıda bilgileri verilen Satıcı ile Alıcı arasında, 6502 sayılı Tüketicinin Korunması Hakkında Kanun ve Mesafeli Sözleşmeler Yönetmeliği hükümleri çerçevesinde akdedilmiştir.</p>
 <h3>Madde 1 – Taraflar</h3>
-<p><strong>Satıcı:</strong> Ahmet Uğur Durmaz, Karaçalı Mah. Nergiz Sk. No.8/A Dalaman / Muğla — sepetzen@gmail.com — 0536 630 11 38</p>
-<p><strong>Alıcı:</strong> Sipariş formunda belirtilen kişi.</p>
-<h3>Madde 2 – Konu</h3>
-<p>Bu sözleşme; alıcının sipariş verdiği ürünlerin satış ve teslim koşullarını belirler.</p>
-<h3>Madde 3 – Ürün Bilgileri</h3>
-<p>Sipariş edilen ürünlerin adı, miktarı ve fiyatı sipariş özetinde yer almaktadır.</p>
-<h3>Madde 4 – Teslimat</h3>
-<p>Ürünler, sipariş onayından itibaren 3-7 iş günü içinde kargo ile gönderilir. 1500 TL ve üzeri siparişlerde kargo ücretsizdir.</p>
-<h3>Madde 5 – İptal ve İade</h3>
-<p>Teslim tarihinden itibaren 14 gün içinde iade hakkı bulunmaktadır. Kullanılmış ürünler iade kapsamı dışındadır.</p>
-<h3>Madde 6 – Uyuşmazlık</h3>
-<p>Bu sözleşmeden doğacak uyuşmazlıklarda Dalaman Tüketici Hakem Heyeti ve Dalaman Mahkemeleri yetkilidir.</p>`,
+<p><strong>SATICI:</strong></p>
+<ul>
+<li><strong>Ünvan:</strong> Ahmet Uğur Durmaz (Sepetzen)</li>
+<li><strong>Adres:</strong> Karaçalı Mah. Nergiz Sk. No.8/A Dalaman / Muğla</li>
+<li><strong>Telefon:</strong> 0536 630 11 38</li>
+<li><strong>E-posta:</strong> sepetzen@gmail.com</li>
+<li><strong>Web sitesi:</strong> sepetzen.com</li>
+</ul>
+<p><strong>ALICI:</strong> Sipariş formunda beyan edilen ad, adres ve iletişim bilgilerine sahip kişi.</p>
+<h3>Madde 2 – Sözleşmenin Konusu</h3>
+<p>İşbu Sözleşme, Alıcı'nın Satıcı'ya ait sepetzen.com internet sitesinden elektronik ortamda siparişini yaptığı ürünün satışı ve teslimi ile ilgili olarak 6502 sayılı Kanun ve Mesafeli Sözleşmeler Yönetmeliği hükümleri gereğince tarafların hak ve yükümlülüklerini kapsamaktadır.</p>
+<h3>Madde 3 – Sözleşme Konusu Ürün</h3>
+<p>Malın temel özellikleri, satış fiyatı dahil tüm vergiler dahil toplam satış bedeli sipariş özetinde ve ödeme sayfasında gösterilmektedir.</p>
+<h3>Madde 4 – Genel Hükümler</h3>
+<p>4.1. Alıcı, sepetzen.com internet sitesinde sözleşme konusu ürünün temel nitelikleri, satış fiyatı ve ödeme şekli ile teslimata ilişkin ön bilgileri okuyup bilgi sahibi olduğunu ve elektronik ortamda gerekli teyidi verdiğini beyan eder.</p>
+<p>4.2. Sözleşme konusu ürün, yasal 30 günlük süreyi aşmamak koşulu ile her bir ürün için Alıcı'nın yerleşim yeri uzaklığına bağlı olarak ön bilgiler içinde açıklanan süre içinde Alıcı'ya teslim edilir.</p>
+<p>4.3. Satıcı, sözleşme konusu ürünün sağlam, eksiksiz, siparişte belirtilen niteliklere uygun ve varsa garanti belgeleri ve kullanım kılavuzları ile teslim edilmesinden sorumludur.</p>
+<p>4.4. Sözleşme konusu ürünün teslimatı için ödemenin tamamlanmış olması şarttır. Herhangi bir nedenle ürün bedeli ödenmez veya banka kayıtlarında iptal edilirse Satıcı ürünün teslimi yükümlülüğünden kurtulmuş kabul edilir.</p>
+<h3>Madde 5 – Cayma Hakkı</h3>
+<p>5.1. Alıcı, sözleşme konusu ürünün kendisine teslim tarihinden itibaren <strong>14 (on dört) gün</strong> içinde herhangi bir gerekçe göstermeksizin ve cezai şart ödemeksizin sözleşmeden cayma hakkına sahiptir.</p>
+<p>5.2. Cayma hakkının kullanılması için bu süre içinde Satıcı'ya e-posta veya telefon ile bildirimde bulunulması ve ürünün aşağıdaki Madde 6 hükümleri çerçevesinde iade edilmesi şarttır.</p>
+<p>5.3. Aşağıdaki hallerde cayma hakkı kullanılamaz: Alıcı'nın istekleri doğrultusunda özel hazırlanan ürünler; çabuk bozulabilen mallar; ambalajı açılmış, hijyen açısından iadesi uygun olmayan ürünler.</p>
+<h3>Madde 6 – İade Prosedürü</h3>
+<p>6.1. Cayma hakkının kullanıldığına dair bildirimin Satıcı'ya ulaşmasından itibaren Satıcı, tahsil etmiş olduğu tüm ödemeleri 14 (on dört) gün içinde iade etmekle yükümlüdür.</p>
+<p>6.2. Alıcı, cayma hakkını kullanmasından itibaren 10 (on) gün içinde ürünü iade etmekle yükümlüdür. İade kargo ücreti Alıcı'ya aittir.</p>
+<h3>Madde 7 – Teslimat</h3>
+<p>7.1. Ürünler sipariş onayından itibaren 3-7 iş günü içinde kargo ile gönderilir. 1500 TL ve üzeri siparişlerde kargo ücretsizdir.</p>
+<p>7.2. Kargo firmasının kusuru nedeniyle doğan gecikmelerden Satıcı sorumlu değildir.</p>
+<h3>Madde 8 – Uyuşmazlık Çözümü</h3>
+<p>İşbu Sözleşme'den doğan uyuşmazlıklarda, Gümrük ve Ticaret Bakanlığı'nca ilan edilen değere kadar Tüketici Hakem Heyetleri, bu değerin üzerindeki uyuşmazlıklarda Tüketici Mahkemeleri yetkilidir. Yetkili Hakem Heyeti ve Mahkeme, Dalaman ilçesinde bulunan heyetler ve mahkemelerdir.</p>
+<h3>Madde 9 – Yürürlük</h3>
+<p>Alıcı, sipariş onay sürecinde elektronik ortamda ön bilgileri onaylamasıyla işbu Sözleşme'nin tüm koşullarını kabul etmiş sayılır. Bu Sözleşme sipariş onayı anında yürürlüğe girer.</p>`,
     },
     {
       slug: "kvkk-aydinlatma-metni",
       title: "KVKK Aydınlatma Metni",
-      content: `<h2>KİŞİSEL VERİLERİN KORUNMASI (KVKK) AYDINLATMA METNİ</h2>
-<p>6698 sayılı Kişisel Verilerin Korunması Kanunu kapsamında, veri sorumlusu sıfatıyla Ahmet Uğur Durmaz (Sepetzen) olarak kişisel verilerinizi aşağıdaki amaçlarla işlemekteyiz:</p>
-<h3>İşlenen Veriler</h3>
+      content: `<h2>KİŞİSEL VERİLERİN KORUNMASI KANUNU (KVKK) AYDINLATMA METNİ</h2>
+<p>6698 sayılı Kişisel Verilerin Korunması Kanunu'nun ("KVKK") 10. maddesi gereğince, veri sorumlusu sıfatıyla Ahmet Uğur Durmaz (Sepetzen) olarak kişisel verilerinizin işlenmesi hakkında aşağıdaki bilgileri sizinle paylaşmaktayız.</p>
+<h3>1. Veri Sorumlusunun Kimliği</h3>
+<p>Ahmet Uğur Durmaz (Sepetzen), Karaçalı Mah. Nergiz Sk. No.8/A Dalaman / Muğla<br>
+E-posta: sepetzen@gmail.com | Telefon: 0536 630 11 38</p>
+<h3>2. İşlenen Kişisel Veriler</h3>
 <ul>
-<li>Ad, soyad, e-posta, telefon numarası</li>
-<li>Teslimat adresi bilgileri</li>
-<li>Sipariş ve ödeme bilgileri</li>
+<li><strong>Kimlik Verileri:</strong> Ad, soyad</li>
+<li><strong>İletişim Verileri:</strong> E-posta adresi, telefon numarası, teslimat adresi</li>
+<li><strong>Sipariş ve İşlem Verileri:</strong> Sipariş geçmişi, satın alınan ürünler, ödeme başarı/başarısızlık durumu (kart numarası işlenmez)</li>
+<li><strong>Teknik Veriler:</strong> IP adresi, tarayıcı bilgisi, çerez verileri</li>
+<li><strong>Tercih Verileri:</strong> WhatsApp/SMS iletişim tercihleri</li>
 </ul>
-<h3>İşleme Amaçları</h3>
+<h3>3. Kişisel Verilerin İşlenme Amaçları</h3>
 <ul>
-<li>Sipariş işlemlerinin gerçekleştirilmesi</li>
-<li>Kargo ve teslimat süreçlerinin yönetimi</li>
-<li>Yasal yükümlülüklerin yerine getirilmesi</li>
+<li>Sipariş alımı, onayı ve teslim süreçlerinin yürütülmesi</li>
+<li>Kargo ve teslimat işlemlerinin gerçekleştirilmesi</li>
+<li>Müşteri hizmetleri ve şikâyet süreçlerinin yönetimi</li>
+<li>Ödeme işlemlerinin güvenli biçimde gerçekleştirilmesi</li>
+<li>Fatura ve yasal kayıtların tutulması</li>
+<li>Onayınız doğrultusunda pazarlama iletişiminin yapılması (e-posta, SMS, WhatsApp)</li>
+<li>Site güvenliğinin ve teknik altyapının sürdürülmesi</li>
 </ul>
-<h3>Haklarınız</h3>
-<p>KVKK'nın 11. maddesi kapsamında; kişisel verilerinize erişim, düzeltme, silme ve işlemenin kısıtlanmasını talep etme haklarına sahipsiniz. Talepleriniz için: sepetzen@gmail.com</p>`,
+<h3>4. Hukuki Dayanak</h3>
+<ul>
+<li>KVKK md. 5/2-c: Sözleşmenin kurulması veya ifasıyla doğrudan ilgili veri işleme (sipariş/teslimat)</li>
+<li>KVKK md. 5/2-ç: Veri sorumlusunun hukuki yükümlülüğünü yerine getirmesi (fatura, vergi)</li>
+<li>KVKK md. 5/2-f: Veri sorumlusunun meşru menfaati (site güvenliği)</li>
+<li>KVKK md. 5/1: Açık rıza (pazarlama iletişimi)</li>
+</ul>
+<h3>5. Kişisel Verilerin Aktarımı</h3>
+<p>Verileriniz; yasal zorunluluklar çerçevesinde kargo firmalarına, ödeme altyapı sağlayıcısına (iyzico) ve yetkili kamu kuruluşlarına aktarılabilir. Bu aktarımlar dışında verileriniz üçüncü taraflarla paylaşılmaz, satılmaz veya kiralanmaz.</p>
+<h3>6. Saklama Süreleri</h3>
+<ul>
+<li>Sipariş ve fatura verileri: 10 yıl (yasal zorunluluk)</li>
+<li>Müşteri hesap bilgileri: Hesap aktif olduğu sürece + 2 yıl</li>
+<li>Pazarlama verileri: Rıza geri alınana kadar</li>
+</ul>
+<h3>7. İlgili Kişi Hakları (KVKK Madde 11)</h3>
+<ul>
+<li>Kişisel verilerinizin işlenip işlenmediğini öğrenme</li>
+<li>İşlenmişse buna ilişkin bilgi talep etme</li>
+<li>İşlenme amacını ve amacına uygun kullanılıp kullanılmadığını öğrenme</li>
+<li>Yurt içinde veya dışında aktarıldığı üçüncü kişileri bilme</li>
+<li>Eksik veya yanlış işlenmişse düzeltilmesini isteme</li>
+<li>Kanun'un 7. maddesi kapsamında silinmesini veya yok edilmesini isteme</li>
+<li>Kanuna aykırı işleme nedeniyle uğranılan zararın giderilmesini talep etme</li>
+</ul>
+<p>Haklarınızı kullanmak için yazılı başvurunuzu <strong>sepetzen@gmail.com</strong> adresine iletebilirsiniz. Başvurularınız kimlik doğrulamasının ardından en geç 30 gün içinde yanıtlanacaktır.</p>
+<h3>8. Güvenlik</h3>
+<p>Kişisel verileriniz; SSL şifreleme, erişim kontrolü ve güvenli altyapı gibi teknik ve idari tedbirlerle korunmaktadır. Ödeme bilgileriniz, PCI-DSS sertifikalı iyzico altyapısı üzerinden 3D Secure sistemiyle işlenmekte olup Sepetzen tarafından saklanmamaktadır.</p>`,
     },
     {
       slug: "on-bilgilendirme-formu",
       title: "Ön Bilgilendirme Formu",
       content: `<h2>ÖN BİLGİLENDİRME FORMU</h2>
-<h3>Satıcı Bilgileri</h3>
-<p>Ahmet Uğur Durmaz – Karaçalı Mah. Nergiz Sk. No.8/A Dalaman / Muğla<br>
-Telefon: 0536 630 11 38 | E-posta: sepetzen@gmail.com</p>
-<h3>Ürün Bilgileri</h3>
-<p>Sipariş edilen ürünlerin adı, miktarı, fiyatı ve özellikleri sipariş özetinde yer almaktadır.</p>
-<h3>Ödeme ve Teslimat</h3>
-<p>Teslimat süresi sipariş onayından itibaren 3-7 iş günüdür. 1500 TL üzeri siparişlerde kargo ücretsizdir.</p>
-<h3>Cayma Hakkı</h3>
-<p>Teslim tarihinden itibaren 14 gün içinde iade hakkı bulunmaktadır.</p>`,
+<p>6502 sayılı Tüketicinin Korunması Hakkında Kanun ve Mesafeli Sözleşmeler Yönetmeliği gereğince aşağıdaki bilgiler satın alma işlemi gerçekleştirilmeden önce alıcıya sunulmaktadır.</p>
+<h3>1. Satıcı Bilgileri</h3>
+<p>Ahmet Uğur Durmaz (Sepetzen)<br>
+Karaçalı Mah. Nergiz Sk. No.8/A Dalaman / Muğla<br>
+Telefon: 0536 630 11 38 | E-posta: sepetzen@gmail.com | Web: sepetzen.com</p>
+<h3>2. Ürün Bilgileri</h3>
+<p>Sipariş edilen ürünlerin adı, miktarı, temel nitelikleri, birim fiyatı ve KDV dahil toplam fiyatı sipariş özetinde yer almaktadır.</p>
+<h3>3. Ödeme Bilgileri</h3>
+<p>Ödeme, kredi/banka kartı (iyzico 3D Secure altyapısı), havale/EFT veya kapıda ödeme yöntemleriyle yapılabilir. Havale/EFT ödemelerinde %3 indirim uygulanır.</p>
+<h3>4. Teslimat</h3>
+<p>Teslimat süresi sipariş onayından itibaren 3-7 iş günüdür. 1500 TL ve üzeri siparişlerde kargo ücretsizdir. Kargo takip numarası, kargo çıkışında e-posta ile bildirilir.</p>
+<h3>5. Cayma Hakkı</h3>
+<p>Alıcı, ürünü teslim aldığı tarihten itibaren 14 (on dört) gün içinde herhangi bir gerekçe göstermeksizin sözleşmeden cayma hakkına sahiptir. Cayma bildiriminin sepetzen@gmail.com adresine yapılması yeterlidir.</p>
+<h3>6. Cayma Hakkının İstisnaları</h3>
+<ul>
+<li>Alıcının isteğiyle özel olarak üretilen veya kişiselleştirilen ürünler</li>
+<li>Ambalajı açılmış hijyen ürünleri</li>
+<li>Kullanılmış veya hasara uğramış ürünler</li>
+</ul>
+<h3>7. Uyuşmazlık</h3>
+<p>Uyuşmazlıklarda Dalaman Tüketici Hakem Heyeti ve Tüketici Mahkemesi yetkilidir. Güncel parasal sınırlar için Gümrük ve Ticaret Bakanlığı tebliğlerini inceleyiniz.</p>
+<h3>8. İletişim</h3>
+<p>Her türlü soru ve talepleriniz için: sepetzen@gmail.com | 0536 630 11 38</p>`,
     },
     {
       slug: "uyelik-sozlesmesi",
       title: "Üyelik Sözleşmesi",
       content: `<h2>ÜYELİK SÖZLEŞMESİ</h2>
-<h3>1. Taraflar</h3>
-<p>Bu sözleşme; Sepetzen (Ahmet Uğur Durmaz) ile siteye üye olan kullanıcı arasında akdedilmiştir.</p>
-<h3>2. Üyelik Koşulları</h3>
-<ul>
-<li>Üye olmak için 18 yaşını doldurmuş olmak gereklidir.</li>
-<li>Gerçek ve doğru bilgi sağlanmalıdır.</li>
-<li>Hesap bilgilerinin gizliliğinden üye sorumludur.</li>
-</ul>
-<h3>3. Üyelik Sonlandırma</h3>
-<p>Kullanıcı dilediği zaman üyeliğini sonlandırabilir. Sepetzen, kurallara aykırı davranış halinde üyeliği askıya alabilir.</p>`,
+<p>Bu Üyelik Sözleşmesi ("Sözleşme"), sepetzen.com internet sitesini işleten Ahmet Uğur Durmaz (Sepetzen) ile siteye üye olan kişi ("Üye") arasında akdedilmiştir.</p>
+<h3>Madde 1 – Taraflar ve Konu</h3>
+<p><strong>Sepetzen:</strong> Karaçalı Mah. Nergiz Sk. No.8/A Dalaman / Muğla — sepetzen@gmail.com — 0536 630 11 38</p>
+<p>İşbu Sözleşme; Üye'nin Site'ye üye olma ve Site üzerinden gerçekleştireceği alışveriş işlemlerine ilişkin tarafların hak ve yükümlülüklerini düzenlemektedir.</p>
+<h3>Madde 2 – Üyelik Koşulları</h3>
+<p>2.1. Üye olmak için 18 (on sekiz) yaşını doldurmuş olmak ve fiil ehliyetine sahip bulunmak zorunludur.</p>
+<p>2.2. Üyelik, formun doldurulup onaylanması ve bu Sözleşme ile Gizlilik Politikası'nın kabul edilmesi ile tamamlanır.</p>
+<p>2.3. Üye, üyelik formunda gerçeğe aykırı, yanıltıcı veya eksik bilgi vermeyeceğini taahhüt eder.</p>
+<p>2.4. Her gerçek kişi yalnızca bir üyelik oluşturabilir.</p>
+<h3>Madde 3 – Üyenin Yükümlülükleri</h3>
+<p>3.1. Üye; kullanıcı adı ve şifresinin gizliliğini korumakla yükümlüdür.</p>
+<p>3.2. Üye, Site'yi yalnızca hukuka ve ahlaka uygun amaçlarla kullanacağını; Site'nin işleyişini engelleyecek eylemlerden kaçınacağını kabul ve taahhüt eder.</p>
+<p>3.3. Üye, Site üzerinden gerçekleştirdiği işlemlerden kaynaklanan her türlü yasal sorumluluktan şahsen sorumludur.</p>
+<h3>Madde 4 – Sepetzen'in Hakları</h3>
+<p>4.1. Sepetzen, önceden haber vermeksizin Site içeriğinde veya fiyatlarda değişiklik yapma hakkını saklı tutar.</p>
+<p>4.2. Sepetzen, teknik gereklilikler veya bakım nedeniyle Site'ye erişimi geçici olarak kısıtlayabilir.</p>
+<h3>Madde 5 – Kişisel Verilerin Korunması</h3>
+<p>Üye'ye ait kişisel veriler, Sepetzen Gizlilik Politikası ve 6698 sayılı KVKK çerçevesinde işlenir ve korunur. Detaylar için KVKK Aydınlatma Metni'ni inceleyiniz.</p>
+<h3>Madde 6 – Üyeliğin Sona Ermesi</h3>
+<p>6.1. Üye, sepetzen@gmail.com adresine yazılı bildirimde bulunarak üyeliğini sonlandırabilir.</p>
+<p>6.2. Sepetzen, Sözleşme'ye veya yasal düzenlemelere aykırı davranış hâlinde üyeliği askıya alabilir veya kalıcı olarak sonlandırabilir.</p>
+<h3>Madde 7 – Fikri Mülkiyet</h3>
+<p>Site üzerindeki tüm içerikler (metin, görsel, logo, tasarım) Sepetzen'e aittir ve telif hakkı yasaları kapsamında korunmaktadır. İzinsiz kullanım yasal yaptırıma tabidir.</p>
+<h3>Madde 8 – Uygulanacak Hukuk</h3>
+<p>İşbu Sözleşme Türk hukukuna tabidir. Uyuşmazlıklarda Muğla (Dalaman) Mahkemeleri ve İcra Daireleri yetkilidir.</p>
+<h3>Madde 9 – Yürürlük</h3>
+<p>Üye'nin üyelik formunu onaylaması, işbu Sözleşme'yi okuduğunu, anladığını ve kabul ettiğini gösterir. Sözleşme bu onay anında yürürlüğe girer.</p>`,
     },
     {
       slug: "iptal-ve-iade-sartlari",
       title: "İptal ve İade Şartları",
-      content: `<h2>İPTAL VE İADE POLİTİKASI</h2>
-<h3>Sipariş İptali</h3>
-<p>Kargoya verilmeden önce siparişinizi sepetzen@gmail.com adresine e-posta göndererek iptal edebilirsiniz.</p>
-<h3>İade Koşulları</h3>
+      content: `<h2>İPTAL VE İADE ŞARTLARI</h2>
+<p>Müşteri memnuniyeti Sepetzen'in önceliğidir. 6502 sayılı Tüketicinin Korunması Hakkında Kanun ve Mesafeli Sözleşmeler Yönetmeliği çerçevesinde iptal ve iade haklarınız aşağıda açıklanmıştır.</p>
+<h3>1. Sipariş İptali</h3>
+<p><strong>Kargoya verilmeden önce:</strong> Siparişiniz henüz kargoya verilmemişse sepetzen@gmail.com adresine e-posta göndererek veya 0536 630 11 38 numaralı telefondan bize ulaşarak iptal talebinde bulunabilirsiniz. İptal onaylanması hâlinde ödemeniz aynı ödeme yöntemine iade edilir.</p>
+<p><strong>Kargoya verildikten sonra:</strong> Sipariş kargoya verildikten sonra iptal mümkün değildir; bu durumda İade Süreci prosedürünü izlemeniz gerekmektedir.</p>
+<h3>2. Cayma Hakkı</h3>
+<p>Ürünü teslim aldığınız tarihten itibaren <strong>14 (on dört) gün</strong> içinde herhangi bir gerekçe göstermeksizin sözleşmeden cayabilirsiniz. Cayma hakkınızı kullanmak için sepetzen@gmail.com adresine sipariş numarası ve adınızla e-posta gönderin. Satıcı cayma bildirimini aldıktan sonra en geç 14 gün içinde ödemenizi iade eder. Alıcı, cayma bildiriminden itibaren en geç 10 gün içinde ürünü iade etmelidir.</p>
+<h3>3. İade Koşulları</h3>
 <ul>
-<li>Teslim tarihinden itibaren 14 gün içinde iade hakkı bulunmaktadır.</li>
-<li>Ürün kullanılmamış, orijinal ambalajında olmalıdır.</li>
-<li>Hijyen ürünleri ve kişiye özel üretimler iade kapsamı dışındadır.</li>
+<li>Ürün kullanılmamış ve hasar görmemiş olmalıdır.</li>
+<li>Orijinal ambalajında, tüm aksesuarları ve belgeleri ile birlikte iade edilmelidir.</li>
+<li>Teslim tarihinden itibaren 14 gün içinde cayma bildirimi yapılmış olmalıdır.</li>
 </ul>
-<h3>İade Süreci</h3>
-<p>İade taleplerini sepetzen@gmail.com adresine bildirin. Ürünü Dalaman adresimize gönderin. İade onayından sonra 7-10 iş günü içinde ödeme iadeniz gerçekleştirilir.</p>`,
+<h3>4. İade Dışı Ürünler</h3>
+<ul>
+<li>Alıcının özel istekleriyle üretilmiş ürünler</li>
+<li>Koruyucu ambalajı açılmış, hijyen açısından iadesi uygun olmayan ürünler</li>
+<li>Kullanılmış veya hasara uğramış ürünler</li>
+</ul>
+<h3>5. İade Prosedürü</h3>
+<ol>
+<li>sepetzen@gmail.com adresine sipariş numarası ve iade nedeniyle e-posta gönderin.</li>
+<li>İade talebiniz 1-2 iş günü içinde değerlendirilerek tarafınıza bildirilir.</li>
+<li>Onay sonrasında ürünü orijinal ambalajında şu adrese gönderin: <strong>Karaçalı Mah. Nergiz Sk. No.8/A Dalaman / Muğla</strong></li>
+<li>Ürün tarafımıza ulaştıktan sonra 2-3 iş günü içinde kontrol edilir.</li>
+<li>İade onaylanırsa ödemeniz 7-10 iş günü içinde orijinal ödeme yönteminize iade edilir.</li>
+</ol>
+<h3>6. İade Kargo Ücreti</h3>
+<p>Cayma hakkı kapsamındaki iadelerde kargo ücreti <strong>alıcıya aittir</strong>. Ürün arızalı veya hatalı teslim edilmişse kargo ücreti Sepetzen tarafından karşılanır.</p>
+<h3>7. İletişim</h3>
+<p>İptal ve iade talepleriniz için:<br>
+<strong>E-posta:</strong> sepetzen@gmail.com | <strong>Telefon/WhatsApp:</strong> 0536 630 11 38<br>
+Çalışma saatleri: Pazartesi–Cumartesi 09:00–18:00</p>`,
     },
     {
       slug: "gizlilik-guvenlik",
       title: "Gizlilik & Güvenlik",
       content: `<h2>GİZLİLİK & GÜVENLİK POLİTİKASI</h2>
-<p>Sepetzen olarak gizliliğinize saygı duyuyoruz. Bu politika, web sitemizi ziyaret ettiğinizde toplanan bilgileri ve bu bilgilerin nasıl kullanıldığını açıklamaktadır.</p>
-<h3>Toplanan Bilgiler</h3>
+<p>Sepetzen olarak müşterilerimizin gizliliğine saygı duyuyor ve kişisel verilerini korumayı öncelikli bir sorumluluk olarak kabul ediyoruz. Bu politika; sepetzen.com web sitesini ziyaret ettiğinizde ve alışveriş yaptığınızda hangi verilerin toplandığını, nasıl kullanıldığını ve nasıl korunduğunu açıklamaktadır.</p>
+<h3>1. Toplanan Bilgiler</h3>
+<p><strong>Doğrudan verdiğiniz bilgiler:</strong></p>
 <ul>
-<li>Üyelik ve sipariş sırasında girdiğiniz ad, e-posta, adres bilgileri</li>
-<li>Site kullanım verileri (çerezler aracılığıyla)</li>
+<li>Ad, soyad; e-posta adresi ve telefon numarası</li>
+<li>Fatura ve teslimat adresi</li>
+<li>Sipariş bilgileri (kart bilgileri tarafımızca saklanmaz)</li>
 </ul>
-<h3>Bilgilerin Kullanımı</h3>
-<p>Bilgileriniz yalnızca sipariş işlemleri ve sizinle iletişim kurulması amacıyla kullanılmaktadır. Üçüncü taraflarla satılmaz veya paylaşılmaz.</p>
-<h3>Güvenlik</h3>
-<p>Verileriniz SSL şifrelemesi ile korunmaktadır. Ödeme bilgileriniz iyzico güvencesiyle 3D Secure sisteminden geçmektedir.</p>`,
+<p><strong>Otomatik toplanan bilgiler:</strong></p>
+<ul>
+<li>IP adresi ve tarayıcı türü</li>
+<li>Ziyaret ettiğiniz sayfalar ve geçirilen süre</li>
+<li>Çerez verileri</li>
+</ul>
+<h3>2. Verilerin Kullanım Amaçları</h3>
+<ul>
+<li>Sipariş işlemlerinin tamamlanması ve kargo takibi</li>
+<li>Hesabınıza ait bildirim ve güncellemelerin iletilmesi</li>
+<li>Müşteri destek hizmetlerinin sağlanması</li>
+<li>Rıza vermeniz hâlinde pazarlama iletişimi (e-posta, SMS, WhatsApp)</li>
+<li>Yasal yükümlülüklerin yerine getirilmesi (vergi, fatura)</li>
+<li>Site güvenliğinin ve performansının korunması</li>
+</ul>
+<h3>3. Verilerin Paylaşımı</h3>
+<p>Kişisel verileriniz üçüncü taraflara satılmaz veya kiralanmaz. Verileriniz yalnızca şu durumlarla sınırlı paylaşılabilir:</p>
+<ul>
+<li><strong>Kargo firmaları:</strong> Teslimat amacıyla (isim, adres, telefon)</li>
+<li><strong>Ödeme altyapısı (iyzico):</strong> Ödeme işleminin gerçekleştirilmesi için</li>
+<li><strong>Yetkili kamu kurumları:</strong> Yasal zorunluluk hâlinde</li>
+</ul>
+<h3>4. Güvenlik Önlemleri</h3>
+<ul>
+<li><strong>SSL/TLS Şifreleme:</strong> Tüm veri iletimi 256-bit SSL şifrelemesi ile korunmaktadır.</li>
+<li><strong>3D Secure Ödeme:</strong> Kart ödemeleri iyzico altyapısıyla 3D Secure protokolü üzerinden işlenmektedir. Kart bilgileriniz Sepetzen sistemlerinde saklanmamaktadır.</li>
+<li><strong>Erişim Kontrolü:</strong> Kişisel verilere erişim yalnızca yetkili personelle sınırlıdır.</li>
+</ul>
+<h3>5. Haklarınız</h3>
+<p>KVKK'nın 11. maddesi kapsamındaki haklarınızı kullanmak için lütfen KVKK Aydınlatma Metni sayfasını inceleyiniz. Taleplerinizi sepetzen@gmail.com adresine iletebilirsiniz.</p>
+<h3>6. İletişim</h3>
+<p>E-posta: sepetzen@gmail.com | Telefon: 0536 630 11 38<br>
+Adres: Karaçalı Mah. Nergiz Sk. No.8/A Dalaman / Muğla</p>`,
     },
     {
       slug: "cerez-politikasi",
       title: "Çerez Politikası",
       content: `<h2>ÇEREZ POLİTİKASI</h2>
-<p>sepetzen.com, deneyiminizi iyileştirmek için çerezler kullanmaktadır.</p>
-<h3>Çerez Türleri</h3>
+<p>Bu Çerez Politikası, sepetzen.com web sitesinin çerez kullanımını ve kullanıcıların bu çerezler üzerindeki tercihlerini açıklamaktadır. 6698 sayılı KVKK ve ilgili mevzuat kapsamında hazırlanmıştır.</p>
+<h3>1. Çerez Nedir?</h3>
+<p>Çerezler (cookies), bir web sitesini ziyaret ettiğinizde tarayıcınız tarafından cihazınıza kaydedilen küçük metin dosyalarıdır. Çerezler, web sitesinin düzgün çalışması, kullanıcı deneyiminin iyileştirilmesi ve site trafiğinin analiz edilmesi amacıyla kullanılır.</p>
+<h3>2. Kullandığımız Çerez Türleri</h3>
+<p><strong>a) Zorunlu Çerezler</strong> — site işlevleri için gereklidir, devre dışı bırakılamaz:</p>
 <ul>
-<li><strong>Zorunlu Çerezler:</strong> Sepet ve oturum yönetimi için kullanılır.</li>
-<li><strong>Analitik Çerezler:</strong> Siteyi nasıl kullandığınızı anlamak için kullanılır (Google Analytics).</li>
+<li><strong>Oturum çerezi (session cookie):</strong> Giriş durumunuzu ve sepet içeriğinizi oturum boyunca hatırlar. Tarayıcı kapanınca silinir.</li>
+<li><strong>CSRF koruma çerezi:</strong> Form gönderimlerini güvenli hale getirir.</li>
 </ul>
-<h3>Çerezleri Kontrol Etme</h3>
-<p>Tarayıcı ayarlarınızdan çerezleri yönetebilir veya reddedebilirsiniz. Ancak bazı çerezlerin devre dışı bırakılması site işlevselliğini olumsuz etkileyebilir.</p>`,
+<p><strong>b) İşlevsel Çerezler</strong> — deneyimi kişiselleştirmek için:</p>
+<ul>
+<li><strong>Kimlik doğrulama çerezi:</strong> "Beni hatırla" özelliğini sağlar (30 güne kadar).</li>
+<li><strong>Tercih çerezi:</strong> Dil ve görüntü tercihlerinizi hatırlar.</li>
+</ul>
+<p><strong>c) Analitik Çerezler</strong> — yalnızca istatistiksel amaçlıdır, kişisel kimlik içermez:</p>
+<ul>
+<li><strong>Google Analytics (_ga, _gid, _gat):</strong> Sayfa görüntüleme, oturum süresi ve kullanıcı sayısı gibi anonim veriler.</li>
+</ul>
+<p><strong>d) Pazarlama Çerezleri</strong> — yalnızca açık rızanızla etkinleşir:</p>
+<ul>
+<li><strong>Meta (Facebook) Pixel:</strong> Reklamların etkinliğini ölçmek ve size ilgili reklamlar göstermek amacıyla kullanılır.</li>
+</ul>
+<h3>3. Çerez Saklama Süreleri</h3>
+<ul>
+<li>session_id (Zorunlu): Oturum sonu</li>
+<li>auth_token (İşlevsel): 30 gün</li>
+<li>_ga (Analitik): 2 yıl</li>
+<li>_gid (Analitik): 24 saat</li>
+<li>fbp — Meta Pixel (Pazarlama): 90 gün</li>
+</ul>
+<h3>4. Çerezleri Nasıl Yönetirsiniz?</h3>
+<p>Tarayıcı ayarlarınızdan çerezleri yönetebilir, silebilir veya engelleyebilirsiniz. Zorunlu çerezlerin devre dışı bırakılması Site'nin bazı işlevlerini etkileyebilir.</p>
+<ul>
+<li><strong>Google Chrome:</strong> Ayarlar → Gizlilik ve güvenlik → Çerezler</li>
+<li><strong>Mozilla Firefox:</strong> Ayarlar → Gizlilik & Güvenlik → Çerezler</li>
+<li><strong>Safari:</strong> Tercihler → Gizlilik → Çerezleri yönet</li>
+<li><strong>Microsoft Edge:</strong> Ayarlar → Çerezler ve site izinleri</li>
+</ul>
+<h3>5. Değişiklikler</h3>
+<p>Bu Çerez Politikası, yasal düzenlemelere veya hizmetlerimizdeki değişikliklere bağlı olarak güncellenebilir. Güncel politikaya bu sayfadan ulaşabilirsiniz. Sorularınız için: sepetzen@gmail.com</p>`,
     },
     {
       slug: "kargo-sureci",

@@ -2,20 +2,23 @@ import { Link } from 'wouter';
 import { Instagram, MapPin, Phone, Mail, Youtube } from 'lucide-react';
 
 const kurumsalLinks = [
-  { href: '/sayfa/hakkimizda', label: 'Hakkımızda' },
-  { href: '/sayfa/iletisim', label: 'İletişim' },
-  { href: '/sayfa/kargo-sureci', label: 'Kargo Süreci' },
-  { href: '/sayfa/iade-sureci', label: 'İade Süreci' },
-  { href: '/sayfa/iptal-ve-iade-sartlari', label: 'İptal & İade Şartları' },
+  { href: '/sayfa/hakkimizda',              label: 'Hakkımızda' },
   { href: '/sayfa/mesafeli-satis-sozlesmesi', label: 'Mesafeli Satış Sözleşmesi' },
-  { href: '/sayfa/on-bilgilendirme-formu', label: 'Ön Bilgilendirme Formu' },
-  { href: '/sayfa/uyelik-sozlesmesi', label: 'Üyelik Sözleşmesi' },
+  { href: '/sayfa/on-bilgilendirme-formu',  label: 'Ön Bilgilendirme Formu' },
+  { href: '/sayfa/uyelik-sozlesmesi',       label: 'Üyelik Sözleşmesi' },
+  { href: '/sayfa/iletisim',               label: 'İletişim' },
 ];
 
-const yardimLinks = [
+const alisverisLinks = [
+  { href: '/sayfa/kargo-sureci',            label: 'Kargo Süreci' },
+  { href: '/sayfa/iade-sureci',             label: 'İade Süreci' },
+  { href: '/sayfa/iptal-ve-iade-sartlari', label: 'İptal & İade Şartları' },
+];
+
+const yasalLinks = [
   { href: '/sayfa/kvkk-aydinlatma-metni', label: 'KVKK Aydınlatma Metni' },
-  { href: '/sayfa/gizlilik-guvenlik', label: 'Gizlilik & Güvenlik' },
-  { href: '/sayfa/cerez-politikasi', label: 'Çerez Politikası' },
+  { href: '/sayfa/gizlilik-guvenlik',     label: 'Gizlilik & Güvenlik' },
+  { href: '/sayfa/cerez-politikasi',      label: 'Çerez Politikası' },
 ];
 
 export function Footer() {
@@ -36,17 +39,17 @@ export function Footer() {
 
       <div className="relative max-w-[1400px] mx-auto px-6 lg:px-8 pt-14 lg:pt-20 pb-10">
         <div className="grid grid-cols-1 md:grid-cols-12 gap-12 lg:gap-10">
+
           {/* ── Sol: Brand & Sosyal ── */}
-          <div className="md:col-span-12 lg:col-span-4">
+          <div className="md:col-span-12 lg:col-span-3">
             <Link href="/" className="inline-block mb-1" data-testid="link-footer-logo">
               <span className="font-display text-2xl tracking-widest block leading-tight">
                 <span className="text-white">SEPET</span><span className="text-[#4a9a42]">ZEN</span>
               </span>
               <span className="text-[8px] tracking-[0.35em] uppercase text-[#4a9a42] font-semibold block mb-3">Outdoor Gear</span>
             </Link>
-            <p className="text-white/55 text-[14px] leading-[1.7] max-w-md mb-6">
-              Kamp, outdoor, av bıçakları ve bağ & bahçe ürünlerinde Türkiye'nin güvenilir adresi.
-              Dalaman, Muğla'dan tüm Türkiye'ye hızlı kargo ile ulaşıyoruz.
+            <p className="text-white/55 text-[14px] leading-[1.7] max-w-sm mb-6">
+              Kamp, outdoor, av bıçakları ve bağ & bahçe ürünlerinde güvenilir adres. Dalaman'dan tüm Türkiye'ye hızlı kargo.
             </p>
 
             {/* Sosyal medya */}
@@ -55,7 +58,7 @@ export function Footer() {
                 href="https://www.instagram.com/sepetzen"
                 target="_blank"
                 rel="noopener noreferrer"
-                className="inline-flex items-center gap-2 text-white/75 hover:text-[#4a9a42] transition-colors text-sm font-medium group"
+                className="inline-flex items-center gap-2 text-white/75 hover:text-[#4a9a42] transition-colors group"
                 data-testid="link-instagram-footer"
               >
                 <span className="w-9 h-9 rounded-full border border-white/15 group-hover:border-[#4a9a42] flex items-center justify-center transition-colors">
@@ -67,7 +70,7 @@ export function Footer() {
                 href="https://www.youtube.com/@sepetzen"
                 target="_blank"
                 rel="noopener noreferrer"
-                className="inline-flex items-center gap-2 text-white/75 hover:text-[#4a9a42] transition-colors text-sm font-medium group"
+                className="inline-flex items-center gap-2 text-white/75 hover:text-[#4a9a42] transition-colors group"
                 data-testid="link-youtube-footer"
               >
                 <span className="w-9 h-9 rounded-full border border-white/15 group-hover:border-[#4a9a42] flex items-center justify-center transition-colors">
@@ -79,19 +82,19 @@ export function Footer() {
                 href="https://www.etsy.com/shop/Sepetzen"
                 target="_blank"
                 rel="noopener noreferrer"
-                className="inline-flex items-center gap-2 text-white/75 hover:text-[#4a9a42] transition-colors text-sm font-medium group"
+                className="inline-flex items-center gap-2 text-white/75 hover:text-[#4a9a42] transition-colors group"
                 data-testid="link-etsy-footer"
               >
                 <span className="w-9 h-9 rounded-full border border-white/15 group-hover:border-[#4a9a42] flex items-center justify-center transition-colors text-[10px] font-bold">
-                  Etsy
+                  E
                 </span>
-                <span className="text-[12px]">Sepetzen</span>
+                <span className="text-[12px]">Etsy</span>
               </a>
             </div>
           </div>
 
           {/* ── Kurumsal ── */}
-          <div className="md:col-span-5 lg:col-span-3">
+          <div className="md:col-span-4 lg:col-span-2">
             <h4 className="text-[11px] font-semibold tracking-[0.22em] uppercase text-white/40 mb-5">
               Kurumsal
             </h4>
@@ -111,13 +114,30 @@ export function Footer() {
             </ul>
           </div>
 
-          {/* ── Yardım ── */}
+          {/* ── Alışveriş ── */}
           <div className="md:col-span-4 lg:col-span-2">
             <h4 className="text-[11px] font-semibold tracking-[0.22em] uppercase text-white/40 mb-5">
+              Alışveriş
+            </h4>
+            <ul className="space-y-3 text-[14px] text-white/70">
+              {alisverisLinks.map((link) => (
+                <li key={link.href}>
+                  <Link
+                    href={link.href}
+                    className="inline-flex items-center gap-2 hover:text-[#4a9a42] transition-colors group"
+                    data-testid={`link-footer-${link.href.split('/').pop()}`}
+                  >
+                    <span className="w-1 h-1 rounded-full bg-white/20 group-hover:bg-[#4a9a42] transition-colors" />
+                    {link.label}
+                  </Link>
+                </li>
+              ))}
+            </ul>
+            <h4 className="text-[11px] font-semibold tracking-[0.22em] uppercase text-white/40 mt-8 mb-5">
               Yardım
             </h4>
             <ul className="space-y-3 text-[14px] text-white/70">
-              {yardimLinks.map((link) => (
+              {yasalLinks.map((link) => (
                 <li key={link.href}>
                   <Link
                     href={link.href}
@@ -133,9 +153,9 @@ export function Footer() {
           </div>
 
           {/* ── İletişim ── */}
-          <div className="md:col-span-12 lg:col-span-3">
+          <div className="md:col-span-4 lg:col-span-3">
             <h4 className="text-[11px] font-semibold tracking-[0.22em] uppercase text-white/40 mb-5">
-              İletişim
+              Bize Ulaşın
             </h4>
             <ul className="space-y-4 text-[14px] text-white/70">
               <li className="flex items-start gap-3">
@@ -168,6 +188,7 @@ export function Footer() {
               </li>
             </ul>
           </div>
+
         </div>
 
         {/* ── Alt çizgi: copyright ── */}
