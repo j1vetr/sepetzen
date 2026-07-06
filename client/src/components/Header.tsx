@@ -170,7 +170,7 @@ export function Header() {
               src="/uploads/branding/sepetzen-logo-dark.png"
               alt="Sepetzen – Kamp, Outdoor, Bıçak ve Bağ Bahçe"
               data-testid="img-logo"
-              className="h-10 w-auto object-contain mx-auto"
+              className="h-14 w-auto object-contain mx-auto"
             />
           </Link>
 
@@ -223,7 +223,7 @@ export function Header() {
                 src="/uploads/branding/sepetzen-logo-dark.png"
                 alt="Sepetzen"
                 data-testid="img-logo-mobile-header"
-                className="h-7 w-auto object-contain"
+                className="h-10 w-auto object-contain"
               />
             </Link>
 
@@ -280,7 +280,7 @@ export function Header() {
                       <img
                         src="/uploads/branding/sepetzen-logo-white.png"
                         alt="Sepetzen"
-                        className="h-7 w-auto object-contain"
+                        className="h-10 w-auto object-contain"
                       />
                     </Link>
                   </motion.div>
