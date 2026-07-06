@@ -303,6 +303,13 @@ function ProductDescriptionSections({ html }: { html: string }) {
 
 // ─────────────────────────────────────────────────────────────────────────────
 
+const CAROUSEL_OPTIONS = {
+  loop: true,
+  dragFree: false,
+  dragThreshold: 5,
+  duration: 22,
+} as const;
+
 export default function ProductDetail() {
   const params = useParams<{ slug: string }>();
   const reduceMotion = useReducedMotion();
@@ -361,20 +368,44 @@ export default function ProductDetail() {
   const ctaSentinelRef = useRef<HTMLDivElement | null>(null);
   const heroImageRef = useRef<HTMLDivElement | null>(null);
 
-  const [emblaRef, emblaApi] = useEmblaCarousel({ loop: true });
-  const [lightboxEmblaRef, lightboxEmblaApi] = useEmblaCarousel({ loop: true });
+  const [emblaRef, emblaApi] = useEmblaCarousel(CAROUSEL_OPTIONS);
+  const [lightboxEmblaRef, lightboxEmblaApi] = useEmblaCarousel(CAROUSEL_OPTIONS);
+
+  // Debounce guard: ignore rapid select events fired during a scroll animation
+  const isScrollingRef = useRef(false);
+  const scrollDebounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   // Sync mobile carousel <-> selectedImage
   const onSelect = useCallback(() => {
     if (!emblaApi) return;
+    if (isScrollingRef.current) return;
     setSelectedImage(emblaApi.selectedScrollSnap());
   }, [emblaApi]);
 
   useEffect(() => {
     if (!emblaApi) return;
+
+    const onScrollStart = () => {
+      isScrollingRef.current = true;
+      if (scrollDebounceRef.current) clearTimeout(scrollDebounceRef.current);
+    };
+
+    const onScrollEnd = () => {
+      scrollDebounceRef.current = setTimeout(() => {
+        isScrollingRef.current = false;
+        setSelectedImage(emblaApi.selectedScrollSnap());
+      }, 60);
+    };
+
+    emblaApi.on('scroll', onScrollStart);
+    emblaApi.on('settle', onScrollEnd);
     emblaApi.on('select', onSelect);
+
     return () => {
+      emblaApi.off('scroll', onScrollStart);
+      emblaApi.off('settle', onScrollEnd);
       emblaApi.off('select', onSelect);
+      if (scrollDebounceRef.current) clearTimeout(scrollDebounceRef.current);
     };
   }, [emblaApi, onSelect]);
 
