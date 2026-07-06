@@ -646,7 +646,7 @@ export default function ProductDetail() {
   // ─── Render ───────────────────────────────────────────────────────────────
 
   return (
-    <div className="min-h-screen bg-white">
+    <div className="min-h-screen bg-white overflow-x-hidden">
       <SEO
         title={product.name}
         description={
