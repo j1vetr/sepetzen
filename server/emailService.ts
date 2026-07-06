@@ -52,31 +52,31 @@ async function createTransporter() {
 // ─────────────────────────────────────────────────────────────────────────────
 // EMAIL TEMPLATE SYSTEM
 // Outlook + Gmail + Apple Mail uyumlu, table-based, inline-style.
-// Marka: Polen Stone — açık tema, sıcak krem zemin, marka sarısı (#fdb51d) vurgu.
+// Marka: Sepetzen — koyu yeşil (#2D5A27) vurgu, açık krem zemin.
 // ─────────────────────────────────────────────────────────────────────────────
 
 const BRAND = {
-  primary: '#fdb51d',
-  primaryDeep: '#d97f2a',
-  ink: '#1a1612',
-  body: '#52483a',
-  muted: '#8a7e6c',
-  border: '#ece4d3',
-  borderSoft: '#f3ecde',
-  card: '#faf6ed',
-  bg: '#f4ebd9',
+  primary: '#2D5A27',
+  primaryDeep: '#1f3e1c',
+  ink: '#0f1a0e',
+  body: '#374737',
+  muted: '#5a7a57',
+  border: '#c8ddc5',
+  borderSoft: '#dceeda',
+  card: '#f0f7ef',
+  bg: '#e8f2e7',
 };
 
 const CONTACT = {
-  phoneDisplay: '0532 695 61 83',
-  phoneTel: '+905326956183',
-  email: 'info@polenstone.com',
-  addressLine1: 'Yunus Emre, Barbaros Blv. 42 d',
-  addressLine2: '34791 Sancaktepe / İstanbul',
-  site: 'polenstone.com',
-  siteUrl: 'https://polenstone.com',
-  whatsapp: 'https://wa.me/905326956183',
-  instagram: 'https://www.instagram.com/polenstonecom/',
+  phoneDisplay: '0536 630 11 38',
+  phoneTel: '+905366301138',
+  email: 'sepetzen@gmail.com',
+  addressLine1: 'Karaçalı Mah. Nergiz Sk. No.8/A',
+  addressLine2: 'Dalaman / Muğla',
+  site: 'sepetzen.com',
+  siteUrl: 'https://sepetzen.com',
+  whatsapp: 'https://wa.me/905366301138',
+  instagram: 'https://www.instagram.com/sepetzen',
 };
 
 function escapeHtml(s: string | number | undefined | null): string {
@@ -141,13 +141,13 @@ function brandHeader(): string {
         <tr>
           <td align="center" style="line-height:0;font-size:0;">
             <a href="${CONTACT.siteUrl}" style="text-decoration:none;color:${BRAND.ink};">
-              <img src="${LOGO_URL}" alt="POLEN STONE" width="120" height="48" style="display:block;width:120px;height:auto;max-width:120px;border:0;outline:none;text-decoration:none;-ms-interpolation-mode:bicubic;" />
+              <img src="${LOGO_URL}" alt="SEPETZEN" width="120" height="48" style="display:block;width:120px;height:auto;max-width:120px;border:0;outline:none;text-decoration:none;-ms-interpolation-mode:bicubic;" />
             </a>
           </td>
         </tr>
         <tr>
           <td align="center" style="padding-top:14px;font-family:'Helvetica Neue',Helvetica,Arial,sans-serif;color:${BRAND.ink};font-size:20px;font-weight:800;letter-spacing:5px;line-height:1;">
-            <a href="${CONTACT.siteUrl}" style="color:${BRAND.ink};text-decoration:none;">POLEN<span style="color:${BRAND.primary};">·</span>STONE</a>
+            <a href="${CONTACT.siteUrl}" style="color:${BRAND.ink};text-decoration:none;">SEPETZEN</a>
           </td>
         </tr>
         <tr>
@@ -180,7 +180,7 @@ function brandFooter(opts?: { unsubscribeEmail?: string }): string {
       <table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%">
         <tr>
           <td align="center" style="font-size:14px;font-weight:700;letter-spacing:3px;color:#ffffff;padding-bottom:4px;">
-            POLEN<span style="color:${BRAND.primary};">·</span>STONE
+            SEPETZEN
           </td>
         </tr>
         <tr>
@@ -203,7 +203,7 @@ function brandFooter(opts?: { unsubscribeEmail?: string }): string {
         <tr>
           <td align="center" style="padding-top:18px;border-top:1px solid rgba(255,255,255,0.08);">
             <p style="margin:0;font-size:11px;color:rgba(255,255,255,0.4);line-height:1.6;">
-              © ${new Date().getFullYear()} Polen Stone. Tüm hakları saklıdır.<br>
+              © ${new Date().getFullYear()} Sepetzen. Tüm hakları saklıdır.<br>
               Bu e-postayı, hesabınızla ilgili bir işlem nedeniyle aldınız.
             </p>
           </td>
@@ -216,7 +216,7 @@ function brandFooter(opts?: { unsubscribeEmail?: string }): string {
 
 function wrapTemplate(content: string, opts?: { preheader?: string; title?: string; unsubscribeEmail?: string }): string {
   const preheader = opts?.preheader ?? '';
-  const title = opts?.title ?? 'Polen Stone';
+  const title = opts?.title ?? 'Sepetzen';
   const unsubscribeEmail = opts?.unsubscribeEmail;
   return `<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
 <html xmlns="http://www.w3.org/1999/xhtml" lang="tr">
@@ -288,7 +288,7 @@ function welcomeEmailTemplate(userName: string): string {
   const safeName = escapeHtml(userName);
   return wrapTemplate(`
     ${H1(`Hoş geldiniz, ${safeName}.`)}
-    ${Lede('Polen Stone ailesine katıldığınız için çok mutluyuz. Atölyemizde el işçiliğiyle şekillenen mermer parçalar artık sizin için bir tık uzakta.')}
+    ${Lede('Sepetzen ailesine katıldığınız için çok mutluyuz. Atölyemizde el işçiliğiyle şekillenen mermer parçalar artık sizin için bir tık uzakta.')}
 
     ${infoCard(`
       <table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%">
@@ -319,7 +319,7 @@ function welcomeEmailTemplate(userName: string): string {
     ${emailButton(CONTACT.siteUrl, 'Koleksiyona Göz At')}
 
     ${Small(`Sorularınız için <a href="mailto:${CONTACT.email}" style="color:${BRAND.primaryDeep};text-decoration:none;">${CONTACT.email}</a> adresinden bize ulaşabilirsiniz.`)}
-  `, { preheader: `Hoş geldiniz ${safeName} — Polen Stone ailesindesiniz.`, title: 'Hoş geldiniz' });
+  `, { preheader: `Hoş geldiniz ${safeName} — Sepetzen ailesindesiniz.`, title: 'Hoş geldiniz' });
 }
 
 type OrderItemForEmail = OrderItem & { productImage?: string | null };
@@ -775,14 +775,14 @@ export async function sendWelcomeEmail(user: User): Promise<EmailResult> {
     }
     
     const settings = await storage.getSiteSettings();
-    const fromEmail = settings.smtp_user || 'no-reply@polenstone.com';
+    const fromEmail = settings.smtp_user || 'no-reply@sepetzen.com';
     
     const userName = user.firstName || 'Değerli Müşterimiz';
     
     await transporter.sendMail({
-      from: `"Polen Stone" <${fromEmail}>`,
+      from: `"Sepetzen" <${fromEmail}>`,
       to: user.email,
-      subject: 'Polen Stone\'a Hoş Geldiniz!',
+      subject: 'Sepetzen\'a Hoş Geldiniz!',
       html: welcomeEmailTemplate(userName),
     });
     
@@ -802,7 +802,7 @@ export async function sendOrderConfirmationEmail(order: Order, items: OrderItem[
     }
     
     const settings = await storage.getSiteSettings();
-    const fromEmail = settings.smtp_user || 'no-reply@polenstone.com';
+    const fromEmail = settings.smtp_user || 'no-reply@sepetzen.com';
 
     // Ürün görsellerini products tablosundan zenginleştir (thumbnail için)
     const enrichedItems: OrderItemForEmail[] = await Promise.all(
@@ -819,7 +819,7 @@ export async function sendOrderConfirmationEmail(order: Order, items: OrderItem[
     );
 
     await transporter.sendMail({
-      from: `"Polen Stone" <${fromEmail}>`,
+      from: `"Sepetzen" <${fromEmail}>`,
       to: order.customerEmail,
       subject: `Siparişiniz Alındı - #${order.orderNumber}`,
       html: orderConfirmationTemplate(order, enrichedItems),
@@ -841,10 +841,10 @@ export async function sendPreparingNotificationEmail(order: Order): Promise<Emai
     }
     
     const settings = await storage.getSiteSettings();
-    const fromEmail = settings.smtp_user || 'no-reply@polenstone.com';
+    const fromEmail = settings.smtp_user || 'no-reply@sepetzen.com';
     
     await transporter.sendMail({
-      from: `"Polen Stone" <${fromEmail}>`,
+      from: `"Sepetzen" <${fromEmail}>`,
       to: order.customerEmail,
       subject: `Siparişiniz Hazırlanıyor - #${order.orderNumber}`,
       html: preparingNotificationTemplate(order),
@@ -866,10 +866,10 @@ export async function sendShippingNotificationEmail(order: Order): Promise<Email
     }
     
     const settings = await storage.getSiteSettings();
-    const fromEmail = settings.smtp_user || 'no-reply@polenstone.com';
+    const fromEmail = settings.smtp_user || 'no-reply@sepetzen.com';
     
     await transporter.sendMail({
-      from: `"Polen Stone" <${fromEmail}>`,
+      from: `"Sepetzen" <${fromEmail}>`,
       to: order.customerEmail,
       subject: `Siparişiniz Kargoya Verildi - #${order.orderNumber}`,
       html: shippingNotificationTemplate(order),
@@ -891,7 +891,7 @@ export async function sendAdminOrderNotificationEmail(order: Order, items: Order
     }
     
     const settings = await storage.getSiteSettings();
-    const fromEmail = settings.smtp_user || 'no-reply@polenstone.com';
+    const fromEmail = settings.smtp_user || 'no-reply@sepetzen.com';
     const adminEmail = settings.admin_email;
     
     if (!adminEmail) {
@@ -922,7 +922,7 @@ export async function sendAdminOrderNotificationEmail(order: Order, items: Order
     }
 
     await transporter.sendMail({
-      from: `"Polen Stone Sistem" <${fromEmail}>`,
+      from: `"Sepetzen Sistem" <${fromEmail}>`,
       to: adminEmail,
       subject: `${subjectPrefix}Yeni Sipariş - #${order.orderNumber} - ${order.total}₺`,
       html,
@@ -957,7 +957,7 @@ export async function sendAdminReviewNotificationEmail(
     if (!transporter) return { success: false, error: 'SMTP yapılandırması eksik' };
 
     const settings = await storage.getSiteSettings();
-    const fromEmail = settings.smtp_user || 'no-reply@polenstone.com';
+    const fromEmail = settings.smtp_user || 'no-reply@sepetzen.com';
     const adminEmail = settings.admin_email;
     if (!adminEmail) return { success: false, error: 'Admin e-posta adresi ayarlanmamış' };
 
@@ -1015,7 +1015,7 @@ export async function sendAdminReviewNotificationEmail(
     });
 
     await transporter.sendMail({
-      from: `"Polen Stone Sistem" <${fromEmail}>`,
+      from: `"Sepetzen Sistem" <${fromEmail}>`,
       to: adminEmail,
       subject: `Yeni yorum onay bekliyor — ${payload.productName}`,
       html,
@@ -1045,7 +1045,7 @@ export async function sendGuestReviewApprovedEmail(
     if (!transporter) return { success: false, error: 'SMTP yapılandırması eksik' };
 
     const settings = await storage.getSiteSettings();
-    const fromEmail = settings.smtp_user || 'no-reply@polenstone.com';
+    const fromEmail = settings.smtp_user || 'no-reply@sepetzen.com';
 
     const stars = '★'.repeat(payload.rating) + '☆'.repeat(5 - payload.rating);
     const productUrl = `${CONTACT.siteUrl}/urun/${payload.productSlug}`;
@@ -1060,14 +1060,14 @@ export async function sendGuestReviewApprovedEmail(
 
       ${emailButton(productUrl, 'Ürün Sayfasını Gör')}
 
-      ${Small('Polen Stone — doğal taşın sıcaklığını evinize taşıyoruz.')}
+      ${Small('Sepetzen — kamp, outdoor ve bağ bahçe ürünlerinin güvenilir adresi.')}
     `, {
       preheader: `Yorumunuz yayında — ${payload.productName}`,
       title: 'Yorumunuz yayında',
     });
 
     await transporter.sendMail({
-      from: `"Polen Stone" <${fromEmail}>`,
+      from: `"Sepetzen" <${fromEmail}>`,
       to: payload.to,
       subject: `Yorumunuz yayında — ${payload.productName}`,
       html,
@@ -1096,7 +1096,7 @@ export async function sendGuestReviewRejectedEmail(
     if (!transporter) return { success: false, error: 'SMTP yapılandırması eksik' };
 
     const settings = await storage.getSiteSettings();
-    const fromEmail = settings.smtp_user || 'no-reply@polenstone.com';
+    const fromEmail = settings.smtp_user || 'no-reply@sepetzen.com';
 
     const html = wrapTemplate(`
       ${H1('Yorumunuz onaylanmadı.')}
@@ -1107,14 +1107,14 @@ export async function sendGuestReviewRejectedEmail(
         <p style="margin:0;font-size:14px;color:#1f2937;line-height:1.5;">${escapeHtml(payload.reason)}</p>
       `)}
 
-      ${Small('Polen Stone — doğal taşın sıcaklığını evinize taşıyoruz.')}
+      ${Small('Sepetzen — kamp, outdoor ve bağ bahçe ürünlerinin güvenilir adresi.')}
     `, {
       preheader: `Yorumunuz onaylanmadı — ${payload.productName}`,
       title: 'Yorumunuz onaylanmadı',
     });
 
     await transporter.sendMail({
-      from: `"Polen Stone" <${fromEmail}>`,
+      from: `"Sepetzen" <${fromEmail}>`,
       to: payload.to,
       subject: `Yorumunuz onaylanmadı — ${payload.productName}`,
       html,
@@ -1136,7 +1136,7 @@ export async function sendBankTransferPendingEmail(order: Order, items: OrderIte
     }
 
     const settings = await storage.getSiteSettings();
-    const fromEmail = settings.smtp_user || 'no-reply@polenstone.com';
+    const fromEmail = settings.smtp_user || 'no-reply@sepetzen.com';
 
     const enrichedItems: OrderItemForEmail[] = await Promise.all(
       items.map(async (item) => {
@@ -1152,7 +1152,7 @@ export async function sendBankTransferPendingEmail(order: Order, items: OrderIte
     );
 
     await transporter.sendMail({
-      from: `"Polen Stone" <${fromEmail}>`,
+      from: `"Sepetzen" <${fromEmail}>`,
       to: order.customerEmail,
       subject: `Havalenizi Bekliyoruz - #${order.orderNumber}`,
       html: bankTransferPendingTemplate(order, enrichedItems),
@@ -1174,14 +1174,14 @@ export async function sendPasswordResetEmail(user: User, resetToken: string): Pr
     }
     
     const settings = await storage.getSiteSettings();
-    const fromEmail = settings.smtp_user || 'no-reply@polenstone.com';
-    const siteUrl = settings.site_url || 'https://polenstone.com';
+    const fromEmail = settings.smtp_user || 'no-reply@sepetzen.com';
+    const siteUrl = settings.site_url || 'https://sepetzen.com';
     
     const resetLink = `${siteUrl}/sifre-sifirla?token=${resetToken}`;
     const userName = user.firstName || 'Değerli Müşterimiz';
     
     await transporter.sendMail({
-      from: `"Polen Stone" <${fromEmail}>`,
+      from: `"Sepetzen" <${fromEmail}>`,
       to: user.email,
       subject: 'Şifre Sıfırlama Talebi',
       html: passwordResetTemplate(userName, resetLink),
@@ -1208,10 +1208,10 @@ export async function sendReviewRequestEmail(
     }
     
     const settings = await storage.getSiteSettings();
-    const fromEmail = settings.smtp_user || 'no-reply@polenstone.com';
+    const fromEmail = settings.smtp_user || 'no-reply@sepetzen.com';
     
     await transporter.sendMail({
-      from: `"Polen Stone" <${fromEmail}>`,
+      from: `"Sepetzen" <${fromEmail}>`,
       to: userEmail,
       subject: 'Deneyiminizi Paylaşın',
       html: reviewRequestTemplate(userName, orderNumber, products, userEmail),
@@ -1233,12 +1233,12 @@ export async function sendTestEmail(toEmail: string): Promise<EmailResult> {
     }
     
     const settings = await storage.getSiteSettings();
-    const fromEmail = settings.smtp_user || 'no-reply@polenstone.com';
+    const fromEmail = settings.smtp_user || 'no-reply@sepetzen.com';
     
     await transporter.sendMail({
-      from: `"Polen Stone" <${fromEmail}>`,
+      from: `"Sepetzen" <${fromEmail}>`,
       to: toEmail,
-      subject: 'Polen Stone - Test E-postası',
+      subject: 'Sepetzen - Test E-postası',
       html: wrapTemplate(`
         ${H1('Test e-postası.')}
         ${Lede('Bu bir test e-postasıdır. SMTP ayarlarınız başarıyla yapılandırıldı.')}
@@ -1272,11 +1272,11 @@ export async function sendAbandonedCartEmail(
     }
     
     const settings = await storage.getSiteSettings();
-    const fromEmail = settings.smtp_user || 'no-reply@polenstone.com';
-    const siteUrl = settings.site_url || 'https://polenstone.com';
+    const fromEmail = settings.smtp_user || 'no-reply@sepetzen.com';
+    const siteUrl = settings.site_url || 'https://sepetzen.com';
     
     await transporter.sendMail({
-      from: `"Polen Stone" <${fromEmail}>`,
+      from: `"Sepetzen" <${fromEmail}>`,
       to: userEmail,
       subject: 'Sepetiniz Sizi Bekliyor! 🛒',
       html: abandonedCartTemplate(userName, cartItems, cartTotal, siteUrl, userEmail),
@@ -1345,7 +1345,7 @@ function quoteEmailTemplate(data: QuoteEmailData): string {
 
     ${emailButton(CONTACT.siteUrl, 'Web Sitemizi Ziyaret Edin')}
 
-    ${Small('Bizi tercih ettiğiniz için teşekkür ederiz — Polen Stone Ekibi')}
+    ${Small('Bizi tercih ettiğiniz için teşekkür ederiz — Sepetzen Ekibi')}
   `, { preheader: `Teklif ${data.quoteNumber} hazır — toplam ${grandTotalFormatted} TL`, title: `Teklif ${data.quoteNumber}` });
 }
 
@@ -1361,12 +1361,12 @@ export async function sendQuoteEmail(
     }
     
     const settings = await storage.getSiteSettings();
-    const fromEmail = settings.smtp_user || 'no-reply@polenstone.com';
+    const fromEmail = settings.smtp_user || 'no-reply@sepetzen.com';
     
     await transporter.sendMail({
-      from: `"Polen Stone B2B" <${fromEmail}>`,
+      from: `"Sepetzen B2B" <${fromEmail}>`,
       to: dealerEmail,
-      subject: `Polen Stone Teklif - ${quoteData.quoteNumber}`,
+      subject: `Sepetzen Teklif - ${quoteData.quoteNumber}`,
       html: quoteEmailTemplate(quoteData),
       attachments: [
         {

@@ -119,7 +119,7 @@ async function getConfig(): Promise<WhatsAppConfig | null> {
 
   const endpoint = settings.wpileti_endpoint || DEFAULT_ENDPOINT;
   const adminPhone = settings.wpileti_admin_phone || '';
-  const siteName = settings.site_name || 'Polen Stone';
+  const siteName = settings.site_name || 'Sepetzen';
 
   const events = {} as Record<WhatsAppEvent, boolean>;
   const templates = {} as Record<WhatsAppEvent, string>;
@@ -216,7 +216,7 @@ async function resolveSiteUrl(): Promise<string> {
   } catch (err) {
     console.error('[WhatsApp] site_url lookup failed:', err);
   }
-  return (process.env.SITE_URL || 'https://polenstone.com').replace(/\/+$/, '');
+  return (process.env.SITE_URL || 'https://sepetzen.com').replace(/\/+$/, '');
 }
 
 async function orderVars(order: Order, config: WhatsAppConfig): Promise<Record<string, string>> {
