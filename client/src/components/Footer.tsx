@@ -176,9 +176,25 @@ export function Footer() {
           <p className="text-[12px] text-white/40" data-testid="text-footer-copyright">
             Sepetzen® - Her Hakkı Saklıdır. © 2024-2026
           </p>
-          <p className="text-[12px] text-white/30">
-            Ahmet Uğur Durmaz — Dalaman / Muğla
-          </p>
+          <div className="flex items-center gap-4">
+            <p className="text-[12px] text-white/30">
+              Ahmet Uğur Durmaz — Dalaman / Muğla
+            </p>
+            <a
+              href="https://etbis.ticaret.gov.tr/tr/SiteSorgulamaSonuc?siteId=717cfbdc-c1e5-4ef4-b67f-e3bffb023aba"
+              target="_blank"
+              rel="noopener noreferrer"
+              data-testid="link-footer-etbis"
+              title="ETBİS - Elektronik Ticaret Bilgi Sistemi"
+            >
+              <img
+                src="https://etbis.ticaret.gov.tr/sitebilgileri/getirSiteLogosu?siteId=717cfbdc-c1e5-4ef4-b67f-e3bffb023aba"
+                alt="ETBİS – Elektronik Ticaret Bilgi Sistemi"
+                data-testid="img-footer-etbis"
+                className="h-12 w-auto object-contain opacity-80 hover:opacity-100 transition-opacity"
+              />
+            </a>
+          </div>
         </div>
       </div>
     </footer>
