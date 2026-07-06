@@ -1287,7 +1287,7 @@ export default function ProductDetail() {
             animate={{ y: 0, opacity: 1 }}
             exit={{ y: 80, opacity: 0 }}
             transition={{ duration: reduceMotion ? 0 : 0.25 }}
-            className="lg:hidden fixed bottom-0 inset-x-0 z-[90] bg-white border-t border-black/10 shadow-[0_-8px_24px_rgba(0,0,0,0.06)] px-4 py-3 flex items-center gap-3"
+            className="lg:hidden fixed bottom-[58px] inset-x-0 z-[90] bg-white border-t border-black/10 shadow-[0_-8px_24px_rgba(0,0,0,0.06)] px-4 py-3 flex items-center gap-3"
             data-testid="mobile-sticky-cta"
           >
             <div className="flex-1 min-w-0">
