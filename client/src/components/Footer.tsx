@@ -171,27 +171,39 @@ export function Footer() {
 
         </div>
 
-        {/* ── Copyright ── */}
-        <div className="mt-12 lg:mt-16 pt-6 border-t border-white/[0.08] flex flex-col sm:flex-row items-center justify-between gap-4">
+        {/* ── Güven Rozetleri ── */}
+        <div className="mt-10 lg:mt-14 pt-6 border-t border-white/[0.08] flex flex-col sm:flex-row items-center justify-between gap-6">
           <p className="text-[12px] text-white/40" data-testid="text-footer-copyright">
             Sepetzen® - Her Hakkı Saklıdır. © 2024-2026
           </p>
-          <div className="flex items-center gap-4">
-            <p className="text-[12px] text-white/30">
-              Ahmet Uğur Durmaz — Dalaman / Muğla
-            </p>
+
+          <div className="flex items-center gap-5 flex-wrap justify-center">
+            {/* Marka Tescil Rozeti */}
+            <div
+              className="flex items-center gap-2.5 border border-white/10 rounded px-3 py-2 bg-white/[0.03]"
+              data-testid="badge-marka-tescil"
+              title="Tescilli Marka – No: 2024/093667"
+            >
+              <div className="flex flex-col leading-none">
+                <span className="text-[9px] font-mono tracking-[0.18em] uppercase text-white/35">Tescilli Marka</span>
+                <span className="text-[12px] font-bold text-white/70 mt-0.5">SEPETZEN <sup className="text-[8px] text-[#4a9a42]">®</sup></span>
+                <span className="text-[8.5px] font-mono text-white/30 mt-0.5">No: 2024/093667</span>
+              </div>
+            </div>
+
+            {/* ETBİS Logosu */}
             <a
               href="https://etbis.ticaret.gov.tr/tr/SiteSorgulamaSonuc?siteId=717cfbdc-c1e5-4ef4-b67f-e3bffb023aba"
               target="_blank"
               rel="noopener noreferrer"
               data-testid="link-footer-etbis"
-              title="ETBİS - Elektronik Ticaret Bilgi Sistemi"
+              title="ETBİS – Elektronik Ticaret Bilgi Sistemi"
             >
               <img
-                src="https://etbis.ticaret.gov.tr/sitebilgileri/getirSiteLogosu?siteId=717cfbdc-c1e5-4ef4-b67f-e3bffb023aba"
+                src="/uploads/branding/etbis-logo.png"
                 alt="ETBİS – Elektronik Ticaret Bilgi Sistemi"
                 data-testid="img-footer-etbis"
-                className="h-12 w-auto object-contain opacity-80 hover:opacity-100 transition-opacity"
+                className="h-14 w-auto object-contain opacity-75 hover:opacity-100 transition-opacity"
               />
             </a>
           </div>
