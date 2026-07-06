@@ -28,6 +28,9 @@ import {
   quotes,
   quoteItems,
   menuItems,
+  pages,
+  type Page,
+  type InsertPage,
   type AdminUser,
   type InsertAdminUser,
   type Category,
@@ -352,6 +355,14 @@ export interface IStorage {
   updateSyncRunStats(id: string, stats: Record<string, unknown>): Promise<void>;
   getRunningSyncRun(marketplaceId: string): Promise<MarketplaceSyncRun | undefined>;
   getRecentSyncRuns(marketplaceId: string, limit?: number): Promise<MarketplaceSyncRun[]>;
+
+  // Pages (static content)
+  getPages(): Promise<Page[]>;
+  getPageBySlug(slug: string): Promise<Page | undefined>;
+  createPage(page: InsertPage): Promise<Page>;
+  updatePage(id: string, page: Partial<InsertPage>): Promise<Page | undefined>;
+  deletePage(id: string): Promise<void>;
+  upsertPage(slug: string, data: Omit<InsertPage, 'slug'>): Promise<Page>;
 }
 
 export class DbStorage implements IStorage {
@@ -2276,6 +2287,39 @@ export class DbStorage implements IStorage {
       .where(eq(marketplaceSyncRuns.marketplaceId, marketplaceId))
       .orderBy(desc(marketplaceSyncRuns.startedAt))
       .limit(limit);
+  }
+
+  // Pages
+  async getPages(): Promise<Page[]> {
+    return db.select().from(pages).orderBy(asc(pages.slug));
+  }
+
+  async getPageBySlug(slug: string): Promise<Page | undefined> {
+    const [page] = await db.select().from(pages).where(eq(pages.slug, slug));
+    return page;
+  }
+
+  async createPage(page: InsertPage): Promise<Page> {
+    const [newPage] = await db.insert(pages).values(page).returning();
+    return newPage;
+  }
+
+  async updatePage(id: string, page: Partial<InsertPage>): Promise<Page | undefined> {
+    const [updated] = await db.update(pages).set({ ...page, updatedAt: new Date() }).where(eq(pages.id, id)).returning();
+    return updated;
+  }
+
+  async deletePage(id: string): Promise<void> {
+    await db.delete(pages).where(eq(pages.id, id));
+  }
+
+  async upsertPage(slug: string, data: Omit<InsertPage, 'slug'>): Promise<Page> {
+    const existing = await this.getPageBySlug(slug);
+    if (existing) {
+      const [updated] = await db.update(pages).set({ ...data, updatedAt: new Date() }).where(eq(pages.slug, slug)).returning();
+      return updated;
+    }
+    return this.createPage({ slug, ...data });
   }
 }
 

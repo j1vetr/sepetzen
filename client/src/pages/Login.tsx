@@ -40,7 +40,7 @@ export default function Login() {
 
   return (
     <div className="bg-white">
-      <SEO title="Giriş Yap" description="Polen Stone üyelik girişi." url="/giris" noIndex />
+      <SEO title="Giriş Yap" description="Sepetzen üyelik girişi." url="/giris" noIndex />
       <Header />
 
       <main className="pt-[60px] lg:pt-0">
@@ -183,7 +183,7 @@ export default function Login() {
             <div className="relative z-10 h-full flex flex-col justify-between p-10 xl:p-12">
               <div className="flex items-start justify-between">
                 <span className="text-[10px] font-mono tracking-[0.32em] uppercase text-white/85 tabular-nums">
-                  Polen Stone — Doğal Taş
+                  Sepetzen — Outdoor & Bıçak
                 </span>
                 <span className="text-[10px] font-mono tracking-[0.28em] uppercase text-polen-orange tabular-nums">
                   EST. 2001

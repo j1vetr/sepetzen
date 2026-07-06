@@ -219,7 +219,7 @@ export default function OrderTracking() {
 
   return (
     <div className="min-h-screen bg-[#faf7f1] flex flex-col overflow-x-hidden">
-      <SEO title="Sipariş Takip" description="Polen Stone sipariş durumu sorgulama." url="/siparis-takip" noIndex />
+      <SEO title="Sipariş Takip" description="Sepetzen sipariş durumu sorgulama." url="/siparis-takip" noIndex />
       <Header />
 
       {/* Üst — sayfa başlığı */}

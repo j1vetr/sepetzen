@@ -578,6 +578,31 @@ export async function registerRoutes(
     }
   });
 
+  // ── Pages API ────────────────────────────────────────────────────────────
+  // Public: GET /api/pages, GET /api/pages/:slug
+  // Admin:  POST/PUT/DELETE /api/admin/pages/:id
+
+  app.get("/api/pages", async (_req, res) => {
+    try {
+      const allPages = await storage.getPages();
+      res.json(allPages.filter(p => p.isPublished));
+    } catch (err) {
+      console.error("[pages] list error:", err);
+      res.status(500).json({ error: "Sayfalar yüklenemedi" });
+    }
+  });
+
+  app.get("/api/pages/:slug", async (req, res) => {
+    try {
+      const page = await storage.getPageBySlug(req.params.slug);
+      if (!page || !page.isPublished) return res.status(404).json({ error: "Sayfa bulunamadı" });
+      res.json(page);
+    } catch (err) {
+      console.error("[pages] get error:", err);
+      res.status(500).json({ error: "Sayfa yüklenemedi" });
+    }
+  });
+
   // Admin Authentication with JWT
   app.post("/api/admin/login", async (req: Request, res) => {
     try {

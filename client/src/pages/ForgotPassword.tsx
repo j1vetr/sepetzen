@@ -55,7 +55,7 @@ export default function ForgotPassword() {
   if (submitted) {
     return (
       <div className="min-h-screen bg-white">
-        <SEO title="Şifremi Unuttum" description="Polen Stone şifre sıfırlama bağlantısı." url="/sifremi-unuttum" noIndex />
+        <SEO title="Şifremi Unuttum" description="Sepetzen şifre sıfırlama bağlantısı." url="/sifremi-unuttum" noIndex />
         <Header />
         
         <main className="pt-20 min-h-screen flex items-center justify-center p-6">

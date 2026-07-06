@@ -462,7 +462,7 @@ export default function ProductDetail() {
   const moreProducts = [...sameCategory, ...fillers].slice(0, 4);
 
   const shareUrl = typeof window !== 'undefined' ? window.location.href : '';
-  const shareText = `${product.name} - Polen Stone`;
+  const shareText = `${product.name} - Sepetzen`;
   const socialLinks = [
     {
       name: 'WhatsApp',
@@ -503,7 +503,7 @@ export default function ProductDetail() {
         title={product.name}
         description={
           product.description?.replace(/<[^>]*>/g, '').slice(0, 160) ||
-          `${product.name}. Polen Stone premium doğal taş ve mermer koleksiyonundan.`
+          `${product.name}. Sepetzen kamp, outdoor ve bıçak koleksiyonundan.`
         }
         image={images[0]}
         url={`/urun/${product.slug}`}
@@ -514,7 +514,7 @@ export default function ProductDetail() {
           currency: 'TRY',
           availability: isOutOfStock ? 'OutOfStock' : 'InStock',
           sku: product.sku || undefined,
-          brand: 'Polen Stone',
+          brand: 'Sepetzen',
           category: category?.name,
           images,
         }}

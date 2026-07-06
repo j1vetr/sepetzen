@@ -869,3 +869,26 @@ export const insertMarketplaceSyncRunSchema = createInsertSchema(marketplaceSync
 });
 export type InsertMarketplaceSyncRun = z.infer<typeof insertMarketplaceSyncRunSchema>;
 export type MarketplaceSyncRun = typeof marketplaceSyncRuns.$inferSelect;
+
+// ============================================================================
+// PAGES — Statik içerik sayfaları (Hakkımızda, KVKK, Kargo, vb.)
+// ============================================================================
+
+export const pages = pgTable("pages", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  slug: text("slug").notNull().unique(),
+  title: text("title").notNull(),
+  content: text("content").notNull().default(""),
+  isPublished: boolean("is_published").default(true).notNull(),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+});
+
+export const insertPageSchema = createInsertSchema(pages).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
+export type InsertPage = z.infer<typeof insertPageSchema>;
+export type Page = typeof pages.$inferSelect;

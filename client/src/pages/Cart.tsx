@@ -59,7 +59,7 @@ export default function Cart() {
 
   return (
     <div className="min-h-screen bg-white overflow-x-hidden w-full">
-      <SEO title="Sepetim" description="Polen Stone alışveriş sepetiniz." url="/sepet" noIndex />
+      <SEO title="Sepetim" description="Sepetzen alışveriş sepetiniz." url="/sepet" noIndex />
       <Header />
 
       <main className="pt-20 lg:pt-8 pb-12 px-4 sm:px-6 w-full box-border">

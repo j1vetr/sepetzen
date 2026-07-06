@@ -99,7 +99,7 @@ export default function ResetPassword() {
   if (validating) {
     return (
       <div className="min-h-screen bg-background">
-        <SEO title="Şifre Sıfırla" description="Polen Stone hesap şifrenizi yenileyin." url="/sifre-sifirla" noIndex />
+        <SEO title="Şifre Sıfırla" description="Sepetzen hesap şifrenizi yenileyin." url="/sifre-sifirla" noIndex />
         <Header />
         <main className="pt-20 min-h-screen flex items-center justify-center p-6">
           <div className="text-center">

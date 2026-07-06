@@ -79,7 +79,7 @@ function HeroSceneStatic() {
   return (
     <section
       className="relative h-[100svh] min-h-[560px] w-full overflow-hidden bg-black lg:h-[calc(100svh-200px)] lg:min-h-[560px]"
-      aria-label="Polen Stone tanıtım"
+      aria-label="Sepetzen tanıtım"
     >
       <img
         src={heroPosterImage}
@@ -198,18 +198,18 @@ function HeroOverlayContent({ animated = false }: { animated?: boolean }) {
             style={{ fontSize: 'clamp(40px, 11vw, 64px)', letterSpacing: '-0.02em', fontWeight: 700 }}
             data-testid="text-hero-title-mobile"
           >
-            Doğal Taşın
-            <span className="block text-polen-orange mt-5">Zarafeti</span>
+            Doğanın
+            <span className="block text-polen-orange mt-5">Ruhunu Taşı</span>
           </h1>
           <p className="mt-5 text-[11px] tracking-[0.22em] uppercase text-white/75 font-mono">
-            Banyo · Lavabo · Dekor · Mutfak
+            Kamp · Outdoor · Bıçak · Bağ & Bahçe
           </p>
           <Link
             href="/magaza"
             data-testid="link-hero-cta-mobile"
             className="inline-flex items-center gap-2 mt-8 px-6 py-3 bg-polen-orange text-white text-[11px] tracking-[0.22em] uppercase font-semibold hover:bg-polen-orange/90 transition-colors"
           >
-            Koleksiyonu Keşfet
+            Ürünleri Keşfet
             <ArrowUpRight className="w-3.5 h-3.5" />
           </Link>
         </Wrap>
@@ -229,13 +229,13 @@ function HeroOverlayContent({ animated = false }: { animated?: boolean }) {
               }}
               data-testid="text-hero-title"
             >
-              Doğal Taşın <span className="text-polen-orange">Zamansız Zarafeti</span>
+              Doğanın Ruhunu <span className="text-polen-orange">Sepetle Taşı</span>
             </h1>
 
             <span aria-hidden className="block w-16 h-px bg-polen-orange mt-8 mb-6" />
 
             <p className="max-w-[640px] text-[14px] xl:text-[15px] leading-relaxed text-white/80">
-              Doğal mermerden el işçiliğiyle üretilen banyo setleri, lavabolar, servis tabakları ve dekoratif objeler. Her parça atölyemizde özenle hazırlanır.
+              Av bıçakları, kamp çakıları, outdoor ekipmanları ve bağ & bahçe ürünleri. Dalaman'dan Türkiye'nin dört bir yanına güvenli teslimat.
             </p>
 
             <Link
@@ -243,7 +243,7 @@ function HeroOverlayContent({ animated = false }: { animated?: boolean }) {
               data-testid="link-hero-cta"
               className="inline-flex items-center gap-3 mt-10 px-8 py-4 bg-polen-orange text-white text-[12px] tracking-[0.24em] uppercase font-semibold hover:bg-polen-orange/90 transition-colors"
             >
-              Koleksiyonu Keşfet
+              Ürünleri Keşfet
               <ArrowUpRight className="w-4 h-4" />
             </Link>
           </Wrap>
@@ -322,7 +322,7 @@ function PinnedShowcaseScene({ products }: { products: Product[] }) {
                     <div className="absolute bottom-0 left-0 right-0 p-4 lg:p-5 flex items-end justify-between gap-3">
                       <div className="min-w-0">
                         <div className="text-[10px] font-mono tracking-[0.22em] uppercase text-white/55 mb-1">
-                          Doğal Taş
+                          Sepetzen
                         </div>
                         <div className="text-sm lg:text-base font-medium text-white truncate">
                           {p.name}
@@ -377,7 +377,7 @@ function ProductGridScene({ products }: { products: Product[] }) {
               letterSpacing: '-0.02em',
             }}
           >
-            Polen Stone Koleksiyonu
+            Sepetzen Koleksiyonu
           </h2>
         </div>
         <Link
@@ -475,7 +475,7 @@ function FinalCtaScene() {
             transition={{ duration: 0.45, ease: [0.16, 1, 0.3, 1] }}
             className="block"
           >
-            Mekânınıza
+            Doğanın ruhunu
           </motion.span>
           <motion.span
             initial={{ opacity: 0, y: 40 }}
@@ -483,7 +483,7 @@ function FinalCtaScene() {
             transition={{ duration: 0.45, delay: 0.06, ease: [0.16, 1, 0.3, 1] }}
             className="block"
           >
-            doğanın ihtişamını
+            kapınıza
           </motion.span>
           <motion.span
             initial={{ opacity: 0, y: 40 }}
@@ -491,7 +491,7 @@ function FinalCtaScene() {
             transition={{ duration: 0.45, delay: 0.12, ease: [0.16, 1, 0.3, 1] }}
             className="block text-polen-orange"
           >
-            taşıyalım.
+            getiriyoruz.
           </motion.span>
         </h2>
 
@@ -502,8 +502,8 @@ function FinalCtaScene() {
           className="mt-12 lg:mt-16 flex flex-col lg:flex-row lg:items-center lg:justify-between gap-8"
         >
           <p className="max-w-[560px] text-base lg:text-lg text-black/65 leading-relaxed">
-            Anadolu'nun zengin doğal taş mirasını mekânınıza taşıyoruz.
-            Mermer, granit, traverten ve oniks koleksiyonumuzu keşfedin.
+            Av bıçakları, kamp çakıları ve outdoor ekipmanlarını kapınıza getiriyoruz.
+            Dalaman'dan Türkiye'nin dört bir yanına hızlı ve güvenli teslimat.
           </p>
           <div className="flex flex-col sm:flex-row items-start sm:items-center gap-5 sm:gap-8">
             <Link
@@ -560,8 +560,8 @@ export default function Home() {
   return (
     <>
       <SEO
-        title="Doğal Taş ve Mermer Koleksiyonu"
-        description="Polen Stone, premium mermer, granit, traverten ve oniks koleksiyonu sunan doğal taş markasıdır. Mekânlarınıza doğanın ihtişamını taşıyın."
+        title="Sepetzen – Kamp, Outdoor, Bıçak ve Bağ & Bahçe"
+        description="Sepetzen, av bıçakları, kamp çakıları, outdoor ekipmanları ve bağ & bahçe ürünleri sunan Türk outdoor markasıdır. Dalaman'dan Türkiye geneline hızlı teslimat."
         url="/"
       />
       <Header />

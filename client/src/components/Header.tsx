@@ -12,8 +12,6 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
-import polenLogo from '@assets/Polen-Sticker-1.pdf_1777239312980.png';
-import marbleHero from '@assets/generated_images/polen-hero-1.png';
 
 interface MenuItemData {
   id: string;
@@ -116,43 +114,40 @@ export function Header() {
         <div className="max-w-[1400px] mx-auto px-8 py-4 grid grid-cols-3 items-center gap-6">
           {/* Sol: E-Posta */}
           <a
-            href="mailto:info@polenstone.com"
+            href="mailto:sepetzen@gmail.com"
             data-testid="link-header-email"
             aria-label="E-posta gönder"
             className="justify-self-start group flex items-center gap-3"
           >
-            <span className="w-11 h-11 rounded-full border border-black/10 group-hover:border-polen-orange flex items-center justify-center shrink-0 transition-colors">
-              <Mail className="w-[17px] h-[17px] text-black/70 group-hover:text-polen-orange transition-colors" strokeWidth={1.75} />
+            <span className="w-11 h-11 rounded-full border border-black/10 group-hover:border-[#2D5A27] flex items-center justify-center shrink-0 transition-colors">
+              <Mail className="w-[17px] h-[17px] text-black/70 group-hover:text-[#2D5A27] transition-colors" strokeWidth={1.75} />
             </span>
             <span className="flex flex-col leading-tight whitespace-nowrap">
               <span className="text-[9px] tracking-[0.22em] uppercase text-black/45 font-mono">E-Posta</span>
-              <span className="text-[13px] font-semibold text-black tracking-wide group-hover:text-polen-orange transition-colors" data-testid="text-header-email">info@polenstone.com</span>
+              <span className="text-[13px] font-semibold text-black tracking-wide group-hover:text-[#2D5A27] transition-colors" data-testid="text-header-email">sepetzen@gmail.com</span>
             </span>
           </a>
 
           {/* Orta: Logo */}
           <Link href="/" data-testid="link-logo" className="justify-self-center block">
-            <img
-              src={polenLogo}
-              alt="Polen Stone — Doğal Taş & Mermer"
-              className="h-[96px] w-auto object-contain"
-              data-testid="img-logo"
-            />
+            <span className="font-display text-[26px] tracking-widest" data-testid="img-logo">
+              <span className="text-black">SEPET</span><span className="text-[#2D5A27]">ZEN</span>
+            </span>
           </Link>
 
           {/* Sağ: Telefon */}
           <a
-            href="tel:+905326956183"
+            href="tel:+905366301138"
             data-testid="link-header-phone"
             aria-label="Telefonla ara"
             className="justify-self-end group flex items-center gap-3"
           >
-            <span className="w-11 h-11 rounded-full border border-black/10 group-hover:border-polen-orange flex items-center justify-center shrink-0 transition-colors">
-              <Phone className="w-[17px] h-[17px] text-black/70 group-hover:text-polen-orange transition-colors" strokeWidth={1.75} />
+            <span className="w-11 h-11 rounded-full border border-black/10 group-hover:border-[#2D5A27] flex items-center justify-center shrink-0 transition-colors">
+              <Phone className="w-[17px] h-[17px] text-black/70 group-hover:text-[#2D5A27] transition-colors" strokeWidth={1.75} />
             </span>
             <span className="flex flex-col leading-tight whitespace-nowrap">
               <span className="text-[9px] tracking-[0.22em] uppercase text-black/45 font-mono">Bize Ulaşın</span>
-              <span className="text-[13px] font-semibold text-black tracking-wide group-hover:text-polen-orange transition-colors" data-testid="text-header-phone">0532 695 61 83</span>
+              <span className="text-[13px] font-semibold text-black tracking-wide group-hover:text-[#2D5A27] transition-colors" data-testid="text-header-phone">0536 630 11 38</span>
             </span>
           </a>
         </div>
@@ -181,15 +176,9 @@ export function Header() {
             </button>
 
             <Link href="/" data-testid="link-logo-mobile-header" className="justify-self-center block">
-              <motion.img
-                src={polenLogo}
-                alt="Polen Stone — Doğal Taş & Mermer"
-                animate={{ height: scrolled ? 60 : 72 }}
-                transition={{ duration: 0.35, ease: [0.33, 1, 0.68, 1] }}
-                className="w-auto object-contain"
-                data-testid="img-logo-mobile-header"
-                style={{ willChange: 'height' }}
-              />
+              <span className="font-display text-[20px] tracking-widest" data-testid="img-logo-mobile-header">
+                <span className="text-black">SEPET</span><span className="text-[#2D5A27]">ZEN</span>
+              </span>
             </Link>
 
             <div className="justify-self-end flex items-center gap-0.5">
@@ -242,11 +231,9 @@ export function Header() {
                     transition={{ duration: 0.3, ease: [0.33, 1, 0.68, 1] }}
                   >
                     <Link href="/" data-testid="link-logo-compact" className="block shrink-0">
-                      <img
-                        src={polenLogo}
-                        alt="Polen Stone"
-                        className="h-[44px] w-auto object-contain"
-                      />
+                      <span className="font-display text-[18px] tracking-widest">
+                        <span className="text-black">SEPET</span><span className="text-[#2D5A27]">ZEN</span>
+                      </span>
                     </Link>
                   </motion.div>
                 )}
@@ -460,46 +447,31 @@ export function Header() {
               className="fixed inset-y-0 left-0 z-50 w-[92%] max-w-[420px] bg-white flex flex-col overflow-hidden shadow-[0_0_60px_rgba(0,0,0,0.25)]"
               data-testid="drawer-mobile-menu"
             >
-              {/* ── Hero panel: soft marble bg, compact logo only ── */}
-              <div className="relative h-[150px] shrink-0 overflow-hidden border-b border-black/8">
-                <img
-                  src={marbleHero}
-                  alt=""
-                  className="absolute inset-0 w-full h-full object-cover"
-                  aria-hidden="true"
-                />
-                {/* Bright cream/white veil so logo reads cleanly */}
-                <div className="absolute inset-0 bg-white/72" />
-                <div className="absolute inset-0 bg-gradient-to-b from-white/40 via-transparent to-white/45" />
-
+              {/* ── Hero panel: brand header ── */}
+              <div className="relative h-[120px] shrink-0 overflow-hidden border-b border-black/8 bg-[#0f1a0e] flex items-center justify-center">
                 {/* Close button — top-right */}
                 <motion.button
                   whileTap={{ scale: 0.88 }}
                   onClick={() => setMobileOpen(false)}
-                  className="group absolute top-3 right-3 z-10 p-1.5 text-black/70 hover:text-black transition-colors"
+                  className="group absolute top-3 right-3 z-10 p-1.5 text-white/70 hover:text-white transition-colors"
                   data-testid="button-close-menu"
                   aria-label="Menüyü Kapat"
                 >
-                  <span className="absolute inset-0 m-auto w-8 h-8 rounded-full border border-black/15 group-hover:border-black/45 transition-colors" />
+                  <span className="absolute inset-0 m-auto w-8 h-8 rounded-full border border-white/15 group-hover:border-white/45 transition-colors" />
                   <X className="relative w-3.5 h-3.5" strokeWidth={1.75} />
                 </motion.button>
 
-                {/* Centered, compact logo */}
-                <div className="absolute inset-0 z-[5] flex items-center justify-center">
-                  <Link
-                    href="/"
-                    onClick={() => setMobileOpen(false)}
-                    className="block"
-                    data-testid="link-mobile-logo"
-                  >
-                    <img
-                      src={polenLogo}
-                      alt="Polen Stone"
-                      className="h-[120px] w-[120px] object-contain"
-                      data-testid="img-logo-mobile-drawer"
-                    />
-                  </Link>
-                </div>
+                {/* Centered logo wordmark */}
+                <Link
+                  href="/"
+                  onClick={() => setMobileOpen(false)}
+                  className="block"
+                  data-testid="link-mobile-logo"
+                >
+                  <span className="font-display text-[28px] tracking-widest" data-testid="img-logo-mobile-drawer">
+                    <span className="text-white">SEPET</span><span className="text-[#4a9a42]">ZEN</span>
+                  </span>
+                </Link>
               </div>
 
               {/* ── Editorial nav list ── */}

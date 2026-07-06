@@ -20,9 +20,9 @@ interface SEOProps {
   breadcrumbs?: Array<{ name: string; url: string }>;
 }
 
-const DEFAULT_TITLE = 'Polen Stone | Doğal Taş ve Mermer';
-const DEFAULT_DESCRIPTION = 'Polen Stone, premium mermer, granit, traverten ve oniks koleksiyonu sunan doğal taş markasıdır. Mekânlarınıza doğanın ihtişamını taşıyın.';
-const SITE_NAME = 'Polen Stone';
+const DEFAULT_TITLE = 'Sepetzen | Kamp, Outdoor, Bıçak ve Bağ & Bahçe';
+const DEFAULT_DESCRIPTION = 'Sepetzen, av bıçakları, kamp çakıları, outdoor ekipmanları ve bağ & bahçe ürünleri sunan Türk outdoor markasıdır. Dalaman\'dan Türkiye geneline hızlı teslimat.';
+const SITE_NAME = 'Sepetzen';
 const BASE_URL = typeof window !== 'undefined' ? window.location.origin : '';
 
 export function SEO({ 
@@ -80,15 +80,15 @@ export function SEO({
     schemas.push({
       '@context': 'https://schema.org',
       '@type': 'Organization',
-      name: 'Polen Stone',
+      name: 'Sepetzen',
       url: BASE_URL,
       logo: `${BASE_URL}/logo.png`,
       sameAs: [
-        'https://instagram.com/polenstone',
+        'https://instagram.com/sepetzen',
       ],
       contactPoint: {
         '@type': 'ContactPoint',
-        email: 'info@polenstone.com',
+        email: 'sepetzen@gmail.com',
         contactType: 'customer service'
       }
     });
@@ -113,7 +113,7 @@ export function SEO({
         sku: product.sku,
         brand: {
           '@type': 'Brand',
-          name: product.brand || 'Polen Stone'
+          name: product.brand || 'Sepetzen'
         },
         category: product.category,
         offers: {
@@ -124,7 +124,7 @@ export function SEO({
           availability: `https://schema.org/${product.availability || 'InStock'}`,
           seller: {
             '@type': 'Organization',
-            name: 'Polen Stone'
+            name: 'Sepetzen'
           }
         }
       });
@@ -147,7 +147,7 @@ export function SEO({
       schemas.push({
         '@context': 'https://schema.org',
         '@type': 'WebSite',
-        name: 'Polen Stone',
+        name: 'Sepetzen',
         url: BASE_URL,
         potentialAction: {
           '@type': 'SearchAction',
