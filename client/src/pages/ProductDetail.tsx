@@ -770,8 +770,8 @@ export default function ProductDetail() {
           {/* ── Product grid: Gallery + Info ── */}
           <div className="grid lg:grid-cols-[1fr_420px] xl:grid-cols-[1fr_460px] gap-8 lg:gap-14 items-start">
 
-            {/* LEFT — Sticky Gallery */}
-            <div className="lg:sticky lg:top-24 lg:self-start flex flex-col sm:flex-row gap-3 sm:gap-4">
+            {/* LEFT — Sticky Gallery (only sticky when right column has enough content) */}
+            <div className={`flex flex-col sm:flex-row gap-3 sm:gap-4${product.description ? ' lg:sticky lg:top-24 lg:self-start' : ''}`}>
 
               {/* Thumbnail strip (desktop) */}
               {images.length > 1 && (
@@ -1029,9 +1029,15 @@ export default function ProductDetail() {
               </div>
 
               {/* ── Description inside right column ── */}
-              {product.description && (
+              {product.description ? (
                 <div className="mt-8 pt-8 border-t border-black/6">
                   <ProductDescriptionSections html={product.description} />
+                </div>
+              ) : (
+                <div className="mt-8 pt-8 border-t border-black/6">
+                  <p className="text-[13px] text-black/35 italic">
+                    Bu ürün için henüz açıklama eklenmemiştir.
+                  </p>
                 </div>
               )}
             </div>
