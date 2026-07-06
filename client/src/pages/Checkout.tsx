@@ -41,7 +41,7 @@ interface UserAddress {
   isDefault: boolean;
 }
 
-const FREE_SHIPPING_THRESHOLD = 2500;
+const FREE_SHIPPING_THRESHOLD = 1500;
 const INTERNATIONAL_SHIPPING_COST = 2500;
 const IRAQ_SHIPPING_COST = 5700;
 const DOMESTIC_SHIPPING_COST = 200;

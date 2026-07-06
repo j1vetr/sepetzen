@@ -3,19 +3,19 @@ import { Instagram, MapPin, Phone, Mail, Youtube } from 'lucide-react';
 
 const kurumsalLinks = [
   { href: '/sayfa/hakkimizda',               label: 'Hakkımızda' },
-  { href: '/sayfa/iletisim',                  label: 'İletişim' },
-  { href: '/sayfa/kargo-sureci',              label: 'Kargo Süreci' },
-  { href: '/sayfa/iade-sureci',               label: 'İade Süreci' },
-  { href: '/sayfa/iptal-ve-iade-sartlari',   label: 'İptal & İade Şartları' },
   { href: '/sayfa/mesafeli-satis-sozlesmesi', label: 'Mesafeli Satış Sözleşmesi' },
   { href: '/sayfa/on-bilgilendirme-formu',   label: 'Ön Bilgilendirme Formu' },
   { href: '/sayfa/uyelik-sozlesmesi',         label: 'Üyelik Sözleşmesi' },
+  { href: '/sayfa/iletisim',                  label: 'İletişim' },
 ];
 
 const yardimLinks = [
-  { href: '/sayfa/kvkk-aydinlatma-metni', label: 'KVKK Aydınlatma Metni' },
-  { href: '/sayfa/gizlilik-guvenlik',     label: 'Gizlilik & Güvenlik' },
-  { href: '/sayfa/cerez-politikasi',      label: 'Çerez Politikası' },
+  { href: '/sayfa/kargo-sureci',            label: 'Kargo Süreci' },
+  { href: '/sayfa/iade-sureci',             label: 'İade Süreci' },
+  { href: '/sayfa/iptal-ve-iade-sartlari', label: 'İptal & İade Şartları' },
+  { href: '/sayfa/kvkk-aydinlatma-metni',  label: 'KVKK Aydınlatma Metni' },
+  { href: '/sayfa/gizlilik-guvenlik',       label: 'Gizlilik & Güvenlik' },
+  { href: '/sayfa/cerez-politikasi',        label: 'Çerez Politikası' },
 ];
 
 export function Footer() {
@@ -82,7 +82,7 @@ export function Footer() {
                 className="inline-flex items-center gap-2 text-white/75 hover:text-[#4a9a42] transition-colors group"
                 data-testid="link-etsy-footer"
               >
-                <span className="w-9 h-9 rounded-full border border-white/15 group-hover:border-[#4a9a42] flex items-center justify-center transition-colors text-[10px] font-bold">
+                <span className="w-9 h-9 rounded-full border border-white/15 group-hover:border-[#4a9a42] flex items-center justify-center transition-colors text-[11px] font-bold">
                   E
                 </span>
                 <span className="text-[12px]">Etsy</span>
@@ -173,7 +173,7 @@ export function Footer() {
 
         {/* ── Copyright ── */}
         <div className="mt-12 lg:mt-16 pt-6 border-t border-white/[0.08] flex flex-col sm:flex-row items-center justify-between gap-4">
-          <p className="text-[12px] text-white/40">
+          <p className="text-[12px] text-white/40" data-testid="text-footer-copyright">
             Sepetzen® - Her Hakkı Saklıdır. © 2024-2026
           </p>
           <p className="text-[12px] text-white/30">
