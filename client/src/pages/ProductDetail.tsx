@@ -210,14 +210,14 @@ function ProductDescriptionSections({ html }: { html: string }) {
                 <dl className="divide-y divide-black/[0.05]">
                   {section.items.map((item, j) => {
                     const colonIdx = item.indexOf(':');
-                    const hasColon = colonIdx > 0 && colonIdx < 40;
+                    const hasColon = colonIdx > 0 && colonIdx < 60;
                     const label = hasColon ? item.slice(0, colonIdx).trim() : null;
                     const value = hasColon ? item.slice(colonIdx + 1).trim() : item;
                     return (
-                      <div key={j} className="flex items-start gap-2 px-4 py-[7px]">
-                        {label && (
-                          <dt className="text-[11px] text-black/40 min-w-[110px] shrink-0 leading-snug">{label}</dt>
-                        )}
+                      <div key={j} className="grid grid-cols-[minmax(110px,40%)_1fr] items-baseline px-4 py-[7px] gap-x-3">
+                        <dt className="text-[11px] text-black/40 leading-snug truncate">
+                          {label ?? <span className="text-black/20 select-none">—</span>}
+                        </dt>
                         <dd className="text-[12px] text-black/80 font-medium leading-snug">{value}</dd>
                       </div>
                     );

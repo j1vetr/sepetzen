@@ -1629,6 +1629,73 @@ export async function registerRoutes(
     }
   });
 
+  // ── AI Description Generation ─────────────────────────────────────────────
+  app.post("/api/admin/products/:id/generate-description", requireAdmin, async (req, res) => {
+    try {
+      const product = await storage.getProduct(req.params.id);
+      if (!product) {
+        return res.status(404).json({ error: "Ürün bulunamadı" });
+      }
+
+      const apiKey = process.env.OPENAI_API_KEY;
+      if (!apiKey) {
+        return res.status(503).json({ error: "OpenAI API anahtarı tanımlanmamış. Replit Secrets'a OPENAI_API_KEY ekleyin." });
+      }
+
+      const { default: OpenAI } = await import("openai");
+      const openai = new OpenAI({ apiKey });
+
+      const systemPrompt = `Sen Sepetzen adlı Türk outdoor/kamp/bıçak markasının ürün açıklaması yazarısın. HTML formatında, 4 bölümlü zengin ürün açıklaması üret.
+
+FORMAT KURALLARI (kesinlikle uymak zorundasın):
+1. Her bölüm bir <div> içinde olmalı.
+2. Bölüm başlığı: <div style="display:flex;align-items:center;gap:8px"><span>EMOJİ</span><span>BAŞLIK</span></div>
+3. İçerik: <ul> içinde <li> etiketleri.
+
+BÖLÜMLER ve EMOJİLER:
+- 📐 Teknik Özellikler → Tüm ölçüler, ağırlık, malzeme kodları vb.
+- 🔩 Materyal & Yapı → Sap, bıçak veya gövde materyali, yüzey işlemleri.
+- 🎯 Kullanım Alanları → Ürünün kullanıldığı durumlar/aktiviteler.
+- 🎁 Hediye & Paket → Ambalaj bilgisi, hediye seçeneği, garanti.
+
+KRİTİK KURAL — 📐 Teknik Özellikler bölümü:
+Her <li> öğesi MUTLAKA "Etiket: Değer" formatında olmalıdır.
+DOĞRU örnekler:
+  <li>Toplam Uzunluk: 23 cm</li>
+  <li>Bıçak Boyu: 9 cm</li>
+  <li>Sap Materyali: Ceviz Ağacı</li>
+  <li>Bıçak Çeliği: 440C Paslanmaz Çelik</li>
+  <li>Ağırlık: 180 g</li>
+YANLIŞ örnekler (ASLA kullanma):
+  <li>23 cm Toplam Uzunluk (Açık)</li>
+  <li>Paslanmaz çelik bıçak</li>
+
+Diğer bölümler için liste öğesi formatı serbest.
+Türkçe yaz. Sadece HTML döndür, başka açıklama ekleme.`;
+
+      const userPrompt = `Ürün adı: ${product.name}
+Mevcut açıklama (varsa): ${product.description ? product.description.replace(/<[^>]+>/g, ' ').substring(0, 500) : 'Yok'}
+
+Bu ürün için 4 bölümlü HTML açıklama üret. Teknik Özellikler bölümünde HER satır "Etiket: Değer" formatında olsun.`;
+
+      const completion = await openai.chat.completions.create({
+        model: "gpt-4o",
+        messages: [
+          { role: "system", content: systemPrompt },
+          { role: "user", content: userPrompt },
+        ],
+        temperature: 0.7,
+        max_tokens: 1200,
+      });
+
+      const generatedHtml = completion.choices[0]?.message?.content?.trim() ?? '';
+      res.json({ html: generatedHtml });
+    } catch (error: any) {
+      console.error('[AI Description] Error:', error);
+      res.status(500).json({ error: error.message || "Açıklama üretilirken hata oluştu" });
+    }
+  });
+
   // Product Variants API
   app.get("/api/products/:productId/variants", async (req, res) => {
     try {

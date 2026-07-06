@@ -7,6 +7,7 @@ import {
   Eye,
   Trash2,
   RefreshCw,
+  Wand2,
 } from 'lucide-react';
 import type { Product, ProductDraft, Category } from '../_shared/types';
 import AdminModal from '../_ui/AdminModal';
@@ -87,6 +88,8 @@ export default function ProductModal({
   const [isUploading, setIsUploading] = useState(false);
   const [dragOver, setDragOver] = useState(false);
   const [uploadError, setUploadError] = useState<string | null>(null);
+  const [isGenerating, setIsGenerating] = useState(false);
+  const [generateError, setGenerateError] = useState<string | null>(null);
 
   const [colorInput, setColorInput] = useState<string>(
     formData.availableColors[0]?.name ? toTurkishUpper(formData.availableColors[0].name) : '',
@@ -167,6 +170,31 @@ export default function ProductModal({
       return { ...prev, images: newImages };
     });
     setPreviewImage(0);
+  };
+
+  const handleGenerateDescription = async () => {
+    if (!product?.id) {
+      setGenerateError('Önce ürünü kaydedin, ardından AI açıklama üretin.');
+      return;
+    }
+    setIsGenerating(true);
+    setGenerateError(null);
+    try {
+      const res = await fetch(`/api/admin/products/${product.id}/generate-description`, {
+        method: 'POST',
+        credentials: 'include',
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        setGenerateError(data.error || 'Açıklama üretilemedi.');
+        return;
+      }
+      setFormData((prev) => ({ ...prev, description: data.html }));
+    } catch (err) {
+      setGenerateError('Sunucuya bağlanılamadı.');
+    } finally {
+      setIsGenerating(false);
+    }
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -394,8 +422,28 @@ export default function ProductModal({
           <section>
             <div className="flex items-center justify-between mb-3">
               <SectionHeading number={2} title="Açıklama" />
+              <button
+                type="button"
+                onClick={handleGenerateDescription}
+                disabled={isGenerating || !product?.id}
+                title={!product?.id ? 'Önce ürünü kaydedin' : 'AI ile açıklama üret (Teknik Özellikler Etiket:Değer formatında)'}
+                className="flex items-center gap-1.5 px-2.5 py-1 rounded-md text-[11px] font-medium border transition-colors disabled:opacity-40 disabled:cursor-not-allowed border-[#2D5A27]/30 text-[#2D5A27] hover:bg-[#2D5A27]/[0.07]"
+                data-testid="button-generate-description"
+              >
+                {isGenerating ? (
+                  <Loader2 className="w-3 h-3 animate-spin" />
+                ) : (
+                  <Wand2 className="w-3 h-3" />
+                )}
+                {isGenerating ? 'Üretiliyor…' : 'AI Açıklama Üret'}
+              </button>
             </div>
 
+            {generateError && (
+              <div className="mb-2">
+                <InlineAlert tone="error">{generateError}</InlineAlert>
+              </div>
+            )}
 
             <TextArea
               value={formData.description}
