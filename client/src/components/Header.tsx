@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 import { Link, useLocation } from 'wouter';
-import { ShoppingBag, Search, X, User, LogOut, ChevronDown, ArrowUpRight, Phone, Mail, Scissors, Sprout, PawPrint, Hammer, Flame, Tent, Package, Leaf } from 'lucide-react';
+import { ShoppingBag, Search, X, User, LogOut, ChevronDown, ArrowUpRight, Phone, Mail, Scissors, PawPrint, Tent, Sword, Axe, Shovel, Wrench, FlameKindling, Backpack, LayoutGrid, Target, Drill, HardHat, Flashlight, Compass, Map, Mountain, Flower, Bird, Fish, Rabbit, TreeDeciduous, TreePine, UtensilsCrossed, Dog, Cat, Layers, Zap, Waves } from 'lucide-react';
 import { motion, AnimatePresence, useScroll, useMotionValueEvent, type Variants } from 'framer-motion';
 import { useQuery } from '@tanstack/react-query';
 import { useCart } from '@/hooks/useCart';
@@ -46,15 +46,63 @@ const stagger: { container: Variants; item: Variants } = {
 
 function getMenuIcon(title: string) {
   const t = title.toLowerCase();
-  if (t.includes('çakı') || t.includes('caki')) return Scissors;
-  if (t.includes('bıçak') || t.includes('bicak')) return Scissors;
-  if (t.includes('bahçe') || t.includes('bahce') || t.includes('bağ') || t.includes('bag')) return Sprout;
+  if (t.includes('çakı') || t.includes('caki')) return Sword;
+  if (t.includes('bıçak') || t.includes('bicak')) return Axe;
+  if (t.includes('bahçe') || t.includes('bahce') || t.includes('bağ') || t.includes('bag')) return Shovel;
   if (t.includes('pet') || t.includes('çiftlik') || t.includes('ciftlik')) return PawPrint;
-  if (t.includes('nalbur') || t.includes('hırdavat') || t.includes('hirdavat')) return Hammer;
-  if (t.includes('mangal') || t.includes('izgara') || t.includes('ahşap') || t.includes('ahsap')) return Flame;
-  if (t.includes('kamp') || t.includes('outdoor')) return Tent;
-  if (t.includes('tüm') || t.includes('tum')) return Leaf;
-  return Package;
+  if (t.includes('nalbur') || t.includes('hırdavat') || t.includes('hirdavat')) return Wrench;
+  if (t.includes('mangal') || t.includes('izgara') || t.includes('ahşap') || t.includes('ahsap')) return FlameKindling;
+  if (t.includes('kamp') || t.includes('outdoor')) return Backpack;
+  if (t.includes('tüm') || t.includes('tum')) return LayoutGrid;
+  return Layers;
+}
+
+function getSubIcon(title: string) {
+  const t = title.toLowerCase();
+  if (t.includes('kamp çakı') || t.includes('kamp caki')) return Tent;
+  if (t.includes('av çakı') || t.includes('av caki')) return Target;
+  if (t.includes('katlanır') || t.includes('katlanir') || t.includes('çakı') || t.includes('caki')) return Sword;
+  if (t.includes('elektrik')) return Zap;
+  if (t.includes('mutfak')) return UtensilsCrossed;
+  if (t.includes('av bıçak') || t.includes('av bicak')) return Target;
+  if (t.includes('kamp bıçak') || t.includes('kamp bicak')) return Mountain;
+  if (t.includes('bıçak') || t.includes('bicak')) return Axe;
+  if (t.includes('budama') || t.includes('makas')) return Scissors;
+  if (t.includes('kürek') || t.includes('kurek')) return Shovel;
+  if (t.includes('çapa') || t.includes('capa') || t.includes('kazma')) return Layers;
+  if (t.includes('sulama')) return Waves;
+  if (t.includes('çiçek') || t.includes('cicek') || t.includes('fide')) return Flower;
+  if (t.includes('bahçe') || t.includes('bağ') || t.includes('bag') || t.includes('bag')) return TreeDeciduous;
+  if (t.includes('çadır') || t.includes('cadir')) return Tent;
+  if (t.includes('sırt') || t.includes('sirt') || t.includes('çanta') || t.includes('canta')) return Backpack;
+  if (t.includes('fener') || t.includes('ışık') || t.includes('isik')) return Flashlight;
+  if (t.includes('pusula')) return Compass;
+  if (t.includes('harita')) return Map;
+  if (t.includes('dağ') || t.includes('dag')) return Mountain;
+  if (t.includes('matkap') || t.includes('drill')) return Drill;
+  if (t.includes('inşaat') || t.includes('insaat')) return HardHat;
+  if (t.includes('vida') || t.includes('civata') || t.includes('somun')) return Wrench;
+  if (t.includes('mangal')) return FlameKindling;
+  if (t.includes('ızgara') || t.includes('izgara')) return UtensilsCrossed;
+  if (t.includes('ahşap') || t.includes('ahsap') || t.includes('tahta')) return TreePine;
+  if (t.includes('kedi')) return Cat;
+  if (t.includes('köpek') || t.includes('kopek')) return Dog;
+  if (t.includes('kuş') || t.includes('kus')) return Bird;
+  if (t.includes('balık') || t.includes('balik')) return Fish;
+  if (t.includes('tavşan') || t.includes('tavsan') || t.includes('tavuk')) return Rabbit;
+  return getMenuIcon(title);
+}
+
+function getCategoryDesc(title: string): string {
+  const t = title.toLowerCase();
+  if (t.includes('çakı') || t.includes('caki')) return 'El yapımı ve fabrika kamp çakıları, av ve outdoor modelleri';
+  if (t.includes('bıçak') || t.includes('bicak')) return 'Avcılık, kamp ve mutfak bıçakları, Türk zanaatkâr işçiliği';
+  if (t.includes('bahçe') || t.includes('bağ') || t.includes('bag')) return 'Budama makasları, kürekler ve profesyonel bahçe ekipmanları';
+  if (t.includes('pet') || t.includes('çiftlik') || t.includes('ciftlik')) return 'Evcil hayvan malzemeleri ve çiftlik bakım ürünleri';
+  if (t.includes('nalbur') || t.includes('hırdavat') || t.includes('hirdavat')) return 'El aletleri, vida, somun, civata ve hırdavat ürünleri';
+  if (t.includes('mangal') || t.includes('izgara') || t.includes('ahşap') || t.includes('ahsap')) return 'Mangal setleri, ızgara ekipmanları ve ahşap el işleri';
+  if (t.includes('kamp') || t.includes('outdoor')) return 'Kamp çadırları, sırt çantaları ve doğa ekipmanları';
+  return 'Sepetzen kalitesinde seçilmiş ürün koleksiyonu';
 }
 
 export function Header() {
@@ -134,6 +182,20 @@ export function Header() {
 
   const activeMegaRoot = megaMenuId ? menuRoots.find(r => r.id === megaMenuId) : null;
   const activeMegaChildren = activeMegaRoot ? (activeMegaRoot.children || []).filter(c => c.isActive) : [];
+
+  const megaCategoryId = activeMegaRoot?.category?.id ?? null;
+  const { data: megaFeaturedProducts = [] } = useQuery<any[]>({
+    queryKey: ['/api/products', 'mega', megaCategoryId],
+    queryFn: async () => {
+      if (!megaCategoryId) return [];
+      const res = await fetch(`/api/products?categoryId=${megaCategoryId}&sort=popular`);
+      if (!res.ok) return [];
+      const all = await res.json();
+      return all.slice(0, 2);
+    },
+    enabled: !!megaCategoryId,
+    staleTime: 120000,
+  });
 
   return (
     <>
@@ -390,68 +452,133 @@ export function Header() {
                 {megaMenuId && activeMegaRoot && activeMegaRoot.type === 'submenu' && activeMegaChildren.length > 0 && (
                   <motion.div
                     key={megaMenuId}
-                    initial={{ opacity: 0, y: -8 }}
+                    initial={{ opacity: 0, y: -6 }}
                     animate={{ opacity: 1, y: 0 }}
-                    exit={{ opacity: 0, y: -8 }}
-                    transition={{ duration: 0.22, ease: [0.16, 1, 0.3, 1] }}
-                    className="absolute top-[calc(100%+12px)] left-1/2 -translate-x-1/2 w-screen max-w-[100vw] bg-white border-t-2 border-[#2D5A27] shadow-[0_24px_60px_-12px_rgba(0,0,0,0.22)] z-50"
+                    exit={{ opacity: 0, y: -6 }}
+                    transition={{ duration: 0.26, ease: [0.16, 1, 0.3, 1] }}
+                    className="absolute top-[calc(100%+8px)] left-1/2 w-screen max-w-[100vw] bg-white shadow-[0_40px_80px_-16px_rgba(0,0,0,0.24)] z-50 overflow-hidden"
                     style={{ left: '50%', transform: 'translateX(-50%)' }}
                     onMouseEnter={cancelClose}
                     onMouseLeave={closeMega}
                     data-testid={`mega-panel-${megaMenuId}`}
                   >
-                    <div className="max-w-[1400px] mx-auto px-8 py-7">
-                      {/* Header row */}
-                      <div className="flex items-center justify-between mb-5 pb-4 border-b border-black/[0.07]">
-                        <div className="flex items-center gap-2.5">
-                          {(() => {
-                            const Icon = getMenuIcon(activeMegaRoot.title);
-                            return <Icon className="w-4 h-4 text-[#2D5A27]" strokeWidth={2} />;
-                          })()}
-                          <span className="text-[11px] font-semibold tracking-[0.20em] uppercase text-black/60">
+                    <div className="max-w-[1400px] mx-auto flex min-h-[260px]">
+
+                      {/* ── LEFT: Dark green hero sidebar ── */}
+                      <div className="w-60 xl:w-72 shrink-0 bg-[#1a3a15] px-7 py-8 flex flex-col justify-between relative overflow-hidden">
+                        {/* Subtle dot texture */}
+                        <div
+                          className="absolute inset-0 opacity-[0.06] pointer-events-none"
+                          style={{ backgroundImage: 'radial-gradient(circle, #fff 1px, transparent 1px)', backgroundSize: '20px 20px' }}
+                        />
+                        <div className="relative z-10 flex flex-col h-full">
+                          {/* Icon badge */}
+                          <div className="w-11 h-11 rounded-xl bg-white/10 flex items-center justify-center mb-5 shrink-0">
+                            {(() => { const Icon = getMenuIcon(activeMegaRoot.title); return <Icon className="w-5 h-5 text-white" strokeWidth={1.75} />; })()}
+                          </div>
+                          {/* Title */}
+                          <h3 className="text-[22px] xl:text-[26px] font-black text-white leading-none tracking-tight mb-3">
                             {activeMegaRoot.title}
-                          </span>
+                          </h3>
+                          {/* Description */}
+                          <p className="text-white/55 text-[11.5px] leading-relaxed flex-1">
+                            {getCategoryDesc(activeMegaRoot.title)}
+                          </p>
+                          {/* CTA */}
+                          {activeMegaRoot.category && (
+                            <Link
+                              href={`/kategori/${activeMegaRoot.category.slug}`}
+                              onClick={() => setMegaMenuId(null)}
+                              className="mt-6 inline-flex items-center gap-2 text-[10.5px] tracking-[0.16em] uppercase font-bold text-[#1a3a15] bg-white hover:bg-white/90 transition-colors px-4 py-3 shrink-0 self-start"
+                              data-testid={`link-mega-all-${megaMenuId}`}
+                            >
+                              Tümünü Keşfet <ArrowUpRight className="w-3.5 h-3.5" />
+                            </Link>
+                          )}
                         </div>
-                        {activeMegaRoot.category && (
-                          <Link
-                            href={`/kategori/${activeMegaRoot.category.slug}`}
-                            onClick={() => setMegaMenuId(null)}
-                            className="inline-flex items-center gap-1.5 text-[10px] tracking-[0.18em] uppercase text-[#2D5A27] hover:text-[#2D5A27]/80 transition-colors font-medium"
-                            data-testid={`link-mega-all-${megaMenuId}`}
-                          >
-                            Tümünü Gör <ArrowUpRight className="w-3 h-3" />
-                          </Link>
-                        )}
                       </div>
 
-                      {/* Subcategory grid */}
-                      <div
-                        className="grid gap-x-5 gap-y-1"
-                        style={{
-                          gridTemplateColumns: `repeat(${Math.min(activeMegaChildren.length, 4)}, minmax(0, 1fr))`,
-                        }}
-                      >
-                        {activeMegaChildren.map((child) => {
-                          const childHref = hrefForMenu(child);
-                          const ChildIcon = getMenuIcon(child.title);
-                          return (
-                            <Link
-                              key={child.id}
-                              href={childHref}
-                              onClick={() => setMegaMenuId(null)}
-                              className="group flex items-center gap-2.5 px-3 py-3 rounded-sm hover:bg-[#2D5A27]/[0.06] transition-colors"
-                              data-testid={`link-mega-${child.id}`}
-                            >
-                              <span className="w-7 h-7 rounded-full bg-[#2D5A27]/[0.07] group-hover:bg-[#2D5A27]/[0.14] flex items-center justify-center shrink-0 transition-colors">
-                                <ChildIcon className="w-3.5 h-3.5 text-[#2D5A27]" strokeWidth={2} />
-                              </span>
-                              <span className="text-[11.5px] tracking-[0.08em] text-black/75 group-hover:text-black transition-colors font-medium leading-tight">
-                                {child.title}
-                              </span>
-                            </Link>
-                          );
-                        })}
+                      {/* ── MIDDLE: Subcategory grid ── */}
+                      <div className="flex-1 px-8 xl:px-10 py-8 border-r border-black/[0.06]">
+                        <div className="text-[9px] tracking-[0.30em] uppercase text-black/30 font-mono mb-5">
+                          Alt Kategoriler
+                        </div>
+                        <div className="grid grid-cols-2 xl:grid-cols-3 gap-x-3 gap-y-1">
+                          {activeMegaChildren.map((child) => {
+                            const childHref = hrefForMenu(child);
+                            const ChildIcon = getSubIcon(child.title);
+                            return (
+                              <Link
+                                key={child.id}
+                                href={childHref}
+                                onClick={() => setMegaMenuId(null)}
+                                className="group flex items-center gap-3 px-3 py-3 rounded-lg hover:bg-[#2D5A27]/[0.06] transition-all duration-150"
+                                data-testid={`link-mega-${child.id}`}
+                              >
+                                <span className="w-8 h-8 rounded-lg bg-[#2D5A27]/[0.08] group-hover:bg-[#2D5A27]/[0.16] flex items-center justify-center shrink-0 transition-colors">
+                                  <ChildIcon className="w-3.5 h-3.5 text-[#2D5A27]" strokeWidth={1.75} />
+                                </span>
+                                <span className="text-[12px] text-black/65 group-hover:text-black transition-colors font-medium leading-tight flex-1">
+                                  {child.title}
+                                </span>
+                                <ArrowUpRight className="w-3 h-3 text-transparent group-hover:text-[#2D5A27]/50 transition-colors shrink-0" />
+                              </Link>
+                            );
+                          })}
+                        </div>
                       </div>
+
+                      {/* ── RIGHT: Featured products ── */}
+                      {megaFeaturedProducts.length > 0 && (
+                        <div className="w-52 xl:w-60 shrink-0 px-6 py-8">
+                          <div className="text-[9px] tracking-[0.30em] uppercase text-black/30 font-mono mb-5">
+                            Öne Çıkan
+                          </div>
+                          <div className="space-y-4">
+                            {megaFeaturedProducts.map((product: any) => (
+                              <Link
+                                key={product.id}
+                                href={`/urun/${product.slug}`}
+                                onClick={() => setMegaMenuId(null)}
+                                className="group flex gap-3 items-start"
+                                data-testid={`link-mega-product-${product.id}`}
+                              >
+                                <div className="w-[56px] h-[56px] rounded-lg overflow-hidden shrink-0 bg-black/[0.04]">
+                                  {product.images?.[0] ? (
+                                    <img
+                                      src={product.images[0]}
+                                      alt={product.name}
+                                      className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                                    />
+                                  ) : (
+                                    <div className="w-full h-full flex items-center justify-center">
+                                      {(() => { const Icon = getMenuIcon(activeMegaRoot.title); return <Icon className="w-5 h-5 text-black/20" />; })()}
+                                    </div>
+                                  )}
+                                </div>
+                                <div className="min-w-0 flex-1">
+                                  <p className="text-[11.5px] font-medium text-black/75 leading-snug line-clamp-2 group-hover:text-black transition-colors">
+                                    {product.name}
+                                  </p>
+                                  <p className="text-[13px] font-bold text-[#2D5A27] mt-1">
+                                    {Number(product.price).toLocaleString('tr-TR')} ₺
+                                  </p>
+                                </div>
+                              </Link>
+                            ))}
+                          </div>
+                          {activeMegaRoot.category && (
+                            <Link
+                              href={`/kategori/${activeMegaRoot.category.slug}`}
+                              onClick={() => setMegaMenuId(null)}
+                              className="mt-5 text-[9.5px] tracking-[0.18em] uppercase text-[#2D5A27] hover:text-[#2D5A27]/70 transition-colors font-semibold flex items-center gap-1"
+                            >
+                              Tüm ürünleri gör <ArrowUpRight className="w-3 h-3" />
+                            </Link>
+                          )}
+                        </div>
+                      )}
+
                     </div>
                   </motion.div>
                 )}
