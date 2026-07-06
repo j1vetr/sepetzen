@@ -3,345 +3,366 @@ import { Footer } from '@/components/Footer';
 import { SEO } from '@/components/SEO';
 import { ProductCard } from '@/components/ProductCard';
 import { Link } from 'wouter';
-import { useEffect, useMemo, useRef, useState } from 'react';
-import {
-  motion,
-  useScroll,
-  useTransform,
-  useInView,
-  useReducedMotion,
-  MotionConfig,
-} from 'framer-motion';
-import { ArrowUpRight, Scissors, Sprout, PawPrint, Hammer, Flame, Tent, Leaf, Instagram } from 'lucide-react';
+import { useEffect, useRef, useState, useMemo } from 'react';
+import { motion, AnimatePresence, useInView } from 'framer-motion';
+import { ArrowUpRight, Truck, ShieldCheck, Star, ChevronLeft, ChevronRight, Instagram } from 'lucide-react';
 import { useProducts, type Product } from '@/hooks/useProducts';
-import heroPosterImage from '@assets/generated_images/polen-hero-dark-1.png';
 
-const HERO_VIDEO_DESKTOP = '/videos/polen-hero.mp4';
-const HERO_VIDEO_MOBILE = '/videos/polen-hero-mobile.mp4';
+// ─── HERO SLIDER ─────────────────────────────────────────────────────────────
 
-// UTILITIES
+const HERO_SLIDES = [
+  {
+    image: '/uploads/products/header_av-cakisi.png',
+    eyebrow: 'Av & Outdoor',
+    title: 'Av Bıçakları',
+    desc: 'El yapımı, yüksek karbonlu çelik — her avcının yanında.',
+    href: '/kategori/bicaklar',
+    cta: 'Koleksiyonu Gör',
+    bg: '#0d1a0c',
+  },
+  {
+    image: '/uploads/products/header_kamp-bicagi.png',
+    eyebrow: 'Kamp & Doğa',
+    title: 'Kamp Çakıları',
+    desc: 'Kompakt, dayanıklı ve çok fonksiyonlu — doğanın ortasında güvende.',
+    href: '/kategori/cakilar',
+    cta: 'Modelleri İncele',
+    bg: '#0a1010',
+  },
+  {
+    image: '/uploads/products/header_bag-bahce.png',
+    eyebrow: 'Bağ & Bahçe',
+    title: 'Bahçe Aletleri',
+    desc: 'Profesyonel budama, kazıma ve bakım aletleri koleksiyonu.',
+    href: '/kategori/bag-bahce-aletleri',
+    cta: 'Ürünlere Bak',
+    bg: '#0c140b',
+  },
+];
 
-function hashStr(s: string): number {
-  let h = 0;
-  for (let i = 0; i < s.length; i++) h = ((h << 5) - h) + s.charCodeAt(i);
-  return Math.abs(h);
-}
+function HeroSlider() {
+  const [active, setActive] = useState(0);
+  const [dir, setDir] = useState(1);
+  const timerRef = useRef<ReturnType<typeof setTimeout>>();
 
-function formatPrice(p: string | number) {
-  const n = typeof p === 'string' ? parseFloat(p || '0') : p;
-  return n.toLocaleString('tr-TR', { maximumFractionDigits: 0 });
-}
+  const go = (next: number, direction = 1) => {
+    setDir(direction);
+    setActive(next);
+  };
 
-// REVEAL WORD — text reveal animation
-
-function RevealWord({
-  text,
-  delay = 0,
-  className = '',
-}: {
-  text: string;
-  delay?: number;
-  className?: string;
-}) {
-  return (
-    <span className={`inline-block overflow-hidden align-bottom ${className}`}>
-      <motion.span
-        initial={{ y: '110%' }}
-        animate={{ y: '0%' }}
-        transition={{ duration: 1.05, delay, ease: [0.16, 1, 0.3, 1] }}
-        className="inline-block"
-      >
-        {text}
-      </motion.span>
-    </span>
-  );
-}
-
-// Gate that defers children until after first paint so framer-motion's useScroll can safely attach to DOM refs.
-function useMounted() {
-  const [m, setM] = useState(false);
   useEffect(() => {
-    setM(true);
-  }, []);
-  return m;
-}
+    timerRef.current = setTimeout(() => {
+      go((active + 1) % HERO_SLIDES.length, 1);
+    }, 6000);
+    return () => clearTimeout(timerRef.current);
+  }, [active]);
 
-// SCENE 01 — HERO (cinematic)
+  const prev = () => go((active - 1 + HERO_SLIDES.length) % HERO_SLIDES.length, -1);
+  const next = () => go((active + 1) % HERO_SLIDES.length, 1);
 
-function HeroScene() {
-  const mounted = useMounted();
-  const prefersReduced = useReducedMotion();
-  if (!mounted || prefersReduced) return <HeroSceneStatic />;
-  return <HeroSceneInner />;
-}
-
-function HeroSceneStatic() {
-  return (
-    <section
-      className="relative h-[100svh] min-h-[560px] w-full overflow-hidden bg-black lg:h-[calc(100svh-200px)] lg:min-h-[560px]"
-      aria-label="Sepetzen tanıtım"
-    >
-      <img
-        src={heroPosterImage}
-        alt=""
-        aria-hidden="true"
-        className="absolute inset-0 w-full h-full object-cover"
-      />
-      <div className="absolute inset-0 bg-black/50" />
-      <div className="absolute inset-0 bg-gradient-to-t from-black/40 via-transparent to-transparent" />
-      <HeroOverlayContent />
-    </section>
-  );
-}
-
-function HeroVideoLazy() {
-  const [show, setShow] = useState(false);
-  const [isMobile, setIsMobile] = useState<boolean | null>(null);
-  useEffect(() => {
-    const mql = window.matchMedia('(max-width: 767px)');
-    setIsMobile(mql.matches);
-    const onChange = (e: MediaQueryListEvent) => setIsMobile(e.matches);
-    mql.addEventListener('change', onChange);
-    const id = window.setTimeout(() => setShow(true), mql.matches ? 450 : 900);
-    return () => {
-      window.clearTimeout(id);
-      mql.removeEventListener('change', onChange);
-    };
-  }, []);
-  if (!show || isMobile === null) return null;
-  const src = isMobile ? HERO_VIDEO_MOBILE : HERO_VIDEO_DESKTOP;
-  return (
-    <video
-      key={src}
-      autoPlay
-      loop
-      muted
-      playsInline
-      preload="auto"
-      poster={heroPosterImage}
-      className="absolute inset-0 w-full h-full object-cover"
-      aria-hidden="true"
-    >
-      <source src={src} type="video/mp4" />
-    </video>
-  );
-}
-
-function HeroSceneInner() {
-  const heroRef = useRef<HTMLDivElement>(null);
-  const { scrollYProgress } = useScroll({
-    target: heroRef,
-    offset: ['start start', 'end start'],
-  });
-
-  const [isTouch, setIsTouch] = useState(false);
-  useEffect(() => {
-    const mql = window.matchMedia('(pointer: coarse), (max-width: 1023px)');
-    const update = () => setIsTouch(mql.matches);
-    update();
-    mql.addEventListener('change', update);
-    return () => mql.removeEventListener('change', update);
-  }, []);
-
-  const videoY = useTransform(scrollYProgress, [0, 1], ['0%', isTouch ? '0%' : '20%']);
-  const titleY = useTransform(scrollYProgress, [0, 1], ['0%', isTouch ? '0%' : '-30%']);
-  const titleOpacity = useTransform(scrollYProgress, [0, 0.7], [1, isTouch ? 1 : 0]);
+  const slide = HERO_SLIDES[active];
 
   return (
     <section
-      ref={heroRef}
-      className="relative h-[100svh] min-h-[560px] w-full overflow-hidden bg-black text-white lg:h-[calc(100svh-200px)] lg:min-h-[560px]"
+      className="relative w-full overflow-hidden bg-[#0c0a09]"
+      style={{ height: 'calc(100svh - 0px)', minHeight: 560 }}
       data-testid="scene-hero"
     >
-      <motion.div className="absolute inset-0 z-0" style={{ y: videoY }}>
-        <img
-          src={heroPosterImage}
-          alt=""
-          aria-hidden="true"
-          className="absolute inset-0 w-full h-full object-cover"
-        />
-        <HeroVideoLazy />
-        {/* %50 sabit siyah örtü — başlığın okunabilirliği için */}
-        <div className="absolute inset-0 bg-black/50" />
-        {/* CTA bölgesinde ekstra kontrast */}
-        <div className="absolute inset-0 bg-gradient-to-t from-black/40 via-transparent to-transparent" />
-      </motion.div>
+      {/* Background image */}
+      <AnimatePresence initial={false} custom={dir}>
+        <motion.div
+          key={active}
+          custom={dir}
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          exit={{ opacity: 0 }}
+          transition={{ duration: 0.9, ease: [0.33, 1, 0.68, 1] }}
+          className="absolute inset-0"
+          style={{ backgroundColor: slide.bg }}
+        >
+          <img
+            src={slide.image}
+            alt={slide.title}
+            className="absolute inset-0 w-full h-full object-cover opacity-60"
+            style={{ objectPosition: 'center 30%' }}
+          />
+          {/* Vignette layers */}
+          <div className="absolute inset-0 bg-gradient-to-r from-black/75 via-black/30 to-transparent" />
+          <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-black/20" />
+        </motion.div>
+      </AnimatePresence>
 
-      <motion.div
-        className="absolute inset-0 z-10"
-        style={{ y: titleY, opacity: titleOpacity }}
-      >
-        <HeroOverlayContent animated />
-      </motion.div>
+      {/* Content */}
+      <div className="relative z-10 h-full max-w-[1400px] mx-auto px-6 lg:px-12 flex flex-col justify-center">
+        <AnimatePresence mode="wait" initial={false}>
+          <motion.div
+            key={active}
+            initial={{ opacity: 0, y: 30 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -20 }}
+            transition={{ duration: 0.55, ease: [0.16, 1, 0.3, 1] }}
+            className="max-w-[620px]"
+          >
+            <span className="inline-block text-[10px] tracking-[0.30em] uppercase text-[#4a9a42] font-mono mb-4">
+              {slide.eyebrow}
+            </span>
+            <h1
+              className="font-black text-white leading-[0.93] mb-5"
+              style={{ fontSize: 'clamp(52px, 8vw, 120px)', letterSpacing: '-0.03em' }}
+            >
+              {slide.title}
+            </h1>
+            <p className="text-white/65 text-[15px] lg:text-[16px] leading-relaxed max-w-[440px] mb-9">
+              {slide.desc}
+            </p>
+            <div className="flex items-center gap-4">
+              <Link href={slide.href}>
+                <motion.span
+                  whileHover={{ scale: 1.02 }}
+                  whileTap={{ scale: 0.97 }}
+                  className="inline-flex items-center gap-3 px-7 py-3.5 bg-[#2D5A27] text-white text-[11px] tracking-[0.22em] uppercase font-bold hover:bg-[#4a9a42] transition-colors cursor-pointer"
+                  data-testid="link-hero-cta"
+                >
+                  {slide.cta}
+                  <ArrowUpRight className="w-4 h-4" />
+                </motion.span>
+              </Link>
+              <Link href="/magaza">
+                <span className="text-[11px] tracking-[0.20em] uppercase text-white/50 hover:text-white transition-colors cursor-pointer font-medium">
+                  Tüm Ürünler
+                </span>
+              </Link>
+            </div>
+          </motion.div>
+        </AnimatePresence>
+
+        {/* Slide controls */}
+        <div className="absolute bottom-10 left-6 lg:left-12 flex items-center gap-6">
+          {/* Progress lines */}
+          <div className="flex items-center gap-2">
+            {HERO_SLIDES.map((_, i) => (
+              <button
+                key={i}
+                onClick={() => go(i, i > active ? 1 : -1)}
+                className="relative h-[2px] rounded-full overflow-hidden transition-all duration-300"
+                style={{ width: i === active ? 40 : 16, backgroundColor: i === active ? '#4a9a42' : 'rgba(255,255,255,0.25)' }}
+                data-testid={`button-hero-slide-${i}`}
+                aria-label={`Slayt ${i + 1}`}
+              />
+            ))}
+          </div>
+          <span className="text-[10px] font-mono text-white/35 tracking-[0.22em]">
+            {String(active + 1).padStart(2, '0')} / {String(HERO_SLIDES.length).padStart(2, '0')}
+          </span>
+        </div>
+
+        {/* Arrow controls */}
+        <div className="absolute bottom-8 right-6 lg:right-12 flex items-center gap-2">
+          <button
+            onClick={prev}
+            className="w-10 h-10 rounded-full border border-white/20 flex items-center justify-center text-white/60 hover:text-white hover:border-white/50 transition-colors"
+            aria-label="Önceki slayt"
+            data-testid="button-hero-prev"
+          >
+            <ChevronLeft className="w-4 h-4" />
+          </button>
+          <button
+            onClick={next}
+            className="w-10 h-10 rounded-full border border-white/20 flex items-center justify-center text-white/60 hover:text-white hover:border-white/50 transition-colors"
+            aria-label="Sonraki slayt"
+            data-testid="button-hero-next"
+          >
+            <ChevronRight className="w-4 h-4" />
+          </button>
+        </div>
+      </div>
     </section>
   );
 }
 
-// HERO ÜZERİNDE BAŞLIK & CTA — masaüstü ve mobil için ayrı içerikler
-function HeroOverlayContent({ animated = false }: { animated?: boolean }) {
-  const Wrap: any = animated ? motion.div : 'div';
-  const wrapProps = animated
-    ? {
-        initial: { opacity: 0, y: 20 },
-        animate: { opacity: 1, y: 0 },
-        transition: { delay: 0.4, duration: 1.0, ease: [0.16, 1, 0.3, 1] },
-      }
-    : {};
+// ─── FEATURED PRODUCTS ────────────────────────────────────────────────────────
 
-  return (
-    <div className="relative h-full w-full">
-      {/* ── MOBİL — logo + slogan + CTA ── */}
-      <div className="lg:hidden h-full w-full flex flex-col items-center justify-center text-center px-6">
-        <Wrap {...wrapProps}>
-          <div className="flex flex-col items-center">
-            <img
-              src="/uploads/branding/sepetzen-logo-white.png"
-              alt="Sepetzen – Kamp, Outdoor, Bıçak ve Bağ Bahçe"
-              data-testid="text-hero-title-mobile"
-              className="w-[200px] sm:w-[240px] h-auto object-contain drop-shadow-[0_2px_20px_rgba(0,0,0,0.6)]"
-            />
-            <p className="mt-6 text-[11px] tracking-[0.22em] uppercase text-white/75 font-mono">
-              El Yapımı · Doğal · Türk Ustalığı
-            </p>
-            <Link
-              href="/magaza"
-              data-testid="link-hero-cta-mobile"
-              className="inline-flex items-center gap-2 mt-8 px-6 py-3 bg-[#2D5A27] text-white text-[11px] tracking-[0.22em] uppercase font-semibold hover:bg-[#2D5A27]/90 transition-colors"
-            >
-              Ürünleri Keşfet
-              <ArrowUpRight className="w-3.5 h-3.5" />
-            </Link>
-          </div>
-        </Wrap>
-      </div>
-
-      {/* ── MASAÜSTÜ — logo büyük, ortalı, güçlü ── */}
-      <div className="hidden lg:flex h-full w-full items-center justify-center">
-        <div className="w-full max-w-[1500px] mx-auto px-10 py-16 xl:py-20 text-center">
-          <Wrap {...wrapProps} className="flex flex-col items-center">
-            <img
-              src="/uploads/branding/sepetzen-logo-white.png"
-              alt="Sepetzen – Kamp, Outdoor, Bıçak ve Bağ Bahçe"
-              data-testid="text-hero-title"
-              className="w-[340px] xl:w-[420px] h-auto object-contain drop-shadow-[0_4px_32px_rgba(0,0,0,0.65)] mb-0"
-            />
-
-            <span aria-hidden className="block w-16 h-px bg-[#2D5A27] mt-8 mb-6" />
-
-            <p className="max-w-[640px] text-[14px] xl:text-[15px] leading-relaxed text-white/80">
-              Av bıçakları, kamp çakıları, outdoor ekipmanları ve bağ & bahçe ürünleri.<br className="hidden xl:block" />
-              Dalaman'dan Türkiye'nin dört bir yanına güvenli teslimat.
-            </p>
-
-            <div className="flex items-center gap-4 mt-10">
-              <Link
-                href="/magaza"
-                data-testid="link-hero-cta"
-                className="inline-flex items-center gap-3 px-8 py-4 bg-[#2D5A27] text-white text-[12px] tracking-[0.24em] uppercase font-semibold hover:bg-[#2D5A27]/90 transition-colors"
-              >
-                Ürünleri Keşfet
-                <ArrowUpRight className="w-4 h-4" />
-              </Link>
-              <a
-                href="https://www.instagram.com/sepetzen"
-                target="_blank"
-                rel="noopener noreferrer"
-                data-testid="link-hero-instagram"
-                className="inline-flex items-center gap-2 px-6 py-4 border border-white/30 text-white text-[12px] tracking-[0.20em] uppercase font-medium hover:bg-white/10 transition-colors"
-              >
-                @sepetzen
-              </a>
-            </div>
-          </Wrap>
-        </div>
-      </div>
-    </div>
-  );
-}
-
-// SCENE 02 — AUTO-SLIDE SHOWCASE (yatay otomatik kayan vitrin)
-
-function PinnedShowcaseScene({ products }: { products: Product[] }) {
+function FeaturedProducts({ products }: { products: Product[] }) {
+  const ref = useRef<HTMLElement>(null);
+  const inView = useInView(ref, { once: true, amount: 0.1 });
   const items = useMemo(() => {
-    if (!products?.length) return [];
-    const featured = products.filter((p) => p.isFeatured && p.images?.length);
-    const news = products.filter((p) => p.isNew && !p.isFeatured && p.images?.length);
-    const rest = products.filter((p) => !p.isFeatured && !p.isNew && p.images?.length);
-    return [...featured, ...news, ...rest].slice(0, 16);
+    const featured = products.filter(p => p.isFeatured && p.images?.length);
+    const rest = products.filter(p => !p.isFeatured && p.images?.length);
+    return [...featured, ...rest].slice(0, 8);
   }, [products]);
 
-  if (items.length === 0) return null;
-
-  const doubled = [...items, ...items];
+  if (!items.length) return null;
 
   return (
     <section
-      className="relative bg-[#0c0a09] text-white py-14 lg:py-20 overflow-hidden border-y border-white/10"
-      data-testid="scene-showcase"
-      aria-label="Vitrin — öne çıkan ürünler"
+      ref={ref}
+      className="bg-[#f5f3ef] py-16 lg:py-24 px-5 lg:px-10"
+      data-testid="scene-featured"
     >
-      <div className="px-5 lg:px-10 mb-8 lg:mb-10 flex items-center justify-between text-[10px] font-mono tracking-[0.28em] uppercase text-white/55">
-        <span>— 02 / Vitrin</span>
-        <Link
-          href="/magaza"
-          data-testid="link-showcase-all"
-          className="hover:text-[#4a9a42] transition-colors inline-flex items-center gap-2"
-          aria-label="Tüm ürünleri gör"
-        >
-          Tümü <ArrowUpRight className="w-3 h-3" />
-        </Link>
-      </div>
-
-      <div className="relative">
-        {/* Sağ ve sol fade mask: kartların sert kesilmesi yerine zarifçe sönmesi için */}
-        <div className="pointer-events-none absolute inset-y-0 left-0 z-10 w-12 lg:w-24 bg-gradient-to-r from-[#0c0a09] to-transparent" />
-        <div className="pointer-events-none absolute inset-y-0 right-0 z-10 w-12 lg:w-24 bg-gradient-to-l from-[#0c0a09] to-transparent" />
-        <div className="flex animate-marquee-hero">
-          {[0, 1].map((groupIdx) => (
-            <div
-              key={groupIdx}
-              className="flex gap-5 lg:gap-8 pr-5 lg:pr-8 shrink-0"
-              aria-hidden={groupIdx === 1 ? true : undefined}
+      <div className="max-w-[1320px] mx-auto">
+        {/* Heading */}
+        <div className="flex items-end justify-between mb-10 lg:mb-14">
+          <div>
+            <p className="text-[10px] font-mono tracking-[0.30em] uppercase text-black/40 mb-2">Seçtiklerimiz</p>
+            <h2
+              className="font-black text-black leading-none"
+              style={{ fontSize: 'clamp(28px, 4vw, 52px)', letterSpacing: '-0.03em' }}
             >
-              {items.map((p, i) => (
-                <Link
-                  key={`${groupIdx}-${p.id}-${i}`}
-                  href={`/urun/${p.slug}`}
-                  data-testid={`link-showcase-product-${p.id}-${groupIdx}-${i}`}
-                  aria-label={`${p.name} ürün sayfası`}
-                  className="group shrink-0 w-[260px] lg:w-[340px]"
-                >
-                  <div className="relative aspect-[4/5] overflow-hidden bg-zinc-900">
-                    <img
-                      src={p.images?.[0] || ''}
-                      alt={p.name}
-                      loading="lazy"
-                      decoding="async"
-                      className="absolute inset-0 w-full h-full object-cover transition-transform duration-[1200ms] ease-out group-hover:scale-105"
-                    />
-                    <div className="absolute inset-x-0 bottom-0 h-1/2 bg-gradient-to-t from-black/85 to-transparent" />
-                    {p.discountBadge && (
-                      <div className="absolute top-3 right-3 bg-[#2D5A27] text-white text-[10px] font-bold tracking-[0.2em] px-2 py-1 uppercase">
-                        {p.discountBadge}
-                      </div>
-                    )}
-                    <div className="absolute bottom-0 left-0 right-0 p-4 lg:p-5 flex items-end justify-between gap-3">
-                      <div className="min-w-0">
-                        <div className="text-[10px] font-mono tracking-[0.22em] uppercase text-white/55 mb-1">
-                          Sepetzen
-                        </div>
-                        <div className="text-sm lg:text-base font-medium text-white truncate">
-                          {p.name}
-                        </div>
-                      </div>
-                      <div className="text-sm lg:text-base font-semibold text-[#4a9a42] whitespace-nowrap">
-                        {formatPrice(p.basePrice)} ₺
-                      </div>
-                    </div>
-                  </div>
-                </Link>
-              ))}
-            </div>
+              Öne Çıkan Ürünler
+            </h2>
+          </div>
+          <Link
+            href="/magaza"
+            data-testid="link-featured-all"
+            className="hidden sm:inline-flex items-center gap-2 text-[11px] tracking-[0.22em] uppercase font-semibold text-black/50 hover:text-[#2D5A27] transition-colors"
+          >
+            Tümünü Gör <ArrowUpRight className="w-3.5 h-3.5" />
+          </Link>
+        </div>
+
+        {/* Grid */}
+        <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-4 gap-4 lg:gap-6">
+          {items.map((p, i) => (
+            <motion.div
+              key={p.id}
+              initial={{ opacity: 0, y: 24 }}
+              animate={inView ? { opacity: 1, y: 0 } : {}}
+              transition={{ duration: 0.5, delay: i * 0.06, ease: [0.16, 1, 0.3, 1] }}
+            >
+              <ProductCard product={p} />
+            </motion.div>
+          ))}
+        </div>
+
+        <div className="mt-10 text-center sm:hidden">
+          <Link href="/magaza" className="inline-flex items-center gap-2 text-[11px] tracking-[0.22em] uppercase font-semibold text-[#2D5A27]">
+            Tüm Ürünlere Bak <ArrowUpRight className="w-3.5 h-3.5" />
+          </Link>
+        </div>
+      </div>
+    </section>
+  );
+}
+
+// ─── CATEGORIES ───────────────────────────────────────────────────────────────
+
+const CATS = [
+  {
+    name: 'Çakılar',
+    slug: 'cakilar',
+    desc: 'Kamp & Av Çakıları',
+    image: '/uploads/products/header_ithal-caki-1.png',
+    accent: '#4a9a42',
+  },
+  {
+    name: 'Bıçaklar',
+    slug: 'bicaklar',
+    desc: 'Av & Mutfak Bıçakları',
+    image: '/uploads/products/header_av-cakisi.png',
+    accent: '#4a9a42',
+  },
+  {
+    name: 'Kamp & Outdoor',
+    slug: 'kamp-outdoor-ekipmanlari',
+    desc: 'Doğa Ekipmanları',
+    image: '/uploads/products/header_kamp-bicagi.png',
+    accent: '#34d399',
+  },
+  {
+    name: 'Bağ & Bahçe',
+    slug: 'bag-bahce-aletleri',
+    desc: 'Tarım & Bahçe Aletleri',
+    image: '/uploads/products/header_bag-bahce.png',
+    accent: '#84cc16',
+  },
+  {
+    name: 'Mangal & Izgara',
+    slug: 'mangal-izgara-ahsap',
+    desc: 'BBQ & Ahşap Ürünler',
+    image: '/uploads/products/header_izgara.png',
+    accent: '#f59e0b',
+  },
+  {
+    name: 'Nalbur & Hırdavat',
+    slug: 'nalbur-hirdavat',
+    desc: 'El Aletleri & Donanım',
+    image: '/uploads/products/header_mangal-aksesuar.png',
+    accent: '#9ca3af',
+  },
+];
+
+function CategoriesSection() {
+  const ref = useRef<HTMLElement>(null);
+  const inView = useInView(ref, { once: true, amount: 0.15 });
+
+  return (
+    <section
+      ref={ref}
+      className="bg-[#0c0a09] py-16 lg:py-24 px-5 lg:px-10"
+      data-testid="scene-categories"
+    >
+      <div className="max-w-[1320px] mx-auto">
+        <div className="flex items-end justify-between mb-10 lg:mb-14">
+          <div>
+            <p className="text-[10px] font-mono tracking-[0.30em] uppercase text-white/35 mb-2">Koleksiyon</p>
+            <h2
+              className="font-black text-white leading-none"
+              style={{ fontSize: 'clamp(28px, 4vw, 52px)', letterSpacing: '-0.03em' }}
+            >
+              Kategoriler
+            </h2>
+          </div>
+          <Link
+            href="/magaza"
+            className="hidden sm:inline-flex items-center gap-2 text-[11px] tracking-[0.22em] uppercase font-semibold text-white/35 hover:text-white transition-colors"
+          >
+            Tümü <ArrowUpRight className="w-3.5 h-3.5" />
+          </Link>
+        </div>
+
+        {/* Grid: 3+3 on desktop, 2 cols mobile */}
+        <div className="grid grid-cols-2 lg:grid-cols-3 gap-3 lg:gap-4">
+          {CATS.map((cat, i) => (
+            <motion.div
+              key={cat.slug}
+              initial={{ opacity: 0, scale: 0.97 }}
+              animate={inView ? { opacity: 1, scale: 1 } : {}}
+              transition={{ duration: 0.5, delay: i * 0.07, ease: [0.16, 1, 0.3, 1] }}
+              className={i === 0 ? 'lg:col-span-2 lg:row-span-2' : ''}
+            >
+              <Link
+                href={`/kategori/${cat.slug}`}
+                data-testid={`link-cat-${cat.slug}`}
+                className="group relative flex overflow-hidden bg-zinc-900 block"
+                style={{
+                  height: i === 0 ? undefined : undefined,
+                  aspectRatio: i === 0 ? '16/10' : '4/3',
+                }}
+              >
+                {/* Image */}
+                <img
+                  src={cat.image}
+                  alt={cat.name}
+                  className="absolute inset-0 w-full h-full object-cover transition-transform duration-700 ease-out group-hover:scale-105 opacity-65 group-hover:opacity-80"
+                />
+                {/* Gradient */}
+                <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent" />
+
+                {/* Content */}
+                <div className="relative z-10 mt-auto p-4 lg:p-6 w-full">
+                  <p className="text-[9px] lg:text-[10px] tracking-[0.24em] uppercase font-mono mb-1.5"
+                    style={{ color: cat.accent }}>
+                    {cat.desc}
+                  </p>
+                  <h3 className={`font-black text-white leading-none tracking-tight ${i === 0 ? 'text-[22px] lg:text-[32px]' : 'text-[16px] lg:text-[20px]'}`}>
+                    {cat.name}
+                  </h3>
+                  <span className="mt-2 lg:mt-3 inline-flex items-center gap-1.5 text-[10px] tracking-[0.18em] uppercase text-white/40 group-hover:text-white/80 transition-colors">
+                    Keşfet <ArrowUpRight className="w-3 h-3" />
+                  </span>
+                </div>
+              </Link>
+            </motion.div>
           ))}
         </div>
       </div>
@@ -349,210 +370,92 @@ function PinnedShowcaseScene({ products }: { products: Product[] }) {
   );
 }
 
-// SCENE 03 — PRODUCTS GRID (sade ürün listesi)
+// ─── NEW ARRIVALS ─────────────────────────────────────────────────────────────
 
-function ProductGridScene({ products }: { products: Product[] }) {
+function NewArrivals({ products }: { products: Product[] }) {
+  const ref = useRef<HTMLElement>(null);
+  const inView = useInView(ref, { once: true, amount: 0.1 });
   const items = useMemo(() => {
-    if (!products?.length) return [];
-    const pool = products.filter((p) => p.images?.length);
-    const seed = 1729;
-    const shuffled = [...pool]
-      .map((p, i) => ({ p, key: hashStr(`${p.id}:${seed}:${i}`) }))
-      .sort((a, b) => a.key - b.key)
-      .map((x) => x.p);
-    return shuffled.slice(0, 12);
+    return products.filter(p => (p.isNew || p.discountBadge) && p.images?.length).slice(0, 4);
   }, [products]);
 
-  if (items.length === 0) return null;
-
-  return (
-    <section
-      className="relative bg-[hsl(var(--polen-cream))] text-black py-16 lg:py-24 px-5 lg:px-10"
-      data-testid="scene-product-grid"
-      aria-label="Ürünler"
-    >
-      <div className="max-w-[1320px] mx-auto flex items-end justify-between mb-8 lg:mb-12 gap-6">
-        <div>
-          <div className="text-[10px] font-mono tracking-[0.28em] uppercase text-black/45 mb-3">
-            — 03 / Ürünler
-          </div>
-          <h2
-            className="font-display uppercase text-black leading-[0.95]"
-            style={{
-              fontSize: 'clamp(28px, 4vw, 56px)',
-              letterSpacing: '-0.02em',
-            }}
-          >
-            Sepetzen Koleksiyonu
-          </h2>
-        </div>
-        <Link
-          href="/magaza"
-          data-testid="link-grid-all"
-          className="shrink-0 inline-flex items-center gap-2 text-[11px] font-mono tracking-[0.24em] uppercase text-black/70 hover:text-[#4a9a42] transition-colors"
-          aria-label="Tüm ürünleri gör"
-        >
-          Tümünü Gör <ArrowUpRight className="w-3.5 h-3.5" />
-        </Link>
-      </div>
-
-      <div className="max-w-[1320px] mx-auto grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4 lg:gap-6">
-        {items.map((p) => (
-          <ProductCard key={p.id} product={p} />
-        ))}
-      </div>
-    </section>
-  );
-}
-
-// SCENE 03b — CATEGORY BENTO GRID
-
-const BENTO_CATS = [
-  {
-    name: 'Çakılar',
-    slug: 'cakilar',
-    icon: Scissors,
-    gradient: 'from-[#1a2e19] to-[#2D5A27]',
-    accent: '#4a9a42',
-    span: 'lg:col-span-2 lg:row-span-2',
-    size: 'large',
-  },
-  {
-    name: 'Bıçaklar',
-    slug: 'bicaklar',
-    icon: Scissors,
-    gradient: 'from-[#0f1a0e] to-[#1e3a1c]',
-    accent: '#4a9a42',
-    span: '',
-    size: 'small',
-  },
-  {
-    name: 'Bağ & Bahçe',
-    slug: 'bag-bahce-aletleri',
-    icon: Sprout,
-    gradient: 'from-[#162b14] to-[#2a5227]',
-    accent: '#6cc45e',
-    span: '',
-    size: 'small',
-  },
-  {
-    name: 'Mangal & Izgara',
-    slug: 'mangal-izgara-ahsap',
-    icon: Flame,
-    gradient: 'from-[#2a1a0f] to-[#5c3217]',
-    accent: '#d97706',
-    span: 'lg:col-span-2',
-    size: 'wide',
-  },
-  {
-    name: 'Pet Shop & Çiftlik',
-    slug: 'pet-shop-ciftlik-ekipmanlari',
-    icon: PawPrint,
-    gradient: 'from-[#1a1f2e] to-[#253456]',
-    accent: '#6394f0',
-    span: '',
-    size: 'small',
-  },
-  {
-    name: 'Nalbur & Hırdavat',
-    slug: 'nalbur-hirdavat',
-    icon: Hammer,
-    gradient: 'from-[#1f1f1f] to-[#3a3a3a]',
-    accent: '#9ca3af',
-    span: '',
-    size: 'small',
-  },
-  {
-    name: 'Kamp & Outdoor',
-    slug: 'cakilar',
-    icon: Tent,
-    gradient: 'from-[#0c1a1a] to-[#163333]',
-    accent: '#34d399',
-    span: '',
-    size: 'small',
-  },
-  {
-    name: 'Tüm Ürünler',
-    slug: 'tum-urunler',
-    icon: Leaf,
-    gradient: 'from-[#111827] to-[#1f2937]',
-    accent: '#4a9a42',
-    span: '',
-    size: 'small',
-  },
-];
-
-function CategoryBentoScene() {
-  const ref = useRef<HTMLDivElement>(null);
-  const inView = useInView(ref, { once: true, amount: 0.2 });
+  if (items.length < 2) return null;
 
   return (
     <section
       ref={ref}
-      className="relative bg-[#0c0a09] text-white py-16 lg:py-24 px-5 lg:px-10 border-y border-white/[0.06]"
-      data-testid="scene-category-bento"
-      aria-label="Kategoriler"
+      className="bg-[#0f1a0d] py-16 lg:py-24 px-5 lg:px-10"
+      data-testid="scene-new-arrivals"
     >
       <div className="max-w-[1320px] mx-auto">
-        <div className="flex items-end justify-between mb-8 lg:mb-12 gap-6">
+        <div className="flex items-end justify-between mb-10 lg:mb-14">
           <div>
-            <div className="text-[10px] font-mono tracking-[0.28em] uppercase text-white/35 mb-3">
-              — Keşfet
-            </div>
+            <p className="text-[10px] font-mono tracking-[0.30em] uppercase text-[#4a9a42] mb-2">Yeni</p>
             <h2
-              className="font-display uppercase text-white leading-[0.95]"
-              style={{ fontSize: 'clamp(24px, 3.5vw, 52px)', letterSpacing: '-0.02em' }}
+              className="font-black text-white leading-none"
+              style={{ fontSize: 'clamp(28px, 4vw, 52px)', letterSpacing: '-0.03em' }}
             >
-              Kategoriler
+              Yeni Gelenler
             </h2>
           </div>
           <Link
-            href="/magaza"
-            data-testid="link-bento-all"
-            className="shrink-0 inline-flex items-center gap-2 text-[11px] font-mono tracking-[0.24em] uppercase text-white/50 hover:text-white transition-colors"
+            href="/magaza?isNew=1"
+            className="hidden sm:inline-flex items-center gap-2 text-[11px] tracking-[0.22em] uppercase font-semibold text-white/35 hover:text-[#4a9a42] transition-colors"
           >
-            Tümü <ArrowUpRight className="w-3.5 h-3.5" />
+            Hepsini Gör <ArrowUpRight className="w-3.5 h-3.5" />
           </Link>
         </div>
 
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 lg:gap-4 auto-rows-[160px] lg:auto-rows-[200px]">
-          {BENTO_CATS.map((cat, i) => {
-            const Icon = cat.icon;
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 lg:gap-5">
+          {items.map((p, i) => {
+            const price = parseFloat(String(p.basePrice || '0')) || 0;
             return (
               <motion.div
-                key={cat.slug + i}
+                key={p.id}
                 initial={{ opacity: 0, y: 24 }}
                 animate={inView ? { opacity: 1, y: 0 } : {}}
-                transition={{ duration: 0.5, delay: i * 0.06, ease: [0.16, 1, 0.3, 1] }}
-                className={cat.span}
+                transition={{ duration: 0.5, delay: i * 0.08, ease: [0.16, 1, 0.3, 1] }}
               >
                 <Link
-                  href={`/kategori/${cat.slug}`}
-                  data-testid={`link-bento-${cat.slug}-${i}`}
-                  className={`group relative h-full w-full flex flex-col justify-end overflow-hidden bg-gradient-to-br ${cat.gradient} border border-white/[0.06] hover:border-white/[0.18] transition-all duration-500 block`}
+                  href={`/urun/${p.slug}`}
+                  data-testid={`link-new-${p.id}`}
+                  className="group block"
                 >
-                  {/* Background icon — oversized and faint */}
-                  <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 opacity-[0.07] group-hover:opacity-[0.12] transition-opacity duration-500">
-                    <Icon
-                      style={{ width: cat.size === 'large' ? '140px' : '90px', height: 'auto', color: cat.accent }}
-                      strokeWidth={1}
+                  {/* Image */}
+                  <div className="relative aspect-[3/4] overflow-hidden bg-zinc-900 mb-3">
+                    <img
+                      src={p.images?.[0] || ''}
+                      alt={p.name}
+                      loading="lazy"
+                      className="absolute inset-0 w-full h-full object-cover transition-transform duration-700 ease-out group-hover:scale-105"
                     />
-                  </div>
-
-                  {/* Content */}
-                  <div className="relative z-10 p-4 lg:p-5">
-                    <div
-                      className="w-8 h-8 lg:w-9 lg:h-9 rounded-full flex items-center justify-center mb-3 transition-transform duration-300 group-hover:scale-110"
-                      style={{ backgroundColor: cat.accent + '22', border: `1px solid ${cat.accent}44` }}
-                    >
-                      <Icon className="w-4 h-4 lg:w-4.5 lg:h-4.5" style={{ color: cat.accent }} strokeWidth={2} />
+                    {/* Badge */}
+                    {p.discountBadge && (
+                      <div className="absolute top-2.5 left-2.5 bg-[#2D5A27] text-white text-[9px] font-bold tracking-[0.16em] uppercase px-2 py-1">
+                        {p.discountBadge}
+                      </div>
+                    )}
+                    {p.isNew && !p.discountBadge && (
+                      <div className="absolute top-2.5 left-2.5 bg-white text-black text-[9px] font-bold tracking-[0.16em] uppercase px-2 py-1">
+                        Yeni
+                      </div>
+                    )}
+                    {/* Hover overlay */}
+                    <div className="absolute inset-0 bg-black/0 group-hover:bg-black/25 transition-colors duration-300 flex items-center justify-center">
+                      <span className="opacity-0 group-hover:opacity-100 transition-opacity duration-300 text-[10px] tracking-[0.22em] uppercase font-bold text-white border border-white px-4 py-2">
+                        İncele
+                      </span>
                     </div>
-                    <span className="block text-[13px] lg:text-[15px] font-semibold text-white leading-tight tracking-[0.02em]">
-                      {cat.name}
-                    </span>
-                    <span className="flex items-center gap-1 mt-1.5 text-[10px] tracking-[0.16em] uppercase text-white/40 group-hover:text-white/70 transition-colors">
-                      Keşfet <ArrowUpRight className="w-2.5 h-2.5" />
-                    </span>
+                  </div>
+                  {/* Info */}
+                  <div>
+                    <p className="text-[11px] tracking-[0.06em] text-white/50 font-mono mb-0.5">Sepetzen</p>
+                    <p className="text-[13px] lg:text-[14px] font-semibold text-white leading-snug line-clamp-2 mb-1.5 group-hover:text-[#4a9a42] transition-colors">
+                      {p.name}
+                    </p>
+                    <p className="text-[15px] font-bold text-[#4a9a42]">
+                      {price.toLocaleString('tr-TR', { maximumFractionDigits: 0 })} ₺
+                    </p>
                   </div>
                 </Link>
               </motion.div>
@@ -564,166 +467,84 @@ function CategoryBentoScene() {
   );
 }
 
-// SCENE 04 — STATEMENT MARQUEE STRIP
+// ─── TRUST STRIP ─────────────────────────────────────────────────────────────
 
-function StatementMarqueeScene() {
+function TrustStrip() {
   const items = [
-    'SEPETZEN',
-    '◆',
-    'EL YAPIMI BIÇAKLAR',
-    '✦',
-    'OUTDOOR EKİPMANLARI',
-    '◆',
-    'KAMP ÇAKILARI',
-    '✦',
-    'BAHÇE ALETLERİ',
-    '◆',
-    'DOĞAL MALZEME',
-    '✦',
-    'TÜRK USTALIGI',
-    '◆',
+    { icon: Truck, title: '1500 ₺ Üzeri Ücretsiz Kargo', desc: 'Türkiye genelinde hızlı teslimat' },
+    { icon: ShieldCheck, title: 'Güvenli Ödeme', desc: 'SSL korumalı, 3D Secure iyzico' },
+    { icon: Star, title: 'Orijinal & Kaliteli', desc: 'Türk zanaatkâr işçiliği' },
   ];
-  const doubled = [...items, ...items, ...items];
-
   return (
-    <section
-      className="relative bg-[#2D5A27] text-white overflow-hidden border-y border-white/10"
-      data-testid="scene-statement-marquee"
-      aria-label="Marka bilgi şeridi"
-    >
-      <div className="py-6 lg:py-9 overflow-hidden">
-        <div
-          className="flex items-center gap-7 lg:gap-12 animate-marquee whitespace-nowrap"
-          style={{ animationDuration: '14s' }}
-        >
-          {doubled.map((t, i) => (
-            <span
-              key={i}
-              className={`font-display uppercase ${
-                t.length === 1
-                  ? 'text-[#4a9a42] text-base lg:text-xl'
-                  : 'text-base lg:text-2xl tracking-[0.04em]'
-              }`}
-            >
-              {t}
-            </span>
-          ))}
-        </div>
+    <section className="bg-[#2D5A27] py-10 lg:py-12 px-5 lg:px-10" data-testid="scene-trust">
+      <div className="max-w-[1320px] mx-auto grid grid-cols-1 sm:grid-cols-3 gap-6 lg:gap-8">
+        {items.map((item) => {
+          const Icon = item.icon;
+          return (
+            <div key={item.title} className="flex items-center gap-4">
+              <div className="w-10 h-10 rounded-full bg-white/10 flex items-center justify-center shrink-0">
+                <Icon className="w-5 h-5 text-white" strokeWidth={1.75} />
+              </div>
+              <div>
+                <p className="text-[12px] font-bold text-white tracking-wide">{item.title}</p>
+                <p className="text-[11px] text-white/60 mt-0.5">{item.desc}</p>
+              </div>
+            </div>
+          );
+        })}
       </div>
     </section>
   );
 }
 
-// SCENE 05 — FINAL CTA (footer-preceding)
+// ─── FINAL CTA ────────────────────────────────────────────────────────────────
 
-function FinalCtaScene() {
-  const ref = useRef<HTMLDivElement>(null);
+function FinalCta() {
+  const ref = useRef<HTMLElement>(null);
   const inView = useInView(ref, { once: true, amount: 0.3 });
   return (
     <section
       ref={ref}
-      className="relative bg-[hsl(var(--polen-cream))] text-black py-24 lg:py-36 px-5 lg:px-10 overflow-hidden"
+      className="bg-[#f5f3ef] py-20 lg:py-32 px-5 lg:px-10 text-center"
       data-testid="scene-final-cta"
     >
-      <div className="max-w-[1320px] mx-auto">
-        <div className="text-[10px] font-mono tracking-[0.28em] uppercase text-black/45 mb-8">
-          — 04 / Davet
-        </div>
-        <h2
-          className="font-display uppercase text-black leading-[0.92]"
-          style={{
-            fontSize: 'clamp(40px, 6vw, 110px)',
-            letterSpacing: '-0.03em',
-          }}
-        >
-          <motion.span
-            initial={{ opacity: 0, y: 40 }}
-            animate={inView ? { opacity: 1, y: 0 } : {}}
-            transition={{ duration: 0.45, ease: [0.16, 1, 0.3, 1] }}
-            className="block"
-          >
-            Doğanın ruhunu
-          </motion.span>
-          <motion.span
-            initial={{ opacity: 0, y: 40 }}
-            animate={inView ? { opacity: 1, y: 0 } : {}}
-            transition={{ duration: 0.45, delay: 0.06, ease: [0.16, 1, 0.3, 1] }}
-            className="block"
-          >
-            kapınıza
-          </motion.span>
-          <motion.span
-            initial={{ opacity: 0, y: 40 }}
-            animate={inView ? { opacity: 1, y: 0 } : {}}
-            transition={{ duration: 0.45, delay: 0.12, ease: [0.16, 1, 0.3, 1] }}
-            className="block text-[#4a9a42]"
-          >
-            getiriyoruz.
-          </motion.span>
-        </h2>
-
+      <div className="max-w-[800px] mx-auto">
         <motion.div
-          initial={{ opacity: 0, y: 20 }}
+          initial={{ opacity: 0, y: 32 }}
           animate={inView ? { opacity: 1, y: 0 } : {}}
-          transition={{ duration: 0.4, delay: 0.18, ease: [0.16, 1, 0.3, 1] }}
-          className="mt-12 lg:mt-16 flex flex-col lg:flex-row lg:items-center lg:justify-between gap-8"
+          transition={{ duration: 0.6, ease: [0.16, 1, 0.3, 1] }}
         >
-          <p className="max-w-[560px] text-base lg:text-lg text-black/65 leading-relaxed">
+          <p className="text-[10px] font-mono tracking-[0.30em] uppercase text-black/40 mb-6">Dalaman / Muğla</p>
+          <h2
+            className="font-black text-black leading-[0.92] mb-8"
+            style={{ fontSize: 'clamp(40px, 7vw, 96px)', letterSpacing: '-0.03em' }}
+          >
+            Doğanın ruhunu<br />
+            <span className="text-[#2D5A27]">kapınıza</span> getiriyoruz.
+          </h2>
+          <p className="text-[15px] text-black/55 leading-relaxed mb-10 max-w-[520px] mx-auto">
             Av bıçakları, kamp çakıları ve outdoor ekipmanlarını kapınıza getiriyoruz.
-            Dalaman'dan Türkiye'nin dört bir yanına hızlı ve güvenli teslimat.
+            Türkiye geneline hızlı ve güvenli teslimat.
           </p>
-          <div className="flex flex-col sm:flex-row items-start sm:items-center gap-5 sm:gap-8">
-            <Link
-              href="/magaza"
-              data-testid="link-final-cta-shop"
-              data-cursor="cta"
-              data-cursor-label="Keşfet"
-              aria-label="Tüm koleksiyonu keşfet"
-              className="group inline-flex items-center gap-4"
-            >
-              <span className="inline-flex items-center justify-center w-16 h-16 lg:w-20 lg:h-20 rounded-full bg-black text-white group-hover:bg-[#2D5A27] transition-colors">
-                <ArrowUpRight className="w-6 h-6 lg:w-7 lg:h-7" />
-              </span>
-              <span className="text-sm lg:text-base font-medium tracking-[0.18em] uppercase text-black group-hover:text-[#4a9a42] transition-colors">
-                Koleksiyonu Keşfet
-              </span>
+          <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
+            <Link href="/magaza" data-testid="link-final-cta-shop">
+              <motion.span
+                whileHover={{ scale: 1.02 }}
+                whileTap={{ scale: 0.97 }}
+                className="inline-flex items-center gap-3 px-8 py-4 bg-[#2D5A27] text-white text-[11px] tracking-[0.24em] uppercase font-bold hover:bg-[#4a9a42] transition-colors cursor-pointer"
+              >
+                Koleksiyonu Keşfet <ArrowUpRight className="w-4 h-4" />
+              </motion.span>
             </Link>
-            <a
-              href="https://wa.me/905366301138"
-              target="_blank"
-              rel="noopener noreferrer"
-              data-testid="link-final-cta-whatsapp"
-              aria-label="WhatsApp üzerinden iletişime geç"
-              className="group inline-flex items-center gap-4"
-            >
-              <span className="inline-flex items-center justify-center w-16 h-16 lg:w-20 lg:h-20 rounded-full border border-black/25 text-black group-hover:bg-black group-hover:text-white transition-colors">
-                <svg
-                  viewBox="0 0 24 24"
-                  className="w-6 h-6 lg:w-7 lg:h-7 fill-current"
-                  aria-hidden="true"
-                  focusable="false"
-                >
-                  <path d="M19.05 4.91A10 10 0 0 0 12 2a10 10 0 0 0-8.66 14.95L2 22l5.21-1.34A10 10 0 0 0 22 12a9.93 9.93 0 0 0-2.95-7.09Zm-7.05 15A8.07 8.07 0 0 1 7.9 18.7l-.28-.17-3.09.79.83-3-.18-.3a8 8 0 1 1 6.82 3.86Zm4.41-5.96c-.24-.12-1.42-.7-1.64-.78s-.38-.12-.54.12-.62.78-.76.94-.28.18-.52.06a6.6 6.6 0 0 1-1.95-1.2 7.32 7.32 0 0 1-1.35-1.68c-.14-.24 0-.37.1-.49s.24-.28.36-.42a1.65 1.65 0 0 0 .24-.4.44.44 0 0 0 0-.42c-.06-.12-.54-1.3-.74-1.78s-.39-.4-.54-.41h-.46a.89.89 0 0 0-.64.3 2.7 2.7 0 0 0-.84 2c0 1.18.86 2.32.98 2.48s1.69 2.59 4.1 3.63a13.8 13.8 0 0 0 1.37.51 3.31 3.31 0 0 0 1.51.1 2.48 2.48 0 0 0 1.62-1.14 2 2 0 0 0 .14-1.14c-.06-.12-.22-.18-.46-.3Z" />
-                </svg>
-              </span>
-              <span className="text-sm lg:text-base font-medium tracking-[0.18em] uppercase text-black group-hover:text-[#4a9a42] transition-colors">
-                WhatsApp
-              </span>
-            </a>
             <a
               href="https://www.instagram.com/sepetzen"
               target="_blank"
               rel="noopener noreferrer"
               data-testid="link-final-cta-instagram"
-              aria-label="Instagram'da takip et"
-              className="group inline-flex items-center gap-4"
+              className="inline-flex items-center gap-2 px-6 py-4 border border-black/20 text-black text-[11px] tracking-[0.20em] uppercase font-medium hover:bg-black hover:text-white transition-colors"
             >
-              <span className="inline-flex items-center justify-center w-16 h-16 lg:w-20 lg:h-20 rounded-full border border-black/25 text-black group-hover:bg-black group-hover:text-white transition-colors">
-                <Instagram className="w-6 h-6 lg:w-7 lg:h-7" strokeWidth={1.75} />
-              </span>
-              <span className="text-sm lg:text-base font-medium tracking-[0.18em] uppercase text-black group-hover:text-[#4a9a42] transition-colors">
-                Instagram
-              </span>
+              <Instagram className="w-4 h-4" strokeWidth={1.75} />
+              @sepetzen
             </a>
           </div>
         </motion.div>
@@ -732,7 +553,7 @@ function FinalCtaScene() {
   );
 }
 
-// MAIN — Home page
+// ─── MAIN ─────────────────────────────────────────────────────────────────────
 
 export default function Home() {
   const { data: products = [] } = useProducts({});
@@ -745,16 +566,14 @@ export default function Home() {
         url="/"
       />
       <Header />
-      <MotionConfig reducedMotion="user">
-        <main className="bg-black">
-          <HeroScene />
-          <PinnedShowcaseScene products={products} />
-          <ProductGridScene products={products} />
-          <CategoryBentoScene />
-          <StatementMarqueeScene />
-          <FinalCtaScene />
-        </main>
-      </MotionConfig>
+      <main>
+        <HeroSlider />
+        <FeaturedProducts products={products} />
+        <CategoriesSection />
+        <NewArrivals products={products} />
+        <TrustStrip />
+        <FinalCta />
+      </main>
       <Footer />
     </>
   );
