@@ -38,13 +38,13 @@ export function Footer() {
 
           {/* ── Brand & Social ── */}
           <div className="md:col-span-12 lg:col-span-4">
-            <Link href="/" className="inline-block mb-1" data-testid="link-footer-logo">
-              <span className="font-display text-2xl tracking-widest block leading-tight">
-                <span className="text-white">SEPET</span><span className="text-[#4a9a42]">ZEN</span>
-              </span>
-              <span className="text-[8px] tracking-[0.35em] uppercase text-[#4a9a42] font-semibold block mb-3">
-                Kamp, Outdoor, Bıçak &amp; Bağ Bahçe
-              </span>
+            <Link href="/" className="inline-block mb-4" data-testid="link-footer-logo">
+              <img
+                src="/uploads/branding/sepetzen-logo-white.png"
+                alt="Sepetzen – Kamp, Outdoor, Bıçak ve Bağ Bahçe"
+                data-testid="img-footer-logo"
+                className="h-10 w-auto object-contain"
+              />
             </Link>
             <p className="text-white/55 text-[14px] leading-[1.7] max-w-md mb-6">
               Kamp, outdoor, av bıçakları ve bağ & bahçe ürünleri. Dalaman, Muğla'dan tüm Türkiye'ye hızlı ve güvenli teslimat.

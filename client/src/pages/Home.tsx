@@ -12,7 +12,7 @@ import {
   useReducedMotion,
   MotionConfig,
 } from 'framer-motion';
-import { ArrowUpRight } from 'lucide-react';
+import { ArrowUpRight, Scissors, Sprout, PawPrint, Hammer, Flame, Tent, Leaf, Instagram } from 'lucide-react';
 import { useProducts, type Product } from '@/hooks/useProducts';
 import heroPosterImage from '@assets/generated_images/polen-hero-dark-1.png';
 
@@ -190,69 +190,68 @@ function HeroOverlayContent({ animated = false }: { animated?: boolean }) {
 
   return (
     <div className="relative h-full w-full">
-      {/* ── MOBİL — kısa ve vurucu ── */}
+      {/* ── MOBİL — logo + slogan + CTA ── */}
       <div className="lg:hidden h-full w-full flex flex-col items-center justify-center text-center px-6">
         <Wrap {...wrapProps}>
-          <h1
-            className="font-display text-white uppercase leading-[1.0]"
-            style={{ fontSize: 'clamp(48px, 13vw, 72px)', letterSpacing: '-0.02em', fontWeight: 700 }}
-            data-testid="text-hero-title-mobile"
-          >
-            <span className="block">SEPET<span className="text-[#4a9a42]">ZEN</span></span>
-            <span className="block text-[#4a9a42] mt-2" style={{ fontSize: 'clamp(14px, 3.5vw, 20px)', letterSpacing: '0.25em', fontWeight: 400 }}>OUTDOOR GEAR</span>
-          </h1>
-          <p className="mt-5 text-[11px] tracking-[0.22em] uppercase text-white/75 font-mono">
-            Kamp · Outdoor · Bıçak · Bağ & Bahçe
-          </p>
-          <Link
-            href="/magaza"
-            data-testid="link-hero-cta-mobile"
-            className="inline-flex items-center gap-2 mt-8 px-6 py-3 bg-[#2D5A27] text-white text-[11px] tracking-[0.22em] uppercase font-semibold hover:bg-[#2D5A27]/90 transition-colors"
-          >
-            Ürünleri Keşfet
-            <ArrowUpRight className="w-3.5 h-3.5" />
-          </Link>
+          <div className="flex flex-col items-center">
+            <img
+              src="/uploads/branding/sepetzen-logo-white.png"
+              alt="Sepetzen – Kamp, Outdoor, Bıçak ve Bağ Bahçe"
+              data-testid="text-hero-title-mobile"
+              className="w-[200px] sm:w-[240px] h-auto object-contain drop-shadow-[0_2px_20px_rgba(0,0,0,0.6)]"
+            />
+            <p className="mt-6 text-[11px] tracking-[0.22em] uppercase text-white/75 font-mono">
+              El Yapımı · Doğal · Türk Ustalığı
+            </p>
+            <Link
+              href="/magaza"
+              data-testid="link-hero-cta-mobile"
+              className="inline-flex items-center gap-2 mt-8 px-6 py-3 bg-[#2D5A27] text-white text-[11px] tracking-[0.22em] uppercase font-semibold hover:bg-[#2D5A27]/90 transition-colors"
+            >
+              Ürünleri Keşfet
+              <ArrowUpRight className="w-3.5 h-3.5" />
+            </Link>
+          </div>
         </Wrap>
       </div>
 
-      {/* ── MASAÜSTÜ — başlık tek satır, içerik tam ortada ── */}
+      {/* ── MASAÜSTÜ — logo büyük, ortalı, güçlü ── */}
       <div className="hidden lg:flex h-full w-full items-center justify-center">
         <div className="w-full max-w-[1500px] mx-auto px-10 py-16 xl:py-20 text-center">
           <Wrap {...wrapProps} className="flex flex-col items-center">
-            <h1
-              className="font-display text-white uppercase"
-              style={{
-                lineHeight: 1.05,
-                letterSpacing: '-0.02em',
-                fontWeight: 700,
-              }}
+            <img
+              src="/uploads/branding/sepetzen-logo-white.png"
+              alt="Sepetzen – Kamp, Outdoor, Bıçak ve Bağ Bahçe"
               data-testid="text-hero-title"
-            >
-              <span style={{ fontSize: 'clamp(56px, 6.2vw, 112px)', display: 'block' }}>
-                SEPET<span className="text-[#4a9a42]">ZEN</span>
-              </span>
-              <span
-                className="text-[#4a9a42]"
-                style={{ fontSize: 'clamp(14px, 1.5vw, 26px)', letterSpacing: '0.35em', fontWeight: 400, display: 'block', marginTop: '10px' }}
-              >
-                OUTDOOR GEAR
-              </span>
-            </h1>
+              className="w-[340px] xl:w-[420px] h-auto object-contain drop-shadow-[0_4px_32px_rgba(0,0,0,0.65)] mb-0"
+            />
 
             <span aria-hidden className="block w-16 h-px bg-[#2D5A27] mt-8 mb-6" />
 
             <p className="max-w-[640px] text-[14px] xl:text-[15px] leading-relaxed text-white/80">
-              Av bıçakları, kamp çakıları, outdoor ekipmanları ve bağ & bahçe ürünleri. Dalaman'dan Türkiye'nin dört bir yanına güvenli teslimat.
+              Av bıçakları, kamp çakıları, outdoor ekipmanları ve bağ & bahçe ürünleri.<br className="hidden xl:block" />
+              Dalaman'dan Türkiye'nin dört bir yanına güvenli teslimat.
             </p>
 
-            <Link
-              href="/magaza"
-              data-testid="link-hero-cta"
-              className="inline-flex items-center gap-3 mt-10 px-8 py-4 bg-[#2D5A27] text-white text-[12px] tracking-[0.24em] uppercase font-semibold hover:bg-[#2D5A27]/90 transition-colors"
-            >
-              Ürünleri Keşfet
-              <ArrowUpRight className="w-4 h-4" />
-            </Link>
+            <div className="flex items-center gap-4 mt-10">
+              <Link
+                href="/magaza"
+                data-testid="link-hero-cta"
+                className="inline-flex items-center gap-3 px-8 py-4 bg-[#2D5A27] text-white text-[12px] tracking-[0.24em] uppercase font-semibold hover:bg-[#2D5A27]/90 transition-colors"
+              >
+                Ürünleri Keşfet
+                <ArrowUpRight className="w-4 h-4" />
+              </Link>
+              <a
+                href="https://www.instagram.com/sepetzen"
+                target="_blank"
+                rel="noopener noreferrer"
+                data-testid="link-hero-instagram"
+                className="inline-flex items-center gap-2 px-6 py-4 border border-white/30 text-white text-[12px] tracking-[0.20em] uppercase font-medium hover:bg-white/10 transition-colors"
+              >
+                @sepetzen
+              </a>
+            </div>
           </Wrap>
         </div>
       </div>
@@ -406,6 +405,165 @@ function ProductGridScene({ products }: { products: Product[] }) {
   );
 }
 
+// SCENE 03b — CATEGORY BENTO GRID
+
+const BENTO_CATS = [
+  {
+    name: 'Çakılar',
+    slug: 'cakilar',
+    icon: Scissors,
+    gradient: 'from-[#1a2e19] to-[#2D5A27]',
+    accent: '#4a9a42',
+    span: 'lg:col-span-2 lg:row-span-2',
+    size: 'large',
+  },
+  {
+    name: 'Bıçaklar',
+    slug: 'bicaklar',
+    icon: Scissors,
+    gradient: 'from-[#0f1a0e] to-[#1e3a1c]',
+    accent: '#4a9a42',
+    span: '',
+    size: 'small',
+  },
+  {
+    name: 'Bağ & Bahçe',
+    slug: 'bag-bahce-aletleri',
+    icon: Sprout,
+    gradient: 'from-[#162b14] to-[#2a5227]',
+    accent: '#6cc45e',
+    span: '',
+    size: 'small',
+  },
+  {
+    name: 'Mangal & Izgara',
+    slug: 'mangal-izgara-ahsap',
+    icon: Flame,
+    gradient: 'from-[#2a1a0f] to-[#5c3217]',
+    accent: '#d97706',
+    span: 'lg:col-span-2',
+    size: 'wide',
+  },
+  {
+    name: 'Pet Shop & Çiftlik',
+    slug: 'pet-shop-ciftlik-ekipmanlari',
+    icon: PawPrint,
+    gradient: 'from-[#1a1f2e] to-[#253456]',
+    accent: '#6394f0',
+    span: '',
+    size: 'small',
+  },
+  {
+    name: 'Nalbur & Hırdavat',
+    slug: 'nalbur-hirdavat',
+    icon: Hammer,
+    gradient: 'from-[#1f1f1f] to-[#3a3a3a]',
+    accent: '#9ca3af',
+    span: '',
+    size: 'small',
+  },
+  {
+    name: 'Kamp & Outdoor',
+    slug: 'cakilar',
+    icon: Tent,
+    gradient: 'from-[#0c1a1a] to-[#163333]',
+    accent: '#34d399',
+    span: '',
+    size: 'small',
+  },
+  {
+    name: 'Tüm Ürünler',
+    slug: 'tum-urunler',
+    icon: Leaf,
+    gradient: 'from-[#111827] to-[#1f2937]',
+    accent: '#4a9a42',
+    span: '',
+    size: 'small',
+  },
+];
+
+function CategoryBentoScene() {
+  const ref = useRef<HTMLDivElement>(null);
+  const inView = useInView(ref, { once: true, amount: 0.2 });
+
+  return (
+    <section
+      ref={ref}
+      className="relative bg-[#0c0a09] text-white py-16 lg:py-24 px-5 lg:px-10 border-y border-white/[0.06]"
+      data-testid="scene-category-bento"
+      aria-label="Kategoriler"
+    >
+      <div className="max-w-[1320px] mx-auto">
+        <div className="flex items-end justify-between mb-8 lg:mb-12 gap-6">
+          <div>
+            <div className="text-[10px] font-mono tracking-[0.28em] uppercase text-white/35 mb-3">
+              — Keşfet
+            </div>
+            <h2
+              className="font-display uppercase text-white leading-[0.95]"
+              style={{ fontSize: 'clamp(24px, 3.5vw, 52px)', letterSpacing: '-0.02em' }}
+            >
+              Kategoriler
+            </h2>
+          </div>
+          <Link
+            href="/magaza"
+            data-testid="link-bento-all"
+            className="shrink-0 inline-flex items-center gap-2 text-[11px] font-mono tracking-[0.24em] uppercase text-white/50 hover:text-white transition-colors"
+          >
+            Tümü <ArrowUpRight className="w-3.5 h-3.5" />
+          </Link>
+        </div>
+
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 lg:gap-4 auto-rows-[160px] lg:auto-rows-[200px]">
+          {BENTO_CATS.map((cat, i) => {
+            const Icon = cat.icon;
+            return (
+              <motion.div
+                key={cat.slug + i}
+                initial={{ opacity: 0, y: 24 }}
+                animate={inView ? { opacity: 1, y: 0 } : {}}
+                transition={{ duration: 0.5, delay: i * 0.06, ease: [0.16, 1, 0.3, 1] }}
+                className={cat.span}
+              >
+                <Link
+                  href={`/kategori/${cat.slug}`}
+                  data-testid={`link-bento-${cat.slug}-${i}`}
+                  className={`group relative h-full w-full flex flex-col justify-end overflow-hidden bg-gradient-to-br ${cat.gradient} border border-white/[0.06] hover:border-white/[0.18] transition-all duration-500 block`}
+                >
+                  {/* Background icon — oversized and faint */}
+                  <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 opacity-[0.07] group-hover:opacity-[0.12] transition-opacity duration-500">
+                    <Icon
+                      style={{ width: cat.size === 'large' ? '140px' : '90px', height: 'auto', color: cat.accent }}
+                      strokeWidth={1}
+                    />
+                  </div>
+
+                  {/* Content */}
+                  <div className="relative z-10 p-4 lg:p-5">
+                    <div
+                      className="w-8 h-8 lg:w-9 lg:h-9 rounded-full flex items-center justify-center mb-3 transition-transform duration-300 group-hover:scale-110"
+                      style={{ backgroundColor: cat.accent + '22', border: `1px solid ${cat.accent}44` }}
+                    >
+                      <Icon className="w-4 h-4 lg:w-4.5 lg:h-4.5" style={{ color: cat.accent }} strokeWidth={2} />
+                    </div>
+                    <span className="block text-[13px] lg:text-[15px] font-semibold text-white leading-tight tracking-[0.02em]">
+                      {cat.name}
+                    </span>
+                    <span className="flex items-center gap-1 mt-1.5 text-[10px] tracking-[0.16em] uppercase text-white/40 group-hover:text-white/70 transition-colors">
+                      Keşfet <ArrowUpRight className="w-2.5 h-2.5" />
+                    </span>
+                  </div>
+                </Link>
+              </motion.div>
+            );
+          })}
+        </div>
+      </div>
+    </section>
+  );
+}
+
 // SCENE 04 — STATEMENT MARQUEE STRIP
 
 function StatementMarqueeScene() {
@@ -531,12 +689,10 @@ function FinalCtaScene() {
               </span>
             </Link>
             <a
-              href="https://wa.me/905000000000"
+              href="https://wa.me/905366301138"
               target="_blank"
               rel="noopener noreferrer"
               data-testid="link-final-cta-whatsapp"
-              data-cursor="cta"
-              data-cursor-label="WhatsApp"
               aria-label="WhatsApp üzerinden iletişime geç"
               className="group inline-flex items-center gap-4"
             >
@@ -552,6 +708,21 @@ function FinalCtaScene() {
               </span>
               <span className="text-sm lg:text-base font-medium tracking-[0.18em] uppercase text-black group-hover:text-[#4a9a42] transition-colors">
                 WhatsApp
+              </span>
+            </a>
+            <a
+              href="https://www.instagram.com/sepetzen"
+              target="_blank"
+              rel="noopener noreferrer"
+              data-testid="link-final-cta-instagram"
+              aria-label="Instagram'da takip et"
+              className="group inline-flex items-center gap-4"
+            >
+              <span className="inline-flex items-center justify-center w-16 h-16 lg:w-20 lg:h-20 rounded-full border border-black/25 text-black group-hover:bg-black group-hover:text-white transition-colors">
+                <Instagram className="w-6 h-6 lg:w-7 lg:h-7" strokeWidth={1.75} />
+              </span>
+              <span className="text-sm lg:text-base font-medium tracking-[0.18em] uppercase text-black group-hover:text-[#4a9a42] transition-colors">
+                Instagram
               </span>
             </a>
           </div>
@@ -579,6 +750,7 @@ export default function Home() {
           <HeroScene />
           <PinnedShowcaseScene products={products} />
           <ProductGridScene products={products} />
+          <CategoryBentoScene />
           <StatementMarqueeScene />
           <FinalCtaScene />
         </main>
