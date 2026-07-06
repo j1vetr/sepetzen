@@ -264,6 +264,13 @@ html.lenis {
   mix-blend-mode: difference;
 }
 
+/* Mobile bottom nav spacer — only applies below lg breakpoint (1024px) */
+@media (max-width: 1023px) {
+  .mobile-nav-spacer {
+    padding-bottom: var(--mobile-nav-total, 58px);
+  }
+}
+
 /* Nav link hover underline */
 .nav-link-hover::after {
   content: '';
