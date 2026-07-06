@@ -198,8 +198,8 @@ function HeroOverlayContent({ animated = false }: { animated?: boolean }) {
             style={{ fontSize: 'clamp(40px, 11vw, 64px)', letterSpacing: '-0.02em', fontWeight: 700 }}
             data-testid="text-hero-title-mobile"
           >
-            Doğanın
-            <span className="block text-[#4a9a42] mt-5">Ruhunu Taşı</span>
+            Doğada
+            <span className="block text-[#4a9a42] mt-5">Özgürlük</span>
           </h1>
           <p className="mt-5 text-[11px] tracking-[0.22em] uppercase text-white/75 font-mono">
             Kamp · Outdoor · Bıçak · Bağ & Bahçe
@@ -229,7 +229,7 @@ function HeroOverlayContent({ animated = false }: { animated?: boolean }) {
               }}
               data-testid="text-hero-title"
             >
-              Doğanın Ruhunu <span className="text-[#4a9a42]">Sepetle Taşı</span>
+              Doğada <span className="text-[#4a9a42]">Özgürlük</span>
             </h1>
 
             <span aria-hidden className="block w-16 h-px bg-[#2D5A27] mt-8 mb-6" />
