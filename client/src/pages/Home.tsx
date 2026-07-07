@@ -175,10 +175,10 @@ function HeroSlider({ products }: { products: Product[] }) {
           </div>
         </div>
 
-        {/* ── RIGHT: Random product cards (desktop only) ── */}
-        <div className="hidden lg:flex flex-col justify-center gap-4 pl-8 xl:pl-12 py-16">
+        {/* ── RIGHT: Random product cards (desktop only) — dikey portrait format ── */}
+        <div className="hidden lg:flex flex-col justify-center pl-6 xl:pl-10 py-10">
           {/* Label */}
-          <div className="flex items-center justify-between mb-1">
+          <div className="flex items-center justify-between mb-3">
             <span className="text-[9px] font-mono tracking-[0.26em] uppercase text-white/30">Öne Çıkan</span>
             <span className="text-[9px] font-mono text-white/20">↻ 7s</span>
           </div>
@@ -190,53 +190,55 @@ function HeroSlider({ products }: { products: Product[] }) {
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: -10 }}
               transition={{ duration: 0.5, ease: [0.16, 1, 0.3, 1] }}
-              className="flex flex-col gap-3"
+              className="grid grid-cols-2 gap-3 flex-1"
             >
               {pickedProducts.length > 0 ? pickedProducts.map((p) => {
                 const price = parseFloat(String(p.basePrice || '0')) || 0;
                 return (
                   <Link key={p.id} href={`/urun/${p.slug}`} data-testid={`link-hero-product-${p.id}`}>
-                    <div className="group flex items-center gap-3.5 bg-white/[0.06] hover:bg-white/[0.11] border border-white/[0.08] hover:border-white/[0.18] backdrop-blur-sm p-3 transition-all duration-300 cursor-pointer">
-                      {/* Image */}
-                      <div className="w-[72px] h-[72px] shrink-0 overflow-hidden bg-black/20">
+                    <div className="group flex flex-col bg-white/[0.06] hover:bg-white/[0.10] border border-white/[0.08] hover:border-white/[0.20] backdrop-blur-sm transition-all duration-300 cursor-pointer overflow-hidden h-full">
+                      {/* Portrait image */}
+                      <div className="relative overflow-hidden bg-black/25" style={{ aspectRatio: '3/4' }}>
                         {p.images?.[0] ? (
                           <img
                             src={p.images[0]}
                             alt={p.name}
-                            className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+                            className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700"
                           />
                         ) : (
                           <div className="w-full h-full bg-white/5" />
                         )}
+                        {/* Badge */}
+                        {(p.isNew || p.discountBadge) && (
+                          <span className="absolute top-2 left-2 text-[7.5px] tracking-[0.18em] uppercase text-white bg-[#2D5A27] px-2 py-0.5 font-bold">
+                            {p.isNew ? 'Yeni' : p.discountBadge}
+                          </span>
+                        )}
                       </div>
                       {/* Info */}
-                      <div className="flex-1 min-w-0">
-                        {p.isNew && (
-                          <span className="text-[8px] tracking-[0.2em] uppercase text-[#4a9a42] font-mono">Yeni</span>
-                        )}
-                        {p.discountBadge && (
-                          <span className="text-[8px] tracking-[0.2em] uppercase text-[#4a9a42] font-mono">{p.discountBadge}</span>
-                        )}
-                        <p className="text-[12px] font-medium text-white/80 group-hover:text-white transition-colors leading-snug line-clamp-2 mt-0.5">
+                      <div className="p-2.5 flex flex-col gap-1">
+                        <p className="text-[11px] font-medium text-white/80 group-hover:text-white transition-colors leading-snug line-clamp-2">
                           {p.name}
                         </p>
-                        <p className="text-[13px] font-bold text-[#4a9a42] mt-1">
-                          {price.toLocaleString('tr-TR')} ₺
-                        </p>
+                        <div className="flex items-center justify-between mt-0.5">
+                          <p className="text-[13px] font-bold text-[#4a9a42]">
+                            {price.toLocaleString('tr-TR')} ₺
+                          </p>
+                          <ArrowUpRight className="w-3.5 h-3.5 text-white/25 group-hover:text-[#4a9a42] transition-colors shrink-0" />
+                        </div>
                       </div>
-                      <ArrowUpRight className="w-3.5 h-3.5 text-white/25 group-hover:text-white/70 shrink-0 transition-colors" />
                     </div>
                   </Link>
                 );
               }) : (
-                // Skeleton while loading
+                // Skeleton while loading - portrait format
                 Array.from({ length: 2 }).map((_, i) => (
-                  <div key={i} className="flex items-center gap-3.5 bg-white/[0.04] border border-white/[0.06] p-3 animate-pulse">
-                    <div className="w-[72px] h-[72px] bg-white/10 shrink-0" />
-                    <div className="flex-1 space-y-2">
-                      <div className="h-2.5 bg-white/10 rounded w-3/4" />
-                      <div className="h-2.5 bg-white/10 rounded w-1/2" />
-                      <div className="h-3 bg-white/15 rounded w-1/3" />
+                  <div key={i} className="flex flex-col bg-white/[0.04] border border-white/[0.06] overflow-hidden animate-pulse">
+                    <div className="bg-white/10" style={{ aspectRatio: '3/4' }} />
+                    <div className="p-2.5 space-y-2">
+                      <div className="h-2 bg-white/10 rounded w-full" />
+                      <div className="h-2 bg-white/10 rounded w-3/4" />
+                      <div className="h-3 bg-white/15 rounded w-1/2 mt-1" />
                     </div>
                   </div>
                 ))
@@ -245,7 +247,7 @@ function HeroSlider({ products }: { products: Product[] }) {
           </AnimatePresence>
 
           {/* View all link */}
-          <Link href="/magaza" className="mt-1 text-[10px] tracking-[0.20em] uppercase text-white/30 hover:text-[#4a9a42] transition-colors flex items-center gap-1.5 font-mono">
+          <Link href="/magaza" className="mt-3 text-[10px] tracking-[0.20em] uppercase text-white/30 hover:text-[#4a9a42] transition-colors flex items-center gap-1.5 font-mono">
             Tüm Ürünleri Gör <ArrowUpRight className="w-3 h-3" />
           </Link>
         </div>
