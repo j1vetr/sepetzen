@@ -559,13 +559,11 @@ function VideoSection() {
   const videos = [
     {
       src: '/videos/knife_craftsmanship_hands.mp4',
-      eyebrow: 'Zanaat',
       title: 'El Ustalığı, Saf Çelik',
       desc: 'Her bıçak, bir ustanın ömründen bir damladır.',
     },
     {
       src: '/videos/outdoor_camping_nature.mp4',
-      eyebrow: 'Macera',
       title: 'Doğanın Çağrısına Hazır Ol',
       desc: 'Sepetzen ekipmanları, her maceranda yanında.',
     },
@@ -589,8 +587,8 @@ function VideoSection() {
 
         {/* Video kartları */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-5 lg:gap-7">
-          {videos.map((v) => (
-            <div key={v.src} className="group relative overflow-hidden" data-testid={`video-${v.eyebrow.toLowerCase()}`}>
+          {videos.map((v, i) => (
+            <div key={v.src} className="group relative overflow-hidden" data-testid={`video-card-${i}`}>
               <div className="relative aspect-video overflow-hidden bg-zinc-950">
                 <video
                   src={v.src}
@@ -601,20 +599,18 @@ function VideoSection() {
                   preload="metadata"
                   className="w-full h-full object-cover transition-transform duration-700 ease-out group-hover:scale-[1.03]"
                 />
-                {/* Degrade overlay */}
-                <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/15 to-transparent" />
+                {/* Overlay — siyah katman + alt degrade */}
+                <div className="absolute inset-0 bg-black/40" />
+                <div className="absolute inset-0 bg-gradient-to-t from-black/85 via-black/20 to-transparent" />
                 {/* Alt metin */}
                 <div className="absolute bottom-0 left-0 right-0 p-6 lg:p-8">
-                  <p className="text-[9px] font-mono tracking-[0.30em] uppercase text-[#4a9a42] mb-1.5">
-                    {v.eyebrow}
-                  </p>
                   <h3
-                    className="font-black text-white leading-tight"
+                    className="font-black text-white leading-tight drop-shadow-lg"
                     style={{ fontSize: 'clamp(18px, 2.5vw, 26px)', letterSpacing: '-0.02em' }}
                   >
                     {v.title}
                   </h3>
-                  <p className="text-[12px] text-white/55 mt-2 leading-relaxed">
+                  <p className="text-[12px] text-white/70 mt-2 leading-relaxed drop-shadow">
                     {v.desc}
                   </p>
                 </div>
