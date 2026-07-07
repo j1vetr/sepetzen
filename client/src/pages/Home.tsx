@@ -105,7 +105,7 @@ function HeroSlider({ products }: { products: Product[] }) {
       </AnimatePresence>
 
       {/* Split layout */}
-      <div className="relative z-10 flex-1 min-h-0 max-w-[1400px] mx-auto px-6 lg:px-12 grid grid-cols-1 lg:grid-cols-[1fr_360px] xl:grid-cols-[1fr_400px] gap-0">
+      <div className="relative z-10 flex-1 min-h-0 max-w-[1680px] mx-auto px-6 lg:px-10 grid grid-cols-1 lg:grid-cols-[1fr_420px] xl:grid-cols-[1fr_480px] gap-0">
 
         {/* ── LEFT: Slide content ── */}
         <div className="flex flex-col justify-center pb-20 lg:pb-24 pt-8 lg:pt-0">
@@ -177,8 +177,8 @@ function HeroSlider({ products }: { products: Product[] }) {
           </div>
         </div>
 
-        {/* ── RIGHT: Random product cards (desktop only) — dikey portrait, tam yükseklik ── */}
-        <div className="hidden lg:flex flex-col pl-5 xl:pl-8 pt-[72px] pb-10">
+        {/* ── RIGHT: Random product cards (desktop only) ── */}
+        <div className="hidden lg:flex flex-col pl-5 xl:pl-8 justify-center pb-12 pt-4">
           {/* Label */}
           <div className="flex items-center justify-between mb-2 shrink-0">
             <span className="text-[9px] font-mono tracking-[0.26em] uppercase text-white/30">Öne Çıkan</span>
@@ -192,7 +192,7 @@ function HeroSlider({ products }: { products: Product[] }) {
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: -10 }}
               transition={{ duration: 0.5, ease: [0.16, 1, 0.3, 1] }}
-              className="flex flex-row gap-2.5 flex-1 min-h-0"
+              className="flex flex-row gap-2.5 h-[210px]"
             >
               {pickedProducts.length > 0 ? pickedProducts.map((p) => {
                 const price = parseFloat(String(p.basePrice || '0')) || 0;
