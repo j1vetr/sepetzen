@@ -1,5 +1,4 @@
 uploads = []
-outputs = []
 
 [[generated]]
 id = "5ovonepTWwMTYCZvE4_I9"
@@ -36,3 +35,15 @@ id = "gS-Q_LgzXf4NLQ-R9-iHM"
 uri = "file://attached_assets/generated_images/polen-hero-dark-3.png"
 type = "image"
 title = "polen hero dark calacatta vein"
+
+[[outputs]]
+id = "0FdLkpcshsacXSjmphDu7"
+uri = "file://attached_assets/generated_videos/knife_craftsmanship_forge.mp4"
+type = "video"
+title = "Video 1 — El Ustalığı, Saf Çelik (Forge/Bıçak)"
+
+[[outputs]]
+id = "YZXdIg6bKh4PDRcEehum-"
+uri = "file://attached_assets/generated_videos/outdoor_camping_nature.mp4"
+type = "video"
+title = "Video 2 — Doğanın Çağrısına Hazır Ol (Kamp/Outdoor)"
