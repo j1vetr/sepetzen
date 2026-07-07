@@ -988,7 +988,7 @@ export default function ProductDetail() {
                 <div className="flex">
                   {images.map((img, i) => (
                     <div key={i} className="flex-[0_0_100%] min-w-0 flex items-center justify-center px-4">
-                      <img src={img} alt={product.name} className="max-w-full max-h-[80vh] object-contain" draggable={false} />
+                      <img src={img} alt={product.name} loading="lazy" decoding="async" className="max-w-full max-h-[80vh] object-contain" draggable={false} />
                     </div>
                   ))}
                 </div>
@@ -1100,7 +1100,7 @@ export default function ProductDetail() {
                     <div className="flex h-full">
                       {images.map((img, i) => (
                         <button type="button" key={i} className="flex-[0_0_100%] min-w-0 h-full" onClick={() => setLightboxOpen(true)} aria-label={`Görsel ${i + 1} - büyüt`}>
-                          <img src={img} alt={product.name} className="w-full h-full object-cover" draggable={false} />
+                          <img src={img} alt={product.name} loading={i === 0 ? 'eager' : 'lazy'} fetchPriority={i === 0 ? 'high' : 'auto'} decoding="async" className="w-full h-full object-cover" draggable={false} />
                         </button>
                       ))}
                     </div>

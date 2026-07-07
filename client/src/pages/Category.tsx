@@ -189,6 +189,9 @@ export default function Category() {
               src={category.image}
               alt={category.name || 'Kategori'}
               className="w-full h-full object-cover opacity-45"
+              loading="eager"
+              fetchPriority="high"
+              decoding="async"
               data-testid="img-category-hero"
             />
           )}
