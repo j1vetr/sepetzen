@@ -1,0 +1,19 @@
+npm http fetch GET 200 https://registry.npmjs.org/@aws-sdk%2fcredential-provider-node 87ms (cache revalidated)
+npm http fetch GET 200 https://registry.npmjs.org/@aws-sdk%2fsignature-v4-multi-region 106ms (cache revalidated)
+npm http fetch GET 200 https://registry.npmjs.org/@aws-sdk%2futil-user-agent-node 73ms (cache revalidated)
+npm http fetch GET 200 https://registry.npmjs.org/@types%2fnodemailer 79ms (cache revalidated)
+npm http fetch GET http://package-firewall.replit.local/npm/@smithy/types/-/types-4.15.1.tgz attempt 2 failed with EAI_AGAIN
+npm http fetch GET http://package-firewall.replit.local/npm/@smithy/signature-v4/-/signature-v4-5.6.2.tgz attempt 2 failed with EAI_AGAIN
+npm http fetch GET http://package-firewall.replit.local/npm/@smithy/hash-node/-/hash-node-4.4.6.tgz attempt 2 failed with EAI_AGAIN
+npm http fetch GET http://package-firewall.replit.local/npm/@smithy/node-http-handler/-/node-http-handler-4.9.3.tgz attempt 2 failed with EAI_AGAIN
+npm http fetch GET http://package-firewall.replit.local/npm/@smithy/credential-provider-imds/-/credential-provider-imds-4.4.6.tgz attempt 2 failed with EAI_AGAIN
+npm http fetch GET http://package-firewall.replit.local/npm/@smithy/core/-/core-3.29.1.tgz attempt 2 failed with EAI_AGAIN
+npm http fetch GET http://package-firewall.replit.local/npm/@nodelib/fs.walk/-/fs.walk-1.2.8.tgz attempt 2 failed with EAI_AGAIN
+npm http fetch GET http://package-firewall.replit.local/npm/@smithy/fetch-http-handler/-/fetch-http-handler-5.6.3.tgz attempt 2 failed with EAI_AGAIN
+npm http fetch GET http://package-firewall.replit.local/npm/@nodelib/fs.stat/-/fs.stat-2.0.5.tgz attempt 2 failed with EAI_AGAIN
+npm http fetch GET http://package-firewall.replit.local/npm/@nodelib/fs.scandir/-/fs.scandir-2.1.5.tgz attempt 2 failed with EAI_AGAIN
+npm http fetch GET http://package-firewall.replit.local/npm/@aws-sdk/token-providers/-/token-providers-3.1079.0.tgz attempt 2 failed with EAI_AGAIN
+npm http fetch GET http://package-firewall.replit.local/npm/@aws-sdk/nested-clients/-/nested-clients-3.997.27.tgz attempt 2 failed with EAI_AGAIN
+npm http fetch GET http://package-firewall.replit.local/npm/@aws-sdk/credential-provider-web-identity/-/credential-provider-web-identity-3.972.59.tgz attempt 2 failed with EAI_AGAIN
+npm http fetch GET http://package-firewall.replit.local/npm/@aws-sdk/credential-provider-env/-/credential-provider-env-3.972.53.tgz attempt 2 failed with EAI_AGAIN
+npm http fetch GET http://package-firewall.replit.local/npm/@aws-sdk/credential-provider-sso/-/credential-provider-sso-3.972.59.tgz attempt 2 failed with EAI_AGAIN
