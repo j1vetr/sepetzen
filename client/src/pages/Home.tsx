@@ -192,13 +192,13 @@ function HeroSlider({ products }: { products: Product[] }) {
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: -10 }}
               transition={{ duration: 0.5, ease: [0.16, 1, 0.3, 1] }}
-              className="flex flex-col gap-2.5 flex-1 min-h-0"
+              className="flex flex-row gap-2.5 flex-1 min-h-0"
             >
               {pickedProducts.length > 0 ? pickedProducts.map((p) => {
                 const price = parseFloat(String(p.basePrice || '0')) || 0;
                 return (
-                  <Link key={p.id} href={`/urun/${p.slug}`} className="flex flex-1 min-h-0" data-testid={`link-hero-product-${p.id}`}>
-                    <div className="group flex flex-col w-full bg-white/[0.07] hover:bg-white/[0.11] border border-white/[0.09] hover:border-white/[0.22] backdrop-blur-sm transition-all duration-300 cursor-pointer overflow-hidden">
+                  <Link key={p.id} href={`/urun/${p.slug}`} className="flex flex-col flex-1 min-w-0" data-testid={`link-hero-product-${p.id}`}>
+                    <div className="group flex flex-col w-full h-full bg-white/[0.07] hover:bg-white/[0.11] border border-white/[0.09] hover:border-white/[0.22] backdrop-blur-sm transition-all duration-300 cursor-pointer overflow-hidden">
                       {/* Image — fills remaining height */}
                       <div className="relative overflow-hidden bg-black/25 flex-1 min-h-0">
                         {p.images?.[0] ? (
@@ -222,31 +222,29 @@ function HeroSlider({ products }: { products: Product[] }) {
                         )}
                       </div>
                       {/* Info — fixed height at bottom */}
-                      <div className="p-3 shrink-0 bg-black/30">
-                        <p className="text-[11.5px] font-medium text-white/85 group-hover:text-white transition-colors leading-snug line-clamp-2 mb-1.5">
+                      <div className="p-2.5 shrink-0 bg-black/30">
+                        <p className="text-[10.5px] font-medium text-white/85 group-hover:text-white transition-colors leading-snug line-clamp-2 mb-1.5">
                           {p.name}
                         </p>
-                        <div className="flex items-center justify-between">
-                          <p className="text-[14px] font-bold text-[#4a9a42]">
+                        <div className="flex items-center justify-between gap-1">
+                          <p className="text-[13px] font-bold text-[#4a9a42] leading-none">
                             {price.toLocaleString('tr-TR')} ₺
                           </p>
-                          <span className="text-[9px] tracking-[0.15em] uppercase text-white/40 group-hover:text-[#4a9a42] transition-colors font-medium flex items-center gap-1">
-                            Görüntüle <ArrowUpRight className="w-3 h-3" />
-                          </span>
+                          <ArrowUpRight className="w-3 h-3 text-white/30 group-hover:text-[#4a9a42] transition-colors shrink-0" />
                         </div>
                       </div>
                     </div>
                   </Link>
                 );
               }) : (
-                // Skeleton while loading - portrait format, tam yükseklik
+                // Skeleton while loading
                 Array.from({ length: 2 }).map((_, i) => (
-                  <div key={i} className="flex-1 min-h-0 flex flex-col bg-white/[0.04] border border-white/[0.06] overflow-hidden animate-pulse">
+                  <div key={i} className="flex-1 min-w-0 flex flex-col bg-white/[0.04] border border-white/[0.06] overflow-hidden animate-pulse">
                     <div className="flex-1 bg-white/10" />
-                    <div className="p-3 bg-black/20 shrink-0 space-y-2">
+                    <div className="p-2.5 bg-black/20 shrink-0 space-y-1.5">
                       <div className="h-2.5 bg-white/10 rounded w-full" />
                       <div className="h-2.5 bg-white/10 rounded w-3/4" />
-                      <div className="h-3.5 bg-white/15 rounded w-1/2 mt-1" />
+                      <div className="h-3 bg-white/15 rounded w-1/2 mt-1" />
                     </div>
                   </div>
                 ))
