@@ -175,10 +175,10 @@ function HeroSlider({ products }: { products: Product[] }) {
           </div>
         </div>
 
-        {/* ── RIGHT: Random product cards (desktop only) — dikey portrait format ── */}
-        <div className="hidden lg:flex flex-col justify-center pl-6 xl:pl-10 py-10">
+        {/* ── RIGHT: Random product cards (desktop only) — dikey portrait, tam yükseklik ── */}
+        <div className="hidden lg:flex flex-col pl-5 xl:pl-8 pt-[72px] pb-10">
           {/* Label */}
-          <div className="flex items-center justify-between mb-3">
+          <div className="flex items-center justify-between mb-2 shrink-0">
             <span className="text-[9px] font-mono tracking-[0.26em] uppercase text-white/30">Öne Çıkan</span>
             <span className="text-[9px] font-mono text-white/20">↻ 7s</span>
           </div>
@@ -190,24 +190,26 @@ function HeroSlider({ products }: { products: Product[] }) {
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: -10 }}
               transition={{ duration: 0.5, ease: [0.16, 1, 0.3, 1] }}
-              className="grid grid-cols-2 gap-3 flex-1"
+              className="grid grid-cols-2 gap-2.5 flex-1 min-h-0"
             >
               {pickedProducts.length > 0 ? pickedProducts.map((p) => {
                 const price = parseFloat(String(p.basePrice || '0')) || 0;
                 return (
-                  <Link key={p.id} href={`/urun/${p.slug}`} data-testid={`link-hero-product-${p.id}`}>
-                    <div className="group flex flex-col bg-white/[0.06] hover:bg-white/[0.10] border border-white/[0.08] hover:border-white/[0.20] backdrop-blur-sm transition-all duration-300 cursor-pointer overflow-hidden h-full">
-                      {/* Portrait image */}
-                      <div className="relative overflow-hidden bg-black/25" style={{ aspectRatio: '3/4' }}>
+                  <Link key={p.id} href={`/urun/${p.slug}`} className="flex" data-testid={`link-hero-product-${p.id}`}>
+                    <div className="group flex flex-col w-full bg-white/[0.07] hover:bg-white/[0.11] border border-white/[0.09] hover:border-white/[0.22] backdrop-blur-sm transition-all duration-300 cursor-pointer overflow-hidden">
+                      {/* Image — fills remaining height */}
+                      <div className="relative overflow-hidden bg-black/25 flex-1 min-h-0">
                         {p.images?.[0] ? (
                           <img
                             src={p.images[0]}
                             alt={p.name}
-                            className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700"
+                            className="absolute inset-0 w-full h-full object-cover group-hover:scale-110 transition-transform duration-700"
                           />
                         ) : (
-                          <div className="w-full h-full bg-white/5" />
+                          <div className="absolute inset-0 bg-white/5" />
                         )}
+                        {/* Gradient overlay at bottom */}
+                        <div className="absolute inset-x-0 bottom-0 h-20 bg-gradient-to-t from-black/70 to-transparent pointer-events-none" />
                         {/* Badge */}
                         {(p.isNew || p.discountBadge) && (
                           <span className="absolute top-2 left-2 text-[7.5px] tracking-[0.18em] uppercase text-white bg-[#2D5A27] px-2 py-0.5 font-bold">
@@ -215,30 +217,32 @@ function HeroSlider({ products }: { products: Product[] }) {
                           </span>
                         )}
                       </div>
-                      {/* Info */}
-                      <div className="p-2.5 flex flex-col gap-1">
-                        <p className="text-[11px] font-medium text-white/80 group-hover:text-white transition-colors leading-snug line-clamp-2">
+                      {/* Info — fixed height at bottom */}
+                      <div className="p-3 shrink-0 bg-black/30">
+                        <p className="text-[11.5px] font-medium text-white/85 group-hover:text-white transition-colors leading-snug line-clamp-2 mb-1.5">
                           {p.name}
                         </p>
-                        <div className="flex items-center justify-between mt-0.5">
-                          <p className="text-[13px] font-bold text-[#4a9a42]">
+                        <div className="flex items-center justify-between">
+                          <p className="text-[14px] font-bold text-[#4a9a42]">
                             {price.toLocaleString('tr-TR')} ₺
                           </p>
-                          <ArrowUpRight className="w-3.5 h-3.5 text-white/25 group-hover:text-[#4a9a42] transition-colors shrink-0" />
+                          <span className="text-[9px] tracking-[0.15em] uppercase text-white/40 group-hover:text-[#4a9a42] transition-colors font-medium flex items-center gap-1">
+                            Görüntüle <ArrowUpRight className="w-3 h-3" />
+                          </span>
                         </div>
                       </div>
                     </div>
                   </Link>
                 );
               }) : (
-                // Skeleton while loading - portrait format
+                // Skeleton while loading - portrait format, tam yükseklik
                 Array.from({ length: 2 }).map((_, i) => (
                   <div key={i} className="flex flex-col bg-white/[0.04] border border-white/[0.06] overflow-hidden animate-pulse">
-                    <div className="bg-white/10" style={{ aspectRatio: '3/4' }} />
-                    <div className="p-2.5 space-y-2">
-                      <div className="h-2 bg-white/10 rounded w-full" />
-                      <div className="h-2 bg-white/10 rounded w-3/4" />
-                      <div className="h-3 bg-white/15 rounded w-1/2 mt-1" />
+                    <div className="flex-1 bg-white/10 min-h-[300px]" />
+                    <div className="p-3 bg-black/20 shrink-0 space-y-2">
+                      <div className="h-2.5 bg-white/10 rounded w-full" />
+                      <div className="h-2.5 bg-white/10 rounded w-3/4" />
+                      <div className="h-3.5 bg-white/15 rounded w-1/2 mt-1" />
                     </div>
                   </div>
                 ))
@@ -247,7 +251,7 @@ function HeroSlider({ products }: { products: Product[] }) {
           </AnimatePresence>
 
           {/* View all link */}
-          <Link href="/magaza" className="mt-3 text-[10px] tracking-[0.20em] uppercase text-white/30 hover:text-[#4a9a42] transition-colors flex items-center gap-1.5 font-mono">
+          <Link href="/magaza" className="mt-2.5 shrink-0 text-[10px] tracking-[0.20em] uppercase text-white/30 hover:text-[#4a9a42] transition-colors flex items-center gap-1.5 font-mono">
             Tüm Ürünleri Gör <ArrowUpRight className="w-3 h-3" />
           </Link>
         </div>
