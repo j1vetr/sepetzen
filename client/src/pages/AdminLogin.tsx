@@ -45,7 +45,7 @@ export default function AdminLogin() {
           <img
             src="/images/toov-logo.png"
             alt="Toov Internet Solutions"
-            className="h-14 sm:h-16 w-auto object-contain select-none"
+            className="h-24 sm:h-32 w-auto object-contain select-none"
             draggable={false}
             data-testid="img-toov-logo"
           />
