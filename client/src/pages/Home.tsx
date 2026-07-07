@@ -94,6 +94,9 @@ function HeroSlider({ products }: { products: Product[] }) {
             alt={slide.title}
             className="absolute inset-0 w-full h-full object-cover opacity-55"
             style={{ objectPosition: 'center 25%' }}
+            loading="eager"
+            fetchPriority="high"
+            decoding="async"
           />
           {/* Left-heavy vignette so right panel is darker */}
           <div className="absolute inset-0 bg-gradient-to-r from-black/80 via-black/50 to-black/70" />
@@ -203,6 +206,8 @@ function HeroSlider({ products }: { products: Product[] }) {
                             src={p.images[0]}
                             alt={p.name}
                             className="absolute inset-0 w-full h-full object-cover group-hover:scale-110 transition-transform duration-700"
+                            loading="lazy"
+                            decoding="async"
                           />
                         ) : (
                           <div className="absolute inset-0 bg-white/5" />
@@ -429,6 +434,8 @@ function CategoriesSection() {
                   src={cat.image}
                   alt={cat.name}
                   className="absolute inset-0 w-full h-full object-cover transition-transform duration-700 ease-out group-hover:scale-105 opacity-65 group-hover:opacity-80"
+                  loading="lazy"
+                  decoding="async"
                 />
                 {/* Gradient */}
                 <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent" />
@@ -555,6 +562,41 @@ function NewArrivals({ products }: { products: Product[] }) {
 
 // ─── VIDEO SECTION ────────────────────────────────────────────────────────────
 
+function LazyVideo({ src, className }: { src: string; className: string }) {
+  const ref = useRef<HTMLVideoElement>(null);
+  const [active, setActive] = useState(false);
+
+  useEffect(() => {
+    const el = ref.current;
+    if (!el) return;
+    const obs = new IntersectionObserver(
+      ([entry]) => {
+        if (entry.isIntersecting && !active) {
+          setActive(true);
+          el.load();
+          el.play().catch(() => {});
+          obs.disconnect();
+        }
+      },
+      { threshold: 0.2 }
+    );
+    obs.observe(el);
+    return () => obs.disconnect();
+  }, [active]);
+
+  return (
+    <video
+      ref={ref}
+      src={active ? src : undefined}
+      muted
+      loop
+      playsInline
+      preload="none"
+      className={className}
+    />
+  );
+}
+
 function VideoSection() {
   const videos = [
     {
@@ -601,13 +643,8 @@ function VideoSection() {
           {videos.map((v, i) => (
             <div key={v.src} className="group relative overflow-hidden" data-testid={`video-card-${i}`}>
               <div className="relative aspect-video overflow-hidden bg-zinc-950">
-                <video
+                <LazyVideo
                   src={v.src}
-                  autoPlay
-                  muted
-                  loop
-                  playsInline
-                  preload="metadata"
                   className="w-full h-full object-cover transition-transform duration-700 ease-out group-hover:scale-[1.03]"
                 />
                 {/* Overlay — siyah katman + alt degrade */}

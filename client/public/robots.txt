@@ -1,0 +1,15 @@
+User-agent: *
+Allow: /
+
+Disallow: /toov-admin
+Disallow: /toov-admin/*
+Disallow: /api/*
+Disallow: /sepet
+Disallow: /odeme
+Disallow: /odeme/*
+Disallow: /hesap
+Disallow: /hesap/*
+Disallow: /siparislerim
+Disallow: /siparislerim/*
+
+Sitemap: https://sepetzen.com/sitemap.xml

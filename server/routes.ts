@@ -351,11 +351,17 @@ export async function registerRoutes(
       const staticPages: Array<{ loc: string; priority: string; changefreq: string }> = [
         { loc: "/", priority: "1.0", changefreq: "daily" },
         { loc: "/magaza", priority: "0.9", changefreq: "daily" },
-        { loc: "/hakkimizda", priority: "0.6", changefreq: "monthly" },
-        { loc: "/teslimat-kosullari", priority: "0.4", changefreq: "yearly" },
-        { loc: "/mesafeli-satis-sozlesmesi", priority: "0.4", changefreq: "yearly" },
-        { loc: "/iptal-ve-iade", priority: "0.4", changefreq: "yearly" },
-        { loc: "/kvkk", priority: "0.4", changefreq: "yearly" },
+        { loc: "/sayfa/hakkimizda", priority: "0.6", changefreq: "monthly" },
+        { loc: "/sayfa/kargo-sureci", priority: "0.5", changefreq: "yearly" },
+        { loc: "/sayfa/iade-sureci", priority: "0.5", changefreq: "yearly" },
+        { loc: "/sayfa/mesafeli-satis-sozlesmesi", priority: "0.4", changefreq: "yearly" },
+        { loc: "/sayfa/on-bilgilendirme-formu", priority: "0.4", changefreq: "yearly" },
+        { loc: "/sayfa/uyelik-sozlesmesi", priority: "0.4", changefreq: "yearly" },
+        { loc: "/sayfa/iptal-ve-iade-sartlari", priority: "0.4", changefreq: "yearly" },
+        { loc: "/sayfa/gizlilik-guvenlik", priority: "0.4", changefreq: "yearly" },
+        { loc: "/sayfa/cerez-politikasi", priority: "0.4", changefreq: "yearly" },
+        { loc: "/sayfa/kvkk-aydinlatma-metni", priority: "0.4", changefreq: "yearly" },
+        { loc: "/sayfa/iletisim", priority: "0.5", changefreq: "monthly" },
       ];
 
       const [categories, products] = await Promise.all([
