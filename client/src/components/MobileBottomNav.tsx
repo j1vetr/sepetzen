@@ -46,6 +46,8 @@ export function MobileBottomNav() {
   const [location] = useLocation();
   const { totalItems } = useCart();
 
+  if (location.startsWith('/toov-admin')) return null;
+
   return (
     <nav
       className="lg:hidden fixed bottom-0 inset-x-0 z-40 bg-[#0f1a0e] border-t-[1.5px] border-[#2D5A27]/70"
