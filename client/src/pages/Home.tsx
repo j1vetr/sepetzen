@@ -573,16 +573,27 @@ function VideoSection() {
     <section className="bg-[#0c0a09] py-16 lg:py-24 px-5 lg:px-10" data-testid="scene-videos">
       <div className="max-w-[1320px] mx-auto">
         {/* Başlık */}
-        <div className="mb-10 lg:mb-14">
-          <p className="text-[10px] font-mono tracking-[0.30em] uppercase text-[#4a9a42] mb-2">
-            Sepetzen
-          </p>
-          <h2
-            className="font-black text-white leading-none"
-            style={{ fontSize: 'clamp(28px, 4vw, 52px)', letterSpacing: '-0.03em' }}
+        <div className="mb-10 lg:mb-14 flex flex-col sm:flex-row sm:items-end sm:justify-between gap-6">
+          <div>
+            <p className="text-[10px] font-mono tracking-[0.30em] uppercase text-[#4a9a42] mb-2">
+              Türkiye Geneli Hızlı Kargo
+            </p>
+            <h2
+              className="font-black text-white leading-none"
+              style={{ fontSize: 'clamp(28px, 4vw, 52px)', letterSpacing: '-0.03em' }}
+            >
+              Doğaya Her Zaman<br className="hidden sm:block" /> Hazır Ol
+            </h2>
+            <p className="text-[13px] text-white/45 mt-4 max-w-md leading-relaxed">
+              El yapımı bıçaklardan kamp ekipmanlarına — her macera için doğru ürün, kapında.
+            </p>
+          </div>
+          <Link
+            href="/magaza"
+            className="inline-flex items-center gap-2 shrink-0 text-[11px] tracking-[0.22em] uppercase font-semibold text-white border border-white/20 hover:border-[#4a9a42] hover:text-[#4a9a42] transition-colors px-5 py-3"
           >
-            Hikayemiz
-          </h2>
+            Ürünleri İncele <ArrowUpRight className="w-3.5 h-3.5" />
+          </Link>
         </div>
 
         {/* Video kartları */}
