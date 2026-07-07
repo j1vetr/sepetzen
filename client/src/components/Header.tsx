@@ -364,7 +364,7 @@ export function Header() {
           {/* ── Desktop layout ── */}
           <div className="hidden lg:grid grid-cols-[1fr_auto_1fr] items-center gap-10 xl:gap-16">
 
-            {/* Sol: scroll edildiğinde küçük logo görünür */}
+            {/* Sol: scroll edilince beyaz kompakt logo görünür */}
             <div className="justify-self-start flex items-center min-w-0 h-[44px]">
               <AnimatePresence>
                 {scrolled && (
@@ -374,8 +374,9 @@ export function Header() {
                     animate={{ opacity: 1, x: 0 }}
                     exit={{ opacity: 0, x: -10 }}
                     transition={{ duration: 0.3, ease: [0.33, 1, 0.68, 1] }}
+                    className="shrink-0"
                   >
-                    <Link href="/" data-testid="link-logo-compact" className="block shrink-0">
+                    <Link href="/" data-testid="link-logo-compact" className="block">
                       <img
                         src="/uploads/branding/sepetzen-logo-white.png"
                         alt="Sepetzen"
@@ -499,14 +500,14 @@ export function Header() {
               </motion.button>
 
               {user ? (
-                <DropdownMenu>
+                <DropdownMenu modal={false}>
                   <DropdownMenuTrigger asChild>
                     <motion.button whileTap={{ scale: 0.9 }} className={`p-3 transition-colors flex items-center gap-2 ${scrolled ? 'text-white/65 hover:text-white' : 'text-black/65 hover:text-[#2D5A27]'}`} data-testid="button-account" aria-label="Hesabım">
                       <User className="w-[18px] h-[18px]" strokeWidth={1.75} />
                       <span className="text-[11px] tracking-[0.18em] uppercase font-medium hidden xl:inline">Hesabım</span>
                     </motion.button>
                   </DropdownMenuTrigger>
-                  <DropdownMenuContent align="end" className="bg-white border-black/8 shadow-lg rounded-none min-w-[180px]">
+                  <DropdownMenuContent align="end" className="bg-white border-black/8 shadow-lg rounded-none min-w-[180px] z-[9999]">
                     <DropdownMenuItem disabled className="text-[10px] tracking-widest text-black/30 uppercase">{user.firstName || user.email}</DropdownMenuItem>
                     <DropdownMenuItem onClick={() => navigate('/hesabim')} className="text-[11px] tracking-wider uppercase text-black hover:bg-black/5 cursor-pointer py-2.5">
                       <User className="w-4 h-4 mr-2" />Hesabım
@@ -517,7 +518,7 @@ export function Header() {
                   </DropdownMenuContent>
                 </DropdownMenu>
               ) : (
-                <DropdownMenu>
+                <DropdownMenu modal={false}>
                   <DropdownMenuTrigger asChild>
                     <motion.button
                       whileTap={{ scale: 0.9 }}

@@ -54,6 +54,8 @@ function Router() {
         <Switch>
         <Route path="/" component={Home} />
         <Route path="/magaza" component={Store} />
+        <Route path="/tum-urunler"><Redirect to="/magaza" /></Route>
+        <Route path="/kategori/tum-urunler"><Redirect to="/magaza" /></Route>
         <Route path="/kategori/:slug" component={Category} />
         <Route path="/urun/:slug" component={ProductDetail} />
         <Route path="/giris" component={Login} />
