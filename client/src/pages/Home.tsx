@@ -557,27 +557,53 @@ function NewArrivals({ products }: { products: Product[] }) {
 
 function TrustStrip() {
   const items = [
-    { icon: Truck, title: '1500 ₺ Üzeri Ücretsiz Kargo', desc: 'Türkiye genelinde hızlı teslimat' },
-    { icon: ShieldCheck, title: 'Güvenli Ödeme', desc: 'SSL korumalı, 3D Secure iyzico' },
-    { icon: Star, title: 'Orijinal & Kaliteli', desc: 'Türk zanaatkâr işçiliği' },
+    {
+      icon: Truck,
+      title: '1.500 ₺ Üzeri Ücretsiz Kargo',
+      desc: 'Türkiye genelinde hızlı ve güvenli teslimat.',
+    },
+    {
+      icon: ShieldCheck,
+      title: 'Güvenli Ödeme',
+      desc: 'SSL korumalı, 3D Secure destekli ödeme altyapısı.',
+    },
+    {
+      icon: Star,
+      title: 'Orijinal ve Kaliteli Ürünler',
+      desc: 'Türk zanaatkâr işçiliğiyle özenle üretilmiş.',
+    },
   ];
   return (
-    <section className="bg-[#2D5A27] py-10 lg:py-12 px-5 lg:px-10" data-testid="scene-trust">
-      <div className="max-w-[860px] mx-auto grid grid-cols-1 sm:grid-cols-3 gap-6 lg:gap-10">
-        {items.map((item) => {
-          const Icon = item.icon;
-          return (
-            <div key={item.title} className="flex items-center gap-4">
-              <div className="w-10 h-10 rounded-full bg-white/10 flex items-center justify-center shrink-0">
-                <Icon className="w-5 h-5 text-white" strokeWidth={1.75} />
+    <section className="bg-[#0f1a0e] border-t border-white/[0.07]" data-testid="scene-trust">
+      <div className="max-w-[1100px] mx-auto px-5 lg:px-10">
+        <div className="grid grid-cols-1 sm:grid-cols-3">
+          {items.map((item, i) => {
+            const Icon = item.icon;
+            return (
+              <div
+                key={item.title}
+                className={[
+                  'flex items-center gap-4 py-7 lg:py-10',
+                  i < items.length - 1 ? 'border-b sm:border-b-0 sm:border-r border-white/[0.07]' : '',
+                  i > 0 ? 'sm:pl-8 lg:pl-12' : '',
+                  i < items.length - 1 ? 'sm:pr-8 lg:pr-12' : '',
+                ].join(' ')}
+              >
+                <div className="w-11 h-11 rounded-sm bg-[#2D5A27]/20 border border-[#2D5A27]/30 flex items-center justify-center shrink-0">
+                  <Icon className="w-[19px] h-[19px] text-[#4a9a42]" strokeWidth={1.75} />
+                </div>
+                <div>
+                  <p className="text-[13px] font-bold text-white/90 leading-snug tracking-[0.01em]">
+                    {item.title}
+                  </p>
+                  <p className="text-[11.5px] text-white/42 mt-1 leading-relaxed">
+                    {item.desc}
+                  </p>
+                </div>
               </div>
-              <div>
-                <p className="text-[12px] font-bold text-white tracking-wide">{item.title}</p>
-                <p className="text-[11px] text-white/60 mt-0.5">{item.desc}</p>
-              </div>
-            </div>
-          );
-        })}
+            );
+          })}
+        </div>
       </div>
     </section>
   );
