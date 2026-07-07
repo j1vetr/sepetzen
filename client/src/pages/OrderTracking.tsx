@@ -613,7 +613,7 @@ export default function OrderTracking() {
                                 {stepDate.relative}
                               </span>
                             ) : (
-                              <span className="text-[10px] mt-1 text-transparent">—</span>
+                              <span className="text-[10px] mt-1 text-transparent">-</span>
                             )}
                           </div>
                         );

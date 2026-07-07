@@ -247,7 +247,7 @@ export default function CategoriesTab({
     <div data-testid="tab-categories" className="space-y-4 sm:space-y-5">
       <PageHeader
         title="Kategoriler"
-        description={`${categories.length.toLocaleString('tr-TR')} kategori — sürükleyerek sıralayın`}
+        description={`${categories.length.toLocaleString('tr-TR')} kategori - sürükleyerek sıralayın`}
         actions={
           <PrimaryButton
             onClick={() => {

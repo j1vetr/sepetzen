@@ -53,7 +53,7 @@ type SortKey = 'newest' | 'oldest' | 'name_asc' | 'price_asc' | 'price_desc';
 
 function formatPrice(value: string | number): string {
   const n = typeof value === 'number' ? value : parseFloat(value);
-  if (Number.isNaN(n)) return '—';
+  if (Number.isNaN(n)) return '-';
   return `${n.toLocaleString('tr-TR', { maximumFractionDigits: 2 })} ₺`;
 }
 
@@ -109,7 +109,7 @@ function CategoryChips({
   const names = ids
     .map((id) => categories.find((c) => c.id === id)?.name)
     .filter(Boolean) as string[];
-  if (names.length === 0) return <span className="text-[12px] text-neutral-400">—</span>;
+  if (names.length === 0) return <span className="text-[12px] text-neutral-400">-</span>;
   return (
     <div className="flex flex-wrap gap-1">
       {names.slice(0, 2).map((n) => (
@@ -713,7 +713,7 @@ export default function ProductsTab({
                         </td>
                         <td className="px-4 py-3 align-middle text-right whitespace-nowrap">
                           {stock.count === 0 ? (
-                            <span className="text-[12px] text-neutral-400">—</span>
+                            <span className="text-[12px] text-neutral-400">-</span>
                           ) : (
                             <div>
                               <p className="text-[13px] text-neutral-900 tabular-nums">

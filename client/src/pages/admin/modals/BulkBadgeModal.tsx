@@ -113,7 +113,7 @@ export default function BulkBadgeModal({
       footer={
         <>
           <p className="mr-auto text-[12px] text-neutral-500 tabular-nums">
-            {targetIds.length > 0 ? `${targetIds.length} ürün etkilenecek` : '—'}
+            {targetIds.length > 0 ? `${targetIds.length} ürün etkilenecek` : '-'}
           </p>
           <SecondaryButton
             onClick={() => send('')}
@@ -211,7 +211,7 @@ export default function BulkBadgeModal({
               className="w-full"
               data-testid="select-badge-category"
             >
-              <option value="">— Kategori Seçin —</option>
+              <option value="">- Kategori Seçin -</option>
               {categories.map((cat) => {
                 const count = products.filter(
                   (p) => p.categoryId === cat.id || p.categoryIds?.includes(cat.id),

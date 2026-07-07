@@ -183,7 +183,7 @@ export default function Login() {
             <div className="relative z-10 h-full flex flex-col justify-between p-10 xl:p-12">
               <div className="flex items-start justify-between">
                 <span className="text-[10px] font-mono tracking-[0.32em] uppercase text-white/85 tabular-nums">
-                  Sepetzen — Outdoor & Bıçak
+                  Sepetzen - Outdoor & Bıçak
                 </span>
                 <span className="text-[10px] font-mono tracking-[0.28em] uppercase text-polen-orange tabular-nums">
                   EST. 2001
@@ -192,7 +192,7 @@ export default function Login() {
 
               <div className="max-w-md">
                 <span className="block text-[10px] font-mono tracking-[0.32em] uppercase text-polen-orange mb-4">
-                  — Üyelere Özel
+                  - Üyelere Özel
                 </span>
                 <h2 className="font-display text-[40px] xl:text-5xl tracking-[0.005em] text-white leading-[1.02]">
                   Doğanın imzasını<br />

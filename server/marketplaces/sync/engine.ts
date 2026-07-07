@@ -655,7 +655,7 @@ async function upsertProduct(
         productId: siteProduct.id,
         sku,
         size: v.size ?? "Tek Beden",
-        color: v.color?.name ?? "—",
+        color: v.color?.name ?? "-",
         colorHex: v.color?.hex ?? null,
         price: v.price.toFixed(2),
         stock: v.stock,

@@ -245,7 +245,7 @@ export function registerMarketplaceRoutes(
     const mp = await storage.getMarketplace(req.params.id);
     if (!mp) return res.status(404).json({ message: "Bulunamadı" });
     if (!mp.isActive) {
-      return res.status(400).json({ message: "Pazaryeri pasif — önce etkinleştirin." });
+      return res.status(400).json({ message: "Pazaryeri pasif - önce etkinleştirin." });
     }
     // Pre-check: lock zaten alınmış mı?
     const running = await storage.getRunningSyncRun(mp.id);

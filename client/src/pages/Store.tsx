@@ -268,7 +268,7 @@ export default function Store() {
             <aside className="hidden lg:block w-[260px] shrink-0">
               <div className="sticky top-32">
                 <div className="flex items-baseline gap-3 mb-8 pb-5 border-b border-black/10">
-                  <span className="text-[10px] font-mono tracking-[0.32em] uppercase text-polen-orange tabular-nums">—</span>
+                  <span className="text-[10px] font-mono tracking-[0.32em] uppercase text-polen-orange tabular-nums">-</span>
                   <h3 className="font-display text-base tracking-[0.18em] uppercase text-black">Filtrele</h3>
                 </div>
                 <FilterContent />

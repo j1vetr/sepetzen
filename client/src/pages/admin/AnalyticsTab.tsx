@@ -97,28 +97,28 @@ export default function AnalyticsPanel() {
         <KpiCard
           icon={DollarSign} iconClass="bg-emerald-500/10 text-emerald-400"
           label="Bu ay gelir" sub={kpi ? `Geçen ay: ${fmtPrice(kpi.lastMonth?.revenue || 0)}` : undefined}
-          value={kpi ? fmtPrice(kpi.thisMonth?.revenue || 0) : '—'}
+          value={kpi ? fmtPrice(kpi.thisMonth?.revenue || 0) : '-'}
           change={kpi?.changes?.revenue}
           loading={kpiLoading}
         />
         <KpiCard
           icon={ShoppingBag} iconClass="bg-blue-500/10 text-blue-400"
           label="Bu ay sipariş" sub={kpi ? `Geçen ay: ${kpi.lastMonth?.orders || 0} sipariş` : undefined}
-          value={kpi ? fmt(kpi.thisMonth?.orders || 0) : '—'}
+          value={kpi ? fmt(kpi.thisMonth?.orders || 0) : '-'}
           change={kpi?.changes?.orders}
           loading={kpiLoading}
         />
         <KpiCard
           icon={TrendingUp} iconClass="bg-purple-500/10 text-purple-400"
           label="Ortalama sepet" sub={kpi ? `Geçen ay: ${fmtPrice(kpi.lastMonth?.avgOrder || 0)}` : undefined}
-          value={kpi ? fmtPrice(kpi.thisMonth?.avgOrder || 0) : '—'}
+          value={kpi ? fmtPrice(kpi.thisMonth?.avgOrder || 0) : '-'}
           change={kpi?.changes?.avgOrder}
           loading={kpiLoading}
         />
         <KpiCard
           icon={UserPlus} iconClass="bg-orange-500/10 text-orange-400"
           label="Yeni müşteri" sub={kpi ? `İptal oranı: %${(kpi.thisMonth?.cancelRate || 0).toFixed(1)}` : undefined}
-          value={kpi ? fmt(kpi.thisMonth?.newCustomers || 0) : '—'}
+          value={kpi ? fmt(kpi.thisMonth?.newCustomers || 0) : '-'}
           loading={kpiLoading}
         />
       </div>
@@ -200,7 +200,7 @@ export default function AnalyticsPanel() {
                 <p className="text-sm font-semibold text-neutral-900">
                   {(salesData.orders?.reduce((a: number, b: number) => a + b, 0) || 0) > 0
                     ? fmtPrice(salesData.revenue.reduce((a: number, b: number) => a + b, 0) / salesData.orders.reduce((a: number, b: number) => a + b, 0))
-                    : '—'}
+                    : '-'}
                 </p>
               </div>
             </div>

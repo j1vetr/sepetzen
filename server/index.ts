@@ -72,7 +72,7 @@ app.use((req, res, next) => {
     const { assertEncryptionKeyConfigured } = await import("./marketplaces/crypto");
     assertEncryptionKeyConfigured();
   } catch (err) {
-    console.error("[index] FATAL — marketplace encryption key check failed:", err);
+    console.error("[index] FATAL - marketplace encryption key check failed:", err);
     throw err;
   }
 

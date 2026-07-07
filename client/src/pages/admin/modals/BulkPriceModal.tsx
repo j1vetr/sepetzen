@@ -211,7 +211,7 @@ export default function BulkPriceModal({
       footer={
         <>
           <p className="mr-auto text-[12px] text-neutral-500 tabular-nums">
-            {affectedProducts.length > 0 ? `${affectedProducts.length} ürün etkilenecek` : '—'}
+            {affectedProducts.length > 0 ? `${affectedProducts.length} ürün etkilenecek` : '-'}
           </p>
           <GhostButton onClick={onClose}>İptal</GhostButton>
           <PrimaryButton
@@ -273,7 +273,7 @@ export default function BulkPriceModal({
               className="w-full"
               data-testid="select-bulk-price-category"
             >
-              <option value="">— Kategori Seçin —</option>
+              <option value="">- Kategori Seçin -</option>
               {categories.map((cat) => {
                 const count = products.filter((p) => p.categoryId === cat.id).length;
                 return (

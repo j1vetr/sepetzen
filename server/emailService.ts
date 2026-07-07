@@ -298,19 +298,19 @@ function welcomeEmailTemplate(userName: string): string {
         <tr>
           <td style="padding-bottom:10px;">
             <span style="display:inline-block;width:6px;height:6px;background:${BRAND.primary};border-radius:50%;margin-right:10px;vertical-align:middle;"></span>
-            <strong style="color:${BRAND.ink};">El işçiliği</strong> <span style="color:${BRAND.body};">— her parça atölyemizde özenle şekillenir</span>
+            <strong style="color:${BRAND.ink};">El işçiliği</strong> <span style="color:${BRAND.body};">- her parça atölyemizde özenle şekillenir</span>
           </td>
         </tr>
         <tr>
           <td style="padding-bottom:10px;">
             <span style="display:inline-block;width:6px;height:6px;background:${BRAND.primary};border-radius:50%;margin-right:10px;vertical-align:middle;"></span>
-            <strong style="color:${BRAND.ink};">Güvenli kargo</strong> <span style="color:${BRAND.body};">— Aras Kargo ile hızlı, kırılmaz paketleme</span>
+            <strong style="color:${BRAND.ink};">Güvenli kargo</strong> <span style="color:${BRAND.body};">- Aras Kargo ile hızlı, kırılmaz paketleme</span>
           </td>
         </tr>
         <tr>
           <td>
             <span style="display:inline-block;width:6px;height:6px;background:${BRAND.primary};border-radius:50%;margin-right:10px;vertical-align:middle;"></span>
-            <strong style="color:${BRAND.ink};">Üyeye özel</strong> <span style="color:${BRAND.body};">— kampanyalardan ilk siz haberdar olun</span>
+            <strong style="color:${BRAND.ink};">Üyeye özel</strong> <span style="color:${BRAND.body};">- kampanyalardan ilk siz haberdar olun</span>
           </td>
         </tr>
       </table>
@@ -319,7 +319,7 @@ function welcomeEmailTemplate(userName: string): string {
     ${emailButton(CONTACT.siteUrl, 'Koleksiyona Göz At')}
 
     ${Small(`Sorularınız için <a href="mailto:${CONTACT.email}" style="color:${BRAND.primaryDeep};text-decoration:none;">${CONTACT.email}</a> adresinden bize ulaşabilirsiniz.`)}
-  `, { preheader: `Hoş geldiniz ${safeName} — Sepetzen ailesindesiniz.`, title: 'Hoş geldiniz' });
+  `, { preheader: `Hoş geldiniz ${safeName} - Sepetzen ailesindesiniz.`, title: 'Hoş geldiniz' });
 }
 
 type OrderItemForEmail = OrderItem & { productImage?: string | null };
@@ -350,7 +350,7 @@ function orderConfirmationTemplate(order: Order, items: OrderItemForEmail[], sit
 
   return wrapTemplate(`
     ${H1('Siparişiniz alındı.')}
-    ${Lede(`Teşekkürler ${escapeHtml(order.customerName)} — siparişiniz başarıyla oluşturuldu. Hazırlanmaya başlandığında size yine yazacağız.`)}
+    ${Lede(`Teşekkürler ${escapeHtml(order.customerName)} - siparişiniz başarıyla oluşturuldu. Hazırlanmaya başlandığında size yine yazacağız.`)}
 
     ${infoCard(`
       <table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%">
@@ -403,13 +403,13 @@ function orderConfirmationTemplate(order: Order, items: OrderItemForEmail[], sit
     `)}
 
     ${Small(`Sorularınız için <a href="mailto:${CONTACT.email}" style="color:${BRAND.primaryDeep};text-decoration:none;font-weight:600;">${CONTACT.email}</a> veya <a href="tel:${CONTACT.phoneTel}" style="color:${BRAND.primaryDeep};text-decoration:none;font-weight:600;">${CONTACT.phoneDisplay}</a>`)}
-  `, { preheader: `Sipariş #${order.orderNumber} alındı — toplam ${order.total} ₺`, title: `Sipariş #${order.orderNumber}` });
+  `, { preheader: `Sipariş #${order.orderNumber} alındı - toplam ${order.total} ₺`, title: `Sipariş #${order.orderNumber}` });
 }
 
 function preparingNotificationTemplate(order: Order): string {
   return wrapTemplate(`
     ${H1('Siparişiniz hazırlanıyor.')}
-    ${Lede('Güzel haber — siparişiniz şu anda atölyemizde özenle hazırlanıyor. Kargoya verildiğinde takip numaranızı paylaşacağız.')}
+    ${Lede('Güzel haber - siparişiniz şu anda atölyemizde özenle hazırlanıyor. Kargoya verildiğinde takip numaranızı paylaşacağız.')}
 
     ${infoCard(`
       <table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%">
@@ -436,7 +436,7 @@ function preparingNotificationTemplate(order: Order): string {
     </table>
 
     ${Small('Siparişiniz kargoya verildiğinde tekrar bilgi vereceğiz.')}
-  `, { preheader: `#${order.orderNumber} hazırlanıyor — 1–2 iş günü içinde kargoda`, title: 'Sipariş Hazırlanıyor' });
+  `, { preheader: `#${order.orderNumber} hazırlanıyor - 1–2 iş günü içinde kargoda`, title: 'Sipariş Hazırlanıyor' });
 }
 
 function shippingNotificationTemplate(order: Order): string {
@@ -485,7 +485,7 @@ function shippingNotificationTemplate(order: Order): string {
     `)}
 
     ${Small(`Kargo süresince sorularınız için <a href="tel:${CONTACT.phoneTel}" style="color:${BRAND.primaryDeep};text-decoration:none;font-weight:600;">${CONTACT.phoneDisplay}</a>`)}
-  `, { preheader: `#${order.orderNumber} kargoda — takip: ${order.trackingNumber || 'yakında'}`, title: 'Kargoya Verildi' });
+  `, { preheader: `#${order.orderNumber} kargoda - takip: ${order.trackingNumber || 'yakında'}`, title: 'Kargoya Verildi' });
 }
 
 function bankTransferPendingTemplate(order: Order, items: OrderItemForEmail[], siteUrl: string = CONTACT.siteUrl): string {
@@ -513,7 +513,7 @@ function bankTransferPendingTemplate(order: Order, items: OrderItemForEmail[], s
 
   return wrapTemplate(`
     ${H1('Havalenizi bekliyoruz.')}
-    ${Lede(`Teşekkürler ${escapeHtml(order.customerName)} — siparişiniz oluşturuldu. Aşağıdaki ${BANK_TRANSFER_INFO.bankName} hesabımıza ödemenizi gönderdiğinizde sipariş hazırlığa alınacak.`)}
+    ${Lede(`Teşekkürler ${escapeHtml(order.customerName)} - siparişiniz oluşturuldu. Aşağıdaki ${BANK_TRANSFER_INFO.bankName} hesabımıza ödemenizi gönderdiğinizde sipariş hazırlığa alınacak.`)}
 
     ${infoCard(`
       <table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%">
@@ -591,14 +591,14 @@ function bankTransferPendingTemplate(order: Order, items: OrderItemForEmail[], s
     </table>
 
     ${Small(`Sorularınız için <a href="tel:${CONTACT.phoneTel}" style="color:${BRAND.primaryDeep};text-decoration:none;font-weight:600;">${CONTACT.phoneDisplay}</a>`)}
-  `, { preheader: `#${order.orderNumber} — Havale onayı bekleniyor (${order.total} ₺)`, title: 'Havalenizi Bekliyoruz' });
+  `, { preheader: `#${order.orderNumber} - Havale onayı bekleniyor (${order.total} ₺)`, title: 'Havalenizi Bekliyoruz' });
 }
 
 function adminOrderNotificationTemplate(order: Order, items: OrderItem[]): string {
   const itemRows = items.map(item => `
     <tr>
       <td style="padding:10px 12px;border-bottom:1px solid ${BRAND.borderSoft};color:${BRAND.ink};font-size:13px;">${escapeHtml(item.productName)}</td>
-      <td style="padding:10px 12px;border-bottom:1px solid ${BRAND.borderSoft};color:${BRAND.body};font-size:12px;">${escapeHtml(item.variantDetails || '—')}</td>
+      <td style="padding:10px 12px;border-bottom:1px solid ${BRAND.borderSoft};color:${BRAND.body};font-size:12px;">${escapeHtml(item.variantDetails || '-')}</td>
       <td align="center" style="padding:10px 12px;border-bottom:1px solid ${BRAND.borderSoft};color:${BRAND.body};font-size:13px;">${escapeHtml(item.quantity)}</td>
       <td align="right" style="padding:10px 12px;border-bottom:1px solid ${BRAND.borderSoft};color:${BRAND.ink};font-size:13px;font-weight:700;white-space:nowrap;">${escapeHtml(item.subtotal)}&nbsp;₺</td>
     </tr>
@@ -655,7 +655,7 @@ function adminOrderNotificationTemplate(order: Order, items: OrderItem[]): strin
     </table>
 
     ${emailButton(`${CONTACT.siteUrl}/toov-admin`, 'Siparişi Yönet')}
-  `, { preheader: `Yeni sipariş #${order.orderNumber} — ${order.total} ₺`, title: `Yeni Sipariş #${order.orderNumber}` });
+  `, { preheader: `Yeni sipariş #${order.orderNumber} - ${order.total} ₺`, title: `Yeni Sipariş #${order.orderNumber}` });
 }
 
 function passwordResetTemplate(userName: string, resetLink: string): string {
@@ -672,7 +672,7 @@ function passwordResetTemplate(userName: string, resetLink: string): string {
       </div>
     `)}
 
-    ${P('Bu talebi siz yapmadıysanız bu e-postayı yok sayabilirsiniz — hesabınız güvende.', BRAND.muted)}
+    ${P('Bu talebi siz yapmadıysanız bu e-postayı yok sayabilirsiniz - hesabınız güvende.', BRAND.muted)}
 
     <p style="margin:20px 0 0 0;font-family:Helvetica,Arial,sans-serif;color:${BRAND.muted};font-size:11px;line-height:1.6;word-break:break-all;">
       Buton çalışmıyorsa aşağıdaki bağlantıyı tarayıcınıza kopyalayın:<br>
@@ -703,8 +703,8 @@ function reviewRequestTemplate(userName: string, orderNumber: string, products: 
 
     ${emailButton(`${CONTACT.siteUrl}/profilim`, 'Değerlendirme Yap')}
 
-    ${Small('Geri bildiriminiz bizim için çok değerli — teşekkürler.')}
-  `, { preheader: `#${orderNumber} teslim edildi — deneyiminizi paylaşır mısınız?`, title: 'Değerlendirme', unsubscribeEmail: userEmail });
+    ${Small('Geri bildiriminiz bizim için çok değerli - teşekkürler.')}
+  `, { preheader: `#${orderNumber} teslim edildi - deneyiminizi paylaşır mısınız?`, title: 'Değerlendirme', unsubscribeEmail: userEmail });
 }
 
 interface CartItem {
@@ -731,7 +731,7 @@ function abandonedCartTemplate(userName: string, cartItems: CartItem[], cartTota
   return wrapTemplate(`
     ${H1('Sepetiniz sizi bekliyor.')}
     ${P(`Merhaba ${escapeHtml(userName)},`)}
-    ${Lede('Beğendiğiniz ürünleri sepete eklediniz ama henüz tamamlamadınız. Stoklar sınırlı — favorilerinizi kaçırmayın.')}
+    ${Lede('Beğendiğiniz ürünleri sepete eklediniz ama henüz tamamlamadınız. Stoklar sınırlı - favorilerinizi kaçırmayın.')}
 
     ${infoCard(`
       <div style="font-size:11px;color:${BRAND.muted};letter-spacing:1.5px;text-transform:uppercase;font-weight:600;margin-bottom:6px;">Sepetinizdeki ürünler</div>
@@ -757,13 +757,13 @@ function abandonedCartTemplate(userName: string, cartItems: CartItem[], cartTota
     <table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%" style="background-color:${BRAND.primary};margin:18px 0;">
       <tr>
         <td align="center" style="padding:18px 24px;font-family:Helvetica,Arial,sans-serif;color:${BRAND.ink};font-size:14px;font-weight:600;">
-          Tebrikler — kargoya hak kazandınız!
+          Tebrikler - kargoya hak kazandınız!
         </td>
       </tr>
     </table>`}
 
     ${Small('Sorularınız için bize yazın, yardımcı olalım.')}
-  `, { preheader: `Sepetinizde ${cartItems.length} ürün bekliyor — toplam ${cartTotal.toLocaleString('tr-TR')} ₺`, title: 'Sepetiniz', unsubscribeEmail: userEmail });
+  `, { preheader: `Sepetinizde ${cartItems.length} ürün bekliyor - toplam ${cartTotal.toLocaleString('tr-TR')} ₺`, title: 'Sepetiniz', unsubscribeEmail: userEmail });
 }
 
 // Email sending functions
@@ -905,7 +905,7 @@ export async function sendAdminOrderNotificationEmail(order: Order, items: Order
       ? `<table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%" style="background-color:#fff3cd;border:2px solid #fdb51d;margin:0 0 18px 0;">
           <tr>
             <td style="padding:14px 18px;font-family:Helvetica,Arial,sans-serif;color:#1a1612;font-size:14px;font-weight:700;">
-              ⚠️ ÖDEME YÖNTEMİ: HAVALE — Onay Bekliyor<br/>
+              ⚠️ ÖDEME YÖNTEMİ: HAVALE - Onay Bekliyor<br/>
               <span style="font-size:12px;font-weight:500;color:#52483a;">Hesap hareketlerini kontrol edip admin panelinden onaylayın.</span>
             </td>
           </tr>
@@ -1010,14 +1010,14 @@ export async function sendAdminReviewNotificationEmail(
 
       ${emailButton(adminUrl, 'Admin Panelinde İncele')}
     `, {
-      preheader: `Yeni yorum: ${payload.authorName} — ${payload.productName}`,
+      preheader: `Yeni yorum: ${payload.authorName} - ${payload.productName}`,
       title: 'Yeni yorum onay bekliyor',
     });
 
     await transporter.sendMail({
       from: `"Sepetzen Sistem" <${fromEmail}>`,
       to: adminEmail,
-      subject: `Yeni yorum onay bekliyor — ${payload.productName}`,
+      subject: `Yeni yorum onay bekliyor - ${payload.productName}`,
       html,
     });
 
@@ -1060,16 +1060,16 @@ export async function sendGuestReviewApprovedEmail(
 
       ${emailButton(productUrl, 'Ürün Sayfasını Gör')}
 
-      ${Small('Sepetzen — kamp, outdoor ve bağ bahçe ürünlerinin güvenilir adresi.')}
+      ${Small('Sepetzen - kamp, outdoor ve bağ bahçe ürünlerinin güvenilir adresi.')}
     `, {
-      preheader: `Yorumunuz yayında — ${payload.productName}`,
+      preheader: `Yorumunuz yayında - ${payload.productName}`,
       title: 'Yorumunuz yayında',
     });
 
     await transporter.sendMail({
       from: `"Sepetzen" <${fromEmail}>`,
       to: payload.to,
-      subject: `Yorumunuz yayında — ${payload.productName}`,
+      subject: `Yorumunuz yayında - ${payload.productName}`,
       html,
     });
 
@@ -1107,16 +1107,16 @@ export async function sendGuestReviewRejectedEmail(
         <p style="margin:0;font-size:14px;color:#1f2937;line-height:1.5;">${escapeHtml(payload.reason)}</p>
       `)}
 
-      ${Small('Sepetzen — kamp, outdoor ve bağ bahçe ürünlerinin güvenilir adresi.')}
+      ${Small('Sepetzen - kamp, outdoor ve bağ bahçe ürünlerinin güvenilir adresi.')}
     `, {
-      preheader: `Yorumunuz onaylanmadı — ${payload.productName}`,
+      preheader: `Yorumunuz onaylanmadı - ${payload.productName}`,
       title: 'Yorumunuz onaylanmadı',
     });
 
     await transporter.sendMail({
       from: `"Sepetzen" <${fromEmail}>`,
       to: payload.to,
-      subject: `Yorumunuz onaylanmadı — ${payload.productName}`,
+      subject: `Yorumunuz onaylanmadı - ${payload.productName}`,
       html,
     });
 
@@ -1248,7 +1248,7 @@ export async function sendTestEmail(toEmail: string): Promise<EmailResult> {
             E-posta sistemi çalışıyor.
           </div>
         `)}
-      `, { preheader: 'SMTP test e-postası — sistem çalışıyor', title: 'Test E-postası' }),
+      `, { preheader: 'SMTP test e-postası - sistem çalışıyor', title: 'Test E-postası' }),
     });
     
     console.log(`[Email] Test email sent to ${toEmail}`);
@@ -1345,8 +1345,8 @@ function quoteEmailTemplate(data: QuoteEmailData): string {
 
     ${emailButton(CONTACT.siteUrl, 'Web Sitemizi Ziyaret Edin')}
 
-    ${Small('Bizi tercih ettiğiniz için teşekkür ederiz — Sepetzen Ekibi')}
-  `, { preheader: `Teklif ${data.quoteNumber} hazır — toplam ${grandTotalFormatted} TL`, title: `Teklif ${data.quoteNumber}` });
+    ${Small('Bizi tercih ettiğiniz için teşekkür ederiz - Sepetzen Ekibi')}
+  `, { preheader: `Teklif ${data.quoteNumber} hazır - toplam ${grandTotalFormatted} TL`, title: `Teklif ${data.quoteNumber}` });
 }
 
 export async function sendQuoteEmail(

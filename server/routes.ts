@@ -744,7 +744,7 @@ export async function registerRoutes(
   const getAdminId = (req: Request): string => {
     const id = (req as Request & { adminId?: unknown }).adminId;
     if (typeof id !== 'string' || !id) {
-      throw new Error('Admin context missing — requireAdmin middleware did not run.');
+      throw new Error('Admin context missing - requireAdmin middleware did not run.');
     }
     return id;
   };
@@ -1658,7 +1658,7 @@ BÖLÜMLER ve EMOJİLER:
 - 🎯 Kullanım Alanları → Ürünün kullanıldığı durumlar/aktiviteler.
 - 🎁 Hediye & Paket → Ambalaj bilgisi, hediye seçeneği, garanti.
 
-KRİTİK KURAL — 📐 Teknik Özellikler bölümü:
+KRİTİK KURAL - 📐 Teknik Özellikler bölümü:
 Her <li> öğesi MUTLAKA "Etiket: Değer" formatında olmalıdır.
 DOĞRU örnekler:
   <li>Toplam Uzunluk: 23 cm</li>
@@ -4396,7 +4396,7 @@ Bu ürün için 4 bölümlü HTML açıklama üret. Teknik Özellikler bölümü
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Aras Kargo Etiketi — ${order.orderNumber}</title>
+<title>Aras Kargo Etiketi - ${order.orderNumber}</title>
 <style>
   * { margin: 0; padding: 0; box-sizing: border-box; }
   body {
@@ -4625,7 +4625,7 @@ Bu ürün için 4 bölümlü HTML açıklama üret. Teknik Özellikler bölümü
     </div>
     <div class="info-box">
       <div class="info-label">🏢 Dağıtım Şubesi</div>
-      <div class="info-value">${deliveryUnit || '—'}</div>
+      <div class="info-value">${deliveryUnit || '-'}</div>
       ${invoiceNo ? `<div class="info-value small">Fatura: ${invoiceNo}</div>` : ''}
     </div>
   </div>
@@ -4634,7 +4634,7 @@ Bu ürün için 4 bölümlü HTML açıklama üret. Teknik Özellikler bölümü
 
   <!-- Footer -->
   <div class="footer">
-    <span>Aras Kargo — araskargoservisi.com.tr</span>
+    <span>Aras Kargo - araskargoservisi.com.tr</span>
     <span>Oluşturulma: ${new Date().toLocaleString('tr-TR', { timeZone: 'Europe/Istanbul' })}</span>
   </div>
 
@@ -4857,7 +4857,7 @@ window.addEventListener('load', function() {
           await storage.updateOrder(req.params.id, { status: 'delivered', deliveredAt: new Date() });
           await storage.createOrderNote({
             orderId: req.params.id,
-            content: `Aras Kargo durumu: "${result.status}" — sipariş teslim edildi olarak işaretlendi.`,
+            content: `Aras Kargo durumu: "${result.status}" - sipariş teslim edildi olarak işaretlendi.`,
             authorId: 'system',
           });
         }
@@ -6939,9 +6939,9 @@ ${additionalImages}
       const xml = `<?xml version="1.0" encoding="UTF-8"?>
 <rss version="2.0" xmlns:g="http://base.google.com/ns/1.0">
   <channel>
-    <title>Sepetzen — Kamp, Outdoor &amp; Mermer</title>
+    <title>Sepetzen - Kamp, Outdoor &amp; Mermer</title>
     <link>${baseUrl}</link>
-    <description>Sepetzen — Premium kamp, outdoor ve bıçak ürünleri</description>
+    <description>Sepetzen - Premium kamp, outdoor ve bıçak ürünleri</description>
 ${items.join("\n")}
   </channel>
 </rss>`;
@@ -7232,7 +7232,7 @@ ${items.join("\n")}
         const allCatIds = p.categoryId ? [p.categoryId, ...productCatIds.filter(id => id !== p.categoryId)] : productCatIds;
         const catNames = allCatIds.map((id) => catMap.get(id)).filter(Boolean).join(', ');
         doc.fontSize(7).font(fontR).fillColor('#666666');
-        doc.text(catNames || '—', colCat, currentY + 15, { width: colCatW, lineBreak: true, height: 20 });
+        doc.text(catNames || '-', colCat, currentY + 15, { width: colCatW, lineBreak: true, height: 20 });
 
         const basePrice = parseFloat(p.basePrice);
         const effectiveRate = getEffectiveRate(p.id, p.categoryId);
@@ -7266,7 +7266,7 @@ ${items.join("\n")}
             { width: colPriceW, align: 'right' },
           );
           doc.fontSize(8).font(fontR).fillColor('#999999');
-          doc.text('—', colDisc, currentY + 15, { width: colDiscW, align: 'right' });
+          doc.text('-', colDisc, currentY + 15, { width: colDiscW, align: 'right' });
         } else {
           doc.fontSize(8).font(fontB).fillColor(darkColor);
           doc.text(

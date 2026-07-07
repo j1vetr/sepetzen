@@ -91,7 +91,7 @@ function renderMaintenancePage(): string {
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
 <meta name="robots" content="noindex,nofollow" />
-<title>Bakım Modu — Polen Stone</title>
+<title>Bakım Modu - Polen Stone</title>
 <style>
   *, *::before, *::after { box-sizing: border-box; }
   html, body { height: 100%; margin: 0; padding: 0; }

@@ -48,7 +48,7 @@ export default function AdminLogin() {
               data-testid="text-brand"
             >
               <span>POLEN STONE</span>
-              <span className="text-neutral-400 mx-2">—</span>
+              <span className="text-neutral-400 mx-2">-</span>
               <span className="text-neutral-500 font-normal">Admin</span>
             </h1>
             <p className="mt-3 text-[13px] text-neutral-500">

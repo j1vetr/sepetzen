@@ -302,7 +302,7 @@ export default function DatabasePanel() {
                 <li><strong className="text-red-400">Sunucudaki tüm ürün fotoğrafları (geri alınamaz)</strong></li>
               </ul>
               <p className="text-xs text-neutral-500 italic">
-                Sipariş geçmişi korunur — sipariş kalemleri ürün adıyla birlikte saklanmaya devam eder, sadece ürün referansı boşaltılır.
+                Sipariş geçmişi korunur - sipariş kalemleri ürün adıyla birlikte saklanmaya devam eder, sadece ürün referansı boşaltılır.
               </p>
               <div className="pt-4">
                 <label className="block text-sm text-neutral-500 mb-2">

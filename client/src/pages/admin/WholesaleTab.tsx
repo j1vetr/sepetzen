@@ -21,7 +21,7 @@ const PRESET_RATES = [10, 15, 20, 25, 30, 40, 50];
 
 function formatPrice(value: string | number): string {
   const n = typeof value === 'number' ? value : parseFloat(value);
-  if (Number.isNaN(n)) return '—';
+  if (Number.isNaN(n)) return '-';
   return n.toLocaleString('tr-TR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 }
 
@@ -344,7 +344,7 @@ export default function WholesaleTab({
                           max={99}
                           value={categoryRates[cat.id] || ''}
                           onChange={(e) => handleCategoryRate(cat.id, parseInt(e.target.value) || 0)}
-                          placeholder="—"
+                          placeholder="-"
                           className="w-14 h-7 px-2 border border-neutral-200 rounded text-[12px] text-right focus:outline-none focus:ring-1 focus:ring-blue-400 focus:border-transparent"
                           data-testid={`input-category-rate-${cat.id}`}
                         />
@@ -477,7 +477,7 @@ export default function WholesaleTab({
                       </div>
                     </td>
                     <td className="px-4 py-3 text-neutral-500 hidden sm:table-cell">
-                      {catNames || '—'}
+                      {catNames || '-'}
                     </td>
                     <td className="px-4 py-3 text-right whitespace-nowrap">
                       <span
@@ -497,7 +497,7 @@ export default function WholesaleTab({
                         max={99}
                         value={productRates[product.id] || ''}
                         onChange={(e) => handleProductRate(product.id, parseInt(e.target.value) || 0)}
-                        placeholder="—"
+                        placeholder="-"
                         className="w-14 h-7 px-2 border border-neutral-200 rounded text-[12px] text-center focus:outline-none focus:ring-1 focus:ring-violet-400 focus:border-transparent mx-auto"
                         data-testid={`input-product-rate-${product.id}`}
                       />
@@ -505,7 +505,7 @@ export default function WholesaleTab({
                     {hasAnyDiscount && (
                       <>
                         <td className="px-4 py-3 text-right whitespace-nowrap font-semibold text-emerald-700">
-                          {effectiveRate > 0 ? `${formatPrice(discounted)} ₺` : '—'}
+                          {effectiveRate > 0 ? `${formatPrice(discounted)} ₺` : '-'}
                         </td>
                         <td className="px-4 py-3 text-center whitespace-nowrap">
                           {source !== 'none' && (

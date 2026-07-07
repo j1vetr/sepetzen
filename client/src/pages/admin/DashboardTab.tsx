@@ -169,7 +169,7 @@ function StatRow({
       </div>
       {errored ? (
         <span className="text-[13px] text-neutral-400 tabular-nums" title="Veri yüklenemedi">
-          —
+          -
         </span>
       ) : loading ? (
         <span className="block h-4 w-10 rounded bg-neutral-100" />

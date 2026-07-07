@@ -307,7 +307,7 @@ export default function CategoryModal({
                   Yüklemek için tıklayın veya sürükleyin
                 </p>
                 <p className="text-[11px] text-neutral-500 mt-0.5">
-                  PNG, JPG veya WEBP — en fazla 10MB
+                  PNG, JPG veya WEBP - en fazla 10MB
                 </p>
               </div>
               <input

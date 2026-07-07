@@ -90,7 +90,7 @@ export function decryptCredentials<T extends Record<string, unknown> = Record<st
  * Bir API key/secret'ın yalnız son 4 hanesini gösterir (UI ve log için).
  */
 export function maskSecret(value: string | undefined | null): string {
-  if (!value) return "—";
+  if (!value) return "-";
   const s = String(value);
   if (s.length <= 4) return "*".repeat(s.length);
   return "•".repeat(Math.min(8, s.length - 4)) + s.slice(-4);

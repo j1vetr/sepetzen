@@ -31,7 +31,7 @@ export default function About() {
     <div className="min-h-screen bg-stone-50">
       <SEO
         title="Hakkımızda"
-        description="Polen Stone — Anadolu'nun zengin doğal taş mirasını modern mekânlara taşıyan premium mermer ve doğal taş markası."
+        description="Polen Stone - Anadolu'nun zengin doğal taş mirasını modern mekânlara taşıyan premium mermer ve doğal taş markası."
       />
       <Header />
 

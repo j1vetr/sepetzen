@@ -39,7 +39,7 @@ export async function verifyTurnstile(
 
   if (!secret) {
     if (process.env.NODE_ENV === 'production') {
-      console.error('[Turnstile] TURNSTILE_SECRET_KEY tanımlı değil — production istek reddedildi.');
+      console.error('[Turnstile] TURNSTILE_SECRET_KEY tanımlı değil - production istek reddedildi.');
       return {
         success: false,
         error: 'Captcha doğrulaması yapılandırılmamış. Lütfen yöneticiyle iletişime geçin.',

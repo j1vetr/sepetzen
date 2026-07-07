@@ -73,7 +73,7 @@ async function downloadImage(url: string, filename: string): Promise<string> {
       const svgContent = `<svg xmlns="http://www.w3.org/2000/svg" width="800" height="800" viewBox="0 0 800 800"><rect width="800" height="800" fill="#1a2e19"/><rect x="340" y="340" width="120" height="120" rx="8" fill="none" stroke="#2D5A27" stroke-width="3"/><line x1="340" y1="400" x2="460" y2="400" stroke="#2D5A27" stroke-width="2"/><line x1="400" y1="340" x2="400" y2="460" stroke="#2D5A27" stroke-width="2"/><text x="400" y="520" text-anchor="middle" font-family="sans-serif" font-size="28" fill="#2D5A27" letter-spacing="8">SEPETZEN</text></svg>`;
       fs.writeFileSync(placeholderLocal, svgContent, "utf-8");
     }
-    console.log(`  [placeholder] Download failed — using local placeholder image`);
+    console.log(`  [placeholder] Download failed - using local placeholder image`);
     return `/uploads/products/placeholder.svg`;
   }
 }
@@ -298,7 +298,7 @@ async function main() {
       isActive: true,
     }).onConflictDoNothing();
 
-    console.log(`   + ${pd.name} — ${pd.basePrice} TL`);
+    console.log(`   + ${pd.name} - ${pd.basePrice} TL`);
   }
 
   // ── 5. menu_items hiyerarşisi ───────────────────────────────────────────────
@@ -546,7 +546,7 @@ Telefon: 0536 630 11 38 | E-posta: sepetzen@gmail.com | Web: sepetzen.com</p>
       content: `<h2>ÜYELİK SÖZLEŞMESİ</h2>
 <p>Bu Üyelik Sözleşmesi ("Sözleşme"), sepetzen.com internet sitesini işleten Ahmet Uğur Durmaz (Sepetzen) ile siteye üye olan kişi ("Üye") arasında akdedilmiştir.</p>
 <h3>Madde 1 – Taraflar ve Konu</h3>
-<p><strong>Sepetzen:</strong> Karaçalı Mah. Nergiz Sk. No.8/A Dalaman / Muğla — sepetzen@gmail.com — 0536 630 11 38</p>
+<p><strong>Sepetzen:</strong> Karaçalı Mah. Nergiz Sk. No.8/A Dalaman / Muğla - sepetzen@gmail.com - 0536 630 11 38</p>
 <p>İşbu Sözleşme; Üye'nin Site'ye üye olma ve Site üzerinden gerçekleştireceği alışveriş işlemlerine ilişkin tarafların hak ve yükümlülüklerini düzenlemektedir.</p>
 <h3>Madde 2 – Üyelik Koşulları</h3>
 <p>2.1. Üye olmak için 18 (on sekiz) yaşını doldurmuş olmak ve fiil ehliyetine sahip bulunmak zorunludur.</p>
@@ -663,21 +663,21 @@ Adres: Karaçalı Mah. Nergiz Sk. No.8/A Dalaman / Muğla</p>`,
 <h3>1. Çerez Nedir?</h3>
 <p>Çerezler (cookies), bir web sitesini ziyaret ettiğinizde tarayıcınız tarafından cihazınıza kaydedilen küçük metin dosyalarıdır. Çerezler, web sitesinin düzgün çalışması, kullanıcı deneyiminin iyileştirilmesi ve site trafiğinin analiz edilmesi amacıyla kullanılır.</p>
 <h3>2. Kullandığımız Çerez Türleri</h3>
-<p><strong>a) Zorunlu Çerezler</strong> — site işlevleri için gereklidir, devre dışı bırakılamaz:</p>
+<p><strong>a) Zorunlu Çerezler</strong> - site işlevleri için gereklidir, devre dışı bırakılamaz:</p>
 <ul>
 <li><strong>Oturum çerezi (session cookie):</strong> Giriş durumunuzu ve sepet içeriğinizi oturum boyunca hatırlar. Tarayıcı kapanınca silinir.</li>
 <li><strong>CSRF koruma çerezi:</strong> Form gönderimlerini güvenli hale getirir.</li>
 </ul>
-<p><strong>b) İşlevsel Çerezler</strong> — deneyimi kişiselleştirmek için:</p>
+<p><strong>b) İşlevsel Çerezler</strong> - deneyimi kişiselleştirmek için:</p>
 <ul>
 <li><strong>Kimlik doğrulama çerezi:</strong> "Beni hatırla" özelliğini sağlar (30 güne kadar).</li>
 <li><strong>Tercih çerezi:</strong> Dil ve görüntü tercihlerinizi hatırlar.</li>
 </ul>
-<p><strong>c) Analitik Çerezler</strong> — yalnızca istatistiksel amaçlıdır, kişisel kimlik içermez:</p>
+<p><strong>c) Analitik Çerezler</strong> - yalnızca istatistiksel amaçlıdır, kişisel kimlik içermez:</p>
 <ul>
 <li><strong>Google Analytics (_ga, _gid, _gat):</strong> Sayfa görüntüleme, oturum süresi ve kullanıcı sayısı gibi anonim veriler.</li>
 </ul>
-<p><strong>d) Pazarlama Çerezleri</strong> — yalnızca açık rızanızla etkinleşir:</p>
+<p><strong>d) Pazarlama Çerezleri</strong> - yalnızca açık rızanızla etkinleşir:</p>
 <ul>
 <li><strong>Meta (Facebook) Pixel:</strong> Reklamların etkinliğini ölçmek ve size ilgili reklamlar göstermek amacıyla kullanılır.</li>
 </ul>
@@ -687,7 +687,7 @@ Adres: Karaçalı Mah. Nergiz Sk. No.8/A Dalaman / Muğla</p>`,
 <li>auth_token (İşlevsel): 30 gün</li>
 <li>_ga (Analitik): 2 yıl</li>
 <li>_gid (Analitik): 24 saat</li>
-<li>fbp — Meta Pixel (Pazarlama): 90 gün</li>
+<li>fbp - Meta Pixel (Pazarlama): 90 gün</li>
 </ul>
 <h3>4. Çerezleri Nasıl Yönetirsiniz?</h3>
 <p>Tarayıcı ayarlarınızdan çerezleri yönetebilir, silebilir veya engelleyebilirsiniz. Zorunlu çerezlerin devre dışı bırakılması Site'nin bazı işlevlerini etkileyebilir.</p>

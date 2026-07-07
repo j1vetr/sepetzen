@@ -299,7 +299,7 @@ export default function Cart() {
                   >
                     <span className="text-[15px] leading-none mt-0.5">🏦</span>
                     <p className="text-[12px] text-black/75 leading-snug">
-                      <span className="font-semibold text-black">Havale ile %10 indirim</span> — ödeme adımında seçin.
+                      <span className="font-semibold text-black">Havale ile %10 indirim</span> - ödeme adımında seçin.
                     </p>
                   </div>
 

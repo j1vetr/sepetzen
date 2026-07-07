@@ -83,7 +83,7 @@ const emptyDraft: CouponDraft = {
 };
 
 function formatDate(d: string | null) {
-  if (!d) return '—';
+  if (!d) return '-';
   try {
     return new Date(d).toLocaleDateString('tr-TR', {
       day: '2-digit',
@@ -91,7 +91,7 @@ function formatDate(d: string | null) {
       year: 'numeric',
     });
   } catch {
-    return '—';
+    return '-';
   }
 }
 
@@ -463,7 +463,7 @@ export default function CouponsTab() {
                       <td className="px-4 py-3 text-neutral-600">
                         {c.minOrderAmount
                           ? `${Number(c.minOrderAmount).toLocaleString('tr-TR')} ₺`
-                          : '—'}
+                          : '-'}
                       </td>
                       <td className="px-4 py-3 text-neutral-600 tabular-nums">
                         {c.usageCount}

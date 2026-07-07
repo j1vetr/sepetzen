@@ -22,7 +22,7 @@ const WHATSAPP_EVENTS: { key: WhatsAppEvent; label: string; defaultTpl: string }
     key: 'order_received_customer',
     label: 'Sipariş alındı (müşteriye)',
     defaultTpl:
-      `🎉 *SİPARİŞİNİZ ALINDI*\n${DIVIDER}\n\nMerhaba {{musteriAdi}} 👋\n\nBizi tercih ettiğiniz için teşekkürler! Siparişiniz başarıyla oluşturuldu ve hazırlık sırasına alındı.\n\n📦 *Sipariş No:* {{siparisNo}}\n🛒 *Ürün Sayısı:* {{urunSayisi}}\n💰 *Toplam:* {{toplam}} ₺\n💳 *Ödeme:* {{odemeYontemi}}\n🕐 *Tarih:* {{siparisTarihSaat}}\n\n🔍 Siparişinizi takip edin:\n{{siparisTakipLink}}\n\nHazırlığa başladığımızda yine haberdar edeceğiz. ✨\n\n— {{siteAdi}}`,
+      `🎉 *SİPARİŞİNİZ ALINDI*\n${DIVIDER}\n\nMerhaba {{musteriAdi}} 👋\n\nBizi tercih ettiğiniz için teşekkürler! Siparişiniz başarıyla oluşturuldu ve hazırlık sırasına alındı.\n\n📦 *Sipariş No:* {{siparisNo}}\n🛒 *Ürün Sayısı:* {{urunSayisi}}\n💰 *Toplam:* {{toplam}} ₺\n💳 *Ödeme:* {{odemeYontemi}}\n🕐 *Tarih:* {{siparisTarihSaat}}\n\n🔍 Siparişinizi takip edin:\n{{siparisTakipLink}}\n\nHazırlığa başladığımızda yine haberdar edeceğiz. ✨\n\n- {{siteAdi}}`,
   },
   {
     key: 'order_received_admin',
@@ -34,25 +34,25 @@ const WHATSAPP_EVENTS: { key: WhatsAppEvent; label: string; defaultTpl: string }
     key: 'order_preparing_customer',
     label: 'Sipariş hazırlanıyor (müşteriye)',
     defaultTpl:
-      `📦 *SİPARİŞİNİZ HAZIRLANIYOR*\n${DIVIDER}\n\nMerhaba {{musteriAdi}} 👋\n\n*{{siparisNo}}* numaralı siparişiniz atölyemizde özenle hazırlanıyor. 🛠️\n\nKargoya verildiğinde takip numarası ile birlikte size tekrar yazacağız. 🚚\n\n🔍 Sipariş takibi:\n{{siparisTakipLink}}\n\n— {{siteAdi}}`,
+      `📦 *SİPARİŞİNİZ HAZIRLANIYOR*\n${DIVIDER}\n\nMerhaba {{musteriAdi}} 👋\n\n*{{siparisNo}}* numaralı siparişiniz atölyemizde özenle hazırlanıyor. 🛠️\n\nKargoya verildiğinde takip numarası ile birlikte size tekrar yazacağız. 🚚\n\n🔍 Sipariş takibi:\n{{siparisTakipLink}}\n\n- {{siteAdi}}`,
   },
   {
     key: 'order_shipped_customer',
     label: 'Kargoya verildi (müşteriye)',
     defaultTpl:
-      `🚚 *KARGOYA VERİLDİ*\n${DIVIDER}\n\nMerhaba {{musteriAdi}} 👋\n\n*{{siparisNo}}* numaralı siparişiniz kargoya teslim edildi! 📮\n\n🚛 *Kargo Firması:* {{kargoFirma}}\n🏷️ *Takip No:* {{kargoTakipNo}}\n\n🔗 Kargo takibi:\n{{kargoTakipLink}}\n\n📋 Sipariş detayı:\n{{siparisTakipLink}}\n\nGüzel günlerde kullanın! 🌟\n\n— {{siteAdi}}`,
+      `🚚 *KARGOYA VERİLDİ*\n${DIVIDER}\n\nMerhaba {{musteriAdi}} 👋\n\n*{{siparisNo}}* numaralı siparişiniz kargoya teslim edildi! 📮\n\n🚛 *Kargo Firması:* {{kargoFirma}}\n🏷️ *Takip No:* {{kargoTakipNo}}\n\n🔗 Kargo takibi:\n{{kargoTakipLink}}\n\n📋 Sipariş detayı:\n{{siparisTakipLink}}\n\nGüzel günlerde kullanın! 🌟\n\n- {{siteAdi}}`,
   },
   {
     key: 'order_delivered_customer',
     label: 'Teslim edildi (müşteriye)',
     defaultTpl:
-      `🎉 *TESLİMAT TAMAMLANDI*\n${DIVIDER}\n\nMerhaba {{musteriAdi}} 👋\n\n*{{siparisNo}}* numaralı siparişiniz başarıyla teslim edildi. ✅\n\nBizi tercih ettiğiniz için çok teşekkür ederiz. 🙏\n\n⭐ Memnun kaldıysanız ürün sayfasından kısa bir değerlendirme bırakırsanız çok mutlu oluruz.\n\n— {{siteAdi}}`,
+      `🎉 *TESLİMAT TAMAMLANDI*\n${DIVIDER}\n\nMerhaba {{musteriAdi}} 👋\n\n*{{siparisNo}}* numaralı siparişiniz başarıyla teslim edildi. ✅\n\nBizi tercih ettiğiniz için çok teşekkür ederiz. 🙏\n\n⭐ Memnun kaldıysanız ürün sayfasından kısa bir değerlendirme bırakırsanız çok mutlu oluruz.\n\n- {{siteAdi}}`,
   },
   {
     key: 'order_cancelled_customer',
     label: 'Sipariş iptal edildi (müşteriye)',
     defaultTpl:
-      `ℹ️ *SİPARİŞ İPTALİ*\n${DIVIDER}\n\nMerhaba {{musteriAdi}} 👋\n\n*{{siparisNo}}* numaralı siparişiniz iptal edilmiştir.\n\n💳 *Tutar:* {{toplam}} ₺\n🕐 *Tarih:* {{siparisTarihSaat}}\n\nÖdemeniz alındıysa iade süreci en kısa sürede başlatılacaktır. Sorularınız için bize yazabilirsiniz. 💬\n\n— {{siteAdi}}`,
+      `ℹ️ *SİPARİŞ İPTALİ*\n${DIVIDER}\n\nMerhaba {{musteriAdi}} 👋\n\n*{{siparisNo}}* numaralı siparişiniz iptal edilmiştir.\n\n💳 *Tutar:* {{toplam}} ₺\n🕐 *Tarih:* {{siparisTarihSaat}}\n\nÖdemeniz alındıysa iade süreci en kısa sürede başlatılacaktır. Sorularınız için bize yazabilirsiniz. 💬\n\n- {{siteAdi}}`,
   },
   {
     key: 'order_cancelled_admin',
@@ -64,19 +64,19 @@ const WHATSAPP_EVENTS: { key: WhatsAppEvent; label: string; defaultTpl: string }
     key: 'order_bank_transfer_pending_customer',
     label: 'Havale ödeme bekleniyor (müşteriye)',
     defaultTpl:
-      `🏦 *HAVALE ONAYI BEKLENİYOR*\n${DIVIDER}\n\nMerhaba {{musteriAdi}} 👋\n\n*{{siparisNo}}* numaralı siparişiniz oluşturuldu. Aşağıdaki hesaba ödemenizi gönderdiğinizde siparişiniz hazırlığa alınacak. ✅\n\n💰 *Tutar:* {{toplam}} ₺\n🛒 *Ürün Sayısı:* {{urunSayisi}}\n🕐 *Tarih:* {{siparisTarihSaat}}\n\n📋 *Banka Bilgileri*\n🏦 Banka: ${BANK_TRANSFER_INFO.bankName}\n🔢 IBAN: \`${BANK_TRANSFER_INFO.iban}\`\n👤 Ad Soyad: ${BANK_TRANSFER_INFO.accountHolder}\n📝 Açıklama: {{siparisNo}}\n\n💡 Açıklamaya sipariş numaranızı yazmayı unutmayın.\n\n🔍 Sipariş takibi:\n{{siparisTakipLink}}\n\n— {{siteAdi}}`,
+      `🏦 *HAVALE ONAYI BEKLENİYOR*\n${DIVIDER}\n\nMerhaba {{musteriAdi}} 👋\n\n*{{siparisNo}}* numaralı siparişiniz oluşturuldu. Aşağıdaki hesaba ödemenizi gönderdiğinizde siparişiniz hazırlığa alınacak. ✅\n\n💰 *Tutar:* {{toplam}} ₺\n🛒 *Ürün Sayısı:* {{urunSayisi}}\n🕐 *Tarih:* {{siparisTarihSaat}}\n\n📋 *Banka Bilgileri*\n🏦 Banka: ${BANK_TRANSFER_INFO.bankName}\n🔢 IBAN: \`${BANK_TRANSFER_INFO.iban}\`\n👤 Ad Soyad: ${BANK_TRANSFER_INFO.accountHolder}\n📝 Açıklama: {{siparisNo}}\n\n💡 Açıklamaya sipariş numaranızı yazmayı unutmayın.\n\n🔍 Sipariş takibi:\n{{siparisTakipLink}}\n\n- {{siteAdi}}`,
   },
   {
     key: 'order_bank_transfer_admin',
-    label: 'Havale ödeme — kontrol et (yöneticiye)',
+    label: 'Havale ödeme - kontrol et (yöneticiye)',
     defaultTpl:
-      `⚠️ *HAVALE ÖDEME — KONTROL ET*\n${DIVIDER}\n\nMüşteri havale yöntemiyle yeni bir sipariş oluşturdu. Hesap hareketlerini kontrol edip onaylayın. 🔍\n\n📦 *Sipariş No:* {{siparisNo}}\n👤 *Müşteri:* {{musteriAdi}}\n📞 *Telefon:* {{musteriTelefon}}\n📧 *E-posta:* {{musteriEposta}}\n💰 *Tutar:* {{toplam}} ₺\n🛒 *Ürün:* {{urunSayisi}} kalem\n🕐 *Tarih:* {{siparisTarihSaat}}\n\n🔧 Yönetim paneli:\n{{adminPanelUrl}}`,
+      `⚠️ *HAVALE ÖDEME - KONTROL ET*\n${DIVIDER}\n\nMüşteri havale yöntemiyle yeni bir sipariş oluşturdu. Hesap hareketlerini kontrol edip onaylayın. 🔍\n\n📦 *Sipariş No:* {{siparisNo}}\n👤 *Müşteri:* {{musteriAdi}}\n📞 *Telefon:* {{musteriTelefon}}\n📧 *E-posta:* {{musteriEposta}}\n💰 *Tutar:* {{toplam}} ₺\n🛒 *Ürün:* {{urunSayisi}} kalem\n🕐 *Tarih:* {{siparisTarihSaat}}\n\n🔧 Yönetim paneli:\n{{adminPanelUrl}}`,
   },
   {
     key: 'review_pending_admin',
     label: 'Yeni yorum onay bekliyor (yöneticiye)',
     defaultTpl:
-      `💬 *YENİ YORUM — ONAY BEKLİYOR*\n${DIVIDER}\n\n🪨 *Ürün:* {{urunAdi}}\n👤 *Yazan:* {{yorumYazari}} {{misafirEtiketi}}\n⭐ *Puan:* {{yildizlar}} ({{puan}}/5)\n{{baslikSatiri}}{{icerikSatiri}}\n🔧 Onaylamak için:\n{{adminPanelUrl}}`,
+      `💬 *YENİ YORUM - ONAY BEKLİYOR*\n${DIVIDER}\n\n🪨 *Ürün:* {{urunAdi}}\n👤 *Yazan:* {{yorumYazari}} {{misafirEtiketi}}\n⭐ *Puan:* {{yildizlar}} ({{puan}}/5)\n{{baslikSatiri}}{{icerikSatiri}}\n🔧 Onaylamak için:\n{{adminPanelUrl}}`,
   },
 ];
 
@@ -161,7 +161,7 @@ function ArasSenderAddressPicker({ value, onChange }: { value: string; onChange:
             >
               <span className="font-mono font-bold">{a.addressId}</span>
               {a.adres && <span className="ml-2 text-neutral-500">{a.adres}</span>}
-              {a.sube && <span className="ml-1 text-neutral-400">— {a.sube}</span>}
+              {a.sube && <span className="ml-1 text-neutral-400">- {a.sube}</span>}
             </button>
           ))}
         </div>
@@ -756,7 +756,7 @@ export default function SettingsPanel() {
 
             <div className="flex flex-wrap items-center justify-between gap-3">
               <div className={`text-xs font-medium ${iyzicoConfig.configured ? 'text-emerald-600' : 'text-red-600'}`} data-testid="text-iyzico-status">
-                {iyzicoConfig.configured ? '✓ Anahtarlar tanımlı — ödeme aktif' : '⚠ Anahtarlar eksik — ödeme alınamaz'}
+                {iyzicoConfig.configured ? '✓ Anahtarlar tanımlı - ödeme aktif' : '⚠ Anahtarlar eksik - ödeme alınamaz'}
               </div>
               <div className="flex items-center gap-2">
                 <button
@@ -793,7 +793,7 @@ export default function SettingsPanel() {
               >
                 <div className="font-semibold">
                   {iyzicoTestResult.ok
-                    ? '✓ Bağlantı başarılı — iyzico anahtarlarınızı kabul etti.'
+                    ? '✓ Bağlantı başarılı - iyzico anahtarlarınızı kabul etti.'
                     : `✗ Bağlantı başarısız${iyzicoTestResult.errorCode ? ` (Kod: ${iyzicoTestResult.errorCode})` : ''}`}
                 </div>
                 {!iyzicoTestResult.ok && iyzicoTestResult.errorMessage && (
@@ -807,10 +807,10 @@ export default function SettingsPanel() {
                   <div className="mt-2 pt-2 border-t border-red-200">
                     <strong>Olası nedenler:</strong>
                     <ul className="list-disc list-inside mt-1 space-y-0.5">
-                      <li>Sandbox/test anahtarı kaydedilmiş — canlı uçnokta kabul etmez. iyzico panelinde sekmeyi <strong>Canlı (Production)</strong>'a alıp anahtarı yeniden kopyalayın.</li>
-                      <li>Anahtarda boşluk veya eksik karakter var — iyzico panelinden tek tıkla "Kopyala" butonunu kullanın.</li>
+                      <li>Sandbox/test anahtarı kaydedilmiş - canlı uçnokta kabul etmez. iyzico panelinde sekmeyi <strong>Canlı (Production)</strong>'a alıp anahtarı yeniden kopyalayın.</li>
+                      <li>Anahtarda boşluk veya eksik karakter var - iyzico panelinden tek tıkla "Kopyala" butonunu kullanın.</li>
                       <li>iyzico hesabınız henüz canlı moda geçirilmemiş (onay süreci tamamlanmamış olabilir).</li>
-                      <li>API anahtarı ile gizli anahtar farklı hesaplara ait — ikisi de aynı satırdan alınmalı.</li>
+                      <li>API anahtarı ile gizli anahtar farklı hesaplara ait - ikisi de aynı satırdan alınmalı.</li>
                     </ul>
                   </div>
                 )}

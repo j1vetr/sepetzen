@@ -428,7 +428,7 @@ export default function OrdersPanel() {
             ? 'Siparişler yükleniyor…'
             : `${orders.length.toLocaleString('tr-TR')} sipariş${
                 stats.awaitingAction > 0
-                  ? ` — ${stats.awaitingAction} işlem bekliyor`
+                  ? ` - ${stats.awaitingAction} işlem bekliyor`
                   : ''
               }`
         }
@@ -804,7 +804,7 @@ export default function OrdersPanel() {
                       </td>
                       <td className="px-5 py-3.5">
                         <span className="text-[12px] text-neutral-600">
-                          {order.shippingAddress?.city || '—'}
+                          {order.shippingAddress?.city || '-'}
                         </span>
                       </td>
                       <td

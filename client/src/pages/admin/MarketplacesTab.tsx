@@ -100,7 +100,7 @@ const RUN_STATUS_TONE: Record<
 };
 
 function formatDate(d: string | null): string {
-  if (!d) return '—';
+  if (!d) return '-';
   try {
     return new Date(d).toLocaleString('tr-TR', { dateStyle: 'short', timeStyle: 'short' });
   } catch {
@@ -111,7 +111,7 @@ function formatDate(d: string | null): string {
 function formatDuration(start: string, end: string | null): string {
   if (!end) return '…';
   const ms = new Date(end).getTime() - new Date(start).getTime();
-  if (Number.isNaN(ms) || ms < 0) return '—';
+  if (Number.isNaN(ms) || ms < 0) return '-';
   if (ms < 1000) return `${ms}ms`;
   const sec = Math.floor(ms / 1000);
   if (sec < 60) return `${sec}sn`;
@@ -395,7 +395,7 @@ function ProvidersHealthSummary({
                   <span className="opacity-70 shrink-0">·</span>
                   <span className="min-w-0 flex-1">
                     <strong className="font-medium">{issue.marketplaceName}</strong>
-                    <span className="opacity-80"> — {issue.reason}</span>
+                    <span className="opacity-80"> - {issue.reason}</span>
                     {issue.detail && (
                       <span className="block opacity-70 truncate text-[11px] mt-0.5">
                         {issue.detail}
@@ -597,7 +597,7 @@ function MarketplaceCard({
           label="Eşleşmemiş kategori"
           value={
             mappingsQuery.isLoading
-              ? '—'
+              ? '-'
               : unmatchedCount === 0
                 ? 'Tümü eşli'
                 : `${unmatchedCount}`
@@ -1260,7 +1260,7 @@ function MarketplaceFormDialog({
                 {testResult.ok ? (
                   <>
                     <CheckCircle2 className="w-3.5 h-3.5" />
-                    Başarılı — {testResult.message}
+                    Başarılı - {testResult.message}
                   </>
                 ) : (
                   <>
@@ -1818,7 +1818,7 @@ function CategoryMappingsDialog({
                           data-testid={`select-mapping-${m.id}`}
                           className="w-full"
                         >
-                          <option value="__none">— Eşleme yok —</option>
+                          <option value="__none">- Eşleme yok -</option>
                           {siteCategories.map((c) => (
                             <option key={c.id} value={c.id}>
                               {c.name}
@@ -1836,8 +1836,8 @@ function CategoryMappingsDialog({
                             }`}
                             title={
                               suggestionStrong
-                                ? `Önerilen eşleme — uygulamak için tıkla (skor: ${suggestion!.score.toFixed(2)})`
-                                : `Düşük güvenli öneri — manuel kontrol önerilir (skor: ${suggestion!.score.toFixed(2)})`
+                                ? `Önerilen eşleme - uygulamak için tıkla (skor: ${suggestion!.score.toFixed(2)})`
+                                : `Düşük güvenli öneri - manuel kontrol önerilir (skor: ${suggestion!.score.toFixed(2)})`
                             }
                             data-testid={`button-suggestion-${m.id}`}
                           >

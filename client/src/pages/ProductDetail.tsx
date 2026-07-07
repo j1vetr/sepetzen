@@ -234,7 +234,7 @@ function ProductDescriptionSections({ html }: { html: string }) {
                         className="flex items-baseline justify-between py-2.5 border-b border-black/[0.06] gap-4"
                       >
                         <dt className="text-[12px] text-black/45 shrink-0">
-                          {label ?? <span className="text-black/20">—</span>}
+                          {label ?? <span className="text-black/20">-</span>}
                         </dt>
                         <dd className="text-[13px] text-black/80 font-medium text-right">{value}</dd>
                       </div>
@@ -438,7 +438,7 @@ function ProductTabs({ html }: { html: string }) {
                         key={j}
                         className="flex items-baseline justify-between py-2.5 border-b border-black/[0.06] gap-4"
                       >
-                        <dt className="text-[12px] text-black/45 shrink-0">{label ?? '—'}</dt>
+                        <dt className="text-[12px] text-black/45 shrink-0">{label ?? '-'}</dt>
                         <dd className="text-[13px] text-black/80 font-medium text-right">{value}</dd>
                       </div>
                     );
@@ -1099,7 +1099,7 @@ export default function ProductDetail() {
                   <div className="relative aspect-square bg-stone-100 overflow-hidden" ref={emblaRef}>
                     <div className="flex h-full">
                       {images.map((img, i) => (
-                        <button type="button" key={i} className="flex-[0_0_100%] min-w-0 h-full" onClick={() => setLightboxOpen(true)} aria-label={`Görsel ${i + 1} — büyüt`}>
+                        <button type="button" key={i} className="flex-[0_0_100%] min-w-0 h-full" onClick={() => setLightboxOpen(true)} aria-label={`Görsel ${i + 1} - büyüt`}>
                           <img src={img} alt={product.name} className="w-full h-full object-cover" draggable={false} />
                         </button>
                       ))}
