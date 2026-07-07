@@ -585,7 +585,7 @@ function VideoSection() {
               Doğaya Her Zaman<br className="hidden sm:block" /> Hazır Ol
             </h2>
             <p className="text-[13px] text-white/45 mt-4 max-w-md leading-relaxed">
-              El yapımı bıçaklardan kamp ekipmanlarına — her macera için doğru ürün, kapında.
+              El yapımı bıçaklardan kamp ekipmanlarına, her macera için doğru ürün, kapında.
             </p>
           </div>
           <Link
