@@ -42,6 +42,12 @@ import {
   Star,
   Send,
   Check,
+  Ruler,
+  Layers,
+  Target,
+  Gift,
+  Info,
+  type LucideIcon,
 } from 'lucide-react';
 
 function WhatsAppIcon({ className }: { className?: string }) {
@@ -313,6 +319,16 @@ function ProductDescriptionSections({ html }: { html: string }) {
   );
 }
 
+// ─── Section type → Lucide icon ───────────────────────────────────────────────
+
+function sectionIcon(type: DescSection['type']): LucideIcon {
+  if (type === 'specs') return Ruler;
+  if (type === 'material') return Layers;
+  if (type === 'usage') return Target;
+  if (type === 'gift') return Gift;
+  return Info;
+}
+
 // ─── Feature Highlights Strip ─────────────────────────────────────────────────
 
 function ProductFeatureHighlights({ html }: { html: string }) {
@@ -321,20 +337,25 @@ function ProductFeatureHighlights({ html }: { html: string }) {
   const highlights = sections.slice(0, 4);
   return (
     <div className="grid grid-cols-2 lg:grid-cols-4 border-t border-b border-black/8">
-      {highlights.map((sec, i) => (
-        <div
-          key={i}
-          className={`flex items-start gap-3 px-5 py-5 ${i < highlights.length - 1 ? 'border-r border-black/8' : ''}`}
-        >
-          <span className="text-xl leading-none shrink-0 mt-0.5">{sec.emoji || '✦'}</span>
-          <div className="min-w-0">
-            <p className="text-[12px] font-semibold text-black leading-tight mb-1">{sec.title}</p>
-            <p className="text-[11.5px] text-black/45 leading-snug line-clamp-2">
-              {sec.items[0] || (sec.prose ? sec.prose.split(/[.!]/)[0] : '') || ''}
-            </p>
+      {highlights.map((sec, i) => {
+        const Icon = sectionIcon(sec.type);
+        return (
+          <div
+            key={i}
+            className={`flex items-start gap-3 px-5 py-5 ${i < highlights.length - 1 ? 'border-r border-black/8' : ''}`}
+          >
+            <span className="shrink-0 mt-0.5 w-[18px] h-[18px] text-[#2D5A27]">
+              <Icon className="w-[18px] h-[18px]" strokeWidth={1.75} />
+            </span>
+            <div className="min-w-0">
+              <p className="text-[12px] font-semibold text-black leading-tight mb-1">{sec.title}</p>
+              <p className="text-[11.5px] text-black/45 leading-snug line-clamp-2">
+                {sec.items[0] || (sec.prose ? sec.prose.split(/[.!]/)[0] : '') || ''}
+              </p>
+            </div>
           </div>
-        </div>
-      ))}
+        );
+      })}
     </div>
   );
 }
