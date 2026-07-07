@@ -6,6 +6,7 @@ import { Minus, Plus, Trash2, ShoppingBag, Truck, Shield, RotateCcw, ArrowRight,
 import { useQuery } from '@tanstack/react-query';
 import { motion, AnimatePresence } from 'framer-motion';
 import { SEO } from '@/components/SEO';
+import { BANK_TRANSFER_DISCOUNT_RATE } from '@shared/bankInfo';
 
 interface Product {
   id: string;
@@ -15,7 +16,7 @@ interface Product {
   images: string[];
 }
 
-const FREE_SHIPPING_THRESHOLD = 2500;
+const FREE_SHIPPING_THRESHOLD = 1500;
 
 export default function Cart() {
   const { items, isLoading, updateQuantity, removeItem, totalItems, subtotal } = useCart();
@@ -37,6 +38,7 @@ export default function Cart() {
   const total = subtotal + shippingCost;
   const remainingForFreeShipping = FREE_SHIPPING_THRESHOLD - subtotal;
   const shippingProgress = Math.min((subtotal / FREE_SHIPPING_THRESHOLD) * 100, 100);
+  const bankDiscountPercent = Math.round(BANK_TRANSFER_DISCOUNT_RATE * 100);
 
   if (isLoading) {
     return (
@@ -83,15 +85,15 @@ export default function Cart() {
               animate={{ opacity: 1, scale: 1 }}
               className="text-center py-20"
             >
-              <div className="w-24 h-24 mx-auto mb-6 bg-stone-100 flex items-center justify-center">
-                <ShoppingBag className="w-10 h-10 text-black/25" />
+              <div className="w-24 h-24 mx-auto mb-6 bg-[#2D5A27]/10 flex items-center justify-center">
+                <ShoppingBag className="w-10 h-10 text-[#2D5A27]/50" />
               </div>
-              <h2 className="font-display text-2xl tracking-wide mb-4 text-black">Sepetiniz Boş</h2>
+              <h2 className="font-display text-2xl tracking-wide mb-4 text-black">Sepetiniz boş</h2>
               <p className="text-black/40 mb-8 max-w-md mx-auto">
                 Henüz sepetinize ürün eklemediniz. Koleksiyonumuzu keşfedin ve favori ürünlerinizi ekleyin.
               </p>
               <Link href="/">
-                <Button className="h-12 px-8 bg-black text-white hover:bg-black/85 font-bold tracking-wide group rounded-none" data-testid="button-continue-shopping">
+                <Button className="h-12 px-8 bg-[#2D5A27] text-white hover:bg-[#4a9a42] font-bold tracking-wide group rounded-none" data-testid="button-continue-shopping">
                   ALIŞVERİŞE BAŞLA
                   <ArrowRight className="w-4 h-4 ml-2 transition-transform group-hover:translate-x-1" />
                 </Button>
@@ -105,16 +107,16 @@ export default function Cart() {
                   <motion.div
                     initial={{ opacity: 0, y: -10 }}
                     animate={{ opacity: 1, y: 0 }}
-                    className="bg-amber-50 border border-amber-200/70 rounded-lg p-5"
+                    className="bg-[#2D5A27]/5 border border-[#2D5A27]/20 rounded-lg p-5"
                   >
                     <div className="flex items-center gap-3 mb-3">
-                      <div className="w-10 h-10 bg-amber-100 flex items-center justify-center rounded-full">
-                        <Truck className="w-5 h-5 text-amber-600" />
+                      <div className="w-10 h-10 bg-[#2D5A27]/10 flex items-center justify-center rounded-full">
+                        <Truck className="w-5 h-5 text-[#2D5A27]" />
                       </div>
                       <div>
-                        <p className="font-medium text-black/80">Ücretsiz Kargoya Az Kaldı!</p>
+                        <p className="font-medium text-black/80">Ücretsiz kargoya az kaldı!</p>
                         <p className="text-sm text-black/45">
-                          <span className="font-bold text-amber-600">{remainingForFreeShipping.toFixed(0)} TL</span> daha harcayın
+                          <span className="font-bold text-[#2D5A27]">{remainingForFreeShipping.toFixed(0)} TL</span> daha harcayın
                         </p>
                       </div>
                     </div>
@@ -123,7 +125,7 @@ export default function Cart() {
                         initial={{ width: 0 }}
                         animate={{ width: `${shippingProgress}%` }}
                         transition={{ duration: 0.8, ease: 'easeOut' }}
-                        className="h-full bg-gradient-to-r from-amber-400 to-orange-500 rounded-full"
+                        className="h-full bg-gradient-to-r from-[#2D5A27] to-[#4a9a42] rounded-full"
                       />
                     </div>
                   </motion.div>
@@ -133,15 +135,15 @@ export default function Cart() {
                   <motion.div
                     initial={{ opacity: 0, y: -10 }}
                     animate={{ opacity: 1, y: 0 }}
-                    className="bg-green-50 border border-green-200/70 rounded-lg p-4"
+                    className="bg-[#2D5A27]/5 border border-[#2D5A27]/20 rounded-lg p-4"
                   >
                     <div className="flex items-center gap-3">
-                      <div className="w-10 h-10 bg-green-100 flex items-center justify-center rounded-full">
-                        <Truck className="w-5 h-5 text-green-600" />
+                      <div className="w-10 h-10 bg-[#2D5A27]/10 flex items-center justify-center rounded-full">
+                        <Truck className="w-5 h-5 text-[#2D5A27]" />
                       </div>
                       <div>
-                        <p className="font-medium text-green-700">Ücretsiz Kargo Kazandınız!</p>
-                        <p className="text-sm text-black/40">Siparişiniz ücretsiz kargo ile gönderilecek</p>
+                        <p className="font-medium text-[#2D5A27]">Ücretsiz kargo kazandınız!</p>
+                        <p className="text-sm text-black/40">Siparişiniz ücretsiz kargo ile gönderilecek.</p>
                       </div>
                     </div>
                   </motion.div>
@@ -150,10 +152,10 @@ export default function Cart() {
                 <motion.div
                   initial={{ opacity: 0, y: -10 }}
                   animate={{ opacity: 1, y: 0 }}
-                  className="bg-stone-50 border border-black/6 rounded-lg p-4 space-y-1"
+                  className="bg-[#2D5A27]/5 border border-[#2D5A27]/10 rounded-lg p-4 space-y-1"
                 >
                   <p className="text-xs text-black/45 text-center">
-                    <strong className="text-black/60">Türkiye içi kargo:</strong> 2.500 TL üzeri ücretsiz, altı 200 TL
+                    <strong className="text-black/60">Türkiye içi kargo:</strong> 1.500 TL üzeri ücretsiz, altı 200 TL
                   </p>
                   <p className="text-xs text-black/45 text-center">
                     <strong className="text-black/60">Uluslararası kargo:</strong> Sabit 2.500 TL (ödeme adımında hesaplanır)
@@ -176,7 +178,7 @@ export default function Cart() {
                         <Link href={`/urun/${item.product?.slug}`}>
                           <motion.div
                             whileHover={{ scale: 1.02 }}
-                            className="w-28 h-32 bg-stone-100 overflow-hidden shrink-0 relative rounded-lg"
+                            className="w-28 h-32 bg-[#2D5A27]/5 overflow-hidden shrink-0 relative rounded-lg"
                           >
                             {item.product?.images?.[0] && (
                               <img
@@ -259,7 +261,7 @@ export default function Cart() {
                 <motion.div
                   initial={{ opacity: 0, y: 20 }}
                   animate={{ opacity: 1, y: 0 }}
-                  className="bg-stone-50 border border-black/8 p-4 sm:p-6 sticky top-24 overflow-hidden"
+                  className="bg-[#2D5A27]/5 border border-[#2D5A27]/15 p-4 sm:p-6 sticky top-24 overflow-hidden"
                 >
                   <h2 className="font-display text-xl tracking-wide mb-6 text-black">
                     SİPARİŞ ÖZETİ
@@ -267,13 +269,13 @@ export default function Cart() {
 
                   <div className="space-y-4 text-sm">
                     <div className="flex justify-between">
-                      <span className="text-black/45">Ara Toplam ({totalItems} ürün)</span>
+                      <span className="text-black/45">Ara toplam ({totalItems} ürün)</span>
                       <span className="font-medium text-black" data-testid="text-subtotal">{subtotal.toLocaleString('tr-TR')} ₺</span>
                     </div>
                     <div className="flex justify-between">
                       <span className="text-black/45">Kargo</span>
-                      <span data-testid="text-shipping" className={shippingCost === 0 ? 'text-green-600 font-medium' : 'text-black'}>
-                        {shippingCost === 0 ? 'ÜCRETSİZ' : `${shippingCost.toFixed(2)} ₺`}
+                      <span data-testid="text-shipping" className={shippingCost === 0 ? 'text-[#2D5A27] font-medium' : 'text-black'}>
+                        {shippingCost === 0 ? 'Ücretsiz' : `${shippingCost.toFixed(2)} ₺`}
                       </span>
                     </div>
                     <div className="h-px bg-black/8 my-4" />
@@ -288,7 +290,7 @@ export default function Cart() {
                       whileHover={{ scale: 1.01 }}
                       whileTap={{ scale: 0.99 }}
                     >
-                      <Button className="w-full h-14 mt-6 bg-black text-white hover:bg-black/85 font-bold text-sm tracking-wider group rounded-none" data-testid="button-checkout">
+                      <Button className="w-full h-14 mt-6 bg-[#2D5A27] text-white hover:bg-[#4a9a42] font-bold text-sm tracking-wider group rounded-none" data-testid="button-checkout">
                         ÖDEMEYE GEÇ
                         <ArrowRight className="w-4 h-4 ml-2 transition-transform group-hover:translate-x-1" />
                       </Button>
@@ -296,33 +298,33 @@ export default function Cart() {
                   </Link>
 
                   <div
-                    className="mt-3 px-3 py-2.5 bg-polen-orange/10 border border-polen-orange/30 flex items-start gap-2"
+                    className="mt-3 px-3 py-2.5 bg-[#2D5A27]/8 border border-[#2D5A27]/25 flex items-start gap-2"
                     data-testid="info-bank-transfer-discount"
                   >
                     <span className="text-[15px] leading-none mt-0.5">🏦</span>
                     <p className="text-[12px] text-black/75 leading-snug">
-                      <span className="font-semibold text-black">Havale ile %10 indirim</span> - ödeme adımında seçin.
+                      <span className="font-semibold text-[#2D5A27]">Havale/EFT ile %{bankDiscountPercent} indirim.</span> Ödeme adımında seçin.
                     </p>
                   </div>
 
                   <Link href="/">
                     <Button variant="ghost" className="w-full mt-3 text-sm text-black/35 hover:text-black hover:bg-transparent" data-testid="button-continue">
-                      Alışverişe Devam Et
+                      Alışverişe devam et
                     </Button>
                   </Link>
 
-                  <div className="mt-6 pt-6 border-t border-black/6 space-y-3">
+                  <div className="mt-6 pt-6 border-t border-[#2D5A27]/10 space-y-3">
                     <div className="flex items-center gap-3 text-xs text-black/40">
-                      <Shield className="w-4 h-4 shrink-0" />
-                      <span>Güvenli Ödeme</span>
+                      <Shield className="w-4 h-4 shrink-0 text-[#2D5A27]/60" />
+                      <span>Güvenli ödeme</span>
                     </div>
                     <div className="flex items-center gap-3 text-xs text-black/40">
-                      <RotateCcw className="w-4 h-4 shrink-0" />
-                      <span>14 Gün Ücretsiz İade</span>
+                      <RotateCcw className="w-4 h-4 shrink-0 text-[#2D5A27]/60" />
+                      <span>14 gün ücretsiz iade</span>
                     </div>
                     <div className="flex items-center gap-3 text-xs text-black/40">
-                      <Package className="w-4 h-4 shrink-0" />
-                      <span>Hızlı Teslimat (1 İş Günü)</span>
+                      <Package className="w-4 h-4 shrink-0 text-[#2D5A27]/60" />
+                      <span>Hızlı teslimat (1 iş günü)</span>
                     </div>
                   </div>
                 </motion.div>
