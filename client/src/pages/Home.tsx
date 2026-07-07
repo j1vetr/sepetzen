@@ -75,7 +75,7 @@ function HeroSlider({ products }: { products: Product[] }) {
 
   return (
     <section
-      className="relative w-full overflow-hidden bg-[#0c0a09] hero-section"
+      className="relative w-full overflow-hidden bg-[#0c0a09] hero-section flex flex-col"
       data-testid="scene-hero"
     >
       {/* Full-bleed background */}
@@ -102,7 +102,7 @@ function HeroSlider({ products }: { products: Product[] }) {
       </AnimatePresence>
 
       {/* Split layout */}
-      <div className="relative z-10 h-full max-w-[1400px] mx-auto px-6 lg:px-12 grid grid-cols-1 lg:grid-cols-[1fr_360px] xl:grid-cols-[1fr_400px] gap-0">
+      <div className="relative z-10 flex-1 min-h-0 max-w-[1400px] mx-auto px-6 lg:px-12 grid grid-cols-1 lg:grid-cols-[1fr_360px] xl:grid-cols-[1fr_400px] gap-0">
 
         {/* ── LEFT: Slide content ── */}
         <div className="flex flex-col justify-center pb-20 lg:pb-24 pt-8 lg:pt-0">
@@ -256,6 +256,9 @@ function HeroSlider({ products }: { products: Product[] }) {
         </div>
 
       </div>
+
+      {/* Mobile marquee — hero içinde, altta */}
+      <MobileMarquee products={products} />
     </section>
   );
 }
@@ -649,7 +652,6 @@ export default function Home() {
       <Header />
       <main>
         <HeroSlider products={products} />
-        <MobileMarquee products={products} />
         <FeaturedProducts products={products} />
         <CategoriesSection />
         <NewArrivals products={products} />

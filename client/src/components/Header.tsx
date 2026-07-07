@@ -528,20 +528,20 @@ export function Header() {
                       <User className="w-[22px] h-[22px]" strokeWidth={1.75} />
                     </motion.button>
                   </DropdownMenuTrigger>
-                  <DropdownMenuContent align="end" className="bg-white border-black/8 shadow-lg rounded-none min-w-[190px] p-1">
+                  <DropdownMenuContent align="end" sideOffset={6} className="bg-white border border-black/10 shadow-xl rounded-none min-w-[190px] p-0 overflow-hidden z-[9999]">
                     <DropdownMenuItem
                       onClick={() => navigate('/giris')}
-                      className="text-[11px] tracking-[0.14em] uppercase text-black hover:bg-black/5 cursor-pointer py-3 px-4 gap-2.5"
+                      className="text-[11px] tracking-[0.14em] uppercase text-black hover:bg-black/5 cursor-pointer py-3.5 px-4 gap-2.5 rounded-none"
                       data-testid="link-header-giris"
                     >
                       <User className="w-4 h-4 shrink-0 text-black/40" strokeWidth={1.75} />
                       Giriş Yap
                     </DropdownMenuItem>
-                    <div className="px-2 pb-1">
+                    <div className="p-2 pt-1 border-t border-black/8">
                       <button
                         type="button"
                         onClick={() => navigate('/kayit')}
-                        className="w-full mt-0.5 py-2.5 text-[11px] tracking-[0.14em] uppercase font-bold text-white bg-[#2D5A27] hover:bg-[#234a1e] transition-colors cursor-pointer text-center"
+                        className="w-full py-2.5 text-[11px] tracking-[0.14em] uppercase font-bold text-white bg-[#2D5A27] hover:bg-[#234a1e] transition-colors cursor-pointer text-center"
                         data-testid="link-header-kayit"
                       >
                         Kayıt Ol

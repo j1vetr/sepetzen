@@ -89,14 +89,6 @@ export default function Register() {
           transition={{ duration: 0.45, ease: [0.33, 1, 0.68, 1] }}
           className="w-full max-w-[480px]"
         >
-          <Link href="/" className="flex justify-center mb-8">
-            <img
-              src="/uploads/branding/sepetzen-logo-dark.png"
-              alt="Sepetzen"
-              className="h-12 w-auto object-contain"
-            />
-          </Link>
-
           <div className="bg-white border border-black/8 shadow-sm p-8">
             <h1
               className="font-black text-[26px] tracking-tight text-black mb-1.5 leading-tight"
