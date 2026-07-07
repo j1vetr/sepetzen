@@ -224,7 +224,7 @@ function ProductDescriptionSections({ html }: { html: string }) {
           {/* Teknik Özellikler */}
           {specs && (
             <div>
-              <h3 className="text-[11px] font-semibold tracking-[0.22em] uppercase text-black/35 mb-4">
+              <h3 className="text-[12px] font-semibold text-black/50 mb-4">
                 {specs.title || 'Teknik Özellikler'}
               </h3>
               {specs.items.length > 0 ? (
@@ -237,12 +237,12 @@ function ProductDescriptionSections({ html }: { html: string }) {
                     return (
                       <div
                         key={j}
-                        className="flex items-baseline justify-between py-2.5 border-b border-black/[0.06] gap-4"
+                        className="flex items-baseline gap-6 py-2.5 border-b border-black/[0.06]"
                       >
-                        <dt className="text-[12px] text-black/45 shrink-0">
-                          {label ?? <span className="text-black/20">-</span>}
-                        </dt>
-                        <dd className="text-[13px] text-black/80 font-medium text-right">{value}</dd>
+                        {label && (
+                          <dt className="text-[12px] text-black/45 w-36 shrink-0">{label}</dt>
+                        )}
+                        <dd className="text-[13px] text-black/80 font-medium">{value}</dd>
                       </div>
                     );
                   })}
@@ -256,7 +256,7 @@ function ProductDescriptionSections({ html }: { html: string }) {
           {/* Materyal */}
           {material && (
             <div>
-              <h3 className="text-[11px] font-semibold tracking-[0.22em] uppercase text-black/35 mb-4">
+              <h3 className="text-[12px] font-semibold text-black/50 mb-4">
                 {material.title || 'Materyal'}
               </h3>
               <p className="text-[14px] text-black/65 leading-[1.75]">
@@ -270,7 +270,7 @@ function ProductDescriptionSections({ html }: { html: string }) {
       {/* Kullanım Alanları */}
       {usage && (
         <div>
-          <h3 className="text-[11px] font-semibold tracking-[0.22em] uppercase text-black/35 mb-4">
+          <h3 className="text-[12px] font-semibold text-black/50 mb-4">
             {usage.title || 'Kullanım Alanları'}
           </h3>
           {usage.items.length > 0 ? (
@@ -293,7 +293,7 @@ function ProductDescriptionSections({ html }: { html: string }) {
       {/* Hediye */}
       {gift && (
         <div className="border-l-2 border-[#2D5A27] pl-5 py-1">
-          <h3 className="text-[11px] font-semibold tracking-[0.22em] uppercase text-[#2D5A27]/60 mb-2">
+          <h3 className="text-[12px] font-semibold text-[#2D5A27]/80 mb-2">
             {gift.title || 'Hediye'}
           </h3>
           <p className="text-[14px] text-black/70 leading-[1.75]">
@@ -306,7 +306,7 @@ function ProductDescriptionSections({ html }: { html: string }) {
       {generics.map((section, i) => (
         <div key={i}>
           {section.title && (
-            <h3 className="text-[11px] font-semibold tracking-[0.22em] uppercase text-black/35 mb-4">
+            <h3 className="text-[12px] font-semibold text-black/50 mb-4">
               {section.title}
             </h3>
           )}
@@ -407,7 +407,7 @@ function ProductTabs({ html }: { html: string }) {
           <div className="space-y-6 max-w-2xl">
             {material && (
               <div>
-                <h3 className="text-[11px] font-semibold tracking-[0.22em] uppercase text-black/35 mb-4">
+                <h3 className="text-[12px] font-semibold text-black/50 mb-4">
                   {material.title}
                 </h3>
                 <p className="text-[14px] text-black/65 leading-[1.75]">
@@ -417,7 +417,7 @@ function ProductTabs({ html }: { html: string }) {
             )}
             {gift && (
               <div className="border-l-2 border-[#2D5A27] pl-5 py-1">
-                <h3 className="text-[11px] font-semibold tracking-[0.22em] uppercase text-[#2D5A27]/60 mb-2">
+                <h3 className="text-[12px] font-semibold text-[#2D5A27]/80 mb-2">
                   {gift.title}
                 </h3>
                 <p className="text-[14px] text-black/70 leading-[1.75]">
@@ -428,7 +428,7 @@ function ProductTabs({ html }: { html: string }) {
             {generics.map((s, i) => (
               <div key={i}>
                 {s.title && (
-                  <h3 className="text-[11px] font-semibold tracking-[0.22em] uppercase text-black/35 mb-4">
+                  <h3 className="text-[12px] font-semibold text-black/50 mb-4">
                     {s.title}
                   </h3>
                 )}
@@ -448,19 +448,18 @@ function ProductTabs({ html }: { html: string }) {
           <div>
             {specs ? (
               specs.items.length > 0 ? (
-                <dl className="max-w-lg">
+                <dl className="divide-y divide-black/[0.06] max-w-xl">
                   {specs.items.map((item, j) => {
                     const ci = item.indexOf(':');
                     const hasColon = ci > 0 && ci < 60;
                     const label = hasColon ? item.slice(0, ci).trim() : null;
                     const value = hasColon ? item.slice(ci + 1).trim() : item;
                     return (
-                      <div
-                        key={j}
-                        className="flex items-baseline justify-between py-2.5 border-b border-black/[0.06] gap-4"
-                      >
-                        <dt className="text-[12px] text-black/45 shrink-0">{label ?? '-'}</dt>
-                        <dd className="text-[13px] text-black/80 font-medium text-right">{value}</dd>
+                      <div key={j} className="flex items-baseline gap-6 py-2.5">
+                        {label && (
+                          <dt className="text-[12px] text-black/45 w-36 shrink-0">{label}</dt>
+                        )}
+                        <dd className="text-[13px] text-black/80 font-medium">{value}</dd>
                       </div>
                     );
                   })}
@@ -479,16 +478,14 @@ function ProductTabs({ html }: { html: string }) {
           <div>
             {usage ? (
               usage.items.length > 0 ? (
-                <div className="flex flex-wrap gap-2">
-                  {usage.items.map((chip, j) => (
-                    <span
-                      key={j}
-                      className="px-3 py-1.5 border border-[#2D5A27]/20 text-[12px] text-[#2D5A27] font-medium"
-                    >
-                      {chip}
-                    </span>
+                <ul className="space-y-3 max-w-xl">
+                  {usage.items.map((item, j) => (
+                    <li key={j} className="flex items-start gap-3 text-[13px] text-black/75 leading-snug">
+                      <span className="mt-[5px] w-[6px] h-[6px] rounded-full bg-[#2D5A27] shrink-0" />
+                      {item}
+                    </li>
                   ))}
-                </div>
+                </ul>
               ) : (
                 <p className="text-[14px] text-black/65 leading-[1.75]">{usage.prose}</p>
               )
@@ -502,37 +499,37 @@ function ProductTabs({ html }: { html: string }) {
         {active === 'delivery' && (
           <div className="space-y-8 max-w-2xl">
             <div>
-              <h3 className="text-[11px] font-semibold tracking-[0.22em] uppercase text-black/35 mb-4">
+              <h3 className="text-[12px] font-semibold text-black/50 mb-4">
                 Kargo & Teslimat
               </h3>
-              <dl>
+              <dl className="divide-y divide-black/[0.06]">
                 {[
                   ['Kargo Süresi', '1–3 iş günü'],
                   ['Ücretsiz Kargo', '1.500 ₺ ve üzeri siparişlerde'],
                   ['Kargo Firması', 'MNG Kargo / Yurtiçi Kargo'],
                   ['Aynı Gün Kargo', 'Hafta içi 14:00\'a kadar verilen siparişler'],
                 ].map(([k, v]) => (
-                  <div key={k} className="flex items-baseline justify-between py-2.5 border-b border-black/[0.06] gap-4">
-                    <dt className="text-[12px] text-black/45 shrink-0">{k}</dt>
-                    <dd className="text-[13px] text-black/80 font-medium text-right">{v}</dd>
+                  <div key={k} className="flex items-baseline gap-6 py-2.5">
+                    <dt className="text-[12px] text-black/45 w-36 shrink-0">{k}</dt>
+                    <dd className="text-[13px] text-black/80 font-medium">{v}</dd>
                   </div>
                 ))}
               </dl>
             </div>
             <div>
-              <h3 className="text-[11px] font-semibold tracking-[0.22em] uppercase text-black/35 mb-4">
+              <h3 className="text-[12px] font-semibold text-black/50 mb-4">
                 İade & İptal
               </h3>
-              <dl>
+              <dl className="divide-y divide-black/[0.06]">
                 {[
                   ['İade Süresi', '14 gün içinde'],
                   ['İade Şartı', 'Açılmamış, kullanılmamış, orijinal ambalajında'],
                   ['İade Yöntemi', 'Banka havalesi veya kart iadesi'],
                   ['İptal', 'Kargoya verilmemiş siparişler iptal edilebilir'],
                 ].map(([k, v]) => (
-                  <div key={k} className="flex items-baseline justify-between py-2.5 border-b border-black/[0.06] gap-4">
-                    <dt className="text-[12px] text-black/45 shrink-0">{k}</dt>
-                    <dd className="text-[13px] text-black/80 font-medium text-right">{v}</dd>
+                  <div key={k} className="flex items-baseline gap-6 py-2.5">
+                    <dt className="text-[12px] text-black/45 w-36 shrink-0">{k}</dt>
+                    <dd className="text-[13px] text-black/80 font-medium">{v}</dd>
                   </div>
                 ))}
               </dl>
