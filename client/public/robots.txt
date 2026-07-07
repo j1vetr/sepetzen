@@ -7,9 +7,7 @@ Disallow: /api/*
 Disallow: /sepet
 Disallow: /odeme
 Disallow: /odeme/*
-Disallow: /hesap
-Disallow: /hesap/*
-Disallow: /siparislerim
-Disallow: /siparislerim/*
+Disallow: /hesabim
+Disallow: /hesabim/*
 
 Sitemap: https://sepetzen.com/sitemap.xml
