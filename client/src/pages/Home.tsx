@@ -558,7 +558,7 @@ function NewArrivals({ products }: { products: Product[] }) {
 function VideoSection() {
   const videos = [
     {
-      src: '/videos/knife_craftsmanship_forge.mp4',
+      src: '/videos/knife_craftsmanship_hands.mp4',
       eyebrow: 'Zanaat',
       title: 'El Ustalığı, Saf Çelik',
       desc: 'Her bıçak, bir ustanın ömründen bir damladır.',

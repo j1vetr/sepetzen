@@ -47,3 +47,9 @@ id = "YZXdIg6bKh4PDRcEehum-"
 uri = "file://attached_assets/generated_videos/outdoor_camping_nature.mp4"
 type = "video"
 title = "Video 2 — Doğanın Çağrısına Hazır Ol (Kamp/Outdoor)"
+
+[[outputs]]
+id = "lxGHAt0y_Nn4755LNBeRs"
+uri = "file://attached_assets/generated_videos/knife_craftsmanship_hands.mp4"
+type = "video"
+title = "Yeni Video — El Ustalığı, Saf Çelik (sakin, usta elleri)"
