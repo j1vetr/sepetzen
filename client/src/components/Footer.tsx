@@ -38,12 +38,12 @@ export function Footer() {
 
           {/* ── Brand & Social ── */}
           <div className="md:col-span-12 lg:col-span-4">
-            <Link href="/" className="inline-block mb-4" data-testid="link-footer-logo">
+            <Link href="/" className="inline-block mb-5" data-testid="link-footer-logo">
               <img
                 src="/uploads/branding/sepetzen-logo-white.png"
                 alt="Sepetzen – Kamp, Outdoor, Bıçak ve Bağ Bahçe"
                 data-testid="img-footer-logo"
-                className="h-10 w-auto object-contain"
+                className="h-20 w-auto object-contain"
               />
             </Link>
             <p className="text-white/55 text-[14px] leading-[1.7] max-w-md mb-6">
@@ -82,8 +82,10 @@ export function Footer() {
                 className="inline-flex items-center gap-2 text-white/75 hover:text-[#4a9a42] transition-colors group"
                 data-testid="link-etsy-footer"
               >
-                <span className="w-9 h-9 rounded-full border border-white/15 group-hover:border-[#4a9a42] flex items-center justify-center text-[11px] font-bold transition-colors">
-                  E
+                <span className="w-9 h-9 rounded-full border border-white/15 group-hover:border-[#4a9a42] flex items-center justify-center transition-colors">
+                  <svg viewBox="0 0 24 24" className="w-4 h-4" fill="currentColor" aria-hidden>
+                    <path d="M9.764 21.053c-.52 0-.952-.024-1.297-.073L4.95 21l.024-.423c.097-1.684.146-3.463.146-5.289V8.689c0-1.826-.049-3.605-.146-5.289L4.95 3l3.517.02c.344-.05.776-.073 1.297-.073h7.483c1.201 0 2.14.038 2.816.111l.544.056-.288 2.56-.532-.023a47.76 47.76 0 0 0-1.648-.059H10.15a46.98 46.98 0 0 0-1.056.024v4.22c.337.01.714.017 1.13.017h4.068c.612 0 1.234-.02 1.868-.059l.541-.035-.23 2.546-.524-.02a38.99 38.99 0 0 0-1.655-.07H10.24c-.416 0-.794.007-1.13.017v4.367c.008.29.018.533.03.73.26.018.619.028 1.074.028h7.689c.548 0 1.128-.02 1.74-.059l.536-.033-.287 2.559-.533.058a32.7 32.7 0 0 1-2.84.11H9.764z" />
+                  </svg>
                 </span>
                 <span className="text-[12px]">Etsy</span>
               </a>

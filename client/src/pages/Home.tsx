@@ -75,8 +75,7 @@ function HeroSlider({ products }: { products: Product[] }) {
 
   return (
     <section
-      className="relative w-full overflow-hidden bg-[#0c0a09]"
-      style={{ minHeight: 'min(100svh, 900px)', height: 'calc(100svh - 0px)' }}
+      className="relative w-full overflow-hidden bg-[#0c0a09] hero-section"
       data-testid="scene-hero"
     >
       {/* Full-bleed background */}
@@ -190,12 +189,12 @@ function HeroSlider({ products }: { products: Product[] }) {
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: -10 }}
               transition={{ duration: 0.5, ease: [0.16, 1, 0.3, 1] }}
-              className="grid grid-cols-2 gap-2.5 flex-1 min-h-0"
+              className="flex flex-col gap-2.5 flex-1 min-h-0"
             >
               {pickedProducts.length > 0 ? pickedProducts.map((p) => {
                 const price = parseFloat(String(p.basePrice || '0')) || 0;
                 return (
-                  <Link key={p.id} href={`/urun/${p.slug}`} className="flex" data-testid={`link-hero-product-${p.id}`}>
+                  <Link key={p.id} href={`/urun/${p.slug}`} className="flex flex-1 min-h-0" data-testid={`link-hero-product-${p.id}`}>
                     <div className="group flex flex-col w-full bg-white/[0.07] hover:bg-white/[0.11] border border-white/[0.09] hover:border-white/[0.22] backdrop-blur-sm transition-all duration-300 cursor-pointer overflow-hidden">
                       {/* Image — fills remaining height */}
                       <div className="relative overflow-hidden bg-black/25 flex-1 min-h-0">
@@ -237,8 +236,8 @@ function HeroSlider({ products }: { products: Product[] }) {
               }) : (
                 // Skeleton while loading - portrait format, tam yükseklik
                 Array.from({ length: 2 }).map((_, i) => (
-                  <div key={i} className="flex flex-col bg-white/[0.04] border border-white/[0.06] overflow-hidden animate-pulse">
-                    <div className="flex-1 bg-white/10 min-h-[300px]" />
+                  <div key={i} className="flex-1 min-h-0 flex flex-col bg-white/[0.04] border border-white/[0.06] overflow-hidden animate-pulse">
+                    <div className="flex-1 bg-white/10" />
                     <div className="p-3 bg-black/20 shrink-0 space-y-2">
                       <div className="h-2.5 bg-white/10 rounded w-full" />
                       <div className="h-2.5 bg-white/10 rounded w-3/4" />
@@ -561,7 +560,7 @@ function TrustStrip() {
   ];
   return (
     <section className="bg-[#2D5A27] py-10 lg:py-12 px-5 lg:px-10" data-testid="scene-trust">
-      <div className="max-w-[1320px] mx-auto grid grid-cols-1 sm:grid-cols-3 gap-6 lg:gap-8">
+      <div className="max-w-[860px] mx-auto grid grid-cols-1 sm:grid-cols-3 gap-6 lg:gap-10">
         {items.map((item) => {
           const Icon = item.icon;
           return (
@@ -581,58 +580,55 @@ function TrustStrip() {
   );
 }
 
-// ─── FINAL CTA ────────────────────────────────────────────────────────────────
+// ─── MOBILE MARQUEE ───────────────────────────────────────────────────────────
 
-function FinalCta() {
-  const ref = useRef<HTMLElement>(null);
-  const inView = useInView(ref, { once: true, amount: 0.3 });
+function MobileMarquee({ products }: { products: Product[] }) {
+  const items = useMemo(() => {
+    const shuffled = [...products].sort(() => Math.random() - 0.5);
+    return shuffled.slice(0, 12);
+  }, [products]);
+
+  if (!items.length) return null;
+
+  const doubled = [...items, ...items];
+
   return (
     <section
-      ref={ref}
-      className="bg-[#f5f3ef] py-20 lg:py-32 px-5 lg:px-10 text-center"
-      data-testid="scene-final-cta"
+      className="block lg:hidden bg-[#0c0a09] overflow-hidden py-4 border-t border-white/[0.06]"
+      data-testid="scene-mobile-marquee"
     >
-      <div className="max-w-[800px] mx-auto">
-        <motion.div
-          initial={{ opacity: 0, y: 32 }}
-          whileInView={{ opacity: 1, y: 0 }}
-          viewport={{ once: true, amount: 0.1 }}
-          transition={{ duration: 0.6, ease: [0.16, 1, 0.3, 1] }}
-        >
-          <p className="text-[10px] font-mono tracking-[0.30em] uppercase text-black/40 mb-6">Dalaman / Muğla</p>
-          <h2
-            className="font-black text-black leading-[0.92] mb-8"
-            style={{ fontSize: 'clamp(40px, 7vw, 96px)', letterSpacing: '-0.03em' }}
-          >
-            Doğanın ruhunu<br />
-            <span className="text-[#2D5A27]">kapınıza</span> getiriyoruz.
-          </h2>
-          <p className="text-[15px] text-black/55 leading-relaxed mb-10 max-w-[520px] mx-auto">
-            Av bıçakları, kamp çakıları ve outdoor ekipmanlarını kapınıza getiriyoruz.
-            Türkiye geneline hızlı ve güvenli teslimat.
-          </p>
-          <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
-            <Link href="/magaza" data-testid="link-final-cta-shop">
-              <motion.span
-                whileHover={{ scale: 1.02 }}
-                whileTap={{ scale: 0.97 }}
-                className="inline-flex items-center gap-3 px-8 py-4 bg-[#2D5A27] text-white text-[11px] tracking-[0.24em] uppercase font-bold hover:bg-[#4a9a42] transition-colors cursor-pointer"
-              >
-                Koleksiyonu Keşfet <ArrowUpRight className="w-4 h-4" />
-              </motion.span>
-            </Link>
-            <a
-              href="https://www.instagram.com/sepetzen"
-              target="_blank"
-              rel="noopener noreferrer"
-              data-testid="link-final-cta-instagram"
-              className="inline-flex items-center gap-2 px-6 py-4 border border-black/20 text-black text-[11px] tracking-[0.20em] uppercase font-medium hover:bg-black hover:text-white transition-colors"
+      <div className="marquee-track gap-3 px-3">
+        {doubled.map((p, i) => {
+          const price = parseFloat(String(p.basePrice || '0')) || 0;
+          return (
+            <Link
+              key={`${p.id}-${i}`}
+              href={`/urun/${p.slug}`}
+              className="group shrink-0 w-32 flex flex-col bg-white/[0.06] border border-white/[0.08] overflow-hidden hover:border-[#4a9a42]/50 transition-colors"
+              data-testid={`link-marquee-product-${p.id}`}
             >
-              <Instagram className="w-4 h-4" strokeWidth={1.75} />
-              @sepetzen
-            </a>
-          </div>
-        </motion.div>
+              <div className="relative w-32 h-40 overflow-hidden bg-black/20 shrink-0">
+                {p.images?.[0] ? (
+                  <img
+                    src={p.images[0]}
+                    alt={p.name}
+                    className="absolute inset-0 w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+                  />
+                ) : (
+                  <div className="absolute inset-0 bg-white/5" />
+                )}
+              </div>
+              <div className="p-2.5 flex-1">
+                <p className="text-[10.5px] font-medium text-white/75 leading-snug line-clamp-2 mb-1.5">
+                  {p.name}
+                </p>
+                <p className="text-[12px] font-bold text-[#4a9a42]">
+                  {price.toLocaleString('tr-TR', { maximumFractionDigits: 0 })} ₺
+                </p>
+              </div>
+            </Link>
+          );
+        })}
       </div>
     </section>
   );
@@ -653,11 +649,11 @@ export default function Home() {
       <Header />
       <main>
         <HeroSlider products={products} />
+        <MobileMarquee products={products} />
         <FeaturedProducts products={products} />
         <CategoriesSection />
         <NewArrivals products={products} />
         <TrustStrip />
-        <FinalCta />
       </main>
       <Footer />
     </>

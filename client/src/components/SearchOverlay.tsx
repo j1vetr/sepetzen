@@ -161,7 +161,7 @@ export function SearchOverlay({ isOpen, onClose }: SearchOverlayProps) {
                   onKeyDown={(e) => {
                     if (e.key === 'Enter') submitSearch();
                   }}
-                  placeholder="Mermer lavabo, banyo seti, servis tabağı ara..."
+                  placeholder="Av bıçağı, kamp çakısı, outdoor ekipmanı ara..."
                   className="flex-1 bg-transparent outline-none border-none text-[16px] lg:text-[20px] font-light text-black placeholder:text-black/30 tracking-tight"
                   data-testid="input-search"
                   autoComplete="off"

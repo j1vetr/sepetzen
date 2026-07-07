@@ -285,3 +285,30 @@ html.lenis {
 .nav-link-hover:hover::after {
   width: 100%;
 }
+
+/* Hero section height — fills viewport minus header on each breakpoint */
+.hero-section {
+  height: calc(100svh - 60px);
+  min-height: 480px;
+}
+@media (min-width: 1024px) {
+  .hero-section {
+    height: calc(100svh - 182px);
+    min-height: 520px;
+    max-height: 860px;
+  }
+}
+
+/* Mobile product marquee */
+@keyframes sepetzen-marquee {
+  from { transform: translateX(0); }
+  to   { transform: translateX(-50%); }
+}
+.marquee-track {
+  animation: sepetzen-marquee 38s linear infinite;
+  width: max-content;
+  display: flex;
+}
+.marquee-track:hover {
+  animation-play-state: paused;
+}
