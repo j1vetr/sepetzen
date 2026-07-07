@@ -1,7 +1,7 @@
 import { useState, type ReactNode, type ComponentType } from 'react';
 import { ExternalLink, LogOut, Menu, X } from 'lucide-react';
 import type { TabType } from '../_shared/types';
-import toovLogo from '@assets/TOOV_1777332650369.png';
+import toovLogo from '@assets/toov-logo.png';
 
 export type SidebarItem = {
   id: TabType;
