@@ -1,6 +1,24 @@
 import { useState, useEffect, useRef } from 'react';
 import { Link, useLocation } from 'wouter';
-import { ShoppingBag, Search, X, User, LogOut, ChevronDown, ArrowUpRight, Phone, Mail, Scissors, PawPrint, Tent, Sword, Axe, Shovel, Wrench, FlameKindling, Backpack, LayoutGrid, Target, Drill, HardHat, Flashlight, Compass, Map, Mountain, Flower, Bird, Fish, Rabbit, TreeDeciduous, TreePine, UtensilsCrossed, Dog, Cat, Layers, Zap, Waves } from 'lucide-react';
+import { ShoppingBag, Search, X, User, LogOut, ChevronDown, ArrowUpRight, Phone, Mail, Scissors, PawPrint, Tent, Shovel, Wrench, FlameKindling, Backpack, LayoutGrid, Target, Drill, HardHat, Flashlight, Compass, Map, Mountain, Flower, Bird, Fish, Rabbit, TreeDeciduous, TreePine, UtensilsCrossed, Dog, Cat, Layers, Zap, Waves } from 'lucide-react';
+
+const PocketKnifeIcon = ({ className, strokeWidth = 1.75 }: { className?: string; strokeWidth?: number }) => (
+  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={strokeWidth} strokeLinecap="round" strokeLinejoin="round" className={className}>
+    <path d="M3 2v1c0 1 2 1 2 2S3 6 3 7s2 1 2 2-2 1-2 2 2 1 2 2v1" />
+    <path d="M18.2 4a2.8 2.8 0 0 1 0 5.6" />
+    <path d="M6 13h12" />
+    <path d="M6 13v6a2 2 0 0 0 2 2h8a2 2 0 0 0 2-2v-6" />
+    <path d="M6 7h3" />
+  </svg>
+);
+
+const KnifeIcon = ({ className, strokeWidth = 1.75 }: { className?: string; strokeWidth?: number }) => (
+  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={strokeWidth} strokeLinecap="round" strokeLinejoin="round" className={className}>
+    <path d="M20 4L8.5 15.5" />
+    <path d="M8.5 15.5L5 19a2.83 2.83 0 0 1-4 0v0a2.83 2.83 0 0 1 0-4L4 12" />
+    <path d="M4 12L8.5 7.5l3-3 4 2.5" />
+  </svg>
+);
 import { motion, AnimatePresence, useScroll, useMotionValueEvent, type Variants } from 'framer-motion';
 import { useQuery } from '@tanstack/react-query';
 import { useCart } from '@/hooks/useCart';
@@ -46,8 +64,8 @@ const stagger: { container: Variants; item: Variants } = {
 
 function getMenuIcon(title: string) {
   const t = title.toLowerCase();
-  if (t.includes('çakı') || t.includes('caki')) return Sword;
-  if (t.includes('bıçak') || t.includes('bicak')) return Axe;
+  if (t.includes('çakı') || t.includes('caki')) return PocketKnifeIcon;
+  if (t.includes('bıçak') || t.includes('bicak')) return KnifeIcon;
   if (t.includes('bahçe') || t.includes('bahce') || t.includes('bağ') || t.includes('bag')) return Shovel;
   if (t.includes('pet') || t.includes('çiftlik') || t.includes('ciftlik')) return PawPrint;
   if (t.includes('nalbur') || t.includes('hırdavat') || t.includes('hirdavat')) return Wrench;
@@ -61,12 +79,12 @@ function getSubIcon(title: string) {
   const t = title.toLowerCase();
   if (t.includes('kamp çakı') || t.includes('kamp caki')) return Tent;
   if (t.includes('av çakı') || t.includes('av caki')) return Target;
-  if (t.includes('katlanır') || t.includes('katlanir') || t.includes('çakı') || t.includes('caki')) return Sword;
+  if (t.includes('katlanır') || t.includes('katlanir') || t.includes('çakı') || t.includes('caki')) return PocketKnifeIcon;
   if (t.includes('elektrik')) return Zap;
   if (t.includes('mutfak')) return UtensilsCrossed;
   if (t.includes('av bıçak') || t.includes('av bicak')) return Target;
   if (t.includes('kamp bıçak') || t.includes('kamp bicak')) return Mountain;
-  if (t.includes('bıçak') || t.includes('bicak')) return Axe;
+  if (t.includes('bıçak') || t.includes('bicak')) return KnifeIcon;
   if (t.includes('budama') || t.includes('makas')) return Scissors;
   if (t.includes('kürek') || t.includes('kurek')) return Shovel;
   if (t.includes('çapa') || t.includes('capa') || t.includes('kazma')) return Layers;
@@ -112,6 +130,8 @@ export function Header() {
   const [scrolled, setScrolled] = useState(false);
   const [mobileSubOpen, setMobileSubOpen] = useState<Record<string, boolean>>({});
   const [megaMenuId, setMegaMenuId] = useState<string | null>(null);
+  const [sidebarProductIdx, setSidebarProductIdx] = useState(0);
+  const [sidebarProductKey, setSidebarProductKey] = useState(0);
   const closeTimerRef = useRef<ReturnType<typeof setTimeout>>();
   const { totalItems } = useCart();
   const { user, logout } = useAuth();
@@ -188,14 +208,31 @@ export function Header() {
     queryKey: ['/api/products', 'mega', megaCategoryId],
     queryFn: async () => {
       if (!megaCategoryId) return [];
-      const res = await fetch(`/api/products?categoryId=${megaCategoryId}&sort=popular`);
+      const res = await fetch(`/api/products?categoryId=${megaCategoryId}&sort=popular&limit=6`);
       if (!res.ok) return [];
       const all = await res.json();
-      return all.slice(0, 2);
+      return all.slice(0, 6);
     },
     enabled: !!megaCategoryId,
     staleTime: 120000,
   });
+
+  useEffect(() => {
+    if (megaFeaturedProducts.length <= 1) return;
+    const timer = setInterval(() => {
+      setSidebarProductIdx(i => (i + 1) % megaFeaturedProducts.length);
+      setSidebarProductKey(k => k + 1);
+    }, 5000);
+    return () => clearInterval(timer);
+  }, [megaFeaturedProducts.length]);
+
+  useEffect(() => {
+    setSidebarProductIdx(0);
+    setSidebarProductKey(k => k + 1);
+  }, [megaMenuId]);
+
+  const sidebarProduct = megaFeaturedProducts[sidebarProductIdx] ?? null;
+  const rightProducts = megaFeaturedProducts.slice(0, 2);
 
   return (
     <>
@@ -549,33 +586,84 @@ export function Header() {
             onMouseLeave={closeMega}
             data-testid={`mega-panel-${megaMenuId}`}
           >
-            <div className="max-w-[1400px] mx-auto flex min-h-[260px]">
+            <div className="max-w-[1400px] mx-auto flex min-h-[340px]">
 
               {/* ── LEFT: Dark green hero sidebar ── */}
-              <div className="w-60 xl:w-72 shrink-0 bg-[#1a3a15] px-7 py-8 flex flex-col justify-between relative overflow-hidden">
+              <div className="w-64 xl:w-[288px] shrink-0 bg-[#1a3a15] flex flex-col relative overflow-hidden">
                 <div
                   className="absolute inset-0 opacity-[0.06] pointer-events-none"
                   style={{ backgroundImage: 'radial-gradient(circle, #fff 1px, transparent 1px)', backgroundSize: '20px 20px' }}
                 />
                 <div className="relative z-10 flex flex-col h-full">
-                  <div className="w-11 h-11 rounded-xl bg-white/10 flex items-center justify-center mb-5 shrink-0">
-                    {(() => { const Icon = getMenuIcon(activeMegaRoot.title); return <Icon className="w-5 h-5 text-white" strokeWidth={1.75} />; })()}
+                  {/* Top: title + desc */}
+                  <div className="px-7 pt-8 pb-5">
+                    <div className="w-12 h-12 rounded-xl bg-white/10 flex items-center justify-center mb-5 shrink-0">
+                      {(() => { const Icon = getMenuIcon(activeMegaRoot.title); return <Icon className="w-6 h-6 text-white" strokeWidth={1.75} />; })()}
+                    </div>
+                    <h3 className="text-[24px] xl:text-[28px] font-black text-white leading-none tracking-tight mb-2.5">
+                      {activeMegaRoot.title}
+                    </h3>
+                    <p className="text-white/50 text-[11.5px] leading-relaxed">
+                      {getCategoryDesc(activeMegaRoot.title)}
+                    </p>
                   </div>
-                  <h3 className="text-[22px] xl:text-[26px] font-black text-white leading-none tracking-tight mb-3">
-                    {activeMegaRoot.title}
-                  </h3>
-                  <p className="text-white/55 text-[11.5px] leading-relaxed flex-1">
-                    {getCategoryDesc(activeMegaRoot.title)}
-                  </p>
+
+                  {/* Middle: Rotating product card */}
+                  {sidebarProduct && (
+                    <div className="px-5 flex-1">
+                      <div className="text-[8.5px] tracking-[0.28em] uppercase text-white/30 font-mono mb-3 px-1">Öne Çıkan Ürün</div>
+                      <AnimatePresence mode="wait">
+                        <motion.div
+                          key={sidebarProductKey}
+                          initial={{ opacity: 0, y: 8 }}
+                          animate={{ opacity: 1, y: 0 }}
+                          exit={{ opacity: 0, y: -8 }}
+                          transition={{ duration: 0.4, ease: [0.16, 1, 0.3, 1] }}
+                        >
+                          <Link
+                            href={`/urun/${sidebarProduct.slug}`}
+                            onClick={() => setMegaMenuId(null)}
+                            className="group block"
+                            data-testid={`link-mega-sidebar-product-${sidebarProduct.id}`}
+                          >
+                            <div className="relative overflow-hidden bg-white/[0.07] rounded-lg border border-white/[0.1] group-hover:border-white/20 transition-colors">
+                              {sidebarProduct.images?.[0] ? (
+                                <div className="aspect-[4/3] overflow-hidden">
+                                  <img
+                                    src={sidebarProduct.images[0]}
+                                    alt={sidebarProduct.name}
+                                    className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+                                  />
+                                  <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent" />
+                                </div>
+                              ) : (
+                                <div className="aspect-[4/3] flex items-center justify-center">
+                                  {(() => { const Icon = getMenuIcon(activeMegaRoot.title); return <Icon className="w-8 h-8 text-white/20" />; })()}
+                                </div>
+                              )}
+                              <div className="absolute bottom-0 left-0 right-0 p-3">
+                                <p className="text-[11.5px] font-semibold text-white leading-snug line-clamp-2">{sidebarProduct.name}</p>
+                                <p className="text-[13px] font-bold text-[#4a9a42] mt-1">{Number(sidebarProduct.price || sidebarProduct.basePrice).toLocaleString('tr-TR')} ₺</p>
+                              </div>
+                            </div>
+                          </Link>
+                        </motion.div>
+                      </AnimatePresence>
+                    </div>
+                  )}
+
+                  {/* Bottom: CTA */}
                   {activeMegaRoot.category && (
-                    <Link
-                      href={`/kategori/${activeMegaRoot.category.slug}`}
-                      onClick={() => setMegaMenuId(null)}
-                      className="mt-6 inline-flex items-center gap-2 text-[10.5px] tracking-[0.16em] uppercase font-bold text-[#1a3a15] bg-white hover:bg-white/90 transition-colors px-4 py-3 shrink-0 self-start"
-                      data-testid={`link-mega-all-${megaMenuId}`}
-                    >
-                      Tümünü Keşfet <ArrowUpRight className="w-3.5 h-3.5" />
-                    </Link>
+                    <div className="px-7 py-5 mt-auto">
+                      <Link
+                        href={`/kategori/${activeMegaRoot.category.slug}`}
+                        onClick={() => setMegaMenuId(null)}
+                        className="inline-flex items-center gap-2 text-[10.5px] tracking-[0.16em] uppercase font-bold text-[#1a3a15] bg-white hover:bg-white/90 transition-colors px-4 py-3"
+                        data-testid={`link-mega-all-${megaMenuId}`}
+                      >
+                        Tümünü Keşfet <ArrowUpRight className="w-3.5 h-3.5" />
+                      </Link>
+                    </div>
                   )}
                 </div>
               </div>
@@ -583,7 +671,7 @@ export function Header() {
               {/* ── MIDDLE: Subcategory grid ── */}
               <div className="flex-1 px-8 xl:px-10 py-8 border-r border-black/[0.06]">
                 <div className="text-[9px] tracking-[0.30em] uppercase text-black/30 font-mono mb-5">Alt Kategoriler</div>
-                <div className="grid grid-cols-2 xl:grid-cols-3 gap-x-3 gap-y-1">
+                <div className={`grid gap-x-3 gap-y-0.5 ${activeMegaChildren.length <= 4 ? 'grid-cols-1' : activeMegaChildren.length <= 8 ? 'grid-cols-2' : 'grid-cols-2 xl:grid-cols-3'}`}>
                   {activeMegaChildren.map((child) => {
                     const childHref = hrefForMenu(child);
                     const ChildIcon = getSubIcon(child.title);
@@ -592,16 +680,16 @@ export function Header() {
                         key={child.id}
                         href={childHref}
                         onClick={() => setMegaMenuId(null)}
-                        className="group flex items-center gap-3 px-3 py-3 rounded-lg hover:bg-[#2D5A27]/[0.06] transition-all duration-150"
+                        className="group flex items-center gap-3 px-3 py-3.5 rounded-lg hover:bg-[#2D5A27]/[0.07] transition-all duration-150"
                         data-testid={`link-mega-${child.id}`}
                       >
-                        <span className="w-8 h-8 rounded-lg bg-[#2D5A27]/[0.08] group-hover:bg-[#2D5A27]/[0.16] flex items-center justify-center shrink-0 transition-colors">
-                          <ChildIcon className="w-3.5 h-3.5 text-[#2D5A27]" strokeWidth={1.75} />
+                        <span className="w-9 h-9 rounded-lg bg-[#2D5A27]/[0.08] group-hover:bg-[#2D5A27]/[0.16] flex items-center justify-center shrink-0 transition-colors">
+                          <ChildIcon className="w-4 h-4 text-[#2D5A27]" strokeWidth={1.75} />
                         </span>
-                        <span className="text-[12px] text-black/65 group-hover:text-black transition-colors font-medium leading-tight flex-1">
+                        <span className="text-[13px] text-black/65 group-hover:text-black transition-colors font-medium leading-tight flex-1">
                           {child.title}
                         </span>
-                        <ArrowUpRight className="w-3 h-3 text-transparent group-hover:text-[#2D5A27]/50 transition-colors shrink-0" />
+                        <ArrowUpRight className="w-3.5 h-3.5 text-transparent group-hover:text-[#2D5A27]/50 transition-colors shrink-0" />
                       </Link>
                     );
                   })}
@@ -609,11 +697,11 @@ export function Header() {
               </div>
 
               {/* ── RIGHT: Featured products ── */}
-              {megaFeaturedProducts.length > 0 && (
+              {rightProducts.length > 0 && (
                 <div className="w-52 xl:w-60 shrink-0 px-6 py-8">
                   <div className="text-[9px] tracking-[0.30em] uppercase text-black/30 font-mono mb-5">Öne Çıkan</div>
                   <div className="space-y-4">
-                    {megaFeaturedProducts.map((product: any) => (
+                    {rightProducts.map((product: any) => (
                       <Link
                         key={product.id}
                         href={`/urun/${product.slug}`}
@@ -621,7 +709,7 @@ export function Header() {
                         className="group flex gap-3 items-start"
                         data-testid={`link-mega-product-${product.id}`}
                       >
-                        <div className="w-[56px] h-[56px] rounded-lg overflow-hidden shrink-0 bg-black/[0.04]">
+                        <div className="w-[60px] h-[60px] rounded-lg overflow-hidden shrink-0 bg-black/[0.04]">
                           {product.images?.[0] ? (
                             <img src={product.images[0]} alt={product.name} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300" />
                           ) : (
@@ -631,8 +719,8 @@ export function Header() {
                           )}
                         </div>
                         <div className="min-w-0 flex-1">
-                          <p className="text-[11.5px] font-medium text-black/75 leading-snug line-clamp-2 group-hover:text-black transition-colors">{product.name}</p>
-                          <p className="text-[13px] font-bold text-[#2D5A27] mt-1">{Number(product.price).toLocaleString('tr-TR')} ₺</p>
+                          <p className="text-[12px] font-medium text-black/75 leading-snug line-clamp-2 group-hover:text-black transition-colors">{product.name}</p>
+                          <p className="text-[13.5px] font-bold text-[#2D5A27] mt-1">{Number(product.price || product.basePrice).toLocaleString('tr-TR')} ₺</p>
                         </div>
                       </Link>
                     ))}
