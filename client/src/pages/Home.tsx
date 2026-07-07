@@ -553,6 +553,80 @@ function NewArrivals({ products }: { products: Product[] }) {
   );
 }
 
+// ─── VIDEO SECTION ────────────────────────────────────────────────────────────
+
+function VideoSection() {
+  const videos = [
+    {
+      src: '/videos/knife_craftsmanship_forge.mp4',
+      eyebrow: 'Zanaat',
+      title: 'El Ustalığı, Saf Çelik',
+      desc: 'Her bıçak, bir ustanın ömründen bir damladır.',
+    },
+    {
+      src: '/videos/outdoor_camping_nature.mp4',
+      eyebrow: 'Macera',
+      title: 'Doğanın Çağrısına Hazır Ol',
+      desc: 'Sepetzen ekipmanları, her maceranda yanında.',
+    },
+  ];
+
+  return (
+    <section className="bg-[#0c0a09] py-16 lg:py-24 px-5 lg:px-10" data-testid="scene-videos">
+      <div className="max-w-[1320px] mx-auto">
+        {/* Başlık */}
+        <div className="mb-10 lg:mb-14">
+          <p className="text-[10px] font-mono tracking-[0.30em] uppercase text-[#4a9a42] mb-2">
+            Sepetzen
+          </p>
+          <h2
+            className="font-black text-white leading-none"
+            style={{ fontSize: 'clamp(28px, 4vw, 52px)', letterSpacing: '-0.03em' }}
+          >
+            Hikayemiz
+          </h2>
+        </div>
+
+        {/* Video kartları */}
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-5 lg:gap-7">
+          {videos.map((v) => (
+            <div key={v.src} className="group relative overflow-hidden" data-testid={`video-${v.eyebrow.toLowerCase()}`}>
+              <div className="relative aspect-video overflow-hidden bg-zinc-950">
+                <video
+                  src={v.src}
+                  autoPlay
+                  muted
+                  loop
+                  playsInline
+                  preload="metadata"
+                  className="w-full h-full object-cover transition-transform duration-700 ease-out group-hover:scale-[1.03]"
+                />
+                {/* Degrade overlay */}
+                <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/15 to-transparent" />
+                {/* Alt metin */}
+                <div className="absolute bottom-0 left-0 right-0 p-6 lg:p-8">
+                  <p className="text-[9px] font-mono tracking-[0.30em] uppercase text-[#4a9a42] mb-1.5">
+                    {v.eyebrow}
+                  </p>
+                  <h3
+                    className="font-black text-white leading-tight"
+                    style={{ fontSize: 'clamp(18px, 2.5vw, 26px)', letterSpacing: '-0.02em' }}
+                  >
+                    {v.title}
+                  </h3>
+                  <p className="text-[12px] text-white/55 mt-2 leading-relaxed">
+                    {v.desc}
+                  </p>
+                </div>
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+    </section>
+  );
+}
+
 // ─── TRUST STRIP ─────────────────────────────────────────────────────────────
 
 function TrustStrip() {
@@ -681,6 +755,7 @@ export default function Home() {
         <FeaturedProducts products={products} />
         <CategoriesSection />
         <NewArrivals products={products} />
+        <VideoSection />
         <TrustStrip />
       </main>
       <Footer />
