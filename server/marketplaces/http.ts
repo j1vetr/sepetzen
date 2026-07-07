@@ -198,7 +198,7 @@ export class MarketplaceHttpClient {
         // Üst sınır 60s (saatte-1 endpoint'lere takıldığımızda boş yere blocklanmayalım).
         const backoff = Math.min(60_000, Math.max(retryAfter ?? 0, expBackoff));
         console.warn(
-          `[marketplaces.http] retryable error (status=${status ?? "net"}) attempt=${attempt}/${maxAttempts} url=${url} - backing off ${backoff}ms${
+          `[marketplaces.http] retryable error (status=${status ?? "net"}) attempt=${attempt}/${maxAttempts} url=${url} — backing off ${backoff}ms${
             retryAfter != null ? ` (Retry-After=${retryAfter}ms)` : ""
           }`,
         );
