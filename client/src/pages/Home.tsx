@@ -564,30 +564,29 @@ function NewArrivals({ products }: { products: Product[] }) {
 
 function LazyVideo({ src, className }: { src: string; className: string }) {
   const ref = useRef<HTMLVideoElement>(null);
-  const [active, setActive] = useState(false);
 
   useEffect(() => {
     const el = ref.current;
     if (!el) return;
     const obs = new IntersectionObserver(
       ([entry]) => {
-        if (entry.isIntersecting && !active) {
-          setActive(true);
+        if (entry.isIntersecting) {
+          el.preload = 'metadata';
           el.load();
           el.play().catch(() => {});
           obs.disconnect();
         }
       },
-      { threshold: 0.2 }
+      { threshold: 0.15 }
     );
     obs.observe(el);
     return () => obs.disconnect();
-  }, [active]);
+  }, []);
 
   return (
     <video
       ref={ref}
-      src={active ? src : undefined}
+      src={src}
       muted
       loop
       playsInline

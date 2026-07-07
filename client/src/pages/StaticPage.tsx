@@ -3,6 +3,7 @@ import { useQuery } from '@tanstack/react-query';
 import { Loader2, AlertCircle } from 'lucide-react';
 import { Header } from '@/components/Header';
 import { Footer } from '@/components/Footer';
+import { SEO } from '@/components/SEO';
 import { Link } from 'wouter';
 
 interface Page {
@@ -12,6 +13,20 @@ interface Page {
   content: string;
   isPublished: boolean;
 }
+
+const PAGE_DESCRIPTIONS: Record<string, string> = {
+  hakkimizda: "Sepetzen hakkında — Dalaman'dan Türkiye geneline outdoor, kamp ve bıçak ürünleri sunan markamızı tanıyın.",
+  'kargo-sureci': 'Sepetzen kargo süreci — siparişiniz nasıl hazırlanır, ne zaman teslim edilir, kargo firması ve takip bilgisi.',
+  'iade-sureci': 'Sepetzen iade süreci — ürün iade koşulları, nasıl iade başlatılır ve para iadesi bilgisi.',
+  'mesafeli-satis-sozlesmesi': 'Sepetzen Mesafeli Satış Sözleşmesi — yasal düzenlemeler çerçevesinde alışveriş koşulları.',
+  'on-bilgilendirme-formu': 'Sepetzen Ön Bilgilendirme Formu — satın alma öncesi yasal bilgilendirme.',
+  'uyelik-sozlesmesi': 'Sepetzen Üyelik Sözleşmesi — site kullanım koşulları ve üyelik şartları.',
+  'iptal-ve-iade-sartlari': 'Sepetzen iptal ve iade şartları — 14 günlük cayma hakkı ve koşulları.',
+  'gizlilik-guvenlik': 'Sepetzen Gizlilik ve Güvenlik Politikası — kişisel verileriniz nasıl korunur.',
+  'cerez-politikasi': 'Sepetzen Çerez Politikası — sitemizde kullanılan çerezler ve yönetim seçenekleri.',
+  'kvkk-aydinlatma-metni': 'Sepetzen KVKK Aydınlatma Metni — 6698 sayılı Kanun kapsamında kişisel veri işleme bilgisi.',
+  iletisim: 'Sepetzen iletişim — telefon, e-posta ve adres. 0536 630 11 38 · sepetzen@gmail.com · Dalaman/Muğla.',
+};
 
 export default function StaticPage() {
   const params = useParams<{ slug: string }>();
@@ -28,8 +43,23 @@ export default function StaticPage() {
     staleTime: 5 * 60 * 1000,
   });
 
+  const pageDescription = slug
+    ? PAGE_DESCRIPTIONS[slug] ?? (page ? `Sepetzen — ${page.title}` : 'Sepetzen')
+    : 'Sepetzen';
+
   return (
     <div className="min-h-screen flex flex-col bg-background">
+      {page && (
+        <SEO
+          title={page.title}
+          description={pageDescription}
+          url={`/sayfa/${slug}`}
+          breadcrumbs={[
+            { name: 'Ana Sayfa', url: '/' },
+            { name: page.title, url: `/sayfa/${slug}` },
+          ]}
+        />
+      )}
       <Header />
 
       <main className="flex-1 max-w-4xl mx-auto w-full px-4 lg:px-8 py-12 lg:py-20">

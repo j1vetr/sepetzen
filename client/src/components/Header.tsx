@@ -711,7 +711,7 @@ export function Header() {
                       >
                         <div className="w-[60px] h-[60px] rounded-lg overflow-hidden shrink-0 bg-black/[0.04]">
                           {product.images?.[0] ? (
-                            <img src={product.images[0]} alt={product.name} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300" />
+                            <img src={product.images[0]} alt={product.name} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300" loading="lazy" decoding="async" />
                           ) : (
                             <div className="w-full h-full flex items-center justify-center">
                               {(() => { const Icon = getMenuIcon(activeMegaRoot.title); return <Icon className="w-5 h-5 text-black/20" />; })()}
