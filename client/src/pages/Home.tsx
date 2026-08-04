@@ -45,8 +45,8 @@ function HeroSlider({ products }: { products: Product[] }) {
   const [dir, setDir] = useState(1);
   const [cardsKey, setCardsKey] = useState(0);
   const [pickedProducts, setPickedProducts] = useState<Product[]>([]);
-  const slideTimer = useRef<ReturnType<typeof setTimeout>>();
-  const cardTimer = useRef<ReturnType<typeof setInterval>>();
+  const slideTimer = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
+  const cardTimer = useRef<ReturnType<typeof setInterval> | undefined>(undefined);
 
   const go = (next: number, direction = 1) => { setDir(direction); setActive(next); };
   const prev = () => go((active - 1 + HERO_SLIDES.length) % HERO_SLIDES.length, -1);
@@ -134,7 +134,7 @@ function HeroSlider({ products }: { products: Product[] }) {
                   <motion.span
                     whileHover={{ scale: 1.02 }}
                     whileTap={{ scale: 0.97 }}
-                    className="inline-flex items-center gap-3 px-7 py-3.5 bg-white text-black text-[11px] tracking-[0.22em] uppercase font-bold hover:bg-[#E6E6E6] transition-colors cursor-pointer"
+                    className="btn-glass inline-flex items-center gap-3 px-7 py-3.5 text-[11px] tracking-[0.22em] uppercase font-bold cursor-pointer"
                     data-testid="link-hero-cta"
                   >
                     {slide.cta} <ArrowUpRight className="w-4 h-4" />

@@ -295,7 +295,7 @@ export default function Cart() {
 
                 <Link href="/odeme">
                   <button
-                    className="w-full bg-[#141414] hover:bg-[#1F1F1F] text-white py-3.5 rounded-md font-bold text-lg shadow-md hover:shadow-lg transition-all mb-3 flex items-center justify-center gap-2"
+                    className="w-full btn-glass text-white py-3.5 rounded-lg font-bold text-lg mb-3 flex items-center justify-center gap-2"
                     data-testid="button-checkout"
                   >
                     ÖDEMEYE GEÇ
@@ -391,7 +391,7 @@ export default function Cart() {
             </div>
             <Link href="/odeme" className="flex-[1.5]">
               <button
-                className="w-full bg-[#141414] hover:bg-[#1F1F1F] text-white font-bold py-3.5 px-4 rounded-lg flex items-center justify-center transition-colors shadow-md"
+                className="w-full btn-glass text-white font-bold py-3.5 px-4 rounded-lg flex items-center justify-center"
                 data-testid="button-checkout-mobile"
               >
                 ÖDEMEYE GEÇ

@@ -152,7 +152,7 @@ function parseProductSections(rawHtml: string): DescSection[] {
   if (!html) return [];
 
   const headingRe = /<h[2-4][^>]*>([\s\S]*?)<\/h[2-4]>/gi;
-  const hMatches = [...html.matchAll(headingRe)];
+  const hMatches = Array.from(html.matchAll(headingRe));
   if (hMatches.length > 0) {
     return hMatches.map((m, i) => {
       const end = m.index! + m[0].length;
@@ -160,11 +160,11 @@ function parseProductSections(rawHtml: string): DescSection[] {
       const bodyHtml = html.slice(end, nextStart);
       const text = m[1].replace(/<[^>]+>/g, '').trim();
       const emoji = SECTION_EMOJIS.find((e) => text.includes(e)) ?? '';
-      const title = text.replace(/^[^\p{L}\p{N}]+/u, '').trim() || text;
-      const items = [...bodyHtml.matchAll(/<li[^>]*>([\s\S]*?)<\/li>/gi)]
+      const title = text.replace(new RegExp('^[^\\p{L}\\p{N}]+', 'u'), '').trim() || text;
+      const items = Array.from(bodyHtml.matchAll(/<li[^>]*>([\s\S]*?)<\/li>/gi))
         .map((lm) => lm[1].replace(/<[^>]+>/g, '').trim())
         .filter(Boolean);
-      const prose = [...bodyHtml.matchAll(/<p[^>]*>([\s\S]*?)<\/p>/gi)]
+      const prose = Array.from(bodyHtml.matchAll(/<p[^>]*>([\s\S]*?)<\/p>/gi))
         .map((pm) => pm[1].replace(/<[^>]+>/g, '').trim())
         .filter(Boolean)
         .join(' ');
@@ -194,10 +194,10 @@ function parseProductSections(rawHtml: string): DescSection[] {
     const clone = container.cloneNode(true) as Element;
     const flexDiv = clone.querySelector('[style*="display:flex"]');
     flexDiv?.remove();
-    const items = [...clone.querySelectorAll('li')]
+    const items = Array.from(clone.querySelectorAll('li'))
       .map((li) => li.textContent?.trim() ?? '')
       .filter(Boolean);
-    const prose = [...clone.querySelectorAll('p')]
+    const prose = Array.from(clone.querySelectorAll('p'))
       .map((p) => p.textContent?.trim() ?? '')
       .filter(Boolean)
       .join(' ');
@@ -1235,8 +1235,8 @@ export default function ProductDetail() {
                     type="button"
                     onClick={handleAddToCart}
                     disabled={isAdding || isOutOfStock}
-                    className={`flex-1 h-11 font-semibold text-[11px] uppercase tracking-[0.2em] transition-colors flex items-center justify-center gap-2 ${
-                      isOutOfStock ? 'bg-black/8 text-black/30 cursor-not-allowed' : 'bg-[#141414] hover:bg-[#1F1F1F] text-white'
+                    className={`flex-1 h-11 font-semibold text-[11px] uppercase tracking-[0.2em] transition-colors flex items-center justify-center gap-2 rounded-lg ${
+                      isOutOfStock ? 'bg-black/8 text-black/30 cursor-not-allowed' : 'btn-glass'
                     }`}
                     data-testid="button-add-to-cart"
                   >
@@ -1558,13 +1558,13 @@ export default function ProductDetail() {
             animate={{ y: 0, opacity: 1 }}
             exit={{ y: 80, opacity: 0 }}
             transition={{ duration: reduceMotion ? 0 : 0.22 }}
-            className="lg:hidden fixed inset-x-0 z-[90] bg-white border-t border-black/8 shadow-[0_-6px_20px_rgba(0,0,0,0.07)] px-4 py-3 flex items-center gap-3"
+            className="lg:hidden fixed inset-x-0 z-[90] surface-glass-dark border-t shadow-[0_-6px_20px_rgba(0,0,0,0.35)] px-4 py-3 flex items-center gap-3"
             style={{ bottom: 'var(--mobile-nav-total, 58px)' }}
             data-testid="mobile-sticky-cta"
           >
             <div className="flex-1 min-w-0">
-              <p className="text-[10px] uppercase tracking-[0.16em] text-black/38 leading-tight truncate">{product.name}</p>
-              <p className="text-lg font-bold text-black tabular-nums leading-tight">
+              <p className="text-[10px] uppercase tracking-[0.16em] text-white/45 leading-tight truncate">{product.name}</p>
+              <p className="text-lg font-bold text-white tabular-nums leading-tight">
                 {price.toLocaleString('tr-TR', { minimumFractionDigits: 2 })} ₺
               </p>
             </div>
@@ -1572,8 +1572,8 @@ export default function ProductDetail() {
               type="button"
               onClick={handleAddToCart}
               disabled={isAdding || isOutOfStock}
-              className={`h-10 px-5 font-semibold text-[11px] uppercase tracking-[0.18em] flex items-center justify-center gap-2 ${
-                isOutOfStock ? 'bg-black/8 text-black/30 cursor-not-allowed' : 'bg-[#141414] text-white hover:bg-[#1F1F1F]'
+              className={`h-10 px-5 font-semibold text-[11px] uppercase tracking-[0.18em] flex items-center justify-center gap-2 rounded-lg ${
+                isOutOfStock ? 'bg-white/10 text-white/35 cursor-not-allowed border border-white/10' : 'btn-glass'
               }`}
               data-testid="button-add-to-cart-mobile"
             >

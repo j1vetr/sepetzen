@@ -179,14 +179,14 @@ export function CartSuccessModal({ isOpen, onClose, product, cartTotal, cartItem
                   <Button
                     variant="outline"
                     onClick={onClose}
-                    className="h-11 bg-transparent border-white/20 text-white hover:bg-white/[0.06] hover:text-white rounded-none text-[11.5px] font-semibold tracking-[0.08em] uppercase"
+                    className="h-11 bg-transparent border-white/20 text-white hover:bg-white/[0.06] hover:text-white rounded-md text-[11.5px] font-semibold tracking-[0.08em] uppercase"
                     data-testid="button-continue-shopping"
                   >
                     Alışverişe Devam
                   </Button>
                   <Link href="/sepet" onClick={onClose}>
                     <Button
-                      className="w-full h-11 bg-polen-orange text-black hover:bg-[hsl(var(--polen-orange-deep))] hover:text-white font-semibold tracking-[0.08em] text-[11.5px] uppercase group rounded-none"
+                      className="w-full h-11 bg-polen-orange text-black hover:bg-[hsl(var(--polen-orange-deep))] hover:text-white font-semibold tracking-[0.08em] text-[11.5px] uppercase group rounded-md"
                       data-testid="button-go-to-cart"
                     >
                       Sepete Git

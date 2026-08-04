@@ -76,7 +76,7 @@ export default function Login() {
                     required
                     autoComplete="email"
                     data-testid="input-email"
-                    className="h-11 pl-10 bg-stone-50 border-black/12 focus:border-[#141414] focus-visible:ring-0 focus-visible:ring-offset-0 rounded-none text-black placeholder:text-black/25"
+                    className="h-11 pl-10 bg-stone-50 border-black/12 focus:border-[#141414] focus-visible:ring-0 focus-visible:ring-offset-0 rounded-md text-black placeholder:text-black/25"
                   />
                 </div>
               </div>
@@ -104,7 +104,7 @@ export default function Login() {
                     required
                     autoComplete="current-password"
                     data-testid="input-password"
-                    className="h-11 pl-10 pr-10 bg-stone-50 border-black/12 focus:border-[#141414] focus-visible:ring-0 focus-visible:ring-offset-0 rounded-none text-black placeholder:text-black/25"
+                    className="h-11 pl-10 pr-10 bg-stone-50 border-black/12 focus:border-[#141414] focus-visible:ring-0 focus-visible:ring-offset-0 rounded-md text-black placeholder:text-black/25"
                   />
                   <button
                     type="button"
@@ -120,7 +120,7 @@ export default function Login() {
               <motion.div whileHover={{ scale: 1.005 }} whileTap={{ scale: 0.995 }} className="pt-2">
                 <Button
                   type="submit"
-                  className="w-full h-11 bg-[#141414] text-white hover:bg-black font-semibold tracking-[0.18em] text-[11px] uppercase group rounded-none transition-colors duration-300 gap-3"
+                  className="w-full h-11 bg-[#141414] text-white hover:bg-black font-semibold tracking-[0.18em] text-[11px] uppercase group rounded-md transition-colors duration-300 gap-3"
                   disabled={loading}
                   data-testid="button-login"
                 >

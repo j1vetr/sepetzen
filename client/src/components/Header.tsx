@@ -132,7 +132,7 @@ export function Header() {
   const [megaMenuId, setMegaMenuId] = useState<string | null>(null);
   const [sidebarProductIdx, setSidebarProductIdx] = useState(0);
   const [sidebarProductKey, setSidebarProductKey] = useState(0);
-  const closeTimerRef = useRef<ReturnType<typeof setTimeout>>();
+  const closeTimerRef = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
   const { totalItems } = useCart();
   const { user, logout } = useAuth();
   const { scrollY } = useScroll();
@@ -298,7 +298,7 @@ export function Header() {
         transition={{ duration: 0.35, ease: [0.33, 1, 0.68, 1] }}
         className={`fixed lg:sticky top-0 left-0 right-0 z-40 flex items-center lg:!h-auto overflow-visible transition-all duration-300 ${
           scrolled
-            ? 'bg-white lg:bg-[#0F0F0F] border-b border-black/8 lg:border-white/10 lg:shadow-[0_4px_24px_-8px_rgba(0,0,0,0.45)]'
+            ? 'bg-white lg:surface-glass-dark border-b border-black/8 lg:border-white/10 lg:shadow-[0_4px_24px_-8px_rgba(0,0,0,0.45)]'
             : 'bg-white border-b border-black/8'
         }`}
         style={{ willChange: 'height' }}
@@ -393,7 +393,6 @@ export function Header() {
               {useMenuTree ? (
                 menuRoots.map((root) => {
                   const children = (root.children || []).filter(c => c.isActive);
-                  const Icon = getMenuIcon(root.title);
                   const isActiveMega = megaMenuId === root.id;
 
                   if (root.type === 'submenu') {
@@ -405,13 +404,12 @@ export function Header() {
                         onMouseLeave={closeMega}
                       >
                         <button
-                          className={`${navLinkCls(isActiveMega)} ${isActiveMega ? 'text-[#141414]' : ''}`}
+                          className={`${navLinkCls(isActiveMega)} ${isActiveMega && !scrolled ? 'text-[#141414]' : ''}`}
                           data-testid={`button-nav-root-${root.id}`}
                           aria-expanded={isActiveMega}
                           aria-haspopup="true"
                         >
-                          <Icon className="w-3 h-3 shrink-0" strokeWidth={2} />
-                          {root.title}
+                                                    {root.title}
                           <motion.span
                             animate={{ rotate: isActiveMega ? 180 : 0 }}
                             transition={{ duration: 0.2 }}
@@ -435,8 +433,7 @@ export function Header() {
                       className={navLinkCls(isActive)}
                       data-testid={`link-nav-root-${root.id}`}
                     >
-                      <Icon className="w-3 h-3 shrink-0" strokeWidth={2} />
-                      {root.title}
+                                            {root.title}
                     </Link>
                   );
                 })
@@ -454,7 +451,7 @@ export function Header() {
                   <DropdownMenuContent
                     align="start"
                     sideOffset={20}
-                    className="bg-white border-black/8 shadow-xl rounded-none p-5"
+                    className="bg-white border-black/8 shadow-xl rounded-md p-5"
                     style={{ minWidth: visibleCategories.length > 6 ? 520 : 240 }}
                   >
                     {visibleCategories.length === 0 ? (
@@ -473,7 +470,7 @@ export function Header() {
                           <DropdownMenuItem
                             key={c.id}
                             onClick={() => navigate(`/kategori/${c.slug}`)}
-                            className="text-[11px] tracking-[0.16em] uppercase text-black hover:bg-[hsl(var(--polen-cream))] hover:text-[#141414] cursor-pointer py-2.5 px-3 rounded-none transition-colors"
+                            className="text-[11px] tracking-[0.16em] uppercase text-black hover:bg-[hsl(var(--polen-cream))] hover:text-[#141414] cursor-pointer py-2.5 px-3 rounded-md transition-colors"
                             data-testid={`link-cat-${c.slug}`}
                           >
                             {c.name}
@@ -507,7 +504,7 @@ export function Header() {
                       <span className="text-[11px] tracking-[0.18em] uppercase font-medium hidden xl:inline">Hesabım</span>
                     </motion.button>
                   </DropdownMenuTrigger>
-                  <DropdownMenuContent align="end" className="bg-white border-black/8 shadow-lg rounded-none min-w-[180px] z-[9999]">
+                  <DropdownMenuContent align="end" className="bg-white border-black/8 shadow-lg rounded-md min-w-[180px] z-[9999]">
                     <DropdownMenuItem disabled className="text-[10px] tracking-widest text-black/30 uppercase">{user.firstName || user.email}</DropdownMenuItem>
                     <DropdownMenuItem onClick={() => navigate('/hesabim')} className="text-[11px] tracking-wider uppercase text-black hover:bg-black/5 cursor-pointer py-2.5">
                       <User className="w-4 h-4 mr-2" />Hesabım
@@ -529,10 +526,10 @@ export function Header() {
                       <User className="w-[22px] h-[22px]" strokeWidth={1.75} />
                     </motion.button>
                   </DropdownMenuTrigger>
-                  <DropdownMenuContent align="end" sideOffset={6} className="bg-white border border-black/10 shadow-xl rounded-none min-w-[190px] p-0 overflow-hidden z-[9999]">
+                  <DropdownMenuContent align="end" sideOffset={6} className="bg-white border border-black/10 shadow-xl rounded-md min-w-[190px] p-0 overflow-hidden z-[9999]">
                     <DropdownMenuItem
                       onClick={() => navigate('/giris')}
-                      className="text-[11px] tracking-[0.14em] uppercase text-black hover:bg-black/5 cursor-pointer py-3.5 px-4 gap-2.5 rounded-none"
+                      className="text-[11px] tracking-[0.14em] uppercase text-black hover:bg-black/5 cursor-pointer py-3.5 px-4 gap-2.5 rounded-md"
                       data-testid="link-header-giris"
                     >
                       <User className="w-4 h-4 shrink-0 text-black/40" strokeWidth={1.75} />
@@ -598,9 +595,6 @@ export function Header() {
                 <div className="relative z-10 flex flex-col h-full">
                   {/* Top: title + desc */}
                   <div className="px-7 pt-8 pb-5">
-                    <div className="w-12 h-12 rounded-xl bg-white/10 flex items-center justify-center mb-5 shrink-0">
-                      {(() => { const Icon = getMenuIcon(activeMegaRoot.title); return <Icon className="w-6 h-6 text-white" strokeWidth={1.75} />; })()}
-                    </div>
                     <h3 className="text-[24px] xl:text-[28px] font-black text-white leading-none tracking-tight mb-2.5">
                       {activeMegaRoot.title}
                     </h3>
@@ -677,7 +671,6 @@ export function Header() {
                 <div className={`grid gap-x-3 gap-y-0.5 ${activeMegaChildren.length <= 4 ? 'grid-cols-1' : activeMegaChildren.length <= 8 ? 'grid-cols-2' : 'grid-cols-2 xl:grid-cols-3'}`}>
                   {activeMegaChildren.map((child) => {
                     const childHref = hrefForMenu(child);
-                    const ChildIcon = getSubIcon(child.title);
                     return (
                       <Link
                         key={child.id}
@@ -686,9 +679,6 @@ export function Header() {
                         className="group flex items-center gap-3 px-3 py-3.5 rounded-lg hover:bg-[#141414]/[0.07] transition-all duration-150"
                         data-testid={`link-mega-${child.id}`}
                       >
-                        <span className="w-9 h-9 rounded-lg bg-[#141414]/[0.08] group-hover:bg-[#141414]/[0.16] flex items-center justify-center shrink-0 transition-colors">
-                          <ChildIcon className="w-4 h-4 text-[#141414]" strokeWidth={1.75} />
-                        </span>
                         <span className="text-[13px] text-black/65 group-hover:text-black transition-colors font-medium leading-tight flex-1">
                           {child.title}
                         </span>
@@ -765,11 +755,11 @@ export function Header() {
               animate={{ x: 0 }}
               exit={{ x: '-100%' }}
               transition={{ duration: 0.55, ease: [0.16, 1, 0.3, 1] }}
-              className="fixed inset-y-0 left-0 z-50 w-[92%] max-w-[420px] bg-white flex flex-col overflow-hidden shadow-[0_0_60px_rgba(0,0,0,0.25)]"
+              className="fixed inset-y-0 left-0 z-50 w-[92%] max-w-[420px] surface-glass-dark flex flex-col overflow-hidden shadow-[0_0_60px_rgba(0,0,0,0.55)]"
               data-testid="drawer-mobile-menu"
             >
               {/* ── Hero panel: brand header ── */}
-              <div className="relative h-[120px] shrink-0 overflow-hidden border-b border-black/8 bg-[#0F0F0F] flex items-center justify-center">
+              <div className="relative h-[120px] shrink-0 overflow-hidden border-b border-white/10 bg-black/40 flex items-center justify-center">
                 <motion.button
                   whileTap={{ scale: 0.88 }}
                   onClick={() => setMobileOpen(false)}
@@ -809,14 +799,14 @@ export function Header() {
                       data-testid="link-mobile-home"
                     >
                       <span className="flex items-center gap-3">
-                        <span className="text-[9px] font-mono tracking-[0.18em] text-black/30 group-hover:text-[#141414] transition-colors">
+                        <span className="text-[9px] font-mono tracking-[0.18em] text-white/35 group-hover:text-white transition-colors">
                           01
                         </span>
-                        <span className="font-display text-[17px] leading-none tracking-[0.01em] text-black group-hover:text-[#141414] transition-colors">
+                        <span className="font-display text-[17px] leading-none tracking-[0.01em] text-white group-hover:text-white/80 transition-colors">
                           Ana Sayfa
                         </span>
                       </span>
-                      <ArrowUpRight className="w-3.5 h-3.5 text-black/25 rotate-45 group-hover:rotate-0 group-hover:text-[#141414] transition-all duration-300" />
+                      <ArrowUpRight className="w-3.5 h-3.5 text-white/30 rotate-45 group-hover:rotate-0 group-hover:text-white transition-all duration-300" />
                     </Link>
                   </motion.li>
 
@@ -826,11 +816,10 @@ export function Header() {
                       const isSubmenu = root.type === 'submenu';
                       const isOpen = !!mobileSubOpen[root.id];
                       const number = String(idx + 2).padStart(2, '0');
-                      const Icon = getMenuIcon(root.title);
-
+    
                       if (isSubmenu) {
                         return (
-                          <motion.li key={root.id} variants={stagger.item} className="border-t border-black/[0.08]">
+                          <motion.li key={root.id} variants={stagger.item} className="border-t border-white/[0.10]">
                             <button
                               onClick={() => setMobileSubOpen(s => ({ ...s, [root.id]: !s[root.id] }))}
                               className="group relative w-full flex items-center justify-between py-2.5"
@@ -838,19 +827,18 @@ export function Header() {
                               aria-expanded={isOpen}
                             >
                               <span className="flex items-center gap-3">
-                                <span className={`text-[9px] font-mono tracking-[0.18em] transition-colors ${isOpen ? 'text-[#141414]' : 'text-black/30 group-hover:text-[#141414]'}`}>
+                                <span className={`text-[9px] font-mono tracking-[0.18em] transition-colors ${isOpen ? 'text-white' : 'text-white/35 group-hover:text-white'}`}>
                                   {number}
                                 </span>
-                                <Icon className={`w-3.5 h-3.5 transition-colors ${isOpen ? 'text-[#141414]' : 'text-black/40 group-hover:text-[#141414]'}`} strokeWidth={2} />
-                                <span className={`font-display text-[17px] leading-none tracking-[0.01em] transition-colors ${isOpen ? 'text-[#141414]' : 'text-black group-hover:text-[#141414]'}`}>
+                                                                <span className={`font-display text-[17px] leading-none tracking-[0.01em] transition-colors ${isOpen ? 'text-white' : 'text-white group-hover:text-white/80'}`}>
                                   {root.title}
                                 </span>
-                                <span className="text-[9px] text-black/35 self-center">({children.length})</span>
+                                <span className="text-[9px] text-white/40 self-center">({children.length})</span>
                               </span>
                               <motion.span
                                 animate={{ rotate: isOpen ? 90 : 0 }}
                                 transition={{ duration: 0.3 }}
-                                className={`${isOpen ? 'text-[#141414]' : 'text-black/30'} transition-colors`}
+                                className={`${isOpen ? 'text-white' : 'text-white/35'} transition-colors`}
                               >
                                 <span className="block w-3 h-3 relative">
                                   <span className="absolute inset-x-0 top-1/2 -translate-y-1/2 h-px bg-current" />
@@ -869,23 +857,21 @@ export function Header() {
                                   animate={{ height: 'auto', opacity: 1 }}
                                   exit={{ height: 0, opacity: 0 }}
                                   transition={{ duration: 0.32, ease: [0.16, 1, 0.3, 1] }}
-                                  className="overflow-hidden pl-7 border-l border-[#141414]/30 ml-[3px] mb-2"
+                                  className="overflow-hidden pl-7 border-l border-white/25 ml-[3px] mb-2"
                                 >
                                   {children.length === 0 ? (
-                                    <li className="text-[10px] text-black/35 py-1.5">Henüz alt kategori yok</li>
+                                    <li className="text-[10px] text-white/40 py-1.5">Henüz alt kategori yok</li>
                                   ) : children.map(child => {
                                     const href = hrefForMenu(child);
-                                    const ChildIcon = getMenuIcon(child.title);
                                     return (
                                       <li key={child.id}>
                                         <Link
                                           href={href}
                                           onClick={() => setMobileOpen(false)}
-                                          className="group flex items-center gap-2 py-1.5 text-black/70 hover:text-[#141414] transition-colors"
+                                          className="group flex items-center gap-2 py-1.5 text-white/65 hover:text-white transition-colors"
                                           data-testid={`link-mobile-mega-${child.id}`}
                                         >
-                                          <ChildIcon className="w-3 h-3 text-[#141414]/60 group-hover:text-[#141414] transition-colors" strokeWidth={2} />
-                                          <span className="text-[11px] tracking-[0.12em] uppercase">
+                                                                                    <span className="text-[11px] tracking-[0.12em] uppercase">
                                             {child.title}
                                           </span>
                                         </Link>
@@ -901,7 +887,7 @@ export function Header() {
 
                       const href = hrefForMenu(root);
                       return (
-                        <motion.li key={root.id} variants={stagger.item} className="border-t border-black/[0.08]">
+                        <motion.li key={root.id} variants={stagger.item} className="border-t border-white/[0.10]">
                           <Link
                             href={href}
                             onClick={() => setMobileOpen(false)}
@@ -909,24 +895,22 @@ export function Header() {
                             data-testid={`link-mobile-root-${root.id}`}
                           >
                             <span className="flex items-center gap-3">
-                              <span className="text-[9px] font-mono tracking-[0.18em] text-black/30 group-hover:text-[#141414] transition-colors">
+                              <span className="text-[9px] font-mono tracking-[0.18em] text-white/35 group-hover:text-white transition-colors">
                                 {number}
                               </span>
-                              <Icon className="w-3.5 h-3.5 text-black/40 group-hover:text-[#141414] transition-colors" strokeWidth={2} />
-                              <span className="font-display text-[17px] leading-none tracking-[0.01em] text-black group-hover:text-[#141414] transition-colors">
+                                                            <span className="font-display text-[17px] leading-none tracking-[0.01em] text-white group-hover:text-white/80 transition-colors">
                                 {root.title}
                               </span>
                             </span>
-                            <ArrowUpRight className="w-3.5 h-3.5 text-black/25 rotate-45 group-hover:rotate-0 group-hover:text-[#141414] transition-all duration-300" />
+                            <ArrowUpRight className="w-3.5 h-3.5 text-white/30 rotate-45 group-hover:rotate-0 group-hover:text-white transition-all duration-300" />
                           </Link>
                         </motion.li>
                       );
                     })
                   ) : (
                     visibleCategories.map((c, idx) => {
-                      const Icon = getMenuIcon(c.name);
                       return (
-                        <motion.li key={c.id} variants={stagger.item} className="border-t border-black/[0.08]">
+                        <motion.li key={c.id} variants={stagger.item} className="border-t border-white/[0.10]">
                           <Link
                             href={`/kategori/${c.slug}`}
                             onClick={() => setMobileOpen(false)}
@@ -934,15 +918,14 @@ export function Header() {
                             data-testid={`link-mobile-cat-${c.slug}`}
                           >
                             <span className="flex items-center gap-3">
-                              <span className="text-[9px] font-mono tracking-[0.18em] text-black/30 group-hover:text-[#141414] transition-colors">
+                              <span className="text-[9px] font-mono tracking-[0.18em] text-white/35 group-hover:text-white transition-colors">
                                 {String(idx + 2).padStart(2, '0')}
                               </span>
-                              <Icon className="w-3.5 h-3.5 text-black/40 group-hover:text-[#141414] transition-colors" strokeWidth={2} />
-                              <span className="font-display text-[17px] leading-none tracking-[0.01em] text-black group-hover:text-[#141414] transition-colors">
+                                                            <span className="font-display text-[17px] leading-none tracking-[0.01em] text-white group-hover:text-white/80 transition-colors">
                                 {c.name}
                               </span>
                             </span>
-                            <ArrowUpRight className="w-3.5 h-3.5 text-black/25 rotate-45 group-hover:rotate-0 group-hover:text-[#141414] transition-all duration-300" />
+                            <ArrowUpRight className="w-3.5 h-3.5 text-white/30 rotate-45 group-hover:rotate-0 group-hover:text-white transition-all duration-300" />
                           </Link>
                         </motion.li>
                       );
@@ -950,7 +933,7 @@ export function Header() {
                   )}
 
                   {user && (
-                    <motion.li variants={stagger.item} className="border-t border-b border-black/[0.08]">
+                    <motion.li variants={stagger.item} className="border-t border-b border-white/[0.10]">
                       <Link
                         href="/hesabim"
                         onClick={() => setMobileOpen(false)}
@@ -958,14 +941,14 @@ export function Header() {
                         data-testid="link-mobile-hesabim"
                       >
                         <span className="flex items-center gap-3">
-                          <span className="text-[9px] font-mono tracking-[0.18em] text-black/30 group-hover:text-[#141414] transition-colors">
+                          <span className="text-[9px] font-mono tracking-[0.18em] text-white/35 group-hover:text-white transition-colors">
                             ★
                           </span>
-                          <span className="font-display text-[17px] leading-none tracking-[0.01em] text-black group-hover:text-[#141414] transition-colors">
+                          <span className="font-display text-[17px] leading-none tracking-[0.01em] text-white group-hover:text-white/80 transition-colors">
                             Hesabım
                           </span>
                         </span>
-                        <ArrowUpRight className="w-3.5 h-3.5 text-black/25 rotate-45 group-hover:rotate-0 group-hover:text-[#141414] transition-all duration-300" />
+                        <ArrowUpRight className="w-3.5 h-3.5 text-white/30 rotate-45 group-hover:rotate-0 group-hover:text-white transition-all duration-300" />
                       </Link>
                     </motion.li>
                   )}
@@ -975,11 +958,11 @@ export function Header() {
               {/* ── Bottom: auth + cart CTA ── */}
               <div className="shrink-0">
                 {!user && (
-                  <div className="grid grid-cols-2 border-t border-black/8">
+                  <div className="grid grid-cols-2 border-t border-white/10">
                     <Link
                       href="/giris"
                       onClick={() => setMobileOpen(false)}
-                      className="flex items-center justify-center py-3.5 text-[11px] tracking-[0.18em] uppercase font-medium text-black/75 hover:text-[#141414] hover:bg-black/[0.03] transition-colors border-r border-black/8"
+                      className="flex items-center justify-center py-3.5 text-[11px] tracking-[0.18em] uppercase font-medium text-white/75 hover:text-white hover:bg-white/[0.05] transition-colors border-r border-white/10"
                       data-testid="link-mobile-giris"
                     >
                       Giriş Yap
@@ -987,7 +970,7 @@ export function Header() {
                     <Link
                       href="/kayit"
                       onClick={() => setMobileOpen(false)}
-                      className="flex items-center justify-center py-3.5 text-[11px] tracking-[0.18em] uppercase font-bold text-white bg-[#141414] hover:bg-[#141414]/90 transition-colors"
+                      className="flex items-center justify-center py-3.5 text-[11px] tracking-[0.18em] uppercase font-bold text-black bg-white hover:bg-white/90 transition-colors"
                       data-testid="link-mobile-kayit"
                     >
                       Kayıt Ol

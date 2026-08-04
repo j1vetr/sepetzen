@@ -178,7 +178,7 @@ export default function ForgotPassword() {
                 <Button 
                   type="submit" 
                   disabled={loading}
-                  className="w-full h-12 bg-black text-white hover:bg-polen-orange font-bold tracking-[0.12em] text-xs uppercase rounded-none group"
+                  className="w-full h-12 bg-black text-white hover:bg-polen-orange font-bold tracking-[0.12em] text-xs uppercase rounded-md group"
                   data-testid="button-submit"
                 >
                   {loading ? (
@@ -200,7 +200,7 @@ export default function ForgotPassword() {
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.6 }}
-              className="mt-10 p-4 bg-stone-50 border border-black/8 rounded-none"
+              className="mt-10 p-4 bg-stone-50 border border-black/8 rounded-md"
             >
               <p className="text-xs text-black/45 text-center leading-relaxed">
                 Güvenliğiniz için şifre sıfırlama bağlantısı yalnızca <strong>15 dakika</strong> geçerlidir. 

@@ -398,7 +398,7 @@ export default function Profile() {
               transition={{ delay: 0.1 }}
               className="lg:col-span-1"
             >
-              <div className="bg-white border border-black/8 rounded-none p-6 sticky top-28">
+              <div className="bg-white border border-black/8 rounded-md p-6 sticky top-28">
                 <div className="flex flex-col items-center mb-7 pb-7 border-b border-black/8">
                   <div className="w-20 h-20 rounded-full bg-black flex items-center justify-center text-white text-2xl font-bold mb-3">
                     {user.firstName?.charAt(0) || user.email.charAt(0).toUpperCase()}
@@ -474,7 +474,7 @@ export default function Profile() {
                         <p className="text-black/45 mb-6">Alışverişe başlayarak ilk siparişinizi oluşturun.</p>
                         <button
                           onClick={() => navigate('/')}
-                          className="px-6 py-3 bg-black text-white rounded-none font-medium hover:bg-polen-orange transition-colors"
+                          className="px-6 py-3 bg-black text-white rounded-md font-medium hover:bg-polen-orange transition-colors"
                           data-testid="button-start-shopping"
                         >
                           Alışverişe Başla
@@ -553,7 +553,7 @@ export default function Profile() {
                         <h3 className="text-lg font-semibold text-black mb-2">Henüz favori ürününüz yok</h3>
                         <p className="text-black/45 mb-6">Beğendiğiniz ürünleri favorilere ekleyin, daha sonra kolayca bulun.</p>
                         <Link href="/">
-                          <button className="px-6 py-3 bg-black text-white rounded-none font-medium hover:bg-polen-orange transition-colors">
+                          <button className="px-6 py-3 bg-black text-white rounded-md font-medium hover:bg-polen-orange transition-colors">
                             Alışverişe Başla
                           </button>
                         </Link>
@@ -599,7 +599,7 @@ export default function Profile() {
                                 type="text"
                                 value={profileForm.firstName}
                                 onChange={(e) => setProfileForm({ ...profileForm, firstName: e.target.value })}
-                                className="w-full px-4 py-3 bg-stone-50 border border-black/12 rounded-none text-black placeholder:text-black/30 focus:outline-none focus:border-polen-orange transition-colors"
+                                className="w-full px-4 py-3 bg-stone-50 border border-black/12 rounded-md text-black placeholder:text-black/30 focus:outline-none focus:border-polen-orange transition-colors"
                                 placeholder="Adınız"
                                 data-testid="input-firstName"
                               />
@@ -610,7 +610,7 @@ export default function Profile() {
                                 type="text"
                                 value={profileForm.lastName}
                                 onChange={(e) => setProfileForm({ ...profileForm, lastName: e.target.value })}
-                                className="w-full px-4 py-3 bg-stone-50 border border-black/12 rounded-none text-black placeholder:text-black/30 focus:outline-none focus:border-polen-orange transition-colors"
+                                className="w-full px-4 py-3 bg-stone-50 border border-black/12 rounded-md text-black placeholder:text-black/30 focus:outline-none focus:border-polen-orange transition-colors"
                                 placeholder="Soyadınız"
                                 data-testid="input-lastName"
                               />
@@ -622,7 +622,7 @@ export default function Profile() {
                               type="tel"
                               value={profileForm.phone}
                               onChange={(e) => setProfileForm({ ...profileForm, phone: e.target.value })}
-                              className="w-full px-4 py-3 bg-stone-50 border border-black/12 rounded-none text-black placeholder:text-black/30 focus:outline-none focus:border-polen-orange transition-colors"
+                              className="w-full px-4 py-3 bg-stone-50 border border-black/12 rounded-md text-black placeholder:text-black/30 focus:outline-none focus:border-polen-orange transition-colors"
                               placeholder="05XX XXX XX XX"
                               data-testid="input-phone"
                             />
@@ -630,7 +630,7 @@ export default function Profile() {
                           <div className="flex gap-3 pt-4">
                             <button
                               onClick={() => setIsEditing(false)}
-                              className="flex-1 px-4 py-3 border border-black/12 rounded-none text-black hover:bg-black/5 transition-colors"
+                              className="flex-1 px-4 py-3 border border-black/12 rounded-md text-black hover:bg-black/5 transition-colors"
                               data-testid="button-cancel-edit"
                             >
                               İptal
@@ -638,7 +638,7 @@ export default function Profile() {
                             <button
                               onClick={handleSaveProfile}
                               disabled={updateProfileMutation.isPending}
-                              className="flex-1 flex items-center justify-center gap-2 px-4 py-3 bg-black text-white rounded-none font-medium hover:bg-polen-orange transition-colors disabled:opacity-50"
+                              className="flex-1 flex items-center justify-center gap-2 px-4 py-3 bg-black text-white rounded-md font-medium hover:bg-polen-orange transition-colors disabled:opacity-50"
                               data-testid="button-save-profile"
                             >
                               {updateProfileMutation.isPending ? (
@@ -759,7 +759,7 @@ export default function Profile() {
                             setEditingAddress(null);
                             setShowAddressForm(true);
                           }}
-                          className="flex items-center gap-2 px-4 py-2 bg-black text-white rounded-none text-sm font-medium hover:bg-polen-orange transition-colors"
+                          className="flex items-center gap-2 px-4 py-2 bg-black text-white rounded-md text-sm font-medium hover:bg-polen-orange transition-colors"
                           data-testid="button-add-address"
                         >
                           <Plus className="w-4 h-4" />
@@ -780,7 +780,7 @@ export default function Profile() {
                               type="text"
                               value={addressForm.title}
                               onChange={(e) => setAddressForm({ ...addressForm, title: e.target.value })}
-                              className="w-full px-4 py-3 bg-stone-50 border border-black/12 rounded-none text-black placeholder:text-black/30 focus:outline-none focus:border-polen-orange transition-colors"
+                              className="w-full px-4 py-3 bg-stone-50 border border-black/12 rounded-md text-black placeholder:text-black/30 focus:outline-none focus:border-polen-orange transition-colors"
                               placeholder="Ev, İş, vb."
                               data-testid="input-address-title"
                             />
@@ -792,7 +792,7 @@ export default function Profile() {
                                 type="text"
                                 value={addressForm.firstName}
                                 onChange={(e) => setAddressForm({ ...addressForm, firstName: e.target.value })}
-                                className="w-full px-4 py-3 bg-stone-50 border border-black/12 rounded-none text-black placeholder:text-black/30 focus:outline-none focus:border-polen-orange transition-colors"
+                                className="w-full px-4 py-3 bg-stone-50 border border-black/12 rounded-md text-black placeholder:text-black/30 focus:outline-none focus:border-polen-orange transition-colors"
                                 placeholder="Adınız"
                                 data-testid="input-address-firstName"
                               />
@@ -803,7 +803,7 @@ export default function Profile() {
                                 type="text"
                                 value={addressForm.lastName}
                                 onChange={(e) => setAddressForm({ ...addressForm, lastName: e.target.value })}
-                                className="w-full px-4 py-3 bg-stone-50 border border-black/12 rounded-none text-black placeholder:text-black/30 focus:outline-none focus:border-polen-orange transition-colors"
+                                className="w-full px-4 py-3 bg-stone-50 border border-black/12 rounded-md text-black placeholder:text-black/30 focus:outline-none focus:border-polen-orange transition-colors"
                                 placeholder="Soyadınız"
                                 data-testid="input-address-lastName"
                               />
@@ -815,7 +815,7 @@ export default function Profile() {
                               type="tel"
                               value={addressForm.phone}
                               onChange={(e) => setAddressForm({ ...addressForm, phone: e.target.value })}
-                              className="w-full px-4 py-3 bg-stone-50 border border-black/12 rounded-none text-black placeholder:text-black/30 focus:outline-none focus:border-polen-orange transition-colors"
+                              className="w-full px-4 py-3 bg-stone-50 border border-black/12 rounded-md text-black placeholder:text-black/30 focus:outline-none focus:border-polen-orange transition-colors"
                               placeholder="05XX XXX XX XX"
                               data-testid="input-address-phone"
                             />
@@ -826,7 +826,7 @@ export default function Profile() {
                               type="text"
                               value={addressForm.address}
                               onChange={(e) => setAddressForm({ ...addressForm, address: e.target.value })}
-                              className="w-full px-4 py-3 bg-stone-50 border border-black/12 rounded-none text-black placeholder:text-black/30 focus:outline-none focus:border-polen-orange transition-colors"
+                              className="w-full px-4 py-3 bg-stone-50 border border-black/12 rounded-md text-black placeholder:text-black/30 focus:outline-none focus:border-polen-orange transition-colors"
                               placeholder="Sokak, Mahalle, Bina No, Daire No"
                               data-testid="input-address-address"
                             />
@@ -838,7 +838,7 @@ export default function Profile() {
                                 type="text"
                                 value={addressForm.city}
                                 onChange={(e) => setAddressForm({ ...addressForm, city: e.target.value })}
-                                className="w-full px-4 py-3 bg-stone-50 border border-black/12 rounded-none text-black placeholder:text-black/30 focus:outline-none focus:border-polen-orange transition-colors"
+                                className="w-full px-4 py-3 bg-stone-50 border border-black/12 rounded-md text-black placeholder:text-black/30 focus:outline-none focus:border-polen-orange transition-colors"
                                 placeholder="İstanbul"
                                 data-testid="input-address-city"
                               />
@@ -849,7 +849,7 @@ export default function Profile() {
                                 type="text"
                                 value={addressForm.district}
                                 onChange={(e) => setAddressForm({ ...addressForm, district: e.target.value })}
-                                className="w-full px-4 py-3 bg-stone-50 border border-black/12 rounded-none text-black placeholder:text-black/30 focus:outline-none focus:border-polen-orange transition-colors"
+                                className="w-full px-4 py-3 bg-stone-50 border border-black/12 rounded-md text-black placeholder:text-black/30 focus:outline-none focus:border-polen-orange transition-colors"
                                 placeholder="Kadıköy"
                                 data-testid="input-address-district"
                               />
@@ -862,7 +862,7 @@ export default function Profile() {
                                 type="text"
                                 value={addressForm.postalCode}
                                 onChange={(e) => setAddressForm({ ...addressForm, postalCode: e.target.value })}
-                                className="w-full px-4 py-3 bg-stone-50 border border-black/12 rounded-none text-black placeholder:text-black/30 focus:outline-none focus:border-polen-orange transition-colors"
+                                className="w-full px-4 py-3 bg-stone-50 border border-black/12 rounded-md text-black placeholder:text-black/30 focus:outline-none focus:border-polen-orange transition-colors"
                                 placeholder="34000"
                                 data-testid="input-address-postalCode"
                               />
@@ -872,7 +872,7 @@ export default function Profile() {
                               <select
                                 value={addressForm.country}
                                 onChange={(e) => setAddressForm({ ...addressForm, country: e.target.value })}
-                                className="w-full px-4 py-3 bg-stone-50 border border-black/12 rounded-none text-black placeholder:text-black/30 focus:outline-none focus:border-polen-orange transition-colors"
+                                className="w-full px-4 py-3 bg-stone-50 border border-black/12 rounded-md text-black placeholder:text-black/30 focus:outline-none focus:border-polen-orange transition-colors"
                                 data-testid="select-address-country"
                               >
                                 {COUNTRIES.map(country => (
@@ -903,7 +903,7 @@ export default function Profile() {
                                 setEditingAddress(null);
                                 resetAddressForm();
                               }}
-                              className="flex-1 px-4 py-3 border border-black/12 rounded-none text-black hover:bg-black/5 transition-colors"
+                              className="flex-1 px-4 py-3 border border-black/12 rounded-md text-black hover:bg-black/5 transition-colors"
                               data-testid="button-cancel-address"
                             >
                               İptal
@@ -911,7 +911,7 @@ export default function Profile() {
                             <button
                               onClick={handleSaveAddress}
                               disabled={createAddressMutation.isPending || updateAddressMutation.isPending}
-                              className="flex-1 flex items-center justify-center gap-2 px-4 py-3 bg-black text-white rounded-none font-medium hover:bg-polen-orange transition-colors disabled:opacity-50"
+                              className="flex-1 flex items-center justify-center gap-2 px-4 py-3 bg-black text-white rounded-md font-medium hover:bg-polen-orange transition-colors disabled:opacity-50"
                               data-testid="button-save-address"
                             >
                               {(createAddressMutation.isPending || updateAddressMutation.isPending) ? (
@@ -940,7 +940,7 @@ export default function Profile() {
                             resetAddressForm();
                             setShowAddressForm(true);
                           }}
-                          className="px-6 py-3 bg-black text-white rounded-none font-medium hover:bg-polen-orange transition-colors"
+                          className="px-6 py-3 bg-black text-white rounded-md font-medium hover:bg-polen-orange transition-colors"
                           data-testid="button-add-first-address"
                         >
                           İlk Adresimi Ekle
@@ -960,7 +960,7 @@ export default function Profile() {
                                   <Home className="w-4 h-4 text-black/45" />
                                   <span className="font-semibold text-black">{addr.title}</span>
                                   {addr.isDefault && (
-                                    <span className="text-[10px] bg-polen-orange/15 text-polen-orange font-semibold uppercase tracking-wider px-2 py-0.5 rounded-none">
+                                    <span className="text-[10px] bg-polen-orange/15 text-polen-orange font-semibold uppercase tracking-wider px-2 py-0.5 rounded-md">
                                       Varsayılan
                                     </span>
                                   )}
@@ -1052,7 +1052,7 @@ export default function Profile() {
                 </div>
 
                 {selectedOrder.status === 'shipped' && (
-                  <div className="bg-stone-50 border border-black/10 rounded-none p-5">
+                  <div className="bg-stone-50 border border-black/10 rounded-md p-5">
                     <div className="flex items-center justify-center gap-2 mb-3">
                       <Truck className="w-5 h-5 text-black/70" strokeWidth={2} />
                       <span className="text-black font-bold text-sm tracking-[0.2em] uppercase">Aras Kargo</span>
@@ -1070,7 +1070,7 @@ export default function Profile() {
                         href={selectedOrder.trackingUrl || `https://kargotakip.araskargo.com.tr/mainpage.aspx?code=${selectedOrder.trackingNumber}`}
                         target="_blank"
                         rel="noopener noreferrer"
-                        className="flex items-center justify-center gap-2 w-full py-2.5 bg-black hover:bg-polen-orange text-white rounded-none font-bold text-[11px] tracking-[0.18em] uppercase transition-colors"
+                        className="flex items-center justify-center gap-2 w-full py-2.5 bg-black hover:bg-polen-orange text-white rounded-md font-bold text-[11px] tracking-[0.18em] uppercase transition-colors"
                       >
                         <Truck className="w-4 h-4" />
                         ARAS KARGO'DA TAKİP ET

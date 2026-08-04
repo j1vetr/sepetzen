@@ -74,7 +74,7 @@ export default function Register() {
   const strengthTexts = ['', 'Zayıf', 'Orta', 'Güçlü'];
 
   const inputCls =
-    'h-11 bg-stone-50 border-black/12 focus:border-[#141414] focus-visible:ring-0 focus-visible:ring-offset-0 rounded-none text-black placeholder:text-black/25';
+    'h-11 bg-stone-50 border-black/12 focus:border-[#141414] focus-visible:ring-0 focus-visible:ring-offset-0 rounded-md text-black placeholder:text-black/25';
   const labelCls = 'text-[10px] font-medium tracking-[0.22em] uppercase text-black/55';
 
   return (
@@ -159,7 +159,7 @@ export default function Register() {
                   value={formData.country}
                   onChange={handleChange}
                   data-testid="select-country"
-                  className="w-full h-11 bg-stone-50 border border-black/12 focus:border-[#141414] focus:outline-none rounded-none px-4 text-black text-sm"
+                  className="w-full h-11 bg-stone-50 border border-black/12 focus:border-[#141414] focus:outline-none rounded-md px-4 text-black text-sm"
                 >
                   {COUNTRIES.map((country) => (
                     <option key={country} value={country}>{country}</option>
@@ -245,7 +245,7 @@ export default function Register() {
               <motion.div whileHover={{ scale: 1.005 }} whileTap={{ scale: 0.995 }} className="pt-2">
                 <Button
                   type="submit"
-                  className="w-full h-11 bg-[#141414] text-white hover:bg-black font-semibold tracking-[0.18em] text-[11px] uppercase group rounded-none transition-colors duration-300 gap-3"
+                  className="w-full h-11 bg-[#141414] text-white hover:bg-black font-semibold tracking-[0.18em] text-[11px] uppercase group rounded-md transition-colors duration-300 gap-3"
                   disabled={loading}
                   data-testid="button-register"
                 >

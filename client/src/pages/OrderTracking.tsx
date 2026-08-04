@@ -309,7 +309,7 @@ export default function OrderTracking() {
                   value={orderNumber}
                   onChange={(e) => setOrderNumber(e.target.value)}
                   placeholder="PS-XXXXXX"
-                  className="h-12 bg-[#FFFFFF] border-black/15 text-black placeholder:text-black/30 focus:border-polen-orange rounded-none"
+                  className="h-12 bg-[#FFFFFF] border-black/15 text-black placeholder:text-black/30 focus:border-polen-orange rounded-md"
                   data-testid="input-order-number"
                 />
               </div>
@@ -322,7 +322,7 @@ export default function OrderTracking() {
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                   placeholder="ornek@email.com"
-                  className="h-12 bg-[#FFFFFF] border-black/15 text-black placeholder:text-black/30 focus:border-polen-orange rounded-none"
+                  className="h-12 bg-[#FFFFFF] border-black/15 text-black placeholder:text-black/30 focus:border-polen-orange rounded-md"
                   data-testid="input-email"
                 />
               </div>
@@ -341,7 +341,7 @@ export default function OrderTracking() {
             <Button
               type="submit"
               disabled={loading}
-              className="w-full h-12 bg-polen-orange text-black hover:bg-[hsl(var(--polen-orange-deep))] hover:text-white font-semibold tracking-[0.1em] uppercase text-[12px] rounded-none"
+              className="w-full h-12 bg-polen-orange text-black hover:bg-[hsl(var(--polen-orange-deep))] hover:text-white font-semibold tracking-[0.1em] uppercase text-[12px] rounded-md"
               data-testid="button-search-order"
             >
               {loading ? (
@@ -773,7 +773,7 @@ export default function OrderTracking() {
               <div className="pt-2">
                 <Link href="/">
                   <Button
-                    className="w-full h-12 bg-polen-orange text-black hover:bg-[hsl(var(--polen-orange-deep))] hover:text-white font-semibold tracking-[0.1em] uppercase text-[12px] group rounded-none"
+                    className="w-full h-12 bg-polen-orange text-black hover:bg-[hsl(var(--polen-orange-deep))] hover:text-white font-semibold tracking-[0.1em] uppercase text-[12px] group rounded-md"
                     data-testid="button-continue-shopping"
                   >
                     Alışverişe Devam Et

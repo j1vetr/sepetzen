@@ -611,13 +611,13 @@ export default function Checkout() {
             <div className="flex flex-col sm:flex-row gap-3">
               {user ? (
                 <Link href="/hesabim" className="flex-1">
-                  <Button className="w-full h-12 bg-black hover:bg-black/85 text-white font-bold tracking-wide rounded-none">
+                  <Button className="w-full h-12 bg-black hover:bg-black/85 text-white font-bold tracking-wide rounded-md">
                     SİPARİŞLERİM
                   </Button>
                 </Link>
               ) : null}
               <Link href="/" className="flex-1">
-                <Button className="w-full h-12 bg-black text-white hover:bg-black/85 font-bold tracking-wide group rounded-none">
+                <Button className="w-full h-12 btn-glass text-white font-bold tracking-wide group">
                   ALIŞVERİŞE DEVAM ET
                   <ArrowRight className="w-4 h-4 ml-2 transition-transform group-hover:translate-x-1" />
                 </Button>
@@ -738,7 +738,7 @@ export default function Checkout() {
                       initial={{ opacity: 0, y: 20 }}
                       animate={{ opacity: 1, y: 0 }}
                       exit={{ opacity: 0, y: -20 }}
-                      className="bg-white border border-black/8 rounded-none p-4 sm:p-6 overflow-hidden"
+                      className="bg-white border border-black/8 rounded-md p-4 sm:p-6 overflow-hidden"
                     >
                       <div className="flex items-center gap-3 mb-6">
                         <div className="w-10 h-10 bg-stone-100 flex items-center justify-center">
@@ -792,7 +792,7 @@ export default function Checkout() {
                               value={formData.customerName}
                               onChange={handleChange}
                               data-testid="input-customerName"
-                              className="h-12 pl-11 bg-stone-50 border-black/12 focus:border-black/40 rounded-none text-black placeholder:text-black/25"
+                              className="h-12 pl-11 bg-stone-50 border-black/12 focus:border-black/40 rounded-md text-black placeholder:text-black/25"
                               placeholder="Adınız Soyadınız"
                             />
                           </div>
@@ -810,7 +810,7 @@ export default function Checkout() {
                                 value={formData.customerEmail}
                                 onChange={handleChange}
                                 data-testid="input-customerEmail"
-                                className="h-12 pl-11 bg-stone-50 border-black/12 focus:border-black/40 rounded-none text-black placeholder:text-black/25"
+                                className="h-12 pl-11 bg-stone-50 border-black/12 focus:border-black/40 rounded-md text-black placeholder:text-black/25"
                                 placeholder="ornek@email.com"
                               />
                             </div>
@@ -826,7 +826,7 @@ export default function Checkout() {
                                 value={formData.customerPhone}
                                 onChange={handleChange}
                                 data-testid="input-customerPhone"
-                                className="h-12 pl-11 bg-stone-50 border-black/12 focus:border-black/40 rounded-none text-black placeholder:text-black/25"
+                                className="h-12 pl-11 bg-stone-50 border-black/12 focus:border-black/40 rounded-md text-black placeholder:text-black/25"
                                 placeholder="05XX XXX XX XX"
                               />
                             </div>
@@ -854,7 +854,7 @@ export default function Checkout() {
                       initial={{ opacity: 0, y: 20 }}
                       animate={{ opacity: 1, y: 0 }}
                       exit={{ opacity: 0, y: -20 }}
-                      className="bg-white border border-black/8 rounded-none p-4 sm:p-6 overflow-hidden"
+                      className="bg-white border border-black/8 rounded-md p-4 sm:p-6 overflow-hidden"
                     >
                       <div className="flex items-center gap-3 mb-6">
                         <div className="w-10 h-10 bg-stone-100 flex items-center justify-center">
@@ -969,7 +969,7 @@ export default function Checkout() {
                               onChange={handleChange}
                               placeholder="Sokak, Mahalle, Bina No, Daire No"
                               data-testid="input-address"
-                              className="h-12 bg-stone-50 border-black/12 focus:border-black/40 rounded-none text-black placeholder:text-black/25"
+                              className="h-12 bg-stone-50 border-black/12 focus:border-black/40 rounded-md text-black placeholder:text-black/25"
                             />
                           </div>
 
@@ -982,7 +982,7 @@ export default function Checkout() {
                                 value={formData.city}
                                 onChange={handleChange}
                                 data-testid="input-city"
-                                className="h-12 bg-stone-50 border-black/12 focus:border-black/40 rounded-none text-black placeholder:text-black/25"
+                                className="h-12 bg-stone-50 border-black/12 focus:border-black/40 rounded-md text-black placeholder:text-black/25"
                                 placeholder="İstanbul"
                               />
                             </div>
@@ -994,7 +994,7 @@ export default function Checkout() {
                                 value={formData.district}
                                 onChange={handleChange}
                                 data-testid="input-district"
-                                className="h-12 bg-stone-50 border-black/12 focus:border-black/40 rounded-none text-black placeholder:text-black/25"
+                                className="h-12 bg-stone-50 border-black/12 focus:border-black/40 rounded-md text-black placeholder:text-black/25"
                                 placeholder="Kadıköy"
                               />
                             </div>
@@ -1009,7 +1009,7 @@ export default function Checkout() {
                                 value={formData.postalCode}
                                 onChange={handleChange}
                                 data-testid="input-postalCode"
-                                className="h-12 bg-stone-50 border-black/12 focus:border-black/40 rounded-none text-black placeholder:text-black/25"
+                                className="h-12 bg-stone-50 border-black/12 focus:border-black/40 rounded-md text-black placeholder:text-black/25"
                                 placeholder="34000"
                               />
                             </div>
@@ -1021,7 +1021,7 @@ export default function Checkout() {
                                 value={formData.country}
                                 onChange={handleChange}
                                 data-testid="select-country"
-                                className="w-full h-12 bg-stone-50 border border-black/12 focus:border-black/40 focus:outline-none rounded-none px-4 text-black"
+                                className="w-full h-12 bg-stone-50 border border-black/12 focus:border-black/40 focus:outline-none rounded-md px-4 text-black"
                               >
                                 {COUNTRIES.map(country => (
                                   <option key={country} value={country} className="bg-white">
@@ -1050,7 +1050,7 @@ export default function Checkout() {
                               type="checkbox"
                               checked={createAccount}
                               onChange={(e) => setCreateAccount(e.target.checked)}
-                              className="mt-1 w-5 h-5 border-black/20 bg-white text-black focus:ring-black focus:ring-offset-0 rounded-none"
+                              className="mt-1 w-5 h-5 border-black/20 bg-white text-black focus:ring-black focus:ring-offset-0 rounded-md"
                               data-testid="checkbox-create-account"
                             />
                             <div className="flex-1">
@@ -1083,7 +1083,7 @@ export default function Checkout() {
                                       onChange={(e) => setAccountPassword(e.target.value)}
                                       placeholder="En az 6 karakter"
                                       data-testid="input-account-password"
-                                      className="h-12 pl-12 bg-stone-50 border-black/12 focus:border-black/40 rounded-none text-black placeholder:text-black/25"
+                                      className="h-12 pl-12 bg-stone-50 border-black/12 focus:border-black/40 rounded-md text-black placeholder:text-black/25"
                                       minLength={6}
                                     />
                                   </div>
@@ -1102,7 +1102,7 @@ export default function Checkout() {
                           type="button" 
                           variant="outline"
                           onClick={() => setCurrentStep(1)}
-                          className="flex-1 h-12 border-black/15 hover:bg-black/4 text-black rounded-none"
+                          className="flex-1 h-12 border-black/15 hover:bg-black/4 text-black rounded-md"
                         >
                           Geri
                         </Button>
@@ -1110,7 +1110,7 @@ export default function Checkout() {
                           <Button 
                             type="button" 
                             onClick={handleNextStep}
-                            className="w-full h-12 bg-black text-white hover:bg-black/85 font-bold tracking-wide group rounded-none"
+                            className="w-full h-12 btn-glass text-white font-bold tracking-wide group"
                             data-testid="button-next-step2"
                           >
                             DEVAM ET
@@ -1127,7 +1127,7 @@ export default function Checkout() {
                       initial={{ opacity: 0, y: 20 }}
                       animate={{ opacity: 1, y: 0 }}
                       exit={{ opacity: 0, y: -20 }}
-                      className="bg-white border border-black/8 rounded-none p-4 sm:p-6 overflow-hidden"
+                      className="bg-white border border-black/8 rounded-md p-4 sm:p-6 overflow-hidden"
                     >
                       <div className="flex items-center gap-3 mb-4">
                         <div className="w-10 h-10 bg-stone-100 flex items-center justify-center">
@@ -1270,7 +1270,7 @@ export default function Checkout() {
                               type="button"
                               variant="outline"
                               onClick={() => setCurrentStep(2)}
-                              className="flex-1 h-12 border-black/15 hover:bg-black/4 text-black rounded-none"
+                              className="flex-1 h-12 border-black/15 hover:bg-black/4 text-black rounded-md"
                               data-testid="button-bank-back"
                             >
                               Geri
@@ -1280,7 +1280,7 @@ export default function Checkout() {
                                 type="button"
                                 onClick={handleBankTransferSubmit}
                                 disabled={bankTransferLoading}
-                                className="w-full h-12 bg-black text-white hover:bg-black/85 font-bold tracking-wider rounded-none"
+                                className="w-full h-12 btn-glass text-white font-bold tracking-wider"
                                 data-testid="button-bank-confirm"
                               >
                                 {bankTransferLoading ? (
@@ -1294,7 +1294,7 @@ export default function Checkout() {
                         </div>
                       ) : paymentPageUrl ? (
                         <div className="space-y-4">
-                          <div className="bg-white border border-black/8 rounded-none overflow-hidden">
+                          <div className="bg-white border border-black/8 rounded-md overflow-hidden">
                             <iframe
                               src={paymentPageUrl}
                               title="iyzico Güvenli Ödeme"
@@ -1331,7 +1331,7 @@ export default function Checkout() {
                               setPaymentError(null);
                               setCurrentStep(2);
                             }}
-                            className="w-full h-12 border-black/15 hover:bg-black/4 text-black rounded-none"
+                            className="w-full h-12 border-black/15 hover:bg-black/4 text-black rounded-md"
                           >
                             Bilgilerimi Düzenle
                           </Button>
@@ -1367,7 +1367,7 @@ export default function Checkout() {
                               setPaymentError(null);
                               setCurrentStep(2);
                             }}
-                            className="w-full h-12 border-black/15 hover:bg-black/4 text-black rounded-none"
+                            className="w-full h-12 border-black/15 hover:bg-black/4 text-black rounded-md"
                           >
                             Bilgilerimi Düzenle
                           </Button>
@@ -1470,7 +1470,7 @@ export default function Checkout() {
                               setCouponError('');
                             }}
                             placeholder="Kupon kodu"
-                            className="pl-10 bg-stone-50 border-black/12 h-10 uppercase text-black placeholder:text-black/25 rounded-none"
+                            className="pl-10 bg-stone-50 border-black/12 h-10 uppercase text-black placeholder:text-black/25 rounded-md"
                             data-testid="input-coupon-code"
                           />
                         </div>
