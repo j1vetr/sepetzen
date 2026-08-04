@@ -89,6 +89,9 @@ import {
   marketplaceProducts,
   marketplaceSyncRuns,
   marketplacePushQueue,
+  marketplaceOrderLines,
+  type MarketplaceOrderLine,
+  type InsertMarketplaceOrderLine,
   type MarketplacePushQueueItem,
   type InsertMarketplacePushQueueItem,
   type Marketplace,
@@ -355,6 +358,21 @@ export interface IStorage {
   ): Promise<MarketplaceProduct | undefined>;
   createMarketplaceProductLink(insert: InsertMarketplaceProduct): Promise<MarketplaceProduct>;
   deleteMarketplaceProduct(id: string): Promise<void>;
+
+  // Marketplace order lines (pazaryeri siparişlerinden stok düşümü)
+  /** Push-yönlü bağlantıyı barkoda göre bul (sipariş satırı eşleştirme). */
+  getPushLinkByBarcode(marketplaceId: string, barcode: string): Promise<MarketplaceProduct | undefined>;
+  /**
+   * Sipariş satırını idempotent kaydet: (marketplaceId, orderNumber, lineId)
+   * varsa mevcut satırı döner (inserted=false), yoksa ekler (inserted=true).
+   */
+  recordMarketplaceOrderLine(
+    insert: InsertMarketplaceOrderLine,
+  ): Promise<{ line: MarketplaceOrderLine; inserted: boolean }>;
+  updateMarketplaceOrderLine(
+    id: string,
+    patch: Partial<InsertMarketplaceOrderLine>,
+  ): Promise<MarketplaceOrderLine | undefined>;
 
   // Push queue (site → pazaryeri outbox)
   enqueuePushItem(insert: InsertMarketplacePushQueueItem): Promise<MarketplacePushQueueItem>;
@@ -2349,6 +2367,67 @@ export class DbStorage implements IStorage {
 
   async deleteMarketplaceProduct(id: string): Promise<void> {
     await db.delete(marketplaceProducts).where(eq(marketplaceProducts.id, id));
+  }
+
+  // === Marketplace order lines (pazaryeri siparişlerinden stok düşümü) ===
+
+  async getPushLinkByBarcode(
+    marketplaceId: string,
+    barcode: string,
+  ): Promise<MarketplaceProduct | undefined> {
+    const [row] = await db
+      .select()
+      .from(marketplaceProducts)
+      .where(
+        and(
+          eq(marketplaceProducts.marketplaceId, marketplaceId),
+          eq(marketplaceProducts.syncDirection, "push"),
+          eq(marketplaceProducts.barcode, barcode),
+        ),
+      );
+    return row;
+  }
+
+  async recordMarketplaceOrderLine(
+    insert: InsertMarketplaceOrderLine,
+  ): Promise<{ line: MarketplaceOrderLine; inserted: boolean }> {
+    // Idempotent: uniq (marketplaceId, orderNumber, lineId) — çakışmada mevcut
+    // satır döner, stok düşümü tekrar uygulanmaz.
+    const [row] = await db
+      .insert(marketplaceOrderLines)
+      .values(insert)
+      .onConflictDoNothing({
+        target: [
+          marketplaceOrderLines.marketplaceId,
+          marketplaceOrderLines.orderNumber,
+          marketplaceOrderLines.lineId,
+        ],
+      })
+      .returning();
+    if (row) return { line: row, inserted: true };
+    const [existing] = await db
+      .select()
+      .from(marketplaceOrderLines)
+      .where(
+        and(
+          eq(marketplaceOrderLines.marketplaceId, insert.marketplaceId),
+          eq(marketplaceOrderLines.orderNumber, insert.orderNumber),
+          eq(marketplaceOrderLines.lineId, insert.lineId),
+        ),
+      );
+    return { line: existing, inserted: false };
+  }
+
+  async updateMarketplaceOrderLine(
+    id: string,
+    patch: Partial<InsertMarketplaceOrderLine>,
+  ): Promise<MarketplaceOrderLine | undefined> {
+    const [row] = await db
+      .update(marketplaceOrderLines)
+      .set({ ...patch, updatedAt: new Date() })
+      .where(eq(marketplaceOrderLines.id, id))
+      .returning();
+    return row;
   }
 
   // === Push queue (site → pazaryeri outbox) ===

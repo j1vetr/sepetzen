@@ -191,6 +191,54 @@ export interface MarketplaceWriteAdapter {
   getBatchResult(batchRequestId: string): Promise<BatchResult>;
 }
 
+// ============================================================================
+// SİPARİŞ (ORDER) YÜZEYİ — pazaryeri → site stok düşümü. Opsiyonel: adapter
+// implement etmezse order motoru o pazaryerini atlar.
+// ============================================================================
+
+/** Normalize edilmiş sipariş satırı. */
+export interface NormalizedOrderLine {
+  /** Pazaryeri satır id'si (idempotency anahtarının parçası). */
+  lineId: string;
+  barcode: string | null;
+  quantity: number;
+  /** Pazaryeri satır durumu (Created/Picking/Shipped/Cancelled/Returned/UnSupplied...). */
+  status: string;
+}
+
+/** Normalize edilmiş sipariş (paket). */
+export interface NormalizedOrder {
+  /** Pazaryeri sipariş numarası (idempotency anahtarının parçası). */
+  orderNumber: string;
+  /** Sipariş/paket durumu. */
+  status: string;
+  orderedAt: Date | null;
+  lines: NormalizedOrderLine[];
+}
+
+export interface OrdersPage {
+  orders: NormalizedOrder[];
+  /** null ise sayfa biter. */
+  nextCursor: PageCursor;
+  total?: number;
+}
+
+/** Sipariş çekme yeteneği olan adapter'ların ek sözleşmesi. */
+export interface MarketplaceOrderAdapter {
+  /**
+   * Verilen zaman aralığındaki siparişleri sayfa sayfa döner.
+   * startDate/endDate: epoch ms.
+   */
+  fetchOrdersPage(startDate: number, endDate: number, cursor: PageCursor): Promise<OrdersPage>;
+}
+
+/** Type guard: adapter sipariş çekmeyi destekliyor mu? */
+export function supportsOrders(
+  adapter: MarketplaceAdapter,
+): adapter is MarketplaceAdapter & MarketplaceOrderAdapter {
+  return typeof (adapter as Partial<MarketplaceOrderAdapter>).fetchOrdersPage === "function";
+}
+
 /** Type guard: adapter yazma yüzeyini destekliyor mu? */
 export function supportsWrites(
   adapter: MarketplaceAdapter,

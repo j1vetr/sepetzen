@@ -34,8 +34,11 @@ import {
   MarketplaceConfig,
   MarketplaceCredentials,
   MarketplaceError,
+  MarketplaceOrderAdapter,
   MarketplaceWriteAdapter,
   NormalizedCategory,
+  NormalizedOrder,
+  OrdersPage,
   NormalizedProduct,
   NormalizedStockPrice,
   NormalizedVariant,
@@ -107,7 +110,30 @@ interface TrendyolListResponse {
   content: TrendyolProduct[];
 }
 
-class TrendyolAdapter implements MarketplaceAdapter, MarketplaceWriteAdapter {
+interface TrendyolOrderLine {
+  id?: number | string;
+  barcode?: string;
+  quantity?: number;
+  orderLineItemStatusName?: string;
+}
+
+interface TrendyolShipmentPackage {
+  orderNumber?: string;
+  status?: string;
+  shipmentPackageStatus?: string;
+  orderDate?: number;
+  lines?: TrendyolOrderLine[];
+}
+
+interface TrendyolOrdersResponse {
+  page: number;
+  size: number;
+  totalElements: number;
+  totalPages: number;
+  content: TrendyolShipmentPackage[];
+}
+
+class TrendyolAdapter implements MarketplaceAdapter, MarketplaceWriteAdapter, MarketplaceOrderAdapter {
   readonly type = "trendyol" as const;
   private readonly client: MarketplaceHttpClient;
   private readonly supplierId: string;
@@ -359,6 +385,49 @@ class TrendyolAdapter implements MarketplaceAdapter, MarketplaceWriteAdapter {
       throw new MarketplaceError("Trendyol price-and-inventory: batchRequestId dönmedi");
     }
     return resp.batchRequestId;
+  }
+
+  /**
+   * Sipariş paketleri: GET /order/sellers/{sellerId}/orders
+   * startDate/endDate epoch ms; max aralık 2 hafta. Sayfalama page/size.
+   * Servis limiti: Sipariş Çekme 200 req/min — bizim kullanım (birkaç sayfa /
+   * 10 dk) bunun çok altında.
+   */
+  async fetchOrdersPage(startDate: number, endDate: number, cursor: PageCursor): Promise<OrdersPage> {
+    const page = cursor == null ? 0 : Number(cursor);
+    let resp: TrendyolOrdersResponse;
+    try {
+      resp = await this.client.request<TrendyolOrdersResponse>(
+        `/order/sellers/${encodeURIComponent(this.supplierId)}/orders` +
+          `?startDate=${Math.floor(startDate)}&endDate=${Math.floor(endDate)}` +
+          `&page=${page}&size=50&orderByField=PackageLastModifiedDate&orderByDirection=DESC`,
+      );
+    } catch (err) {
+      // Boş hesapta 404 dönebilir → boş sayfa
+      if (err instanceof MarketplaceError && err.statusCode === 404) {
+        return { orders: [], nextCursor: null, total: 0 };
+      }
+      throw err;
+    }
+    const orders: NormalizedOrder[] = (resp.content ?? [])
+      .filter((p) => p.orderNumber)
+      .map((p) => ({
+        orderNumber: String(p.orderNumber),
+        status: String(p.shipmentPackageStatus ?? p.status ?? ""),
+        orderedAt: p.orderDate ? new Date(Number(p.orderDate)) : null,
+        lines: (p.lines ?? [])
+          .filter((l) => l.id != null)
+          .map((l) => ({
+            lineId: String(l.id),
+            barcode: l.barcode ? String(l.barcode) : null,
+            quantity: Number(l.quantity ?? 0),
+            status: String(l.orderLineItemStatusName ?? p.shipmentPackageStatus ?? p.status ?? ""),
+          })),
+      }));
+    const next = page + 1;
+    const hasMore =
+      resp.totalPages != null ? next < resp.totalPages : (resp.content?.length ?? 0) > 0;
+    return { orders, nextCursor: hasMore && next <= 1000 ? next : null, total: resp.totalElements };
   }
 
   /** Batch sonucu: GET /product/sellers/{sellerId}/products/batch-requests/{id} */

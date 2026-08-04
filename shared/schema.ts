@@ -940,6 +940,52 @@ export const insertMarketplacePushQueueSchema = createInsertSchema(marketplacePu
 export type InsertMarketplacePushQueueItem = z.infer<typeof insertMarketplacePushQueueSchema>;
 export type MarketplacePushQueueItem = typeof marketplacePushQueue.$inferSelect;
 
+// ============================================================================
+// MARKETPLACE ORDER LINES — pazaryeri siparişlerinden stok düşümü (idempotent)
+// ============================================================================
+
+/**
+ * Pazaryerinden çekilen sipariş satırları. Amaç: Trendyol'da satılan
+ * push-yönlü ürünlerin site stoğunu bir kez (idempotent) düşürmek.
+ * uniq (marketplaceId, orderNumber, lineId) — aynı satır iki kez işlenmez.
+ */
+export const marketplaceOrderLines = pgTable("marketplace_order_lines", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  marketplaceId: varchar("marketplace_id")
+    .references(() => marketplaces.id, { onDelete: "cascade" })
+    .notNull(),
+  /** Pazaryeri sipariş numarası (Trendyol orderNumber). */
+  orderNumber: text("order_number").notNull(),
+  /** Sipariş satırı id'si (Trendyol line id). */
+  lineId: text("line_id").notNull(),
+  barcode: text("barcode"),
+  quantity: integer("quantity").default(0).notNull(),
+  /** Pazaryerindeki son bilinen satır durumu (Created/Shipped/Cancelled...). */
+  status: text("status"),
+  /** Eşleşen site ürünü (push bağlantısı üzerinden). Eşleşmediyse null. */
+  productId: varchar("product_id").references(() => products.id, { onDelete: "set null" }),
+  /** Stok düşümü uygulandı mı? (eşleşmeyen/iptal satırlarda false kalır) */
+  stockApplied: boolean("stock_applied").default(false).notNull(),
+  /** İptal/iade sonrası stok geri eklendi mi? */
+  stockRestored: boolean("stock_restored").default(false).notNull(),
+  /** İnsan-okur işlem notu (eşleşmedi, stok 0'a kilitlendi vb.). */
+  note: text("note"),
+  orderedAt: timestamp("ordered_at"),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+}, (t) => ({
+  uniqLine: uniqueIndex("uniq_mp_order_line").on(t.marketplaceId, t.orderNumber, t.lineId),
+  mpIdx: index("idx_mp_order_lines_mp").on(t.marketplaceId, t.createdAt),
+}));
+
+export const insertMarketplaceOrderLineSchema = createInsertSchema(marketplaceOrderLines).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+export type InsertMarketplaceOrderLine = z.infer<typeof insertMarketplaceOrderLineSchema>;
+export type MarketplaceOrderLine = typeof marketplaceOrderLines.$inferSelect;
+
 export const insertMarketplaceSyncRunSchema = createInsertSchema(marketplaceSyncRuns).omit({
   id: true,
   startedAt: true,

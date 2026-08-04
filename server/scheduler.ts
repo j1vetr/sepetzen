@@ -13,6 +13,7 @@ import * as cron from "node-cron";
 import { storage } from "./storage";
 import { runSync } from "./marketplaces/sync/engine";
 import { processPushQueue } from "./marketplaces/push/engine";
+import { pullMarketplaceOrders } from "./marketplaces/orders/engine";
 
 type ScheduledHandle = ReturnType<typeof cron.schedule>;
 let scheduledTasks: ScheduledHandle[] = [];
@@ -74,6 +75,18 @@ export function startScheduler(): void {
     cron.schedule("* * * * *", () => {
       processPushQueue().catch((err) =>
         console.error("[scheduler] push queue error:", err instanceof Error ? err.message : err),
+      );
+    }),
+  );
+
+  // Sipariş çekme (pazaryeri → site stok düşümü) — 10 dakikada bir.
+  // Trendyol "Sipariş Çekme" limiti 200 req/min; 24 saatlik pencere birkaç
+  // sayfa demek, limitin çok altında. Idempotent olduğu için pencere
+  // örtüşmesi zararsızdır.
+  scheduledTasks.push(
+    cron.schedule("*/10 * * * *", () => {
+      pullMarketplaceOrders().catch((err) =>
+        console.error("[scheduler] order pull error:", err instanceof Error ? err.message : err),
       );
     }),
   );
