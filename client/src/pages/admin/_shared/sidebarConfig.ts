@@ -1,4 +1,5 @@
 import {
+  Home,
   LayoutDashboard,
   BarChart3,
   Package,
@@ -28,6 +29,7 @@ export const VALID_TABS: TabType[] = [
   'settings',
   'database',
   'menu',
+  'homepage',
   'marketplaces',
   'coupons',
   'reviews',
@@ -75,6 +77,7 @@ export const SIDEBAR_CATEGORIES: SidebarCategory[] = [
   {
     title: 'Sistem',
     items: [
+      { id: 'homepage', icon: Home, label: 'Ana Sayfa' },
       { id: 'menu', icon: MenuIcon, label: 'Menü Yönetimi' },
       { id: 'settings', icon: Settings, label: 'Ayarlar' },
       { id: 'database', icon: Database, label: 'Veritabanı' },

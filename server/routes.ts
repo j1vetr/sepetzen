@@ -57,6 +57,7 @@ import {
   AUTO_GROUP_DISPLAY_ORDER_MAX,
 } from "./menu-grouping";
 import { menuItems as menuItemsTable } from "@shared/schema";
+import { HOMEPAGE_CONTENT_KEY, homepageContentSchema, resolveHomepageContent } from "@shared/homepage";
 import { and, gte, lte } from "drizzle-orm";
 import {
   generateAccessToken,
@@ -5345,6 +5346,33 @@ window.addEventListener('load', function() {
       res.json(recipients);
     } catch (error) {
       res.status(500).json({ error: "Failed to fetch email recipients" });
+    }
+  });
+
+  // Homepage Content Routes
+  app.get("/api/homepage-content", async (req, res) => {
+    try {
+      const raw = await storage.getSiteSetting(HOMEPAGE_CONTENT_KEY);
+      let parsed: unknown = null;
+      if (raw) {
+        try { parsed = JSON.parse(raw); } catch { parsed = null; }
+      }
+      res.json(resolveHomepageContent(parsed));
+    } catch (error) {
+      res.status(500).json({ error: "Failed to fetch homepage content" });
+    }
+  });
+
+  app.put("/api/admin/homepage-content", requireAdmin, async (req, res) => {
+    try {
+      const parsed = homepageContentSchema.safeParse(req.body);
+      if (!parsed.success) {
+        return res.status(400).json({ error: "Geçersiz içerik", details: parsed.error.flatten() });
+      }
+      await storage.setSiteSetting(HOMEPAGE_CONTENT_KEY, JSON.stringify(parsed.data));
+      res.json({ success: true });
+    } catch (error) {
+      res.status(500).json({ error: "Failed to save homepage content" });
     }
   });
 

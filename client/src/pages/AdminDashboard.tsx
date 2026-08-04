@@ -14,6 +14,7 @@ import InventoryTab from './admin/InventoryTab';
 import SettingsTab from './admin/SettingsTab';
 import DatabaseTab from './admin/DatabaseTab';
 import MenuTab from './admin/MenuTab';
+import HomepageTab from './admin/HomepageTab';
 import CouponsTab from './admin/CouponsTab';
 import ReviewsTab from './admin/ReviewsTab';
 import WholesaleTab from './admin/WholesaleTab';
@@ -194,6 +195,7 @@ export default function AdminDashboard() {
         {activeTab === 'settings' && <SettingsTab />}
         {activeTab === 'database' && <DatabaseTab />}
         {activeTab === 'menu' && <MenuTab categories={categories} />}
+        {activeTab === 'homepage' && <HomepageTab />}
         {activeTab === 'marketplaces' && (
           <MarketplacesTab
             siteCategories={categories.map((c) => ({ id: c.id, name: c.name, slug: c.slug }))}

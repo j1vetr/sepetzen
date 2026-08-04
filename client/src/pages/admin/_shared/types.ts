@@ -145,6 +145,7 @@ export type TabType =
   | 'settings'
   | 'database'
   | 'menu'
+  | 'homepage'
   | 'marketplaces'
   | 'coupons'
   | 'reviews'

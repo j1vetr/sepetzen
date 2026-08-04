@@ -7,40 +7,34 @@ import { useEffect, useRef, useState, useMemo } from 'react';
 import { motion, AnimatePresence, useInView } from 'framer-motion';
 import { ArrowUpRight, Truck, ShieldCheck, Star, ChevronLeft, ChevronRight, Instagram } from 'lucide-react';
 import { useProducts, type Product } from '@/hooks/useProducts';
+import { useQuery } from '@tanstack/react-query';
+import {
+  DEFAULT_HOMEPAGE_CONTENT,
+  resolveHomepageContent,
+  type HomepageContent,
+  type HeroSlide,
+  type TrustItem,
+} from '@shared/homepage';
+
+// ─── HOMEPAGE CONTENT (admin-managed, falls back to defaults) ────────────────
+
+function useHomepageContent(): HomepageContent {
+  const { data } = useQuery<HomepageContent>({
+    queryKey: ['/api/homepage-content'],
+    queryFn: async () => {
+      const res = await fetch('/api/homepage-content');
+      if (!res.ok) throw new Error('Failed to fetch homepage content');
+      return resolveHomepageContent(await res.json());
+    },
+    staleTime: 60_000,
+  });
+  return data ?? DEFAULT_HOMEPAGE_CONTENT;
+}
 
 // ─── HERO SLIDER ─────────────────────────────────────────────────────────────
 
-const HERO_SLIDES = [
-  {
-    image: '/uploads/products/header_av-cakisi.png',
-    eyebrow: 'Av & Outdoor',
-    title: 'Av Bıçakları',
-    desc: 'El yapımı, yüksek karbonlu çelik - her avcının yanında.',
-    href: '/kategori/bicaklar',
-    cta: 'Koleksiyonu Gör',
-    bg: '#0F0F0F',
-  },
-  {
-    image: '/uploads/products/header_kamp-bicagi.png',
-    eyebrow: 'Kamp & Doğa',
-    title: 'Kamp Çakıları',
-    desc: 'Kompakt, dayanıklı ve çok fonksiyonlu - doğanın ortasında güvende.',
-    href: '/kategori/cakilar',
-    cta: 'Modelleri İncele',
-    bg: '#080808',
-  },
-  {
-    image: '/uploads/products/header_bag-bahce.png',
-    eyebrow: 'Bağ & Bahçe',
-    title: 'Bahçe Aletleri',
-    desc: 'Profesyonel budama, kazıma ve bakım aletleri koleksiyonu.',
-    href: '/kategori/bag-bahce-aletleri',
-    cta: 'Ürünlere Bak',
-    bg: '#0F0F0F',
-  },
-];
-
-function HeroSlider({ products }: { products: Product[] }) {
+function HeroSlider({ products, slides }: { products: Product[]; slides: HeroSlide[] }) {
+  const HERO_SLIDES = slides.length ? slides : DEFAULT_HOMEPAGE_CONTENT.heroSlides;
   const [active, setActive] = useState(0);
   const [dir, setDir] = useState(1);
   const [cardsKey, setCardsKey] = useState(0);
@@ -591,19 +585,12 @@ function LazyVideo({ src, className }: { src: string; className: string }) {
   );
 }
 
-function VideoSection() {
-  const videos = [
-    {
-      src: '/videos/knife_craftsmanship_hands.mp4',
-      title: 'El Ustalığı, Saf Çelik',
-      desc: 'Her bıçak, bir ustanın ömründen bir damladır.',
-    },
-    {
-      src: '/videos/outdoor_camping_nature.mp4',
-      title: 'Doğanın Çağrısına Hazır Ol',
-      desc: 'Sepetzen ekipmanları, her maceranda yanında.',
-    },
-  ];
+function VideoSection({ content }: { content: HomepageContent }) {
+  const videos = (content.videoCards.length ? content.videoCards : DEFAULT_HOMEPAGE_CONTENT.videoCards)
+    .filter(v => v.isActive !== false && v.src);
+  const header = content.videoSection;
+
+  if (!videos.length) return null;
 
   return (
     <section className="bg-[#000000] py-16 lg:py-24 px-5 lg:px-10" data-testid="scene-videos">
@@ -617,16 +604,16 @@ function VideoSection() {
           className="mb-10 lg:mb-14 flex flex-col sm:flex-row sm:items-end sm:justify-between gap-6">
           <div>
             <p className="text-[10px] font-mono tracking-[0.30em] uppercase text-[#FAFAFA] mb-2">
-              Türkiye Geneli Hızlı Kargo
+              {header.eyebrow}
             </p>
             <h2
               className="font-black text-white leading-none"
               style={{ fontSize: 'clamp(28px, 4vw, 52px)', letterSpacing: '-0.03em' }}
             >
-              Doğaya Her Zaman<br className="hidden sm:block" /> Hazır Ol
+              {header.title}
             </h2>
             <p className="text-[13px] text-white/45 mt-4 max-w-md leading-relaxed">
-              El yapımı bıçaklardan kamp ekipmanlarına, her macera için doğru ürün, kapında.
+              {header.desc}
             </p>
           </div>
           <Link
@@ -679,33 +666,24 @@ function VideoSection() {
 
 // ─── TRUST STRIP ─────────────────────────────────────────────────────────────
 
-function TrustStrip() {
-  const items = [
-    {
-      icon: Truck,
-      title: '1.500 ₺ Üzeri Ücretsiz Kargo',
-      desc: 'Türkiye genelinde hızlı ve güvenli teslimat.',
-    },
-    {
-      icon: ShieldCheck,
-      title: 'Güvenli Ödeme',
-      desc: 'SSL korumalı, 3D Secure destekli ödeme altyapısı.',
-    },
-    {
-      icon: Star,
-      title: 'Orijinal ve Kaliteli Ürünler',
-      desc: 'Türk zanaatkâr işçiliğiyle özenle üretilmiş.',
-    },
-  ];
+const TRUST_ICONS = { truck: Truck, shield: ShieldCheck, star: Star } as const;
+
+function TrustStrip({ items: rawItems }: { items: TrustItem[] }) {
+  const items = (rawItems.length ? rawItems : DEFAULT_HOMEPAGE_CONTENT.trustItems)
+    .filter(i => i.isActive !== false)
+    .map(i => ({ ...i, iconComp: TRUST_ICONS[i.icon] ?? Star }));
+
+  if (!items.length) return null;
+
   return (
     <section className="bg-[#0F0F0F] border-t border-white/[0.07]" data-testid="scene-trust">
       <div className="max-w-[1100px] mx-auto px-5 lg:px-10">
         <div className="grid grid-cols-1 sm:grid-cols-3">
           {items.map((item, i) => {
-            const Icon = item.icon;
+            const Icon = item.iconComp;
             return (
               <motion.div
-                key={item.title}
+                key={`${item.title}-${i}`}
                 initial={{ opacity: 0, y: 16 }}
                 whileInView={{ opacity: 1, y: 0 }}
                 viewport={{ once: true, margin: '-40px' }}
@@ -797,6 +775,17 @@ function MobileMarquee({ products }: { products: Product[] }) {
 
 export default function Home() {
   const { data: products = [] } = useProducts({});
+  const content = useHomepageContent();
+
+  const activeSlides = content.heroSlides.filter(s => s.isActive !== false);
+
+  const sections: Record<string, React.ReactNode> = {
+    videos: <VideoSection key="videos" content={content} />,
+    featured: <FeaturedProducts key="featured" products={products} />,
+    categories: <CategoriesSection key="categories" />,
+    newArrivals: <NewArrivals key="newArrivals" products={products} />,
+    trust: <TrustStrip key="trust" items={content.trustItems} />,
+  };
 
   return (
     <>
@@ -807,12 +796,10 @@ export default function Home() {
       />
       <Header />
       <main>
-        <HeroSlider products={products} />
-        <VideoSection />
-        <FeaturedProducts products={products} />
-        <CategoriesSection />
-        <NewArrivals products={products} />
-        <TrustStrip />
+        <HeroSlider products={products} slides={activeSlides} />
+        {content.sectionOrder
+          .filter(s => s.isActive !== false)
+          .map(s => sections[s.id] ?? null)}
       </main>
       <Footer />
     </>
