@@ -31,6 +31,7 @@ export const VALID_TABS: TabType[] = [
   'menu',
   'homepage',
   'marketplaces',
+  'marketplaceOrders',
   'coupons',
   'reviews',
   'wholesale',
@@ -56,6 +57,7 @@ export const SIDEBAR_CATEGORIES: SidebarCategory[] = [
     title: 'Satış & Siparişler',
     items: [
       { id: 'orders', icon: ShoppingCart, label: 'Siparişler' },
+      { id: 'marketplaceOrders', icon: Globe, label: 'Trendyol Siparişleri' },
       { id: 'wholesale', icon: HandCoins, label: 'Toptan Satış' },
     ],
   },

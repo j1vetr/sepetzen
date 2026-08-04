@@ -377,6 +377,7 @@ export interface IStorage {
   listMarketplaceOrderLines(
     marketplaceId: string,
     limit?: number,
+    since?: Date,
   ): Promise<Array<MarketplaceOrderLine & { productName: string | null }>>;
 
   // Push queue (site → pazaryeri outbox)
@@ -2438,7 +2439,17 @@ export class DbStorage implements IStorage {
   async listMarketplaceOrderLines(
     marketplaceId: string,
     limit = 200,
+    since?: Date,
   ): Promise<Array<MarketplaceOrderLine & { productName: string | null }>> {
+    // since verilirse tarih filtresi DB tarafında uygulanır (limit'e takılıp
+    // aralıktaki satırların sessizce düşmemesi için). orderedAt boşsa
+    // createdAt esas alınır.
+    const conditions = [eq(marketplaceOrderLines.marketplaceId, marketplaceId)];
+    if (since) {
+      conditions.push(
+        sql`COALESCE(${marketplaceOrderLines.orderedAt}, ${marketplaceOrderLines.createdAt}) >= ${since}`,
+      );
+    }
     const rows = await db
       .select({
         line: marketplaceOrderLines,
@@ -2446,7 +2457,7 @@ export class DbStorage implements IStorage {
       })
       .from(marketplaceOrderLines)
       .leftJoin(products, eq(marketplaceOrderLines.productId, products.id))
-      .where(eq(marketplaceOrderLines.marketplaceId, marketplaceId))
+      .where(and(...conditions))
       .orderBy(desc(marketplaceOrderLines.createdAt))
       .limit(limit);
     return rows.map((r) => ({ ...r.line, productName: r.productName ?? null }));

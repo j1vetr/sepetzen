@@ -3,6 +3,7 @@ import { useLocation } from 'wouter';
 
 import OrdersTab from './admin/OrdersTab';
 import MarketplacesTab from './admin/MarketplacesTab';
+import MarketplaceOrdersTab from './admin/MarketplaceOrdersTab';
 import AdminLayout from './admin/_layout/AdminLayout';
 
 import DashboardTab from './admin/DashboardTab';
@@ -201,6 +202,7 @@ export default function AdminDashboard() {
             siteCategories={categories.map((c) => ({ id: c.id, name: c.name, slug: c.slug }))}
           />
         )}
+        {activeTab === 'marketplaceOrders' && <MarketplaceOrdersTab />}
         {activeTab === 'coupons' && <CouponsTab />}
         {activeTab === 'reviews' && <ReviewsTab />}
         {activeTab === 'wholesale' && (

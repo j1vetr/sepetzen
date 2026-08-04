@@ -22,7 +22,7 @@ import {
 } from 'lucide-react';
 import { Switch } from '@/components/ui/switch';
 import AdminModal from './_ui/AdminModal';
-import { ProductLinksDialog, PushQueueDialog, OrderLinesDialog } from './MarketplacePushDialogs';
+import { ProductLinksDialog, PushQueueDialog } from './MarketplacePushDialogs';
 import {
   PageHeader,
   Card,
@@ -151,7 +151,6 @@ export default function MarketplacesTab({
   const [deletingId, setDeletingId] = useState<string | null>(null);
   const [linksForId, setLinksForId] = useState<string | null>(null);
   const [queueForId, setQueueForId] = useState<string | null>(null);
-  const [orderLinesForId, setOrderLinesForId] = useState<string | null>(null);
 
   const adaptersQuery = useQuery<AdapterMeta[]>({
     queryKey: ['/api/admin/marketplaces/adapters'],
@@ -256,7 +255,6 @@ export default function MarketplacesTab({
               onMappings={() => setMappingsForId(mp.id)}
               onLinks={() => setLinksForId(mp.id)}
               onQueue={() => setQueueForId(mp.id)}
-              onOrderLines={() => setOrderLinesForId(mp.id)}
             />
           ))}
         </div>
@@ -304,14 +302,6 @@ export default function MarketplacesTab({
           marketplaceId={queueForId}
           open={!!queueForId}
           onClose={() => setQueueForId(null)}
-        />
-      )}
-
-      {orderLinesForId && (
-        <OrderLinesDialog
-          marketplaceId={orderLinesForId}
-          open={!!orderLinesForId}
-          onClose={() => setOrderLinesForId(null)}
         />
       )}
 
@@ -467,7 +457,6 @@ function MarketplaceCard({
   onMappings,
   onLinks,
   onQueue,
-  onOrderLines,
 }: {
   mp: Marketplace;
   onEdit: () => void;
@@ -476,7 +465,6 @@ function MarketplaceCard({
   onMappings: () => void;
   onLinks: () => void;
   onQueue: () => void;
-  onOrderLines: () => void;
 }) {
   const qc = useQueryClient();
   const { toast } = useToast();
@@ -738,10 +726,6 @@ function MarketplaceCard({
         <GhostButton onClick={onQueue} data-testid={`button-push-queue-${mp.id}`}>
           <Zap className="w-3.5 h-3.5" />
           Gönderim Kuyruğu
-        </GhostButton>
-        <GhostButton onClick={onOrderLines} data-testid={`button-order-lines-${mp.id}`}>
-          <ShoppingCart className="w-3.5 h-3.5" />
-          Sipariş Düşümleri
         </GhostButton>
         <GhostButton
           onClick={() => refreshCategoryCacheMutation.mutate(mp.id)}

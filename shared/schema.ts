@@ -970,6 +970,18 @@ export const marketplaceOrderLines = pgTable("marketplace_order_lines", {
   stockRestored: boolean("stock_restored").default(false).notNull(),
   /** İnsan-okur işlem notu (eşleşmedi, stok 0'a kilitlendi vb.). */
   note: text("note"),
+  /** Satır birim fiyatı (pazaryerinden gelen). */
+  unitPrice: decimal("unit_price", { precision: 10, scale: 2 }),
+  /** Satır toplam tutarı (birim fiyat x adet). */
+  totalPrice: decimal("total_price", { precision: 10, scale: 2 }),
+  /** Pazaryerindeki ürün adı (site eşleşmesi olmasa da görünür). */
+  productTitle: text("product_title"),
+  /** Müşteri adı (paket seviyesinden). */
+  customerName: text("customer_name"),
+  /** Kargo firması adı. */
+  cargoProvider: text("cargo_provider"),
+  /** Kargo takip numarası. */
+  cargoTracking: text("cargo_tracking"),
   orderedAt: timestamp("ordered_at"),
   createdAt: timestamp("created_at").defaultNow().notNull(),
   updatedAt: timestamp("updated_at").defaultNow().notNull(),

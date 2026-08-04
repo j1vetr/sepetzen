@@ -115,6 +115,10 @@ interface TrendyolOrderLine {
   barcode?: string;
   quantity?: number;
   orderLineItemStatusName?: string;
+  /** Satır birim satış fiyatı (indirimli). */
+  price?: number;
+  amount?: number;
+  productName?: string;
 }
 
 interface TrendyolShipmentPackage {
@@ -122,6 +126,10 @@ interface TrendyolShipmentPackage {
   status?: string;
   shipmentPackageStatus?: string;
   orderDate?: number;
+  customerFirstName?: string;
+  customerLastName?: string;
+  cargoProviderName?: string;
+  cargoTrackingNumber?: number | string;
   lines?: TrendyolOrderLine[];
 }
 
@@ -415,14 +423,26 @@ class TrendyolAdapter implements MarketplaceAdapter, MarketplaceWriteAdapter, Ma
         orderNumber: String(p.orderNumber),
         status: String(p.shipmentPackageStatus ?? p.status ?? ""),
         orderedAt: p.orderDate ? new Date(Number(p.orderDate)) : null,
+        customerName:
+          [p.customerFirstName, p.customerLastName].filter(Boolean).join(" ").trim() || null,
+        cargoProvider: p.cargoProviderName ? String(p.cargoProviderName) : null,
+        cargoTracking:
+          p.cargoTrackingNumber != null && String(p.cargoTrackingNumber) !== "0"
+            ? String(p.cargoTrackingNumber)
+            : null,
         lines: (p.lines ?? [])
           .filter((l) => l.id != null)
-          .map((l) => ({
-            lineId: String(l.id),
-            barcode: l.barcode ? String(l.barcode) : null,
-            quantity: Number(l.quantity ?? 0),
-            status: String(l.orderLineItemStatusName ?? p.shipmentPackageStatus ?? p.status ?? ""),
-          })),
+          .map((l) => {
+            const unit = Number(l.price ?? l.amount ?? NaN);
+            return {
+              lineId: String(l.id),
+              barcode: l.barcode ? String(l.barcode) : null,
+              quantity: Number(l.quantity ?? 0),
+              status: String(l.orderLineItemStatusName ?? p.shipmentPackageStatus ?? p.status ?? ""),
+              unitPrice: Number.isFinite(unit) ? unit : null,
+              productTitle: l.productName ? String(l.productName) : null,
+            };
+          }),
       }));
     const next = page + 1;
     const hasMore =

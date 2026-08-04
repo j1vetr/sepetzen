@@ -420,6 +420,111 @@ export function registerMarketplaceRoutes(
     );
   });
 
+  // Siparişleri elle şimdi çek (cron beklemeden).
+  app.post("/api/admin/marketplaces/:id/pull-orders", requireAdmin, async (req, res) => {
+    const mp = await storage.getMarketplace(req.params.id);
+    if (!mp) return res.status(404).json({ message: "Bulunamadı" });
+    try {
+      const { pullMarketplaceOrders } = await import("./orders/engine");
+      await pullMarketplaceOrders(req.params.id);
+      res.json({ ok: true });
+    } catch (err) {
+      res.status(502).json({
+        message: err instanceof Error ? err.message : "Sipariş çekme başarısız",
+      });
+    }
+  });
+
+  // Trendyol siparişleri — sipariş numarasına göre gruplu tam görünüm.
+  // Filtreler: status (durum grubu), days (tarih aralığı). Özet sayılar dahil.
+  app.get("/api/admin/marketplaces/:id/orders", requireAdmin, async (req, res) => {
+    const mp = await storage.getMarketplace(req.params.id);
+    if (!mp) return res.status(404).json({ message: "Bulunamadı" });
+
+    const days = Math.min(Math.max(Number(req.query.days) || 30, 1), 365);
+    const since = new Date(Date.now() - days * 24 * 60 * 60_000);
+    // Tarih filtresi DB tarafında — limit yüksek bir güvenlik tavanı.
+    const inRange = await storage.listMarketplaceOrderLines(req.params.id, 10_000, since);
+
+    // Durum grupları: new / preparing / shipped / delivered / cancelled / returned
+    const groupOf = (status: string | null): string => {
+      const s = String(status ?? "").toLowerCase();
+      if (["cancelled", "unsupplied"].includes(s)) return "cancelled";
+      if (["returned", "undeliveredandreturned"].includes(s)) return "returned";
+      if (s === "delivered") return "delivered";
+      if (s === "shipped") return "shipped";
+      if (["picking", "invoiced", "readytoship"].includes(s)) return "preparing";
+      return "new";
+    };
+
+    type Row = (typeof inRange)[number];
+    const byOrder = new Map<string, Row[]>();
+    for (const r of inRange) {
+      const list = byOrder.get(r.orderNumber) ?? [];
+      list.push(r);
+      byOrder.set(r.orderNumber, list);
+    }
+
+    const orders = Array.from(byOrder.entries()).map(([orderNumber, lines]) => {
+      const first = lines[0];
+      const total = lines.reduce((sum, l) => sum + (l.totalPrice ? Number(l.totalPrice) : 0), 0);
+      // Sipariş grubu: en "ileri" olmayan, sorun öncelikli — iptal/iade varsa o görünür
+      const groups = lines.map((l) => groupOf(l.status));
+      const group =
+        groups.find((g) => g === "cancelled" || g === "returned") ??
+        groups[0];
+      return {
+        orderNumber,
+        orderedAt: first.orderedAt ?? first.createdAt,
+        customerName: first.customerName,
+        cargoProvider: first.cargoProvider,
+        cargoTracking: first.cargoTracking,
+        statusGroup: group,
+        totalPrice: total > 0 ? total : null,
+        hasIssue: lines.some(
+          (l) =>
+            (!l.productId && !groupOf(l.status).match(/cancelled|returned/)) ||
+            (l.note != null && !l.stockApplied && !l.stockRestored && l.productId != null),
+        ),
+        lines: lines.map((l) => ({
+          id: l.id,
+          lineId: l.lineId,
+          barcode: l.barcode,
+          quantity: l.quantity,
+          status: l.status,
+          statusGroup: groupOf(l.status),
+          productId: l.productId,
+          productName: l.productName,
+          productTitle: l.productTitle,
+          unitPrice: l.unitPrice ? Number(l.unitPrice) : null,
+          totalPrice: l.totalPrice ? Number(l.totalPrice) : null,
+          stockApplied: l.stockApplied,
+          stockRestored: l.stockRestored,
+          note: l.note,
+        })),
+      };
+    });
+
+    orders.sort(
+      (a, b) => new Date(b.orderedAt as any).getTime() - new Date(a.orderedAt as any).getTime(),
+    );
+
+    const summary = {
+      total: orders.length,
+      unmatched: inRange.filter((r) => !r.productId).length,
+      restored: inRange.filter((r) => r.stockRestored).length,
+      byGroup: orders.reduce<Record<string, number>>((acc, o) => {
+        acc[o.statusGroup] = (acc[o.statusGroup] ?? 0) + 1;
+        return acc;
+      }, {}),
+    };
+
+    const statusFilter = String(req.query.status ?? "");
+    const filtered = statusFilter ? orders.filter((o) => o.statusGroup === statusFilter) : orders;
+
+    res.json({ summary, orders: filtered });
+  });
+
   // Bağlantı güncelle (yön / barkod / stok kodu). Toplu yön değişimi de buradan.
   app.put(
     "/api/admin/marketplaces/:id/product-links/:linkId",

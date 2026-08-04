@@ -204,6 +204,10 @@ export interface NormalizedOrderLine {
   quantity: number;
   /** Pazaryeri satır durumu (Created/Picking/Shipped/Cancelled/Returned/UnSupplied...). */
   status: string;
+  /** Birim fiyat (pazaryeri para birimi, TL). Bilinmiyorsa null. */
+  unitPrice: number | null;
+  /** Pazaryerindeki ürün adı. */
+  productTitle: string | null;
 }
 
 /** Normalize edilmiş sipariş (paket). */
@@ -213,6 +217,12 @@ export interface NormalizedOrder {
   /** Sipariş/paket durumu. */
   status: string;
   orderedAt: Date | null;
+  /** Müşteri adı (ad soyad). */
+  customerName: string | null;
+  /** Kargo firması. */
+  cargoProvider: string | null;
+  /** Kargo takip numarası. */
+  cargoTracking: string | null;
   lines: NormalizedOrderLine[];
 }
 

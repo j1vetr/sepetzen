@@ -150,6 +150,7 @@ export type TabType =
   | 'menu'
   | 'homepage'
   | 'marketplaces'
+  | 'marketplaceOrders'
   | 'coupons'
   | 'reviews'
   | 'wholesale';

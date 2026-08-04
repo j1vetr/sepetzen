@@ -118,6 +118,9 @@ export async function processOrder(
 
     const cancelled = isCancelled(line.status) || isCancelled(order.status);
 
+    const unitPrice = line.unitPrice != null ? line.unitPrice.toFixed(2) : null;
+    const totalPrice = line.unitPrice != null ? (line.unitPrice * qty).toFixed(2) : null;
+
     const { line: row, inserted } = await storage.recordMarketplaceOrderLine({
       marketplaceId,
       orderNumber: order.orderNumber,
@@ -129,6 +132,12 @@ export async function processOrder(
       stockApplied: false,
       stockRestored: false,
       note: link ? null : "Push bağlantısı bulunamadı — stok düşümü yok",
+      unitPrice,
+      totalPrice,
+      productTitle: line.productTitle,
+      customerName: order.customerName,
+      cargoProvider: order.cargoProvider,
+      cargoTracking: order.cargoTracking,
       orderedAt: order.orderedAt,
     });
     if (!row) continue;
@@ -146,19 +155,32 @@ export async function processOrder(
       continue;
     }
 
-    // Tekrar görülen satır: durum güncelle; iptal/iadeye dönmüşse ve daha
-    // önce düşüm uygulandıysa stoğu BİR KEZ geri ekle.
+    // Tekrar görülen satır: durum/kargo/müşteri bilgisi güncelle; iptal/iadeye
+    // dönmüşse ve daha önce düşüm uygulandıysa stoğu BİR KEZ geri ekle.
     const statusChanged = (line.status || null) !== (row.status ?? null);
+    const infoPatch = {
+      ...(unitPrice != null && row.unitPrice == null ? { unitPrice, totalPrice } : {}),
+      ...(line.productTitle && !row.productTitle ? { productTitle: line.productTitle } : {}),
+      ...(order.customerName && !row.customerName ? { customerName: order.customerName } : {}),
+      ...(order.cargoProvider && order.cargoProvider !== row.cargoProvider
+        ? { cargoProvider: order.cargoProvider }
+        : {}),
+      ...(order.cargoTracking && order.cargoTracking !== row.cargoTracking
+        ? { cargoTracking: order.cargoTracking }
+        : {}),
+    };
     if (cancelled && row.stockApplied && !row.stockRestored && link?.productId) {
       const ok = await adjustStock(link, +row.quantity);
       await storage.updateMarketplaceOrderLine(row.id, {
+        ...infoPatch,
         status: line.status || order.status || row.status,
         stockRestored: ok,
         note: ok ? "İptal/iade — stok geri eklendi" : "Stok iadesi uygulanamadı",
       });
       if (ok) restored += 1;
-    } else if (statusChanged) {
+    } else if (statusChanged || Object.keys(infoPatch).length > 0) {
       await storage.updateMarketplaceOrderLine(row.id, {
+        ...infoPatch,
         status: line.status || order.status || row.status,
       });
     }
