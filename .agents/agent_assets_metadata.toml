@@ -53,3 +53,10 @@ id = "lxGHAt0y_Nn4755LNBeRs"
 uri = "file://attached_assets/generated_videos/knife_craftsmanship_hands.mp4"
 type = "video"
 title = "Yeni Video — El Ustalığı, Saf Çelik (sakin, usta elleri)"
+
+[[outputs]]
+id = "FUQ9qhDSBybogVusj7wsp"
+uri = "file://sepetzen_dump.dump"
+type = "unspecified"
+title = "sepetzen_dump.dump"
+description = "Replit PostgreSQL yedeği — production sunucuya yüklemek için kullanın."
