@@ -508,19 +508,19 @@ export function Header() {
                     </DropdownMenuItem>
                   ) : (
                     <div
-                      className="grid gap-x-2 gap-y-0.5"
+                      className="grid gap-x-6"
                       style={{ gridTemplateColumns: visibleCategories.length > 6 ? 'repeat(2, minmax(0, 1fr))' : '1fr' }}
                     >
-                      {visibleCategories.map((c) => {
-                        const Icon = getMenuIcon(c.name);
+                      {visibleCategories.map((c, i) => {
+                        const cols = visibleCategories.length > 6 ? 2 : 1;
+                        const isLastRow = i >= visibleCategories.length - cols;
                         return (
                           <DropdownMenuItem
                             key={c.id}
                             onClick={() => navigate(`/kategori/${c.slug}`)}
-                            className="text-[11px] tracking-[0.12em] uppercase text-white/75 hover:bg-white/5 hover:text-white cursor-pointer py-2.5 px-3 rounded-md transition-colors gap-2.5"
+                            className={`text-[11px] tracking-[0.12em] uppercase text-white/75 hover:bg-white/5 hover:text-white cursor-pointer py-3 px-3 rounded-none transition-colors ${isLastRow ? '' : 'border-b border-white/[0.07]'}`}
                             data-testid={`link-allcat-${c.slug}`}
                           >
-                            <Icon className="w-3.5 h-3.5 text-white/40" />
                             {c.name}
                           </DropdownMenuItem>
                         );
