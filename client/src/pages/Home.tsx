@@ -808,10 +808,10 @@ export default function Home() {
       <Header />
       <main>
         <HeroSlider products={products} />
+        <VideoSection />
         <FeaturedProducts products={products} />
         <CategoriesSection />
         <NewArrivals products={products} />
-        <VideoSection />
         <TrustStrip />
       </main>
       <Footer />
