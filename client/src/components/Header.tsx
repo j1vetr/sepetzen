@@ -471,7 +471,15 @@ export function Header() {
                     transition={{ duration: 0.3, ease: [0.33, 1, 0.68, 1] }}
                     className="shrink-0"
                   >
-                    <Link href="/" onClick={scrollToTop} data-testid="link-logo-compact" className="block">
+                    <Link
+                      href="/"
+                      onClick={(e) => {
+                        if (location === '/') e.preventDefault();
+                        requestAnimationFrame(scrollToTop);
+                      }}
+                      data-testid="link-logo-compact"
+                      className="block"
+                    >
                       <img
                         src="/uploads/branding/sepetzen-logo-white.png"
                         alt="Sepetzen"
