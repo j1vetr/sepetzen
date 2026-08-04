@@ -436,6 +436,14 @@ export default function Checkout() {
     }
   };
 
+  // PayTR iframe linkleri tek kullanımlıktır: sekmeden ayrılınca linki temizle ki
+  // geri dönüldüğünde taze bir link alınsın ("üzgünüz link kayboldu" hatasını önler).
+  useEffect(() => {
+    if (paymentMethod !== 'card_paytr') {
+      setPaytrIframeUrl(prev => (prev ? null : prev));
+    }
+  }, [paymentMethod]);
+
   // When user switches back to a card tab on step 3, ensure the payment form is loaded.
   useEffect(() => {
     if (currentStep !== 3 || paymentLoading) return;

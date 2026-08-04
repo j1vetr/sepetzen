@@ -1059,7 +1059,7 @@ export async function registerRoutes(
       });
       const tokenData = await tokenRes.json() as { access_token?: string; error?: string };
       if (!tokenData.access_token) {
-        console.error('[Google OAuth] Token exchange failed:', tokenData);
+        console.error('[Google OAuth] Token exchange failed:', { ...tokenData, redirectUriUsed: redirectUri });
         return res.redirect('/?google_error=token_failed');
       }
 
@@ -2814,6 +2814,20 @@ Bu ürün için 4 bölümlü HTML açıklama üret. Teknik Özellikler bölümü
         ? (serverSubtotal >= FREE_SHIPPING_THRESHOLD ? 0 : DOMESTIC_SHIPPING_COST)
         : isIraq ? IRAQ_SHIPPING_COST : INTERNATIONAL_SHIPPING_COST;
       if (couponFreeShipping) shippingCost = 0;
+
+      // Kargo dahil kupon: indirim tabanı subtotal + kargo olur (kart akışı ile aynı mantık)
+      if (validatedCoupon?.appliesToShipping && shippingCost > 0) {
+        const totalWithShipping = serverSubtotal + shippingCost;
+        if (validatedCoupon.discountType === 'percentage') {
+          couponDiscount = (totalWithShipping * parseFloat(validatedCoupon.discountValue)) / 100;
+        } else {
+          couponDiscount = parseFloat(validatedCoupon.discountValue);
+        }
+        if (validatedCoupon.maxDiscountAmount) {
+          couponDiscount = Math.min(couponDiscount, parseFloat(validatedCoupon.maxDiscountAmount));
+        }
+        couponDiscount = Math.min(couponDiscount, totalWithShipping);
+      }
 
       // Havale indirimi (subtotal - couponDiscount + shippingCost) üzerinden, oran admin ayarından gelir
       const baseAfterCoupon = Math.max(0, serverSubtotal - couponDiscount) + shippingCost;
