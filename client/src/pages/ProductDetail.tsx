@@ -147,8 +147,45 @@ function neutralizeLegacyColors(html: string): string {
     .replace(/#1B3D17/gi, '#D4D4D4');
 }
 
-function parseProductSections(rawHtml: string): DescSection[] {
+/** Admin içerikleri farklı editörlerden geldiği için görsel kontrolü burada
+ * ele alıyoruz. Satır içi stiller ürün sayfasının tasarımını ezemez; içerik
+ * yapısı (başlık, paragraf, liste, vurgu) korunur. */
+function normalizeDescriptionHtml(rawHtml: string): string {
   const html = neutralizeLegacyColors(rawHtml || '');
+  if (!html || typeof window === 'undefined') return html;
+  const doc = new DOMParser().parseFromString(html, 'text/html');
+  doc.querySelectorAll('script, style, iframe, object, embed, form').forEach((node) => node.remove());
+  doc.querySelectorAll<HTMLElement>('*').forEach((node) => {
+    node.removeAttribute('style');
+    node.removeAttribute('color');
+    node.removeAttribute('bgcolor');
+    node.removeAttribute('class');
+    node.removeAttribute('id');
+    Array.from(node.attributes).forEach((attribute) => {
+      if (attribute.name.toLowerCase().startsWith('on')) node.removeAttribute(attribute.name);
+    });
+  });
+  const isSafeUrl = (value: string) => {
+    const url = value.trim().toLowerCase().replace(/[\s\u0000-\u001f]+/g, '');
+    if (url.startsWith('javascript:') || url.startsWith('data:') || url.startsWith('vbscript:')) return false;
+    return true;
+  };
+  doc.querySelectorAll('a').forEach((anchor) => {
+    const href = anchor.getAttribute('href');
+    if (href && !isSafeUrl(href)) anchor.removeAttribute('href');
+    anchor.setAttribute('target', '_blank');
+    anchor.setAttribute('rel', 'noreferrer');
+  });
+  doc.querySelectorAll('img, source, video, audio').forEach((media) => {
+    const src = media.getAttribute('src');
+    if (src && !isSafeUrl(src)) media.remove();
+    media.removeAttribute('srcset');
+  });
+  return doc.body.innerHTML;
+}
+
+function parseProductSections(rawHtml: string): DescSection[] {
+  const html = normalizeDescriptionHtml(rawHtml || '');
   if (!html) return [];
 
   const headingRe = /<h[2-4][^>]*>([\s\S]*?)<\/h[2-4]>/gi;
@@ -213,8 +250,8 @@ function ProductDescriptionSections({ html }: { html: string }) {
   if (sections.length === 0) {
     return (
       <div
-        className="text-sm text-white/70 leading-relaxed prose prose-sm prose-invert max-w-none"
-        dangerouslySetInnerHTML={{ __html: neutralizeLegacyColors(html) }}
+        className="product-rich-copy text-sm text-white/70 leading-relaxed max-w-2xl"
+        dangerouslySetInnerHTML={{ __html: normalizeDescriptionHtml(html) }}
       />
     );
   }
@@ -410,10 +447,10 @@ function ProductTabs({ html }: { html: string }) {
           >
             {tab.label}
             {active === tab.id && (
-              <motion.span
+                 <motion.span
                 layoutId="product-tab-underline"
                 transition={reduceMotion ? { duration: 0 } : { type: 'spring', stiffness: 420, damping: 38 }}
-                className="absolute left-0 right-0 bottom-0 h-[2px] bg-[#141414]"
+                 className="absolute left-0 right-0 bottom-0 h-[2px] bg-white"
               />
             )}
           </button>
@@ -431,45 +468,12 @@ function ProductTabs({ html }: { html: string }) {
           transition={{ duration: 0.22, ease: [0.33, 1, 0.68, 1] }}
         >
         {/* ── Ürün Açıklaması ── */}
-        {active === 'desc' && (
-          <div className="space-y-6 max-w-2xl">
-            {material && (
-              <div>
-                <h3 className="text-[12px] font-semibold text-white/50 mb-4">
-                  {material.title}
-                </h3>
-                <p className="text-[14px] text-white/65 leading-[1.75]">
-                  {material.prose || material.items.join(' · ')}
-                </p>
-              </div>
-            )}
-            {gift && (
-              <div className="border-l-2 border-white/20 pl-5 py-1">
-                <h3 className="text-[12px] font-semibold text-white/80 mb-2">
-                  {gift.title}
-                </h3>
-                <p className="text-[14px] text-white/70 leading-[1.75]">
-                  {gift.prose || gift.items.join(' ')}
-                </p>
-              </div>
-            )}
-            {generics.map((s, i) => (
-              <div key={i}>
-                {s.title && (
-                  <h3 className="text-[12px] font-semibold text-white/50 mb-4">
-                    {s.title}
-                  </h3>
-                )}
-                <p className="text-[14px] text-white/65 leading-[1.75]">
-                  {s.prose || s.items.join(', ')}
-                </p>
-              </div>
-            ))}
-            {!material && !gift && generics.length === 0 && (
-              <p className="text-[13px] text-white/35 italic">Bu ürün için açıklama eklenmemiştir.</p>
-            )}
-          </div>
-        )}
+         {active === 'desc' && (
+           <div
+             className="product-rich-copy max-w-3xl"
+             dangerouslySetInnerHTML={{ __html: normalizeDescriptionHtml(html) }}
+           />
+         )}
 
         {/* ── Teknik Özellikler ── */}
         {active === 'specs' && (
@@ -1201,7 +1205,26 @@ export default function ProductDetail() {
               transition={{ duration: 0.5, delay: reduceMotion ? 0 : 0.12, ease: [0.33, 1, 0.68, 1] }}
               className="border border-white/8 p-5 lg:p-6">
 
-              {/* Category */}
+               {/* Sepetzen maker mark — the product has a maker, not a generic marketplace */}
+               <div className="mb-7 flex items-center gap-4 border-b border-white/8 pb-5">
+                 <div className="flex h-12 w-12 shrink-0 items-center justify-center bg-[#1A1A1A] border border-white/10 p-2">
+                   <img
+                     src="/uploads/branding/sepetzen-logo-white.png"
+                     alt="Sepetzen"
+                     className="max-h-full max-w-full object-contain"
+                   />
+                 </div>
+                 <div>
+                   <p className="font-display text-[17px] tracking-[0.12em] text-white">SEPETZEN</p>
+                   <p className="mt-0.5 text-[10px] uppercase tracking-[0.14em] text-white/45">Outdoor Gear · Dalaman / Muğla</p>
+                 </div>
+                 <div className="ml-auto hidden text-right sm:block">
+                   <p className="text-[10px] font-semibold uppercase tracking-[0.12em] text-white/70">2020’den beri</p>
+                   <p className="mt-1 text-[10px] text-white/35">El işçiliğiyle üretim</p>
+                 </div>
+               </div>
+
+               {/* Category */}
               {category && (
                 <Link href={`/kategori/${category.slug}`}>
                   <span className="inline-block text-[10px] text-white uppercase tracking-[0.3em] mb-4 hover:underline font-mono">
@@ -1211,8 +1234,8 @@ export default function ProductDetail() {
               )}
 
               {/* Product name */}
-              <h1
-                className="text-2xl sm:text-3xl font-bold text-white leading-[1.15] mb-3 tracking-[-0.01em]"
+               <h1
+                 className="font-display text-3xl sm:text-4xl font-bold text-white leading-[1.05] mb-3 tracking-[0.015em]"
                 data-testid="text-product-name"
               >
                 {product.name}
@@ -1229,14 +1252,14 @@ export default function ProductDetail() {
               )}
 
               {/* Price */}
-              <div className="flex items-baseline gap-3 mb-3">
+               <div className="flex items-baseline gap-3 mb-3">
                 {originalPrice && (
                   <span className="text-base text-white/30 line-through" data-testid="text-original-price">
                     {originalPrice.toLocaleString('tr-TR', { maximumFractionDigits: 0 })} ₺
                   </span>
                 )}
                 <span
-                  className="text-3xl sm:text-4xl font-bold text-white tabular-nums tracking-[-0.02em]"
+                   className="font-display text-4xl sm:text-5xl font-bold text-white tabular-nums tracking-[0.02em]"
                   data-testid="text-product-price"
                 >
                   {price.toLocaleString('tr-TR', { minimumFractionDigits: 2 })} ₺
@@ -1251,7 +1274,7 @@ export default function ProductDetail() {
                 ) : null;
               })()}
 
-              <div className="border-t border-white/6 pt-5 space-y-3">
+               <div className="border-t border-white/8 pt-5 space-y-3">
                 {/* Stock status + Shipping countdown */}
                 <div className="flex items-center gap-3 flex-wrap">
                   {isOutOfStock ? (
@@ -1296,8 +1319,8 @@ export default function ProductDetail() {
                     onClick={handleAddToCart}
                     disabled={isAdding || isOutOfStock}
                     whileTap={reduceMotion || isOutOfStock ? undefined : { scale: 0.97 }}
-                    className={`flex-1 h-11 font-semibold text-[11px] uppercase tracking-[0.2em] transition-colors flex items-center justify-center gap-2 rounded-lg ${
-                      isOutOfStock ? 'bg-[#141414]/8 text-white/30 cursor-not-allowed' : 'btn-glass'
+                     className={`flex-1 h-12 font-semibold text-[11px] uppercase tracking-[0.2em] transition-colors flex items-center justify-center gap-2 ${
+                       isOutOfStock ? 'bg-[#1A1A1A] text-white/30 cursor-not-allowed' : 'bg-white text-black hover:bg-white/90'
                     }`}
                     data-testid="button-add-to-cart"
                   >

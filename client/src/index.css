@@ -341,3 +341,58 @@ html.lenis {
 .marquee-track:hover {
   animation-play-state: paused;
 }
+
+/* Product detail: admin HTML is content, never a second design system. */
+.product-rich-copy {
+  color: rgba(255,255,255,.68);
+  font-family: var(--font-body);
+  font-size: .9375rem;
+  line-height: 1.85;
+}
+.product-rich-copy h1,
+.product-rich-copy h2,
+.product-rich-copy h3,
+.product-rich-copy h4 {
+  color: rgba(255,255,255,.94);
+  font-family: var(--font-sans);
+  font-weight: 600;
+  letter-spacing: -.015em;
+  line-height: 1.2;
+  margin: 2rem 0 .75rem;
+}
+.product-rich-copy h1 { font-size: 1.5rem; }
+.product-rich-copy h2 { font-size: 1.25rem; }
+.product-rich-copy h3 { font-size: 1rem; text-transform: uppercase; letter-spacing: .12em; }
+.product-rich-copy h4 { font-size: .9375rem; }
+.product-rich-copy h1:first-child,
+.product-rich-copy h2:first-child,
+.product-rich-copy h3:first-child,
+.product-rich-copy h4:first-child { margin-top: 0; }
+.product-rich-copy p { margin: 0 0 1.1rem; }
+.product-rich-copy strong,
+.product-rich-copy b { color: rgba(255,255,255,.92); font-weight: 600; }
+.product-rich-copy em { color: rgba(255,255,255,.78); }
+.product-rich-copy ul,
+.product-rich-copy ol { margin: 1rem 0 1.4rem; padding-left: 1.35rem; }
+.product-rich-copy ul { list-style: none; padding-left: 0; }
+.product-rich-copy ul li,
+.product-rich-copy ol li { margin: .55rem 0; padding-left: 1.25rem; position: relative; }
+.product-rich-copy ul li::before {
+  background: rgba(255,255,255,.65);
+  content: '';
+  height: 4px;
+  left: 0;
+  position: absolute;
+  top: .72em;
+  width: 4px;
+}
+.product-rich-copy ol li::marker { color: rgba(255,255,255,.45); font-family: ui-monospace, monospace; }
+.product-rich-copy blockquote {
+  border-left: 1px solid rgba(255,255,255,.45);
+  color: rgba(255,255,255,.8);
+  margin: 1.5rem 0;
+  padding: .25rem 0 .25rem 1.25rem;
+}
+.product-rich-copy a { color: rgba(255,255,255,.95); text-decoration: underline; text-underline-offset: 3px; }
+.product-rich-copy hr { border: 0; border-top: 1px solid rgba(255,255,255,.1); margin: 2rem 0; }
+.product-rich-copy img { border: 1px solid rgba(255,255,255,.1); display: block; margin: 1.5rem 0; max-width: 100%; height: auto; }
