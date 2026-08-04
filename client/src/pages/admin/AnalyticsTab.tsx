@@ -73,7 +73,7 @@ export default function AnalyticsPanel() {
           <Icon className="w-5 h-5" />
         </div>
         {change !== undefined && (
-          <div className={`flex items-center gap-1 text-xs font-semibold px-2 py-1 rounded-full ${change >= 0 ? 'bg-emerald-500/10 text-emerald-400' : 'bg-red-500/10 text-red-400'}`}>
+          <div className={`flex items-center gap-1 text-xs font-semibold px-2 py-1 rounded-full ${change >= 0 ? 'bg-neutral-500/10 text-neutral-400' : 'bg-red-500/10 text-red-400'}`}>
             {change >= 0 ? <ArrowUpRight className="w-3 h-3" /> : <ArrowDownRight className="w-3 h-3" />}
             {Math.abs(change).toFixed(1)}%
           </div>
@@ -95,7 +95,7 @@ export default function AnalyticsPanel() {
       {/* KPI Cards */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
         <KpiCard
-          icon={DollarSign} iconClass="bg-emerald-500/10 text-emerald-400"
+          icon={DollarSign} iconClass="bg-neutral-500/10 text-neutral-400"
           label="Bu ay gelir" sub={kpi ? `Geçen ay: ${fmtPrice(kpi.lastMonth?.revenue || 0)}` : undefined}
           value={kpi ? fmtPrice(kpi.thisMonth?.revenue || 0) : '-'}
           change={kpi?.changes?.revenue}

@@ -427,7 +427,7 @@ export default function ProductModal({
                 onClick={handleGenerateDescription}
                 disabled={isGenerating || !product?.id}
                 title={!product?.id ? 'Önce ürünü kaydedin' : 'AI ile açıklama üret (Teknik Özellikler Etiket:Değer formatında)'}
-                className="flex items-center gap-1.5 px-2.5 py-1 rounded-md text-[11px] font-medium border transition-colors disabled:opacity-40 disabled:cursor-not-allowed border-[#2D5A27]/30 text-[#2D5A27] hover:bg-[#2D5A27]/[0.07]"
+                className="flex items-center gap-1.5 px-2.5 py-1 rounded-md text-[11px] font-medium border transition-colors disabled:opacity-40 disabled:cursor-not-allowed border-[#141414]/30 text-[#141414] hover:bg-[#141414]/[0.07]"
                 data-testid="button-generate-description"
               >
                 {isGenerating ? (
@@ -561,7 +561,7 @@ export default function ProductModal({
                 {pendingPreviewUrls.map((url, index) => (
                   <div
                     key={`pending-${index}`}
-                    className="relative group aspect-square bg-neutral-50 rounded-md overflow-hidden border border-emerald-300"
+                    className="relative group aspect-square bg-neutral-50 rounded-md overflow-hidden border border-neutral-300"
                   >
                     <img src={url} alt={`Yeni ${index + 1}`} className="w-full h-full object-cover" />
                     <button
@@ -572,7 +572,7 @@ export default function ProductModal({
                     >
                       <Trash2 className="w-3 h-3" />
                     </button>
-                    <span className="absolute bottom-1 left-1 inline-flex items-center px-1.5 h-4 rounded bg-emerald-600 text-white text-[9px] font-medium uppercase tracking-wide leading-none">
+                    <span className="absolute bottom-1 left-1 inline-flex items-center px-1.5 h-4 rounded bg-neutral-600 text-white text-[9px] font-medium uppercase tracking-wide leading-none">
                       Yeni
                     </span>
                   </div>
@@ -660,7 +660,7 @@ export default function ProductModal({
                   type="button"
                   onClick={() => setFormData({ ...formData, isActive: !formData.isActive })}
                   className={`relative w-10 h-6 rounded-full transition-colors shrink-0 ${
-                    formData.isActive ? 'bg-emerald-500' : 'bg-neutral-300'
+                    formData.isActive ? 'bg-neutral-500' : 'bg-neutral-300'
                   }`}
                   aria-pressed={formData.isActive}
                 >

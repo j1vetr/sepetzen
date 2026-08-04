@@ -33,10 +33,10 @@ export default function AdminLogin() {
   return (
     <div
       className="min-h-screen flex flex-col items-center justify-center px-5 py-12"
-      style={{ background: 'linear-gradient(160deg, #0a1508 0%, #0f1f0b 50%, #0c1a09 100%)' }}
+      style={{ background: 'linear-gradient(160deg, #0F0F0F 0%, #0F0F0F 50%, #0F0F0F 100%)' }}
     >
       {/* Subtle texture overlay */}
-      <div className="fixed inset-0 pointer-events-none" style={{ backgroundImage: 'radial-gradient(circle at 20% 20%, rgba(45,90,39,0.15) 0%, transparent 60%), radial-gradient(circle at 80% 80%, rgba(45,90,39,0.10) 0%, transparent 60%)' }} />
+      <div className="fixed inset-0 pointer-events-none" style={{ backgroundImage: 'radial-gradient(circle at 20% 20%, rgba(255,255,255,0.06) 0%, transparent 60%), radial-gradient(circle at 80% 80%, rgba(255,255,255,0.04) 0%, transparent 60%)' }} />
 
       <div className="relative w-full max-w-[380px] flex flex-col items-center">
 
@@ -91,7 +91,7 @@ export default function AdminLogin() {
                   border: '1px solid rgba(255,255,255,0.12)',
                   color: '#fff',
                 }}
-                onFocus={e => { e.currentTarget.style.border = '1px solid rgba(74,154,66,0.6)'; e.currentTarget.style.boxShadow = '0 0 0 3px rgba(45,90,39,0.20)'; }}
+                onFocus={e => { e.currentTarget.style.border = '1px solid rgba(255,255,255,0.45)'; e.currentTarget.style.boxShadow = '0 0 0 3px rgba(255,255,255,0.12)'; }}
                 onBlur={e => { e.currentTarget.style.border = '1px solid rgba(255,255,255,0.12)'; e.currentTarget.style.boxShadow = 'none'; }}
                 data-testid="input-username"
               />
@@ -115,7 +115,7 @@ export default function AdminLogin() {
                   border: '1px solid rgba(255,255,255,0.12)',
                   color: '#fff',
                 }}
-                onFocus={e => { e.currentTarget.style.border = '1px solid rgba(74,154,66,0.6)'; e.currentTarget.style.boxShadow = '0 0 0 3px rgba(45,90,39,0.20)'; }}
+                onFocus={e => { e.currentTarget.style.border = '1px solid rgba(255,255,255,0.45)'; e.currentTarget.style.boxShadow = '0 0 0 3px rgba(255,255,255,0.12)'; }}
                 onBlur={e => { e.currentTarget.style.border = '1px solid rgba(255,255,255,0.12)'; e.currentTarget.style.boxShadow = 'none'; }}
                 data-testid="input-password"
               />
@@ -125,9 +125,9 @@ export default function AdminLogin() {
               type="submit"
               disabled={isPending}
               className="w-full inline-flex items-center justify-center gap-2 h-11 px-4 text-[13px] font-semibold tracking-wide rounded-md transition-all disabled:opacity-60 disabled:cursor-not-allowed"
-              style={{ background: '#2D5A27', color: '#fff' }}
-              onMouseEnter={e => { if (!isPending) e.currentTarget.style.background = '#3a7232'; }}
-              onMouseLeave={e => { e.currentTarget.style.background = '#2D5A27'; }}
+              style={{ background: '#141414', color: '#fff' }}
+              onMouseEnter={e => { if (!isPending) e.currentTarget.style.background = '#1F1F1F'; }}
+              onMouseLeave={e => { e.currentTarget.style.background = '#141414'; }}
               data-testid="button-login"
             >
               {isPending ? (

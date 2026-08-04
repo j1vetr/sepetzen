@@ -136,7 +136,7 @@ export function SearchOverlay({ isOpen, onClose }: SearchOverlayProps) {
             exit={{ opacity: 0 }}
             transition={{ duration: 0.25 }}
             onClick={onClose}
-            className="fixed inset-0 z-[100] bg-[#1a1612]/40 backdrop-blur-[6px]"
+            className="fixed inset-0 z-[100] bg-[#000000]/40 backdrop-blur-[6px]"
             data-testid="overlay-search"
           />
 

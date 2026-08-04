@@ -101,7 +101,7 @@ function ReviewCard({ review }: { review: AdminReview }) {
         Bekliyor
       </span>
     ) : status === 'approved' ? (
-      <span className="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-semibold bg-emerald-100 text-emerald-800 uppercase tracking-wider">
+      <span className="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-semibold bg-neutral-100 text-neutral-800 uppercase tracking-wider">
         Onaylı
       </span>
     ) : (
@@ -219,7 +219,7 @@ function ReviewCard({ review }: { review: AdminReview }) {
           <button
             onClick={handleApprove}
             disabled={approveMutation.isPending}
-            className="px-3 py-1.5 bg-emerald-600 text-white text-[12px] font-semibold rounded hover:bg-emerald-700 disabled:opacity-50 inline-flex items-center gap-1.5"
+            className="px-3 py-1.5 bg-neutral-600 text-white text-[12px] font-semibold rounded hover:bg-neutral-700 disabled:opacity-50 inline-flex items-center gap-1.5"
             data-testid={`button-approve-${review.id}`}
           >
             {approveMutation.isPending ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Check className="w-3.5 h-3.5" />}

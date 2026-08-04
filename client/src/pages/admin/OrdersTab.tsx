@@ -473,7 +473,7 @@ export default function OrdersPanel() {
             stats.revenueGrowth !== null ? (
               <span
                 className={`inline-flex items-center gap-0.5 text-[11px] font-medium tabular-nums ${
-                  stats.revenueGrowth >= 0 ? 'text-emerald-600' : 'text-red-600'
+                  stats.revenueGrowth >= 0 ? 'text-neutral-600' : 'text-red-600'
                 }`}
                 data-testid="text-revenue-growth"
               >

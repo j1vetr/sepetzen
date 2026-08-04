@@ -21,7 +21,7 @@ const yardimLinks = [
 export function Footer() {
   return (
     <footer
-      className="relative bg-[#0f1a0e] text-white overflow-hidden"
+      className="relative bg-[#0F0F0F] text-white overflow-hidden"
       data-testid="footer"
     >
       <div
@@ -29,7 +29,7 @@ export function Footer() {
         className="pointer-events-none absolute inset-0 opacity-[0.08]"
         style={{
           backgroundImage:
-            'radial-gradient(circle at 10% 0%, rgba(45,90,39,0.6), transparent 55%), radial-gradient(circle at 90% 100%, rgba(45,90,39,0.4), transparent 50%)',
+            'radial-gradient(circle at 10% 0%, rgba(255,255,255,0.08), transparent 55%), radial-gradient(circle at 90% 100%, rgba(255,255,255,0.05), transparent 50%)',
         }}
       />
 
@@ -55,10 +55,10 @@ export function Footer() {
                 href="https://www.instagram.com/sepetzen"
                 target="_blank"
                 rel="noopener noreferrer"
-                className="inline-flex items-center gap-2 text-white/75 hover:text-[#4a9a42] transition-colors group"
+                className="inline-flex items-center gap-2 text-white/75 hover:text-[#FAFAFA] transition-colors group"
                 data-testid="link-instagram-footer"
               >
-                <span className="w-9 h-9 rounded-full border border-white/15 group-hover:border-[#4a9a42] flex items-center justify-center transition-colors">
+                <span className="w-9 h-9 rounded-full border border-white/15 group-hover:border-[#FAFAFA] flex items-center justify-center transition-colors">
                   <Instagram className="w-4 h-4" strokeWidth={1.75} />
                 </span>
                 <span className="text-[12px]">@sepetzen</span>
@@ -67,10 +67,10 @@ export function Footer() {
                 href="https://www.youtube.com/@sepetzen"
                 target="_blank"
                 rel="noopener noreferrer"
-                className="inline-flex items-center gap-2 text-white/75 hover:text-[#4a9a42] transition-colors group"
+                className="inline-flex items-center gap-2 text-white/75 hover:text-[#FAFAFA] transition-colors group"
                 data-testid="link-youtube-footer"
               >
-                <span className="w-9 h-9 rounded-full border border-white/15 group-hover:border-[#4a9a42] flex items-center justify-center transition-colors">
+                <span className="w-9 h-9 rounded-full border border-white/15 group-hover:border-[#FAFAFA] flex items-center justify-center transition-colors">
                   <Youtube className="w-4 h-4" strokeWidth={1.75} />
                 </span>
                 <span className="text-[12px]">@sepetzen</span>
@@ -79,10 +79,10 @@ export function Footer() {
                 href="https://www.etsy.com/shop/Sepetzen"
                 target="_blank"
                 rel="noopener noreferrer"
-                className="inline-flex items-center gap-2 text-white/75 hover:text-[#4a9a42] transition-colors group"
+                className="inline-flex items-center gap-2 text-white/75 hover:text-[#FAFAFA] transition-colors group"
                 data-testid="link-etsy-footer"
               >
-                <span className="w-9 h-9 rounded-full border border-white/15 group-hover:border-[#4a9a42] flex items-center justify-center transition-colors">
+                <span className="w-9 h-9 rounded-full border border-white/15 group-hover:border-[#FAFAFA] flex items-center justify-center transition-colors">
                   <svg viewBox="0 0 24 24" className="w-4 h-4" fill="currentColor" aria-hidden>
                     <path d="M9.764 21.053c-.52 0-.952-.024-1.297-.073L4.95 21l.024-.423c.097-1.684.146-3.463.146-5.289V8.689c0-1.826-.049-3.605-.146-5.289L4.95 3l3.517.02c.344-.05.776-.073 1.297-.073h7.483c1.201 0 2.14.038 2.816.111l.544.056-.288 2.56-.532-.023a47.76 47.76 0 0 0-1.648-.059H10.15a46.98 46.98 0 0 0-1.056.024v4.22c.337.01.714.017 1.13.017h4.068c.612 0 1.234-.02 1.868-.059l.541-.035-.23 2.546-.524-.02a38.99 38.99 0 0 0-1.655-.07H10.24c-.416 0-.794.007-1.13.017v4.367c.008.29.018.533.03.73.26.018.619.028 1.074.028h7.689c.548 0 1.128-.02 1.74-.059l.536-.033-.287 2.559-.533.058a32.7 32.7 0 0 1-2.84.11H9.764z" />
                   </svg>
@@ -102,10 +102,10 @@ export function Footer() {
                 <li key={link.href}>
                   <Link
                     href={link.href}
-                    className="inline-flex items-center gap-2 hover:text-[#4a9a42] transition-colors group"
+                    className="inline-flex items-center gap-2 hover:text-[#FAFAFA] transition-colors group"
                     data-testid={`link-footer-${link.href.split('/').pop()}`}
                   >
-                    <span className="w-1 h-1 rounded-full bg-white/20 group-hover:bg-[#4a9a42] transition-colors" />
+                    <span className="w-1 h-1 rounded-full bg-white/20 group-hover:bg-[#FAFAFA] transition-colors" />
                     {link.label}
                   </Link>
                 </li>
@@ -123,10 +123,10 @@ export function Footer() {
                 <li key={link.href}>
                   <Link
                     href={link.href}
-                    className="inline-flex items-center gap-2 hover:text-[#4a9a42] transition-colors group"
+                    className="inline-flex items-center gap-2 hover:text-[#FAFAFA] transition-colors group"
                     data-testid={`link-footer-${link.href.split('/').pop()}`}
                   >
-                    <span className="w-1 h-1 rounded-full bg-white/20 group-hover:bg-[#4a9a42] transition-colors" />
+                    <span className="w-1 h-1 rounded-full bg-white/20 group-hover:bg-[#FAFAFA] transition-colors" />
                     {link.label}
                   </Link>
                 </li>
@@ -141,7 +141,7 @@ export function Footer() {
             </h4>
             <ul className="space-y-4 text-[14px] text-white/70">
               <li className="flex items-start gap-3">
-                <MapPin className="w-4 h-4 text-[#4a9a42] shrink-0 mt-0.5" strokeWidth={1.75} />
+                <MapPin className="w-4 h-4 text-[#FAFAFA] shrink-0 mt-0.5" strokeWidth={1.75} />
                 <span data-testid="text-footer-address" className="leading-[1.65]">
                   Ahmet Uğur Durmaz<br />
                   Karaçalı Mah. Nergiz Sk. No.8/A<br />
@@ -149,20 +149,20 @@ export function Footer() {
                 </span>
               </li>
               <li className="flex items-center gap-3">
-                <Phone className="w-4 h-4 text-[#4a9a42] shrink-0" strokeWidth={1.75} />
+                <Phone className="w-4 h-4 text-[#FAFAFA] shrink-0" strokeWidth={1.75} />
                 <a
                   href="tel:+905366301138"
-                  className="hover:text-[#4a9a42] transition-colors"
+                  className="hover:text-[#FAFAFA] transition-colors"
                   data-testid="link-footer-phone"
                 >
                   0536 630 11 38
                 </a>
               </li>
               <li className="flex items-center gap-3">
-                <Mail className="w-4 h-4 text-[#4a9a42] shrink-0" strokeWidth={1.75} />
+                <Mail className="w-4 h-4 text-[#FAFAFA] shrink-0" strokeWidth={1.75} />
                 <a
                   href="mailto:sepetzen@gmail.com"
-                  className="hover:text-[#4a9a42] transition-colors"
+                  className="hover:text-[#FAFAFA] transition-colors"
                   data-testid="link-footer-email"
                 >
                   sepetzen@gmail.com
@@ -191,7 +191,7 @@ export function Footer() {
             >
               <div className="flex flex-col leading-none">
                 <span className="text-[9px] font-mono tracking-[0.18em] uppercase text-white/35">Tescilli Marka</span>
-                <span className="text-[12px] font-bold text-white/70 mt-0.5">SEPETZEN <sup className="text-[8px] text-[#4a9a42]">®</sup></span>
+                <span className="text-[12px] font-bold text-white/70 mt-0.5">SEPETZEN <sup className="text-[8px] text-[#FAFAFA]">®</sup></span>
                 <span className="text-[8.5px] font-mono text-white/30 mt-0.5">No: 2024/093667</span>
               </div>
             </a>

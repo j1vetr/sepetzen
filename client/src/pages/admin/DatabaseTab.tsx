@@ -160,7 +160,7 @@ export default function DatabasePanel() {
       </div>
 
       {message && (
-        <div className={`p-4 rounded-lg ${message.type === 'success' ? 'bg-green-500/10 border border-green-500/30 text-green-400' : 'bg-red-500/10 border border-red-500/30 text-red-400'}`}>
+        <div className={`p-4 rounded-lg ${message.type === 'success' ? 'bg-neutral-500/10 border border-neutral-500/30 text-neutral-400' : 'bg-red-500/10 border border-red-500/30 text-red-400'}`}>
           <div className="flex items-center gap-2">
             {message.type === 'success' ? <CheckCircle2 className="w-5 h-5" /> : <AlertCircle className="w-5 h-5" />}
             <span>{message.text}</span>

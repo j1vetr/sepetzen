@@ -567,7 +567,7 @@ export default function Checkout() {
               initial={{ scale: 0 }}
               animate={{ scale: 1 }}
               transition={{ delay: 0.2, type: 'spring', stiffness: 200 }}
-              className="w-24 h-24 mx-auto mb-6 rounded-full bg-gradient-to-br from-green-500 to-emerald-600 flex items-center justify-center"
+              className="w-24 h-24 mx-auto mb-6 rounded-full bg-gradient-to-br from-neutral-500 to-neutral-600 flex items-center justify-center"
             >
               <CheckCircle2 className="w-12 h-12 text-white" />
             </motion.div>
@@ -697,7 +697,7 @@ export default function Checkout() {
                           isActive
                             ? 'bg-polen-orange text-white border-polen-orange shadow-[0_4px_14px_-4px_rgba(217,127,42,0.6)]'
                             : isDone
-                              ? 'bg-green-500 text-white border-green-500'
+                              ? 'bg-neutral-500 text-white border-neutral-500'
                               : 'bg-white text-black/40 border-black/15 group-hover:border-black/40'
                         }`}
                       >
@@ -709,7 +709,7 @@ export default function Checkout() {
                       </div>
                       <span
                         className={`text-[10px] sm:text-xs font-medium whitespace-nowrap transition-colors ${
-                          isActive ? 'text-black' : isDone ? 'text-green-700' : 'text-black/45'
+                          isActive ? 'text-black' : isDone ? 'text-neutral-700' : 'text-black/45'
                         }`}
                       >
                         {step.title}
@@ -718,7 +718,7 @@ export default function Checkout() {
                     {!isLast && (
                       <div
                         className={`flex-1 h-px mt-5 transition-colors ${
-                          isDone ? 'bg-green-500' : 'bg-black/15'
+                          isDone ? 'bg-neutral-500' : 'bg-black/15'
                         }`}
                       />
                     )}
@@ -912,7 +912,7 @@ export default function Checkout() {
                                     </p>
                                   </div>
                                   {selectedAddressId === addr.id && (
-                                    <CheckCircle2 className="w-5 h-5 text-green-400 shrink-0" />
+                                    <CheckCircle2 className="w-5 h-5 text-neutral-400 shrink-0" />
                                   )}
                                 </div>
                               </button>
@@ -1345,11 +1345,11 @@ export default function Checkout() {
                             data-testid="iyzico-checkout-form"
                           />
                           
-                          <div className="p-4 bg-green-500/10 border border-green-500/20 rounded-xl">
+                          <div className="p-4 bg-neutral-500/10 border border-neutral-500/20 rounded-xl">
                             <div className="flex items-start gap-3">
-                              <Lock className="w-5 h-5 text-green-400 shrink-0 mt-0.5" />
+                              <Lock className="w-5 h-5 text-neutral-400 shrink-0 mt-0.5" />
                               <div>
-                                <p className="text-sm font-medium text-green-400">256-bit SSL Güvenlik</p>
+                                <p className="text-sm font-medium text-neutral-400">256-bit SSL Güvenlik</p>
                                 <p className="text-xs text-muted-foreground mt-1">
                                   Kart bilgileriniz iyzico güvencesiyle şifrelenmektedir.
                                 </p>
@@ -1423,10 +1423,10 @@ export default function Checkout() {
                 <div className="py-4 border-b border-black/8 relative">
                   {appliedCoupon ? (
                     <div className="space-y-3">
-                      <div className="flex items-center justify-between bg-green-500/10 border border-green-500/30 rounded-lg px-3 py-2">
+                      <div className="flex items-center justify-between bg-neutral-500/10 border border-neutral-500/30 rounded-lg px-3 py-2">
                         <div className="flex items-center gap-2">
-                          <Tag className="w-4 h-4 text-green-400" />
-                          <span className="text-sm font-medium text-green-400">{appliedCoupon.code}</span>
+                          <Tag className="w-4 h-4 text-neutral-400" />
+                          <span className="text-sm font-medium text-neutral-400">{appliedCoupon.code}</span>
                         </div>
                         <button
                           onClick={handleRemoveCoupon}
@@ -1437,7 +1437,7 @@ export default function Checkout() {
                         </button>
                       </div>
                       {appliedCoupon.freeShipping && (
-                        <div className="flex items-center gap-2 text-xs text-green-400">
+                        <div className="flex items-center gap-2 text-xs text-neutral-400">
                           <Truck className="w-4 h-4" />
                           <span>Ücretsiz kargo kuponu uygulandı</span>
                         </div>
@@ -1504,7 +1504,7 @@ export default function Checkout() {
                     <span data-testid="text-subtotal">{subtotal.toLocaleString('tr-TR')} ₺</span>
                   </div>
                   {discount > 0 && (
-                    <div className="flex justify-between text-green-400">
+                    <div className="flex justify-between text-neutral-400">
                       <span className="flex items-center gap-1">
                         <Tag className="w-3 h-3" />
                         İndirim ({appliedCoupon?.code})
@@ -1514,7 +1514,7 @@ export default function Checkout() {
                   )}
                   <div className="flex justify-between">
                     <span className="text-muted-foreground">Kargo</span>
-                    <span data-testid="text-shipping" className={shippingCost === 0 ? 'text-green-400 font-medium' : ''}>
+                    <span data-testid="text-shipping" className={shippingCost === 0 ? 'text-neutral-400 font-medium' : ''}>
                       {shippingCost === 0 ? 'ÜCRETSİZ' : `${shippingCost.toFixed(2)} ₺`}
                     </span>
                   </div>
@@ -1537,10 +1537,10 @@ export default function Checkout() {
                     </div>
                   )}
                   {shippingCost === 0 && (
-                    <div className="mt-2 p-3 bg-gradient-to-r from-green-500/10 to-emerald-500/10 border border-green-500/20 rounded-lg">
+                    <div className="mt-2 p-3 bg-gradient-to-r from-neutral-500/10 to-neutral-500/10 border border-neutral-500/20 rounded-lg">
                       <div className="flex items-center gap-2">
-                        <Truck className="w-4 h-4 text-green-400" />
-                        <p className="text-xs text-green-400 font-medium">Ücretsiz kargo kazandınız!</p>
+                        <Truck className="w-4 h-4 text-neutral-400" />
+                        <p className="text-xs text-neutral-400 font-medium">Ücretsiz kargo kazandınız!</p>
                       </div>
                     </div>
                   )}
@@ -1562,7 +1562,7 @@ export default function Checkout() {
 
                 <div className="space-y-3 pt-4 border-t border-black/8 relative">
                   <div className="flex items-center gap-3 text-xs text-muted-foreground">
-                    <Shield className="w-4 h-4 shrink-0 text-green-400" />
+                    <Shield className="w-4 h-4 shrink-0 text-neutral-400" />
                     <span>Güvenli Ödeme</span>
                   </div>
                   <div className="flex items-center gap-3 text-xs text-muted-foreground">

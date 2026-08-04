@@ -50,7 +50,7 @@ export function MobileBottomNav() {
 
   return (
     <nav
-      className="lg:hidden fixed bottom-0 inset-x-0 z-40 bg-[#0f1a0e] border-t-[1.5px] border-[#2D5A27]/70"
+      className="lg:hidden fixed bottom-0 inset-x-0 z-40 bg-[#0F0F0F] border-t-[1.5px] border-[#141414]/70"
       style={{
         paddingBottom: 'env(safe-area-inset-bottom, 0px)',
         boxShadow: '0 -4px 24px rgba(0,0,0,0.45)',
@@ -79,7 +79,7 @@ export function MobileBottomNav() {
                 <span className="relative">
                   <Icon
                     className="w-[22px] h-[22px] transition-colors duration-200"
-                    style={{ color: isActive ? '#2D5A27' : 'rgba(255,255,255,0.45)' }}
+                    style={{ color: isActive ? '#FFFFFF' : 'rgba(255,255,255,0.45)' }}
                     strokeWidth={isActive ? 2.2 : 1.75}
                   />
 
@@ -93,7 +93,7 @@ export function MobileBottomNav() {
                           animate={{ scale: 1, opacity: 1 }}
                           exit={{ scale: 0, opacity: 0 }}
                           transition={{ type: 'spring', stiffness: 500, damping: 25 }}
-                          className="absolute -top-1.5 -right-1.5 min-w-[16px] h-[16px] px-[3px] bg-[#2D5A27] text-white text-[9px] font-bold flex items-center justify-center rounded-full leading-none"
+                          className="absolute -top-1.5 -right-1.5 min-w-[16px] h-[16px] px-[3px] bg-white text-black text-[9px] font-bold flex items-center justify-center rounded-full leading-none"
                           data-testid="bottom-nav-cart-badge"
                         >
                           {totalItems > 9 ? '9+' : totalItems}
@@ -106,7 +106,7 @@ export function MobileBottomNav() {
                 {/* Label */}
                 <span
                   className="text-[10px] font-medium tracking-[0.06em] transition-colors duration-200 leading-none"
-                  style={{ color: isActive ? '#2D5A27' : 'rgba(255,255,255,0.40)' }}
+                  style={{ color: isActive ? '#FFFFFF' : 'rgba(255,255,255,0.40)' }}
                 >
                   {tab.label}
                 </span>
@@ -115,7 +115,7 @@ export function MobileBottomNav() {
                 {isActive && (
                   <motion.span
                     layoutId="bottom-nav-dot"
-                    className="absolute -top-[14px] left-1/2 -translate-x-1/2 w-[18px] h-[2px] rounded-full bg-[#2D5A27]"
+                    className="absolute -top-[14px] left-1/2 -translate-x-1/2 w-[18px] h-[2px] rounded-full bg-white"
                     transition={{ type: 'spring', stiffness: 400, damping: 30 }}
                   />
                 )}

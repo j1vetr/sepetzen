@@ -605,7 +605,7 @@ export default function AdminOrderDetail() {
                   type="button"
                   onClick={handleConfirmBankTransfer}
                   disabled={isUpdating}
-                  className="inline-flex items-center justify-center gap-1.5 px-4 h-9 rounded-md bg-emerald-600 text-white hover:bg-emerald-700 text-[12px] font-semibold disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                  className="inline-flex items-center justify-center gap-1.5 px-4 h-9 rounded-md bg-neutral-600 text-white hover:bg-neutral-700 text-[12px] font-semibold disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
                   data-testid="button-confirm-bank-transfer"
                 >
                   <CheckCircle2 className="w-3.5 h-3.5" />
@@ -697,7 +697,7 @@ export default function AdminOrderDetail() {
                   </span>
                 </div>
                 {order.discountAmount && parseFloat(order.discountAmount) > 0 && (
-                  <div className="flex justify-between text-[12px] text-emerald-700">
+                  <div className="flex justify-between text-[12px] text-neutral-700">
                     <span className="inline-flex items-center gap-1">
                       <Tag className="w-3 h-3" />
                       İndirim {order.couponCode && `(${order.couponCode})`}
@@ -940,7 +940,7 @@ export default function AdminOrderDetail() {
                 {arasMessage && (
                   <div className={`text-[11.5px] px-3 py-2 rounded-md leading-relaxed ${
                     arasMessage.type === 'success'
-                      ? 'bg-emerald-50 border border-emerald-200 text-emerald-800'
+                      ? 'bg-neutral-50 border border-neutral-200 text-neutral-800'
                       : arasMessage.type === 'warn'
                       ? 'bg-amber-50 border border-amber-200 text-amber-800'
                       : 'bg-red-50 border border-red-200 text-red-700'

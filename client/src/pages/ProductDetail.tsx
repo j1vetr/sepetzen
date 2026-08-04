@@ -139,7 +139,16 @@ function emojiToType(emoji: string, title: string): DescSection['type'] {
   return 'generic';
 }
 
-function parseProductSections(html: string): DescSection[] {
+/** Legacy DB descriptions carry inline green styles — remap to monochrome palette */
+function neutralizeLegacyColors(html: string): string {
+  return html
+    .replace(/#2D5A27/gi, '#141414')
+    .replace(/#4A9A42/gi, '#737373')
+    .replace(/#1B3D17/gi, '#1F1F1F');
+}
+
+function parseProductSections(rawHtml: string): DescSection[] {
+  const html = neutralizeLegacyColors(rawHtml || '');
   if (!html) return [];
 
   const headingRe = /<h[2-4][^>]*>([\s\S]*?)<\/h[2-4]>/gi;
@@ -205,7 +214,7 @@ function ProductDescriptionSections({ html }: { html: string }) {
     return (
       <div
         className="text-sm text-black/60 leading-relaxed prose prose-sm max-w-none"
-        dangerouslySetInnerHTML={{ __html: html }}
+        dangerouslySetInnerHTML={{ __html: neutralizeLegacyColors(html) }}
       />
     );
   }
@@ -278,7 +287,7 @@ function ProductDescriptionSections({ html }: { html: string }) {
               {usage.items.map((chip, j) => (
                 <span
                   key={j}
-                  className="px-3 py-1.5 border border-[#2D5A27]/20 text-[12px] text-[#2D5A27] font-medium"
+                  className="px-3 py-1.5 border border-[#141414]/20 text-[12px] text-[#141414] font-medium"
                 >
                   {chip}
                 </span>
@@ -292,8 +301,8 @@ function ProductDescriptionSections({ html }: { html: string }) {
 
       {/* Hediye */}
       {gift && (
-        <div className="border-l-2 border-[#2D5A27] pl-5 py-1">
-          <h3 className="text-[12px] font-semibold text-[#2D5A27]/80 mb-2">
+        <div className="border-l-2 border-[#141414] pl-5 py-1">
+          <h3 className="text-[12px] font-semibold text-[#141414]/80 mb-2">
             {gift.title || 'Hediye'}
           </h3>
           <p className="text-[14px] text-black/70 leading-[1.75]">
@@ -344,7 +353,7 @@ function ProductFeatureHighlights({ html }: { html: string }) {
             key={i}
             className={`flex items-start gap-3 px-5 py-5 ${i < highlights.length - 1 ? 'border-r border-black/8' : ''}`}
           >
-            <span className="shrink-0 mt-0.5 w-[18px] h-[18px] text-[#2D5A27]">
+            <span className="shrink-0 mt-0.5 w-[18px] h-[18px] text-[#141414]">
               <Icon className="w-[18px] h-[18px]" strokeWidth={1.75} />
             </span>
             <div className="min-w-0">
@@ -391,7 +400,7 @@ function ProductTabs({ html }: { html: string }) {
             onClick={() => setActive(tab.id)}
             className={`px-4 lg:px-6 py-3.5 text-[11px] font-semibold tracking-[0.16em] uppercase whitespace-nowrap border-b-2 -mb-px transition-colors ${
               active === tab.id
-                ? 'border-[#2D5A27] text-[#2D5A27]'
+                ? 'border-[#141414] text-[#141414]'
                 : 'border-transparent text-black/40 hover:text-black/70'
             }`}
           >
@@ -416,8 +425,8 @@ function ProductTabs({ html }: { html: string }) {
               </div>
             )}
             {gift && (
-              <div className="border-l-2 border-[#2D5A27] pl-5 py-1">
-                <h3 className="text-[12px] font-semibold text-[#2D5A27]/80 mb-2">
+              <div className="border-l-2 border-[#141414] pl-5 py-1">
+                <h3 className="text-[12px] font-semibold text-[#141414]/80 mb-2">
                   {gift.title}
                 </h3>
                 <p className="text-[14px] text-black/70 leading-[1.75]">
@@ -481,7 +490,7 @@ function ProductTabs({ html }: { html: string }) {
                 <ul className="space-y-3 max-w-xl">
                   {usage.items.map((item, j) => (
                     <li key={j} className="flex items-start gap-3 text-[13px] text-black/75 leading-snug">
-                      <span className="mt-[5px] w-[6px] h-[6px] rounded-full bg-[#2D5A27] shrink-0" />
+                      <span className="mt-[5px] w-[6px] h-[6px] rounded-full bg-[#141414] shrink-0" />
                       {item}
                     </li>
                   ))}
@@ -882,7 +891,7 @@ export default function ProductDetail() {
             <h1 className="text-2xl font-semibold mb-3">Ürün Bulunamadı</h1>
             <p className="text-black/40 mb-6 text-sm">Bu ürün mevcut değil ya da kaldırılmış.</p>
             <Link href="/">
-              <span className="inline-flex items-center gap-2 px-5 py-2.5 bg-black text-white text-xs tracking-[0.18em] uppercase font-semibold hover:bg-[#2D5A27] transition-colors">
+              <span className="inline-flex items-center gap-2 px-5 py-2.5 bg-black text-white text-xs tracking-[0.18em] uppercase font-semibold hover:bg-[#141414] transition-colors">
                 Ana Sayfaya Dön
               </span>
             </Link>
@@ -1058,7 +1067,7 @@ export default function ProductDetail() {
                       type="button"
                       onClick={() => setSelectedImage(i)}
                       className={`relative aspect-square overflow-hidden bg-stone-100 transition-all duration-200 ${
-                        i === selectedImage ? 'ring-1 ring-[#2D5A27] ring-offset-1' : 'opacity-50 hover:opacity-85'
+                        i === selectedImage ? 'ring-1 ring-[#141414] ring-offset-1' : 'opacity-50 hover:opacity-85'
                       }`}
                       data-testid={`button-thumbnail-${i}`}
                       aria-label={`Görsel ${i + 1}`}
@@ -1129,7 +1138,7 @@ export default function ProductDetail() {
                     <div className="flex justify-center gap-1.5 mt-3">
                       {images.map((_, i) => (
                         <button key={i} type="button" onClick={() => setSelectedImage(i)}
-                          className={`h-1.5 rounded-full transition-all ${i === selectedImage ? 'bg-[#2D5A27] w-5' : 'bg-black/18 w-1.5'}`}
+                          className={`h-1.5 rounded-full transition-all ${i === selectedImage ? 'bg-[#141414] w-5' : 'bg-black/18 w-1.5'}`}
                           aria-label={`Görsel ${i + 1}`} />
                       ))}
                     </div>
@@ -1144,7 +1153,7 @@ export default function ProductDetail() {
               {/* Category */}
               {category && (
                 <Link href={`/kategori/${category.slug}`}>
-                  <span className="inline-block text-[10px] text-[#2D5A27] uppercase tracking-[0.3em] mb-4 hover:underline font-mono">
+                  <span className="inline-block text-[10px] text-[#141414] uppercase tracking-[0.3em] mb-4 hover:underline font-mono">
                     {category.name}
                   </span>
                 </Link>
@@ -1176,7 +1185,7 @@ export default function ProductDetail() {
                   </span>
                 )}
                 <span
-                  className="text-3xl sm:text-4xl font-bold text-[#2D5A27] tabular-nums tracking-[-0.02em]"
+                  className="text-3xl sm:text-4xl font-bold text-[#141414] tabular-nums tracking-[-0.02em]"
                   data-testid="text-product-price"
                 >
                   {price.toLocaleString('tr-TR', { minimumFractionDigits: 2 })} ₺
@@ -1197,7 +1206,7 @@ export default function ProductDetail() {
                   {isOutOfStock ? (
                     <span className="text-[12px] text-red-500 font-medium">Tükendi</span>
                   ) : (
-                    <span className="flex items-center gap-1.5 text-[12px] text-[#2D5A27] font-semibold">
+                    <span className="flex items-center gap-1.5 text-[12px] text-[#141414] font-semibold">
                       <Check className="w-3.5 h-3.5" strokeWidth={2.5} />
                       Stokta var
                     </span>
@@ -1227,7 +1236,7 @@ export default function ProductDetail() {
                     onClick={handleAddToCart}
                     disabled={isAdding || isOutOfStock}
                     className={`flex-1 h-11 font-semibold text-[11px] uppercase tracking-[0.2em] transition-colors flex items-center justify-center gap-2 ${
-                      isOutOfStock ? 'bg-black/8 text-black/30 cursor-not-allowed' : 'bg-[#2D5A27] hover:bg-[#234a1e] text-white'
+                      isOutOfStock ? 'bg-black/8 text-black/30 cursor-not-allowed' : 'bg-[#141414] hover:bg-[#1F1F1F] text-white'
                     }`}
                     data-testid="button-add-to-cart"
                   >
@@ -1259,7 +1268,7 @@ export default function ProductDetail() {
                   >
                     {isFavoriteLoading
                       ? <Loader2 className="w-3.5 h-3.5 animate-spin" />
-                      : <Heart className={`w-3.5 h-3.5 ${isLiked ? 'fill-[#2D5A27] text-[#2D5A27]' : ''}`} />
+                      : <Heart className={`w-3.5 h-3.5 ${isLiked ? 'fill-[#141414] text-[#141414]' : ''}`} />
                     }
                     <span>{isLiked ? 'Favorilerde' : 'Favorilere Ekle'}</span>
                   </button>
@@ -1310,7 +1319,7 @@ export default function ProductDetail() {
                     { icon: Shield, title: 'Güvenli Ödeme', sub: 'SSL korumalı' },
                   ].map((it) => (
                     <div key={it.title} className="text-center py-3">
-                      <it.icon className="w-4 h-4 text-[#2D5A27] mx-auto mb-1.5" strokeWidth={1.75} />
+                      <it.icon className="w-4 h-4 text-[#141414] mx-auto mb-1.5" strokeWidth={1.75} />
                       <p className="text-[10.5px] font-semibold text-black leading-tight">{it.title}</p>
                       <p className="text-[9.5px] text-black/35 mt-0.5">{it.sub}</p>
                     </div>
@@ -1374,7 +1383,7 @@ export default function ProductDetail() {
                     <div key={star} className="flex items-center gap-2.5">
                       <span className="text-[11px] text-black/45 w-4 text-right">{star}</span>
                       <div className="flex-1 h-1.5 bg-black/8 rounded-full overflow-hidden">
-                        <div className="h-full bg-[#2D5A27] rounded-full transition-all duration-500" style={{ width: `${pct}%` }} />
+                        <div className="h-full bg-[#141414] rounded-full transition-all duration-500" style={{ width: `${pct}%` }} />
                       </div>
                       <span className="text-[11px] text-black/35 w-4">{count}</span>
                     </div>
@@ -1385,11 +1394,11 @@ export default function ProductDetail() {
 
             {/* Submitted confirmation */}
             {reviewSubmitted && !userReview && (
-              <div className="flex items-center gap-3 bg-emerald-50 border border-emerald-200/80 px-5 py-4 mb-8" data-testid="text-review-pending">
-                <Check className="w-4 h-4 text-emerald-600 shrink-0" />
+              <div className="flex items-center gap-3 bg-neutral-50 border border-neutral-200/80 px-5 py-4 mb-8" data-testid="text-review-pending">
+                <Check className="w-4 h-4 text-neutral-600 shrink-0" />
                 <div>
-                  <p className="text-[13px] font-semibold text-emerald-900">Yorumunuz alındı.</p>
-                  <p className="text-[12px] text-emerald-700/80 mt-0.5">Onay sonrası ürün sayfasında görünecektir.</p>
+                  <p className="text-[13px] font-semibold text-neutral-900">Yorumunuz alındı.</p>
+                  <p className="text-[12px] text-neutral-700/80 mt-0.5">Onay sonrası ürün sayfasında görünecektir.</p>
                 </div>
               </div>
             )}
@@ -1409,7 +1418,7 @@ export default function ProductDetail() {
                       {!user && (
                         <p className="text-[11px] text-black/45">
                           Üye misin?{' '}
-                          <Link href="/giris"><span className="underline hover:text-[#2D5A27] cursor-pointer">Giriş yap</span></Link>
+                          <Link href="/giris"><span className="underline hover:text-[#141414] cursor-pointer">Giriş yap</span></Link>
                         </p>
                       )}
                     </div>
@@ -1443,7 +1452,7 @@ export default function ProductDetail() {
                         </p>
                       )}
                       <button type="submit" disabled={createReviewMutation.isPending}
-                        className="px-6 py-2.5 bg-black text-white font-semibold hover:bg-[#2D5A27] transition-colors disabled:opacity-50 flex items-center gap-2 text-[11px] tracking-[0.18em] uppercase"
+                        className="px-6 py-2.5 bg-black text-white font-semibold hover:bg-[#141414] transition-colors disabled:opacity-50 flex items-center gap-2 text-[11px] tracking-[0.18em] uppercase"
                         data-testid="button-submit-review">
                         {createReviewMutation.isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : <Send className="w-3.5 h-3.5" />}
                         Gönder
@@ -1456,11 +1465,11 @@ export default function ProductDetail() {
 
             {/* User's own review */}
             {userReview && (
-              <div className="border border-[#2D5A27]/20 bg-[#2D5A27]/[0.03] p-5 mb-6">
+              <div className="border border-[#141414]/20 bg-[#141414]/[0.03] p-5 mb-6">
                 <div className="flex items-center gap-2 mb-2 flex-wrap">
                   <StarRating rating={userReview.rating} size={13} />
                   {userReview.isApproved ? (
-                    <span className="text-[11px] text-emerald-700 font-medium flex items-center gap-1"><Check className="w-3 h-3" />Değerlendirmeniz</span>
+                    <span className="text-[11px] text-neutral-700 font-medium flex items-center gap-1"><Check className="w-3 h-3" />Değerlendirmeniz</span>
                   ) : userReview.rejectionReason ? (
                     <span className="text-[11px] text-red-700 font-medium px-2 py-0.5 bg-red-50 border border-red-100">Onaylanmadı</span>
                   ) : (
@@ -1510,7 +1519,7 @@ export default function ProductDetail() {
                   <Star className="w-8 h-8 mx-auto mb-3 text-black/12" />
                   <p className="text-[13px] text-black/40">Henüz değerlendirme yok.</p>
                   <button type="button" onClick={() => setShowReviewForm(true)}
-                    className="mt-4 text-[11px] text-[#2D5A27] font-semibold hover:underline tracking-[0.12em] uppercase">
+                    className="mt-4 text-[11px] text-[#141414] font-semibold hover:underline tracking-[0.12em] uppercase">
                     İlk yorumu yap
                   </button>
                 </div>
@@ -1564,7 +1573,7 @@ export default function ProductDetail() {
               onClick={handleAddToCart}
               disabled={isAdding || isOutOfStock}
               className={`h-10 px-5 font-semibold text-[11px] uppercase tracking-[0.18em] flex items-center justify-center gap-2 ${
-                isOutOfStock ? 'bg-black/8 text-black/30 cursor-not-allowed' : 'bg-[#2D5A27] text-white hover:bg-[#234a1e]'
+                isOutOfStock ? 'bg-black/8 text-black/30 cursor-not-allowed' : 'bg-[#141414] text-white hover:bg-[#1F1F1F]'
               }`}
               data-testid="button-add-to-cart-mobile"
             >

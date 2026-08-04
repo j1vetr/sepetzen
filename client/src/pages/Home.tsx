@@ -18,7 +18,7 @@ const HERO_SLIDES = [
     desc: 'El yapımı, yüksek karbonlu çelik - her avcının yanında.',
     href: '/kategori/bicaklar',
     cta: 'Koleksiyonu Gör',
-    bg: '#0d1a0c',
+    bg: '#0F0F0F',
   },
   {
     image: '/uploads/products/header_kamp-bicagi.png',
@@ -27,7 +27,7 @@ const HERO_SLIDES = [
     desc: 'Kompakt, dayanıklı ve çok fonksiyonlu - doğanın ortasında güvende.',
     href: '/kategori/cakilar',
     cta: 'Modelleri İncele',
-    bg: '#0a1010',
+    bg: '#080808',
   },
   {
     image: '/uploads/products/header_bag-bahce.png',
@@ -36,7 +36,7 @@ const HERO_SLIDES = [
     desc: 'Profesyonel budama, kazıma ve bakım aletleri koleksiyonu.',
     href: '/kategori/bag-bahce-aletleri',
     cta: 'Ürünlere Bak',
-    bg: '#0c140b',
+    bg: '#0F0F0F',
   },
 ];
 
@@ -75,7 +75,7 @@ function HeroSlider({ products }: { products: Product[] }) {
 
   return (
     <section
-      className="relative w-full overflow-hidden bg-[#0c0a09] hero-section flex flex-col"
+      className="relative w-full overflow-hidden bg-[#000000] hero-section flex flex-col"
       data-testid="scene-hero"
     >
       {/* Full-bleed background */}
@@ -117,7 +117,7 @@ function HeroSlider({ products }: { products: Product[] }) {
               exit={{ opacity: 0, y: -18 }}
               transition={{ duration: 0.55, ease: [0.16, 1, 0.3, 1] }}
             >
-              <span className="inline-block text-[10px] tracking-[0.30em] uppercase text-[#4a9a42] font-mono mb-4">
+              <span className="inline-block text-[10px] tracking-[0.30em] uppercase text-[#FAFAFA] font-mono mb-4">
                 {slide.eyebrow}
               </span>
               <h1
@@ -134,7 +134,7 @@ function HeroSlider({ products }: { products: Product[] }) {
                   <motion.span
                     whileHover={{ scale: 1.02 }}
                     whileTap={{ scale: 0.97 }}
-                    className="inline-flex items-center gap-3 px-7 py-3.5 bg-[#2D5A27] text-white text-[11px] tracking-[0.22em] uppercase font-bold hover:bg-[#4a9a42] transition-colors cursor-pointer"
+                    className="inline-flex items-center gap-3 px-7 py-3.5 bg-white text-black text-[11px] tracking-[0.22em] uppercase font-bold hover:bg-[#E6E6E6] transition-colors cursor-pointer"
                     data-testid="link-hero-cta"
                   >
                     {slide.cta} <ArrowUpRight className="w-4 h-4" />
@@ -157,7 +157,7 @@ function HeroSlider({ products }: { products: Product[] }) {
                   key={i}
                   onClick={() => go(i, i > active ? 1 : -1)}
                   className="relative h-[2px] rounded-full overflow-hidden transition-all duration-300"
-                  style={{ width: i === active ? 40 : 16, backgroundColor: i === active ? '#4a9a42' : 'rgba(255,255,255,0.22)' }}
+                  style={{ width: i === active ? 40 : 16, backgroundColor: i === active ? '#FAFAFA' : 'rgba(255,255,255,0.22)' }}
                   data-testid={`button-hero-slide-${i}`}
                   aria-label={`Slayt ${i + 1}`}
                 />
@@ -213,7 +213,7 @@ function HeroSlider({ products }: { products: Product[] }) {
                         <div className="absolute inset-x-0 bottom-0 h-20 bg-gradient-to-t from-black/70 to-transparent pointer-events-none" />
                         {/* Badge */}
                         {(p.isNew || p.discountBadge) && (
-                          <span className="absolute top-2 left-2 text-[7.5px] tracking-[0.18em] uppercase text-white bg-[#2D5A27] px-2 py-0.5 font-bold">
+                          <span className="absolute top-2 left-2 text-[7.5px] tracking-[0.18em] uppercase text-white bg-[#141414] px-2 py-0.5 font-bold">
                             {p.isNew ? 'Yeni' : p.discountBadge}
                           </span>
                         )}
@@ -224,10 +224,10 @@ function HeroSlider({ products }: { products: Product[] }) {
                           {p.name}
                         </p>
                         <div className="flex items-center justify-between gap-1">
-                          <p className="text-[13px] font-bold text-[#4a9a42] leading-none">
+                          <p className="text-[13px] font-bold text-[#FAFAFA] leading-none">
                             {price.toLocaleString('tr-TR')} ₺
                           </p>
-                          <ArrowUpRight className="w-3 h-3 text-white/30 group-hover:text-[#4a9a42] transition-colors shrink-0" />
+                          <ArrowUpRight className="w-3 h-3 text-white/30 group-hover:text-[#FAFAFA] transition-colors shrink-0" />
                         </div>
                       </div>
                     </div>
@@ -250,7 +250,7 @@ function HeroSlider({ products }: { products: Product[] }) {
           </AnimatePresence>
 
           {/* View all link */}
-          <Link href="/magaza" className="mt-2.5 shrink-0 text-[10px] tracking-[0.20em] uppercase text-white/30 hover:text-[#4a9a42] transition-colors flex items-center gap-1.5 font-mono">
+          <Link href="/magaza" className="mt-2.5 shrink-0 text-[10px] tracking-[0.20em] uppercase text-white/30 hover:text-[#FAFAFA] transition-colors flex items-center gap-1.5 font-mono">
             Tüm Ürünleri Gör <ArrowUpRight className="w-3 h-3" />
           </Link>
         </div>
@@ -279,7 +279,7 @@ function FeaturedProducts({ products }: { products: Product[] }) {
   return (
     <section
       ref={ref}
-      className="bg-[#f5f3ef] py-16 lg:py-24 px-5 lg:px-10"
+      className="bg-[#F5F5F5] py-16 lg:py-24 px-5 lg:px-10"
       data-testid="scene-featured"
     >
       <div className="max-w-[1320px] mx-auto">
@@ -297,7 +297,7 @@ function FeaturedProducts({ products }: { products: Product[] }) {
           <Link
             href="/magaza"
             data-testid="link-featured-all"
-            className="hidden sm:inline-flex items-center gap-2 text-[11px] tracking-[0.22em] uppercase font-semibold text-black/50 hover:text-[#2D5A27] transition-colors"
+            className="hidden sm:inline-flex items-center gap-2 text-[11px] tracking-[0.22em] uppercase font-semibold text-black/50 hover:text-[#141414] transition-colors"
           >
             Tümünü Gör <ArrowUpRight className="w-3.5 h-3.5" />
           </Link>
@@ -319,7 +319,7 @@ function FeaturedProducts({ products }: { products: Product[] }) {
         </div>
 
         <div className="mt-10 text-center sm:hidden">
-          <Link href="/magaza" className="inline-flex items-center gap-2 text-[11px] tracking-[0.22em] uppercase font-semibold text-[#2D5A27]">
+          <Link href="/magaza" className="inline-flex items-center gap-2 text-[11px] tracking-[0.22em] uppercase font-semibold text-[#141414]">
             Tüm Ürünlere Bak <ArrowUpRight className="w-3.5 h-3.5" />
           </Link>
         </div>
@@ -336,42 +336,42 @@ const CATS = [
     slug: 'cakilar',
     desc: 'Kamp & Av Çakıları',
     image: '/uploads/products/header_ithal-caki-1.png',
-    accent: '#4a9a42',
+    accent: '#FAFAFA',
   },
   {
     name: 'Bıçaklar',
     slug: 'bicaklar',
     desc: 'Av & Mutfak Bıçakları',
     image: '/uploads/products/header_av-cakisi.png',
-    accent: '#4a9a42',
+    accent: '#FAFAFA',
   },
   {
     name: 'Kamp & Outdoor',
     slug: 'kamp-outdoor-ekipmanlari',
     desc: 'Doğa Ekipmanları',
     image: '/uploads/products/header_kamp-bicagi.png',
-    accent: '#34d399',
+    accent: '#FAFAFA',
   },
   {
     name: 'Bağ & Bahçe',
     slug: 'bag-bahce-aletleri',
     desc: 'Tarım & Bahçe Aletleri',
     image: '/uploads/products/header_bag-bahce.png',
-    accent: '#84cc16',
+    accent: '#FAFAFA',
   },
   {
     name: 'Mangal & Izgara',
     slug: 'mangal-izgara-ahsap',
     desc: 'BBQ & Ahşap Ürünler',
     image: '/uploads/products/header_izgara.png',
-    accent: '#f59e0b',
+    accent: '#FAFAFA',
   },
   {
     name: 'Nalbur & Hırdavat',
     slug: 'nalbur-hirdavat',
     desc: 'El Aletleri & Donanım',
     image: '/uploads/products/header_mangal-aksesuar.png',
-    accent: '#9ca3af',
+    accent: '#FAFAFA',
   },
 ];
 
@@ -382,7 +382,7 @@ function CategoriesSection() {
   return (
     <section
       ref={ref}
-      className="bg-[#0c0a09] py-16 lg:py-24 px-5 lg:px-10"
+      className="bg-[#000000] py-16 lg:py-24 px-5 lg:px-10"
       data-testid="scene-categories"
     >
       <div className="max-w-[1320px] mx-auto">
@@ -471,13 +471,13 @@ function NewArrivals({ products }: { products: Product[] }) {
   return (
     <section
       ref={ref}
-      className="bg-[#0f1a0d] py-16 lg:py-24 px-5 lg:px-10"
+      className="bg-[#0F0F0F] py-16 lg:py-24 px-5 lg:px-10"
       data-testid="scene-new-arrivals"
     >
       <div className="max-w-[1320px] mx-auto">
         <div className="flex items-end justify-between mb-10 lg:mb-14">
           <div>
-            <p className="text-[10px] font-mono tracking-[0.30em] uppercase text-[#4a9a42] mb-2">Yeni</p>
+            <p className="text-[10px] font-mono tracking-[0.30em] uppercase text-[#FAFAFA] mb-2">Yeni</p>
             <h2
               className="font-black text-white leading-none"
               style={{ fontSize: 'clamp(28px, 4vw, 52px)', letterSpacing: '-0.03em' }}
@@ -487,7 +487,7 @@ function NewArrivals({ products }: { products: Product[] }) {
           </div>
           <Link
             href="/magaza?isNew=1"
-            className="hidden sm:inline-flex items-center gap-2 text-[11px] tracking-[0.22em] uppercase font-semibold text-white/35 hover:text-[#4a9a42] transition-colors"
+            className="hidden sm:inline-flex items-center gap-2 text-[11px] tracking-[0.22em] uppercase font-semibold text-white/35 hover:text-[#FAFAFA] transition-colors"
           >
             Hepsini Gör <ArrowUpRight className="w-3.5 h-3.5" />
           </Link>
@@ -519,7 +519,7 @@ function NewArrivals({ products }: { products: Product[] }) {
                     />
                     {/* Badge */}
                     {p.discountBadge && (
-                      <div className="absolute top-2.5 left-2.5 bg-[#2D5A27] text-white text-[9px] font-bold tracking-[0.16em] uppercase px-2 py-1">
+                      <div className="absolute top-2.5 left-2.5 bg-[#141414] text-white text-[9px] font-bold tracking-[0.16em] uppercase px-2 py-1">
                         {p.discountBadge}
                       </div>
                     )}
@@ -538,10 +538,10 @@ function NewArrivals({ products }: { products: Product[] }) {
                   {/* Info */}
                   <div>
                     <p className="text-[11px] tracking-[0.06em] text-white/50 font-mono mb-0.5">Sepetzen</p>
-                    <p className="text-[13px] lg:text-[14px] font-semibold text-white leading-snug line-clamp-2 mb-1.5 group-hover:text-[#4a9a42] transition-colors">
+                    <p className="text-[13px] lg:text-[14px] font-semibold text-white leading-snug line-clamp-2 mb-1.5 group-hover:text-[#FAFAFA] transition-colors">
                       {p.name}
                     </p>
-                    <p className="text-[15px] font-bold text-[#4a9a42]">
+                    <p className="text-[15px] font-bold text-[#FAFAFA]">
                       {price.toLocaleString('tr-TR', { maximumFractionDigits: 0 })} ₺
                     </p>
                   </div>
@@ -606,12 +606,12 @@ function VideoSection() {
   ];
 
   return (
-    <section className="bg-[#0c0a09] py-16 lg:py-24 px-5 lg:px-10" data-testid="scene-videos">
+    <section className="bg-[#000000] py-16 lg:py-24 px-5 lg:px-10" data-testid="scene-videos">
       <div className="max-w-[1320px] mx-auto">
         {/* Başlık */}
         <div className="mb-10 lg:mb-14 flex flex-col sm:flex-row sm:items-end sm:justify-between gap-6">
           <div>
-            <p className="text-[10px] font-mono tracking-[0.30em] uppercase text-[#4a9a42] mb-2">
+            <p className="text-[10px] font-mono tracking-[0.30em] uppercase text-[#FAFAFA] mb-2">
               Türkiye Geneli Hızlı Kargo
             </p>
             <h2
@@ -626,7 +626,7 @@ function VideoSection() {
           </div>
           <Link
             href="/magaza"
-            className="inline-flex items-center gap-2 shrink-0 text-[11px] tracking-[0.22em] uppercase font-semibold text-white border border-white/20 hover:border-[#4a9a42] hover:text-[#4a9a42] transition-colors px-5 py-3"
+            className="inline-flex items-center gap-2 shrink-0 text-[11px] tracking-[0.22em] uppercase font-semibold text-white border border-white/20 hover:border-[#FAFAFA] hover:text-[#FAFAFA] transition-colors px-5 py-3"
           >
             Ürünleri İncele <ArrowUpRight className="w-3.5 h-3.5" />
           </Link>
@@ -686,7 +686,7 @@ function TrustStrip() {
     },
   ];
   return (
-    <section className="bg-[#0f1a0e] border-t border-white/[0.07]" data-testid="scene-trust">
+    <section className="bg-[#0F0F0F] border-t border-white/[0.07]" data-testid="scene-trust">
       <div className="max-w-[1100px] mx-auto px-5 lg:px-10">
         <div className="grid grid-cols-1 sm:grid-cols-3">
           {items.map((item, i) => {
@@ -701,8 +701,8 @@ function TrustStrip() {
                   i < items.length - 1 ? 'sm:pr-8 lg:pr-12' : '',
                 ].join(' ')}
               >
-                <div className="w-11 h-11 rounded-sm bg-[#2D5A27]/20 border border-[#2D5A27]/30 flex items-center justify-center shrink-0">
-                  <Icon className="w-[19px] h-[19px] text-[#4a9a42]" strokeWidth={1.75} />
+                <div className="w-11 h-11 rounded-sm bg-[#141414]/20 border border-[#141414]/30 flex items-center justify-center shrink-0">
+                  <Icon className="w-[19px] h-[19px] text-[#FAFAFA]" strokeWidth={1.75} />
                 </div>
                 <div>
                   <p className="text-[13px] font-bold text-white/90 leading-snug tracking-[0.01em]">
@@ -735,7 +735,7 @@ function MobileMarquee({ products }: { products: Product[] }) {
 
   return (
     <section
-      className="block lg:hidden bg-[#0c0a09] overflow-hidden py-4 border-t border-white/[0.06]"
+      className="block lg:hidden bg-[#000000] overflow-hidden py-4 border-t border-white/[0.06]"
       data-testid="scene-mobile-marquee"
     >
       <div className="marquee-track gap-3 px-3">
@@ -745,7 +745,7 @@ function MobileMarquee({ products }: { products: Product[] }) {
             <Link
               key={`${p.id}-${i}`}
               href={`/urun/${p.slug}`}
-              className="group shrink-0 w-32 flex flex-col bg-white/[0.06] border border-white/[0.08] overflow-hidden hover:border-[#4a9a42]/50 transition-colors"
+              className="group shrink-0 w-32 flex flex-col bg-white/[0.06] border border-white/[0.08] overflow-hidden hover:border-[#FAFAFA]/50 transition-colors"
               data-testid={`link-marquee-product-${p.id}`}
             >
               <div className="relative w-32 h-40 overflow-hidden bg-black/20 shrink-0">
@@ -765,7 +765,7 @@ function MobileMarquee({ products }: { products: Product[] }) {
                 <p className="text-[10.5px] font-medium text-white/75 leading-snug line-clamp-2 mb-1.5">
                   {p.name}
                 </p>
-                <p className="text-[12px] font-bold text-[#4a9a42]">
+                <p className="text-[12px] font-bold text-[#FAFAFA]">
                   {price.toLocaleString('tr-TR', { maximumFractionDigits: 0 })} ₺
                 </p>
               </div>

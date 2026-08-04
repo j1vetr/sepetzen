@@ -435,7 +435,7 @@ export default function CouponsTab() {
                             data-testid={`button-copy-${c.id}`}
                           >
                             {copiedCode === c.code ? (
-                              <CheckCircle2 className="w-3.5 h-3.5 text-emerald-500" />
+                              <CheckCircle2 className="w-3.5 h-3.5 text-neutral-500" />
                             ) : (
                               <Copy className="w-3.5 h-3.5" />
                             )}
@@ -457,7 +457,7 @@ export default function CouponsTab() {
                           <span>{Number(c.discountValue).toLocaleString('tr-TR')} ₺</span>
                         )}
                         {c.freeShipping && (
-                          <span className="ml-1.5 text-[10px] text-emerald-600">+ Kargo</span>
+                          <span className="ml-1.5 text-[10px] text-neutral-600">+ Kargo</span>
                         )}
                       </td>
                       <td className="px-4 py-3 text-neutral-600">
@@ -482,7 +482,7 @@ export default function CouponsTab() {
                             title={c.isActive ? 'Pasif yap' : 'Aktif yap'}
                             data-testid={`button-toggle-${c.id}`}
                           >
-                            <Power className={`w-3.5 h-3.5 ${c.isActive ? 'text-emerald-600' : 'text-neutral-400'}`} />
+                            <Power className={`w-3.5 h-3.5 ${c.isActive ? 'text-neutral-600' : 'text-neutral-400'}`} />
                           </IconButton>
                           <IconButton
                             onClick={() => openEdit(c)}
@@ -529,7 +529,7 @@ export default function CouponsTab() {
                           className="text-neutral-400"
                         >
                           {copiedCode === c.code ? (
-                            <CheckCircle2 className="w-3.5 h-3.5 text-emerald-500" />
+                            <CheckCircle2 className="w-3.5 h-3.5 text-neutral-500" />
                           ) : (
                             <Copy className="w-3.5 h-3.5" />
                           )}
@@ -575,7 +575,7 @@ export default function CouponsTab() {
                     <IconButton
                       onClick={() => toggleActiveMutation.mutate(c)}
                     >
-                      <Power className={`w-3.5 h-3.5 ${c.isActive ? 'text-emerald-600' : 'text-neutral-400'}`} />
+                      <Power className={`w-3.5 h-3.5 ${c.isActive ? 'text-neutral-600' : 'text-neutral-400'}`} />
                     </IconButton>
                     <IconButton
                       tone="danger"
@@ -880,7 +880,7 @@ function StatCard({
 }) {
   const toneClasses: Record<typeof tone, { bg: string; text: string }> = {
     neutral: { bg: 'bg-neutral-100', text: 'text-neutral-700' },
-    emerald: { bg: 'bg-emerald-50', text: 'text-emerald-600' },
+    emerald: { bg: 'bg-neutral-50', text: 'text-neutral-600' },
     blue: { bg: 'bg-blue-50', text: 'text-blue-600' },
     orange: { bg: 'bg-orange-50', text: 'text-orange-600' },
   };
@@ -917,7 +917,7 @@ function CheckPill({
 }) {
   const activeClass =
     tone === 'emerald'
-      ? 'bg-emerald-50 border-emerald-300 text-emerald-700'
+      ? 'bg-neutral-50 border-neutral-300 text-neutral-700'
       : 'bg-neutral-900 border-neutral-900 text-white';
   return (
     <button
@@ -934,7 +934,7 @@ function CheckPill({
         className={`w-3.5 h-3.5 rounded-sm border flex items-center justify-center transition-colors ${
           checked
             ? tone === 'emerald'
-              ? 'bg-emerald-500 border-emerald-500'
+              ? 'bg-neutral-500 border-neutral-500'
               : 'bg-white border-white'
             : 'border-neutral-300'
         }`}

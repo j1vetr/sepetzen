@@ -156,7 +156,7 @@ function ArasSenderAddressPicker({ value, onChange }: { value: string; onChange:
               key={a.addressId}
               type="button"
               onClick={() => { onChange(a.addressId); setAddresses([]); }}
-              className={`w-full text-left px-3 py-2 text-xs hover:bg-neutral-50 transition-colors border-b border-neutral-100 last:border-0 ${value === a.addressId ? 'bg-emerald-50 text-emerald-800 font-semibold' : 'text-neutral-700'}`}
+              className={`w-full text-left px-3 py-2 text-xs hover:bg-neutral-50 transition-colors border-b border-neutral-100 last:border-0 ${value === a.addressId ? 'bg-neutral-50 text-neutral-800 font-semibold' : 'text-neutral-700'}`}
               data-testid={`option-aras-address-${a.addressId}`}
             >
               <span className="font-mono font-bold">{a.addressId}</span>
@@ -508,7 +508,7 @@ export default function SettingsPanel() {
 
       {message && (
         <div className={`flex items-center gap-2 p-4 rounded-lg ${
-          message.type === 'success' ? 'bg-green-500/10 border border-green-500/30 text-green-400' : 'bg-red-500/10 border border-red-500/30 text-red-400'
+          message.type === 'success' ? 'bg-neutral-500/10 border border-neutral-500/30 text-neutral-400' : 'bg-red-500/10 border border-red-500/30 text-red-400'
         }`}>
           {message.type === 'success' ? <CheckCircle2 className="w-5 h-5" /> : <XCircle className="w-5 h-5" />}
           {message.text}
@@ -709,7 +709,7 @@ export default function SettingsPanel() {
           </div>
         ) : (
           <div className="space-y-5">
-            <div className="flex items-start gap-2 p-3 rounded-lg bg-emerald-50 border border-emerald-200 text-emerald-800 text-xs">
+            <div className="flex items-start gap-2 p-3 rounded-lg bg-neutral-50 border border-neutral-200 text-neutral-800 text-xs">
               <CheckCircle2 className="w-4 h-4 mt-0.5 flex-shrink-0" />
               <span>
                 Ödemeler her zaman <strong>CANLI (Production)</strong> modunda işlenir. Aşağıya iyzico Merchant
@@ -755,7 +755,7 @@ export default function SettingsPanel() {
             </div>
 
             <div className="flex flex-wrap items-center justify-between gap-3">
-              <div className={`text-xs font-medium ${iyzicoConfig.configured ? 'text-emerald-600' : 'text-red-600'}`} data-testid="text-iyzico-status">
+              <div className={`text-xs font-medium ${iyzicoConfig.configured ? 'text-neutral-600' : 'text-red-600'}`} data-testid="text-iyzico-status">
                 {iyzicoConfig.configured ? '✓ Anahtarlar tanımlı - ödeme aktif' : '⚠ Anahtarlar eksik - ödeme alınamaz'}
               </div>
               <div className="flex items-center gap-2">
@@ -786,7 +786,7 @@ export default function SettingsPanel() {
               <div
                 className={`p-3 rounded-lg border text-xs space-y-1 ${
                   iyzicoTestResult.ok
-                    ? 'bg-emerald-50 border-emerald-200 text-emerald-800'
+                    ? 'bg-neutral-50 border-neutral-200 text-neutral-800'
                     : 'bg-red-50 border-red-200 text-red-800'
                 }`}
                 data-testid="text-iyzico-test-result"
@@ -980,8 +980,8 @@ export default function SettingsPanel() {
 
       <div className="bg-white border border-neutral-200 rounded-xl p-6" data-testid="card-whatsapp-settings">
         <div className="flex items-center gap-3 mb-6">
-          <div className="p-2 bg-emerald-50 rounded-lg">
-            <MessageCircle className="w-5 h-5 text-emerald-600" />
+          <div className="p-2 bg-neutral-50 rounded-lg">
+            <MessageCircle className="w-5 h-5 text-neutral-600" />
           </div>
           <div className="flex-1">
             <h3 className="text-lg font-semibold text-neutral-900">WhatsApp Bildirimleri (wpileti)</h3>
@@ -1133,7 +1133,7 @@ export default function SettingsPanel() {
             <button
               onClick={handleTestWhatsApp}
               disabled={waTesting || !waTestPhone}
-              className="flex items-center gap-2 px-6 py-3 bg-emerald-600 text-white rounded-lg hover:bg-emerald-700 transition-colors disabled:opacity-50 font-medium"
+              className="flex items-center gap-2 px-6 py-3 bg-neutral-600 text-white rounded-lg hover:bg-neutral-700 transition-colors disabled:opacity-50 font-medium"
               data-testid="button-whatsapp-test"
             >
               {waTesting ? <Loader2 className="w-4 h-4 animate-spin" /> : <Send className="w-4 h-4" />}

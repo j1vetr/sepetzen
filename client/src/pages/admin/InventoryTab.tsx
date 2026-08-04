@@ -89,7 +89,7 @@ export default function InventoryPanel() {
         </div>
         <div className="bg-neutral-50 border border-neutral-200 rounded-xl p-6">
           <div className="flex items-center gap-3">
-            <Package className="w-8 h-8 text-green-400" />
+            <Package className="w-8 h-8 text-neutral-400" />
             <div>
               <p className="text-sm text-neutral-500">Toplam Stok</p>
               <p className="text-2xl font-bold text-neutral-900">

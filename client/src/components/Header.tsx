@@ -238,7 +238,7 @@ export function Header() {
     <>
       {/* ── Announcement Bar ── */}
       <div
-        className="bg-[#2D5A27] text-white text-center py-2 px-4 text-[11px] tracking-[0.04em] font-medium"
+        className="bg-gradient-to-r from-black via-zinc-950 to-black text-white text-center py-2 px-4 text-[11px] tracking-[0.04em] font-medium"
         data-testid="announcement-bar"
       >
         1500 TL ve Üzeri Ücretsiz Kargo! &nbsp;|&nbsp; İlk Siparişinize Sepette %10 İndirim! &nbsp;|&nbsp; Havale/EFT'de %3 İndirim
@@ -254,12 +254,12 @@ export function Header() {
             aria-label="E-posta gönder"
             className="justify-self-start group flex items-center gap-3"
           >
-            <span className="w-11 h-11 rounded-full border border-black/10 group-hover:border-[#2D5A27] flex items-center justify-center shrink-0 transition-colors">
-              <Mail className="w-[17px] h-[17px] text-black/70 group-hover:text-[#2D5A27] transition-colors" strokeWidth={1.75} />
+            <span className="w-11 h-11 rounded-full border border-black/10 group-hover:border-[#141414] flex items-center justify-center shrink-0 transition-colors">
+              <Mail className="w-[17px] h-[17px] text-black/70 group-hover:text-[#141414] transition-colors" strokeWidth={1.75} />
             </span>
             <span className="flex flex-col leading-tight whitespace-nowrap">
               <span className="text-[9px] tracking-[0.22em] uppercase text-black/45 font-mono">E-Posta</span>
-              <span className="text-[13px] font-semibold text-black tracking-wide group-hover:text-[#2D5A27] transition-colors" data-testid="text-header-email">sepetzen@gmail.com</span>
+              <span className="text-[13px] font-semibold text-black tracking-wide group-hover:text-[#141414] transition-colors" data-testid="text-header-email">sepetzen@gmail.com</span>
             </span>
           </a>
 
@@ -280,12 +280,12 @@ export function Header() {
             aria-label="Telefonla ara"
             className="justify-self-end group flex items-center gap-3"
           >
-            <span className="w-11 h-11 rounded-full border border-black/10 group-hover:border-[#2D5A27] flex items-center justify-center shrink-0 transition-colors">
-              <Phone className="w-[17px] h-[17px] text-black/70 group-hover:text-[#2D5A27] transition-colors" strokeWidth={1.75} />
+            <span className="w-11 h-11 rounded-full border border-black/10 group-hover:border-[#141414] flex items-center justify-center shrink-0 transition-colors">
+              <Phone className="w-[17px] h-[17px] text-black/70 group-hover:text-[#141414] transition-colors" strokeWidth={1.75} />
             </span>
             <span className="flex flex-col leading-tight whitespace-nowrap">
               <span className="text-[9px] tracking-[0.22em] uppercase text-black/45 font-mono">Bize Ulaşın</span>
-              <span className="text-[13px] font-semibold text-black tracking-wide group-hover:text-[#2D5A27] transition-colors" data-testid="text-header-phone">0536 630 11 38</span>
+              <span className="text-[13px] font-semibold text-black tracking-wide group-hover:text-[#141414] transition-colors" data-testid="text-header-phone">0536 630 11 38</span>
             </span>
           </a>
         </div>
@@ -298,7 +298,7 @@ export function Header() {
         transition={{ duration: 0.35, ease: [0.33, 1, 0.68, 1] }}
         className={`fixed lg:sticky top-0 left-0 right-0 z-40 flex items-center lg:!h-auto overflow-visible transition-all duration-300 ${
           scrolled
-            ? 'bg-white lg:bg-[#0f1a0e] border-b border-black/8 lg:border-white/10 lg:shadow-[0_4px_24px_-8px_rgba(0,0,0,0.45)]'
+            ? 'bg-white lg:bg-[#0F0F0F] border-b border-black/8 lg:border-white/10 lg:shadow-[0_4px_24px_-8px_rgba(0,0,0,0.45)]'
             : 'bg-white border-b border-black/8'
         }`}
         style={{ willChange: 'height' }}
@@ -330,7 +330,7 @@ export function Header() {
               <motion.button
                 whileTap={{ scale: 0.9 }}
                 onClick={() => setSearchOpen(true)}
-                className="p-2.5 text-black/65 hover:text-[#2D5A27] transition-colors"
+                className="p-2.5 text-black/65 hover:text-[#141414] transition-colors"
                 data-testid="button-search-mobile"
                 aria-label="Ara"
               >
@@ -339,7 +339,7 @@ export function Header() {
               <Link href="/sepet" data-testid="link-cart-mobile">
                 <motion.button
                   whileTap={{ scale: 0.9 }}
-                  className="p-2.5 text-black/65 hover:text-[#2D5A27] transition-colors relative"
+                  className="p-2.5 text-black/65 hover:text-[#141414] transition-colors relative"
                   aria-label="Sepet"
                 >
                   <ShoppingBag className="w-[18px] h-[18px]" strokeWidth={1.75} />
@@ -350,7 +350,7 @@ export function Header() {
                         initial={{ scale: 0, opacity: 0 }}
                         animate={{ scale: 1, opacity: 1 }}
                         exit={{ scale: 0, opacity: 0 }}
-                        className="absolute top-1 right-1 min-w-[16px] h-[16px] px-1 bg-[#2D5A27] text-white text-[9px] font-bold flex items-center justify-center rounded-full leading-none"
+                        className="absolute top-1 right-1 min-w-[16px] h-[16px] px-1 bg-[#141414] text-white text-[9px] font-bold flex items-center justify-center rounded-full leading-none"
                       >
                         {totalItems > 9 ? '9+' : totalItems}
                       </motion.span>
@@ -405,7 +405,7 @@ export function Header() {
                         onMouseLeave={closeMega}
                       >
                         <button
-                          className={`${navLinkCls(isActiveMega)} ${isActiveMega ? 'text-[#2D5A27]' : ''}`}
+                          className={`${navLinkCls(isActiveMega)} ${isActiveMega ? 'text-[#141414]' : ''}`}
                           data-testid={`button-nav-root-${root.id}`}
                           aria-expanded={isActiveMega}
                           aria-haspopup="true"
@@ -473,7 +473,7 @@ export function Header() {
                           <DropdownMenuItem
                             key={c.id}
                             onClick={() => navigate(`/kategori/${c.slug}`)}
-                            className="text-[11px] tracking-[0.16em] uppercase text-black hover:bg-[hsl(var(--polen-cream))] hover:text-[#2D5A27] cursor-pointer py-2.5 px-3 rounded-none transition-colors"
+                            className="text-[11px] tracking-[0.16em] uppercase text-black hover:bg-[hsl(var(--polen-cream))] hover:text-[#141414] cursor-pointer py-2.5 px-3 rounded-none transition-colors"
                             data-testid={`link-cat-${c.slug}`}
                           >
                             {c.name}
@@ -492,7 +492,7 @@ export function Header() {
               <motion.button
                 whileTap={{ scale: 0.9 }}
                 onClick={() => setSearchOpen(true)}
-                className={`p-3 transition-colors ${scrolled ? 'text-white/65 hover:text-white' : 'text-black/65 hover:text-[#2D5A27]'}`}
+                className={`p-3 transition-colors ${scrolled ? 'text-white/65 hover:text-white' : 'text-black/65 hover:text-[#141414]'}`}
                 data-testid="button-search"
                 aria-label="Ara"
               >
@@ -502,7 +502,7 @@ export function Header() {
               {user ? (
                 <DropdownMenu modal={false}>
                   <DropdownMenuTrigger asChild>
-                    <motion.button whileTap={{ scale: 0.9 }} className={`p-3 transition-colors flex items-center gap-2 ${scrolled ? 'text-white/65 hover:text-white' : 'text-black/65 hover:text-[#2D5A27]'}`} data-testid="button-account" aria-label="Hesabım">
+                    <motion.button whileTap={{ scale: 0.9 }} className={`p-3 transition-colors flex items-center gap-2 ${scrolled ? 'text-white/65 hover:text-white' : 'text-black/65 hover:text-[#141414]'}`} data-testid="button-account" aria-label="Hesabım">
                       <User className="w-[18px] h-[18px]" strokeWidth={1.75} />
                       <span className="text-[11px] tracking-[0.18em] uppercase font-medium hidden xl:inline">Hesabım</span>
                     </motion.button>
@@ -522,7 +522,7 @@ export function Header() {
                   <DropdownMenuTrigger asChild>
                     <motion.button
                       whileTap={{ scale: 0.9 }}
-                      className={`p-3 transition-colors flex items-center gap-1.5 ${scrolled ? 'text-white/65 hover:text-white' : 'text-black/65 hover:text-[#2D5A27]'}`}
+                      className={`p-3 transition-colors flex items-center gap-1.5 ${scrolled ? 'text-white/65 hover:text-white' : 'text-black/65 hover:text-[#141414]'}`}
                       data-testid="button-account-guest"
                       aria-label="Giriş Yap"
                     >
@@ -542,7 +542,7 @@ export function Header() {
                       <button
                         type="button"
                         onClick={() => navigate('/kayit')}
-                        className="w-full py-2.5 text-[11px] tracking-[0.14em] uppercase font-bold text-white bg-[#2D5A27] hover:bg-[#234a1e] transition-colors cursor-pointer text-center"
+                        className="w-full py-2.5 text-[11px] tracking-[0.14em] uppercase font-bold text-white bg-[#141414] hover:bg-[#1F1F1F] transition-colors cursor-pointer text-center"
                         data-testid="link-header-kayit"
                       >
                         Kayıt Ol
@@ -553,7 +553,7 @@ export function Header() {
               )}
 
               <Link href="/sepet">
-                <motion.button whileTap={{ scale: 0.9 }} className={`p-3 transition-colors relative ${scrolled ? 'text-white/65 hover:text-white' : 'text-black/65 hover:text-[#2D5A27]'}`} data-testid="button-cart" aria-label="Sepet">
+                <motion.button whileTap={{ scale: 0.9 }} className={`p-3 transition-colors relative ${scrolled ? 'text-white/65 hover:text-white' : 'text-black/65 hover:text-[#141414]'}`} data-testid="button-cart" aria-label="Sepet">
                   <ShoppingBag className="w-[22px] h-[22px]" strokeWidth={1.75} />
                   <AnimatePresence>
                     {totalItems > 0 && (
@@ -562,7 +562,7 @@ export function Header() {
                         initial={{ scale: 0, opacity: 0 }}
                         animate={{ scale: 1, opacity: 1 }}
                         exit={{ scale: 0, opacity: 0 }}
-                        className="absolute top-1.5 right-1.5 min-w-[18px] h-[18px] px-1 bg-[#2D5A27] text-white text-[10px] font-bold flex items-center justify-center rounded-full leading-none"
+                        className="absolute top-1.5 right-1.5 min-w-[18px] h-[18px] px-1 bg-[#141414] text-white text-[10px] font-bold flex items-center justify-center rounded-full leading-none"
                       >
                         {totalItems > 9 ? '9+' : totalItems}
                       </motion.span>
@@ -590,7 +590,7 @@ export function Header() {
             <div className="max-w-[1400px] mx-auto flex min-h-[340px]">
 
               {/* ── LEFT: Dark green hero sidebar ── */}
-              <div className="w-64 xl:w-[288px] shrink-0 bg-[#1a3a15] flex flex-col relative overflow-hidden">
+              <div className="w-64 xl:w-[288px] shrink-0 bg-[#1F1F1F] flex flex-col relative overflow-hidden">
                 <div
                   className="absolute inset-0 opacity-[0.06] pointer-events-none"
                   style={{ backgroundImage: 'radial-gradient(circle, #fff 1px, transparent 1px)', backgroundSize: '20px 20px' }}
@@ -646,7 +646,7 @@ export function Header() {
                               )}
                               <div className="absolute bottom-0 left-0 right-0 p-3">
                                 <p className="text-[11.5px] font-semibold text-white leading-snug line-clamp-2">{sidebarProduct.name}</p>
-                                <p className="text-[13px] font-bold text-[#4a9a42] mt-1">{Number(sidebarProduct.price || sidebarProduct.basePrice).toLocaleString('tr-TR')} ₺</p>
+                                <p className="text-[13px] font-bold text-[#FAFAFA] mt-1">{Number(sidebarProduct.price || sidebarProduct.basePrice).toLocaleString('tr-TR')} ₺</p>
                               </div>
                             </div>
                           </Link>
@@ -661,7 +661,7 @@ export function Header() {
                       <Link
                         href={`/kategori/${activeMegaRoot.category.slug}`}
                         onClick={() => setMegaMenuId(null)}
-                        className="inline-flex items-center gap-2 text-[10.5px] tracking-[0.16em] uppercase font-bold text-[#1a3a15] bg-white hover:bg-white/90 transition-colors px-4 py-3"
+                        className="inline-flex items-center gap-2 text-[10.5px] tracking-[0.16em] uppercase font-bold text-[#1F1F1F] bg-white hover:bg-white/90 transition-colors px-4 py-3"
                         data-testid={`link-mega-all-${megaMenuId}`}
                       >
                         Tümünü Keşfet <ArrowUpRight className="w-3.5 h-3.5" />
@@ -683,16 +683,16 @@ export function Header() {
                         key={child.id}
                         href={childHref}
                         onClick={() => setMegaMenuId(null)}
-                        className="group flex items-center gap-3 px-3 py-3.5 rounded-lg hover:bg-[#2D5A27]/[0.07] transition-all duration-150"
+                        className="group flex items-center gap-3 px-3 py-3.5 rounded-lg hover:bg-[#141414]/[0.07] transition-all duration-150"
                         data-testid={`link-mega-${child.id}`}
                       >
-                        <span className="w-9 h-9 rounded-lg bg-[#2D5A27]/[0.08] group-hover:bg-[#2D5A27]/[0.16] flex items-center justify-center shrink-0 transition-colors">
-                          <ChildIcon className="w-4 h-4 text-[#2D5A27]" strokeWidth={1.75} />
+                        <span className="w-9 h-9 rounded-lg bg-[#141414]/[0.08] group-hover:bg-[#141414]/[0.16] flex items-center justify-center shrink-0 transition-colors">
+                          <ChildIcon className="w-4 h-4 text-[#141414]" strokeWidth={1.75} />
                         </span>
                         <span className="text-[13px] text-black/65 group-hover:text-black transition-colors font-medium leading-tight flex-1">
                           {child.title}
                         </span>
-                        <ArrowUpRight className="w-3.5 h-3.5 text-transparent group-hover:text-[#2D5A27]/50 transition-colors shrink-0" />
+                        <ArrowUpRight className="w-3.5 h-3.5 text-transparent group-hover:text-[#141414]/50 transition-colors shrink-0" />
                       </Link>
                     );
                   })}
@@ -723,7 +723,7 @@ export function Header() {
                         </div>
                         <div className="min-w-0 flex-1">
                           <p className="text-[12px] font-medium text-black/75 leading-snug line-clamp-2 group-hover:text-black transition-colors">{product.name}</p>
-                          <p className="text-[13.5px] font-bold text-[#2D5A27] mt-1">{Number(product.price || product.basePrice).toLocaleString('tr-TR')} ₺</p>
+                          <p className="text-[13.5px] font-bold text-[#141414] mt-1">{Number(product.price || product.basePrice).toLocaleString('tr-TR')} ₺</p>
                         </div>
                       </Link>
                     ))}
@@ -732,7 +732,7 @@ export function Header() {
                     <Link
                       href={`/kategori/${activeMegaRoot.category.slug}`}
                       onClick={() => setMegaMenuId(null)}
-                      className="mt-5 text-[9.5px] tracking-[0.18em] uppercase text-[#2D5A27] hover:text-[#2D5A27]/70 transition-colors font-semibold flex items-center gap-1"
+                      className="mt-5 text-[9.5px] tracking-[0.18em] uppercase text-[#141414] hover:text-[#141414]/70 transition-colors font-semibold flex items-center gap-1"
                     >
                       Tüm ürünleri gör <ArrowUpRight className="w-3 h-3" />
                     </Link>
@@ -769,7 +769,7 @@ export function Header() {
               data-testid="drawer-mobile-menu"
             >
               {/* ── Hero panel: brand header ── */}
-              <div className="relative h-[120px] shrink-0 overflow-hidden border-b border-black/8 bg-[#0f1a0e] flex items-center justify-center">
+              <div className="relative h-[120px] shrink-0 overflow-hidden border-b border-black/8 bg-[#0F0F0F] flex items-center justify-center">
                 <motion.button
                   whileTap={{ scale: 0.88 }}
                   onClick={() => setMobileOpen(false)}
@@ -809,14 +809,14 @@ export function Header() {
                       data-testid="link-mobile-home"
                     >
                       <span className="flex items-center gap-3">
-                        <span className="text-[9px] font-mono tracking-[0.18em] text-black/30 group-hover:text-[#2D5A27] transition-colors">
+                        <span className="text-[9px] font-mono tracking-[0.18em] text-black/30 group-hover:text-[#141414] transition-colors">
                           01
                         </span>
-                        <span className="font-display text-[17px] leading-none tracking-[0.01em] text-black group-hover:text-[#2D5A27] transition-colors">
+                        <span className="font-display text-[17px] leading-none tracking-[0.01em] text-black group-hover:text-[#141414] transition-colors">
                           Ana Sayfa
                         </span>
                       </span>
-                      <ArrowUpRight className="w-3.5 h-3.5 text-black/25 rotate-45 group-hover:rotate-0 group-hover:text-[#2D5A27] transition-all duration-300" />
+                      <ArrowUpRight className="w-3.5 h-3.5 text-black/25 rotate-45 group-hover:rotate-0 group-hover:text-[#141414] transition-all duration-300" />
                     </Link>
                   </motion.li>
 
@@ -838,11 +838,11 @@ export function Header() {
                               aria-expanded={isOpen}
                             >
                               <span className="flex items-center gap-3">
-                                <span className={`text-[9px] font-mono tracking-[0.18em] transition-colors ${isOpen ? 'text-[#2D5A27]' : 'text-black/30 group-hover:text-[#2D5A27]'}`}>
+                                <span className={`text-[9px] font-mono tracking-[0.18em] transition-colors ${isOpen ? 'text-[#141414]' : 'text-black/30 group-hover:text-[#141414]'}`}>
                                   {number}
                                 </span>
-                                <Icon className={`w-3.5 h-3.5 transition-colors ${isOpen ? 'text-[#2D5A27]' : 'text-black/40 group-hover:text-[#2D5A27]'}`} strokeWidth={2} />
-                                <span className={`font-display text-[17px] leading-none tracking-[0.01em] transition-colors ${isOpen ? 'text-[#2D5A27]' : 'text-black group-hover:text-[#2D5A27]'}`}>
+                                <Icon className={`w-3.5 h-3.5 transition-colors ${isOpen ? 'text-[#141414]' : 'text-black/40 group-hover:text-[#141414]'}`} strokeWidth={2} />
+                                <span className={`font-display text-[17px] leading-none tracking-[0.01em] transition-colors ${isOpen ? 'text-[#141414]' : 'text-black group-hover:text-[#141414]'}`}>
                                   {root.title}
                                 </span>
                                 <span className="text-[9px] text-black/35 self-center">({children.length})</span>
@@ -850,7 +850,7 @@ export function Header() {
                               <motion.span
                                 animate={{ rotate: isOpen ? 90 : 0 }}
                                 transition={{ duration: 0.3 }}
-                                className={`${isOpen ? 'text-[#2D5A27]' : 'text-black/30'} transition-colors`}
+                                className={`${isOpen ? 'text-[#141414]' : 'text-black/30'} transition-colors`}
                               >
                                 <span className="block w-3 h-3 relative">
                                   <span className="absolute inset-x-0 top-1/2 -translate-y-1/2 h-px bg-current" />
@@ -869,7 +869,7 @@ export function Header() {
                                   animate={{ height: 'auto', opacity: 1 }}
                                   exit={{ height: 0, opacity: 0 }}
                                   transition={{ duration: 0.32, ease: [0.16, 1, 0.3, 1] }}
-                                  className="overflow-hidden pl-7 border-l border-[#2D5A27]/30 ml-[3px] mb-2"
+                                  className="overflow-hidden pl-7 border-l border-[#141414]/30 ml-[3px] mb-2"
                                 >
                                   {children.length === 0 ? (
                                     <li className="text-[10px] text-black/35 py-1.5">Henüz alt kategori yok</li>
@@ -881,10 +881,10 @@ export function Header() {
                                         <Link
                                           href={href}
                                           onClick={() => setMobileOpen(false)}
-                                          className="group flex items-center gap-2 py-1.5 text-black/70 hover:text-[#2D5A27] transition-colors"
+                                          className="group flex items-center gap-2 py-1.5 text-black/70 hover:text-[#141414] transition-colors"
                                           data-testid={`link-mobile-mega-${child.id}`}
                                         >
-                                          <ChildIcon className="w-3 h-3 text-[#2D5A27]/60 group-hover:text-[#2D5A27] transition-colors" strokeWidth={2} />
+                                          <ChildIcon className="w-3 h-3 text-[#141414]/60 group-hover:text-[#141414] transition-colors" strokeWidth={2} />
                                           <span className="text-[11px] tracking-[0.12em] uppercase">
                                             {child.title}
                                           </span>
@@ -909,15 +909,15 @@ export function Header() {
                             data-testid={`link-mobile-root-${root.id}`}
                           >
                             <span className="flex items-center gap-3">
-                              <span className="text-[9px] font-mono tracking-[0.18em] text-black/30 group-hover:text-[#2D5A27] transition-colors">
+                              <span className="text-[9px] font-mono tracking-[0.18em] text-black/30 group-hover:text-[#141414] transition-colors">
                                 {number}
                               </span>
-                              <Icon className="w-3.5 h-3.5 text-black/40 group-hover:text-[#2D5A27] transition-colors" strokeWidth={2} />
-                              <span className="font-display text-[17px] leading-none tracking-[0.01em] text-black group-hover:text-[#2D5A27] transition-colors">
+                              <Icon className="w-3.5 h-3.5 text-black/40 group-hover:text-[#141414] transition-colors" strokeWidth={2} />
+                              <span className="font-display text-[17px] leading-none tracking-[0.01em] text-black group-hover:text-[#141414] transition-colors">
                                 {root.title}
                               </span>
                             </span>
-                            <ArrowUpRight className="w-3.5 h-3.5 text-black/25 rotate-45 group-hover:rotate-0 group-hover:text-[#2D5A27] transition-all duration-300" />
+                            <ArrowUpRight className="w-3.5 h-3.5 text-black/25 rotate-45 group-hover:rotate-0 group-hover:text-[#141414] transition-all duration-300" />
                           </Link>
                         </motion.li>
                       );
@@ -934,15 +934,15 @@ export function Header() {
                             data-testid={`link-mobile-cat-${c.slug}`}
                           >
                             <span className="flex items-center gap-3">
-                              <span className="text-[9px] font-mono tracking-[0.18em] text-black/30 group-hover:text-[#2D5A27] transition-colors">
+                              <span className="text-[9px] font-mono tracking-[0.18em] text-black/30 group-hover:text-[#141414] transition-colors">
                                 {String(idx + 2).padStart(2, '0')}
                               </span>
-                              <Icon className="w-3.5 h-3.5 text-black/40 group-hover:text-[#2D5A27] transition-colors" strokeWidth={2} />
-                              <span className="font-display text-[17px] leading-none tracking-[0.01em] text-black group-hover:text-[#2D5A27] transition-colors">
+                              <Icon className="w-3.5 h-3.5 text-black/40 group-hover:text-[#141414] transition-colors" strokeWidth={2} />
+                              <span className="font-display text-[17px] leading-none tracking-[0.01em] text-black group-hover:text-[#141414] transition-colors">
                                 {c.name}
                               </span>
                             </span>
-                            <ArrowUpRight className="w-3.5 h-3.5 text-black/25 rotate-45 group-hover:rotate-0 group-hover:text-[#2D5A27] transition-all duration-300" />
+                            <ArrowUpRight className="w-3.5 h-3.5 text-black/25 rotate-45 group-hover:rotate-0 group-hover:text-[#141414] transition-all duration-300" />
                           </Link>
                         </motion.li>
                       );
@@ -958,14 +958,14 @@ export function Header() {
                         data-testid="link-mobile-hesabim"
                       >
                         <span className="flex items-center gap-3">
-                          <span className="text-[9px] font-mono tracking-[0.18em] text-black/30 group-hover:text-[#2D5A27] transition-colors">
+                          <span className="text-[9px] font-mono tracking-[0.18em] text-black/30 group-hover:text-[#141414] transition-colors">
                             ★
                           </span>
-                          <span className="font-display text-[17px] leading-none tracking-[0.01em] text-black group-hover:text-[#2D5A27] transition-colors">
+                          <span className="font-display text-[17px] leading-none tracking-[0.01em] text-black group-hover:text-[#141414] transition-colors">
                             Hesabım
                           </span>
                         </span>
-                        <ArrowUpRight className="w-3.5 h-3.5 text-black/25 rotate-45 group-hover:rotate-0 group-hover:text-[#2D5A27] transition-all duration-300" />
+                        <ArrowUpRight className="w-3.5 h-3.5 text-black/25 rotate-45 group-hover:rotate-0 group-hover:text-[#141414] transition-all duration-300" />
                       </Link>
                     </motion.li>
                   )}
@@ -979,7 +979,7 @@ export function Header() {
                     <Link
                       href="/giris"
                       onClick={() => setMobileOpen(false)}
-                      className="flex items-center justify-center py-3.5 text-[11px] tracking-[0.18em] uppercase font-medium text-black/75 hover:text-[#2D5A27] hover:bg-black/[0.03] transition-colors border-r border-black/8"
+                      className="flex items-center justify-center py-3.5 text-[11px] tracking-[0.18em] uppercase font-medium text-black/75 hover:text-[#141414] hover:bg-black/[0.03] transition-colors border-r border-black/8"
                       data-testid="link-mobile-giris"
                     >
                       Giriş Yap
@@ -987,7 +987,7 @@ export function Header() {
                     <Link
                       href="/kayit"
                       onClick={() => setMobileOpen(false)}
-                      className="flex items-center justify-center py-3.5 text-[11px] tracking-[0.18em] uppercase font-bold text-white bg-[#2D5A27] hover:bg-[#2D5A27]/90 transition-colors"
+                      className="flex items-center justify-center py-3.5 text-[11px] tracking-[0.18em] uppercase font-bold text-white bg-[#141414] hover:bg-[#141414]/90 transition-colors"
                       data-testid="link-mobile-kayit"
                     >
                       Kayıt Ol
@@ -997,7 +997,7 @@ export function Header() {
                 <Link
                   href="/sepet"
                   onClick={() => setMobileOpen(false)}
-                  className="group relative bg-black hover:bg-[#2D5A27] transition-colors duration-500 px-6 py-4 flex items-center justify-between text-white"
+                  className="group relative bg-black hover:bg-[#141414] transition-colors duration-500 px-6 py-4 flex items-center justify-between text-white"
                   data-testid="link-mobile-sepet"
                 >
                   <span className="flex items-center gap-3">
@@ -1008,7 +1008,7 @@ export function Header() {
                   </span>
                   <span className="flex items-center gap-3">
                     {totalItems > 0 && (
-                      <span className="min-w-[24px] h-[24px] px-2 bg-[#2D5A27] group-hover:bg-white text-white group-hover:text-[#2D5A27] text-[11px] font-bold flex items-center justify-center rounded-full transition-colors">
+                      <span className="min-w-[24px] h-[24px] px-2 bg-[#141414] group-hover:bg-white text-white group-hover:text-[#141414] text-[11px] font-bold flex items-center justify-center rounded-full transition-colors">
                         {totalItems}
                       </span>
                     )}

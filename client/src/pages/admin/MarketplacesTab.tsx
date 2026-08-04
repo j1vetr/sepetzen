@@ -1011,7 +1011,7 @@ function StatTile({
 }) {
   const valueClass =
     tone === 'emerald'
-      ? 'text-emerald-700'
+      ? 'text-neutral-700'
       : tone === 'amber'
         ? 'text-amber-700'
         : tone === 'red'
@@ -1253,7 +1253,7 @@ function MarketplaceFormDialog({
             {testResult && (
               <span
                 className={`text-[12px] flex items-center gap-1.5 ${
-                  testResult.ok ? 'text-emerald-700' : 'text-red-700'
+                  testResult.ok ? 'text-neutral-700' : 'text-red-700'
                 }`}
                 data-testid={`text-test-result-${testResult.ok ? 'ok' : 'fail'}`}
               >
@@ -1398,7 +1398,7 @@ function SyncHistoryDialog({
                         {r.stats?.productsDeactivated ?? 0}
                       </td>
                       <td
-                        className="px-3 py-2 text-emerald-700 text-right tabular-nums"
+                        className="px-3 py-2 text-neutral-700 text-right tabular-nums"
                         data-testid={`text-reactivated-${r.id}`}
                       >
                         {r.stats?.productsReactivated ?? 0}

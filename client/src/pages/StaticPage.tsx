@@ -65,7 +65,7 @@ export default function StaticPage() {
       <main className="flex-1 max-w-4xl mx-auto w-full px-4 lg:px-8 py-12 lg:py-20">
         {isLoading && (
           <div className="flex items-center justify-center py-24">
-            <Loader2 className="w-8 h-8 animate-spin text-[#2D5A27]" />
+            <Loader2 className="w-8 h-8 animate-spin text-[#141414]" />
           </div>
         )}
 
@@ -74,7 +74,7 @@ export default function StaticPage() {
             <AlertCircle className="w-12 h-12 text-destructive/60" />
             <h1 className="text-2xl font-display">Sayfa Bulunamadı</h1>
             <p className="text-muted-foreground">Aradığınız sayfa mevcut değil.</p>
-            <Link href="/" className="mt-4 inline-flex items-center gap-2 text-[#2D5A27] hover:underline font-medium">
+            <Link href="/" className="mt-4 inline-flex items-center gap-2 text-[#141414] hover:underline font-medium">
               ← Ana sayfaya dön
             </Link>
           </div>
@@ -100,7 +100,7 @@ export default function StaticPage() {
                 [&_ol]:list-decimal [&_ol]:pl-6 [&_ol]:mb-4
                 [&_li]:mb-1.5
                 [&_strong]:font-semibold [&_strong]:text-foreground
-                [&_a]:text-[#2D5A27] [&_a]:underline [&_a]:underline-offset-2
+                [&_a]:text-[#141414] [&_a]:underline [&_a]:underline-offset-2
                 [&_table]:w-full [&_table]:border-collapse [&_table]:mb-4
                 [&_td]:border [&_td]:border-border [&_td]:px-3 [&_td]:py-2 [&_td]:text-sm
                 [&_th]:border [&_th]:border-border [&_th]:px-3 [&_th]:py-2 [&_th]:text-sm [&_th]:font-semibold [&_th]:bg-muted

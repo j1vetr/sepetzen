@@ -172,7 +172,7 @@ export default function ResetPassword() {
               initial={{ scale: 0 }}
               animate={{ scale: 1 }}
               transition={{ delay: 0.2, type: 'spring', stiffness: 200 }}
-              className="w-20 h-20 mx-auto mb-6 rounded-full bg-gradient-to-br from-green-500 to-emerald-600 flex items-center justify-center"
+              className="w-20 h-20 mx-auto mb-6 rounded-full bg-gradient-to-br from-neutral-500 to-neutral-600 flex items-center justify-center"
             >
               <CheckCircle2 className="w-10 h-10 text-white" />
             </motion.div>

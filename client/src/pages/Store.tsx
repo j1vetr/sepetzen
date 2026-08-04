@@ -30,8 +30,8 @@ const sortOptions = [
   { value: 'popular', label: 'En Popüler' },
 ];
 
-const GREEN = '#2D5A27';
-const GREEN_LIGHT = '#4a9a42';
+const GREEN = '#141414';
+const GREEN_LIGHT = '#FAFAFA';
 
 function FilterSection({ title, children, defaultOpen = true }: { title: string; children: React.ReactNode; defaultOpen?: boolean }) {
   const [open, setOpen] = useState(defaultOpen);
@@ -100,14 +100,14 @@ export default function Store() {
             onClick={() => setSelectedCategory(undefined)}
             className={`group flex items-center justify-between w-full px-2.5 py-2 text-[13px] transition-all rounded-sm ${
               !selectedCategory
-                ? 'bg-[#2D5A27]/10 text-[#2D5A27] font-semibold'
+                ? 'bg-[#141414]/10 text-[#141414] font-semibold'
                 : 'text-black/60 hover:text-black hover:bg-black/[0.04]'
             }`}
             data-testid="filter-category-all"
           >
             <span>Tüm Ürünler</span>
             {!selectedCategory && (
-              <span className="w-1.5 h-1.5 rounded-full bg-[#2D5A27]" />
+              <span className="w-1.5 h-1.5 rounded-full bg-[#141414]" />
             )}
           </button>
           {categories.map(cat => (
@@ -116,14 +116,14 @@ export default function Store() {
               onClick={() => setSelectedCategory(cat.id)}
               className={`group flex items-center justify-between w-full px-2.5 py-2 text-[13px] transition-all rounded-sm ${
                 selectedCategory === cat.id
-                  ? 'bg-[#2D5A27]/10 text-[#2D5A27] font-semibold'
+                  ? 'bg-[#141414]/10 text-[#141414] font-semibold'
                   : 'text-black/60 hover:text-black hover:bg-black/[0.04]'
               }`}
               data-testid={`filter-category-${cat.slug}`}
             >
               <span>{cat.name}</span>
               {selectedCategory === cat.id && (
-                <span className="w-1.5 h-1.5 rounded-full bg-[#2D5A27]" />
+                <span className="w-1.5 h-1.5 rounded-full bg-[#141414]" />
               )}
             </button>
           ))}
@@ -166,7 +166,7 @@ export default function Store() {
             { label: 'İndirimli', value: 'discounted' },
           ].map(opt => (
             <label key={opt.value} className="flex items-center gap-2.5 px-2 py-2 cursor-pointer group hover:bg-black/[0.03] rounded-sm">
-              <span className="w-4 h-4 border border-black/20 rounded-sm flex items-center justify-center shrink-0 group-hover:border-[#2D5A27] transition-colors">
+              <span className="w-4 h-4 border border-black/20 rounded-sm flex items-center justify-center shrink-0 group-hover:border-[#141414] transition-colors">
                 <span className="w-2 h-2 rounded-sm bg-transparent" />
               </span>
               <span className="text-[13px] text-black/65 group-hover:text-black transition-colors">{opt.label}</span>
@@ -178,7 +178,7 @@ export default function Store() {
       {hasActiveFilters && (
         <button
           onClick={clearFilters}
-          className="w-full flex items-center justify-center gap-2 py-2.5 border border-[#2D5A27] text-[#2D5A27] text-[11px] tracking-[0.14em] uppercase font-semibold hover:bg-[#2D5A27] hover:text-white transition-colors rounded-sm mt-2"
+          className="w-full flex items-center justify-center gap-2 py-2.5 border border-[#141414] text-[#141414] text-[11px] tracking-[0.14em] uppercase font-semibold hover:bg-[#141414] hover:text-white transition-colors rounded-sm mt-2"
           data-testid="button-clear-filters"
         >
           <X className="w-3.5 h-3.5" />
@@ -208,7 +208,7 @@ export default function Store() {
             className="flex items-center gap-1.5 text-[11px] tracking-wide text-black/45 mb-2"
             data-testid="breadcrumb"
           >
-            <Link href="/"><span className="hover:text-[#2D5A27] transition-colors cursor-pointer">Ana Sayfa</span></Link>
+            <Link href="/"><span className="hover:text-[#141414] transition-colors cursor-pointer">Ana Sayfa</span></Link>
             <ChevronRight className="w-3 h-3" />
             <span className="text-black font-semibold">Mağaza</span>
           </nav>
@@ -236,13 +236,13 @@ export default function Store() {
             <div className="sticky top-24 bg-white border border-black/8 rounded-sm p-4">
               <div className="flex items-center justify-between mb-5">
                 <h3 className="text-[11px] font-bold tracking-[0.20em] uppercase text-black flex items-center gap-2">
-                  <SlidersHorizontal className="w-3.5 h-3.5 text-[#2D5A27]" strokeWidth={2} />
+                  <SlidersHorizontal className="w-3.5 h-3.5 text-[#141414]" strokeWidth={2} />
                   Filtrele
                 </h3>
                 {hasActiveFilters && (
                   <button
                     onClick={clearFilters}
-                    className="text-[10px] text-[#2D5A27] hover:underline font-medium"
+                    className="text-[10px] text-[#141414] hover:underline font-medium"
                   >
                     Temizle
                   </button>
@@ -261,20 +261,20 @@ export default function Store() {
                 <Sheet open={filterOpen} onOpenChange={setFilterOpen}>
                   <SheetTrigger asChild>
                     <button
-                      className="lg:hidden inline-flex items-center gap-2 px-3.5 py-2 border border-black/12 text-[11px] tracking-[0.14em] uppercase font-semibold text-black hover:border-[#2D5A27] hover:text-[#2D5A27] transition-colors rounded-sm"
+                      className="lg:hidden inline-flex items-center gap-2 px-3.5 py-2 border border-black/12 text-[11px] tracking-[0.14em] uppercase font-semibold text-black hover:border-[#141414] hover:text-[#141414] transition-colors rounded-sm"
                       data-testid="button-mobile-filter"
                     >
                       <SlidersHorizontal className="w-3.5 h-3.5" />
                       Filtrele
                       {hasActiveFilters && (
-                        <span className="w-1.5 h-1.5 rounded-full bg-[#2D5A27]" />
+                        <span className="w-1.5 h-1.5 rounded-full bg-[#141414]" />
                       )}
                     </button>
                   </SheetTrigger>
                   <SheetContent side="left" className="w-[300px] bg-white border-r border-black/10 p-5">
                     <SheetHeader>
                       <SheetTitle className="text-[13px] font-bold tracking-[0.18em] uppercase text-left text-black flex items-center gap-2">
-                        <SlidersHorizontal className="w-3.5 h-3.5 text-[#2D5A27]" strokeWidth={2} />
+                        <SlidersHorizontal className="w-3.5 h-3.5 text-[#141414]" strokeWidth={2} />
                         Filtrele
                       </SheetTitle>
                     </SheetHeader>
@@ -288,7 +288,7 @@ export default function Store() {
                 <div className="hidden sm:flex items-center gap-0.5 border border-black/12 rounded-sm p-0.5">
                   <button
                     onClick={() => setGridCols(3)}
-                    className={`p-1.5 rounded-[2px] transition-colors ${gridCols === 3 ? 'bg-[#2D5A27] text-white' : 'text-black/45 hover:text-black'}`}
+                    className={`p-1.5 rounded-[2px] transition-colors ${gridCols === 3 ? 'bg-[#141414] text-white' : 'text-black/45 hover:text-black'}`}
                     aria-label="3 sütun"
                     data-testid="button-grid-3"
                   >
@@ -296,7 +296,7 @@ export default function Store() {
                   </button>
                   <button
                     onClick={() => setGridCols(4)}
-                    className={`p-1.5 rounded-[2px] transition-colors ${gridCols === 4 ? 'bg-[#2D5A27] text-white' : 'text-black/45 hover:text-black'}`}
+                    className={`p-1.5 rounded-[2px] transition-colors ${gridCols === 4 ? 'bg-[#141414] text-white' : 'text-black/45 hover:text-black'}`}
                     aria-label="4 sütun"
                     data-testid="button-grid-4"
                   >
@@ -307,7 +307,7 @@ export default function Store() {
 
               <Select value={sortBy} onValueChange={(v) => setSortBy(v as ProductFilters['sort'])}>
                 <SelectTrigger
-                  className="w-[180px] border-black/12 text-black bg-white rounded-sm h-9 text-[12px] tracking-wide focus:ring-[#2D5A27]"
+                  className="w-[180px] border-black/12 text-black bg-white rounded-sm h-9 text-[12px] tracking-wide focus:ring-[#141414]"
                   data-testid="select-sort"
                 >
                   <SelectValue placeholder="Sırala" />
@@ -326,7 +326,7 @@ export default function Store() {
             {hasActiveFilters && (
               <div className="flex flex-wrap items-center gap-2 mb-4">
                 {selectedCategory && (
-                  <span className="inline-flex items-center gap-1.5 bg-[#2D5A27]/10 text-[#2D5A27] text-[11px] font-medium px-2.5 py-1 rounded-full">
+                  <span className="inline-flex items-center gap-1.5 bg-[#141414]/10 text-[#141414] text-[11px] font-medium px-2.5 py-1 rounded-full">
                     {categories.find(c => c.id === selectedCategory)?.name}
                     <button onClick={() => setSelectedCategory(undefined)} className="hover:opacity-60">
                       <X className="w-3 h-3" />
@@ -334,7 +334,7 @@ export default function Store() {
                   </span>
                 )}
                 {(priceRange[0] > 0 || priceRange[1] < 10000) && (
-                  <span className="inline-flex items-center gap-1.5 bg-[#2D5A27]/10 text-[#2D5A27] text-[11px] font-medium px-2.5 py-1 rounded-full">
+                  <span className="inline-flex items-center gap-1.5 bg-[#141414]/10 text-[#141414] text-[11px] font-medium px-2.5 py-1 rounded-full">
                     {priceRange[0].toLocaleString('tr-TR')}-{priceRange[1].toLocaleString('tr-TR')} ₺
                     <button onClick={() => setPriceRange([0, 10000])} className="hover:opacity-60">
                       <X className="w-3 h-3" />
@@ -364,7 +364,7 @@ export default function Store() {
                 <p className="text-black/45 text-[14px] mb-5">Bu kriterlere uygun ürün bulunamadı.</p>
                 <button
                   onClick={clearFilters}
-                  className="inline-flex items-center gap-2 px-5 py-2.5 bg-[#2D5A27] text-white text-[11px] tracking-[0.16em] uppercase font-semibold hover:bg-[#4a9a42] transition-colors rounded-sm"
+                  className="inline-flex items-center gap-2 px-5 py-2.5 bg-[#141414] text-white text-[11px] tracking-[0.16em] uppercase font-semibold hover:bg-black transition-colors rounded-sm"
                   data-testid="button-clear-empty"
                 >
                   Filtreleri Temizle

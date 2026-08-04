@@ -105,11 +105,11 @@ export default function PaymentFail() {
               {reasons.map(({ icon: Icon, text }) => (
                 <div
                   key={text}
-                  className="bg-white border border-gray-200 rounded-lg p-4 sm:p-5 flex items-start gap-3 hover:border-[#4a9a42]/50 transition-colors shadow-sm"
+                  className="bg-white border border-gray-200 rounded-lg p-4 sm:p-5 flex items-start gap-3 hover:border-[#FAFAFA]/50 transition-colors shadow-sm"
                   data-testid={`card-reason-${text.slice(0, 20)}`}
                 >
-                  <span className="w-9 h-9 rounded-full bg-[#2D5A27]/10 border border-[#2D5A27]/20 flex items-center justify-center shrink-0">
-                    <Icon className="w-4 h-4 text-[#2D5A27]" strokeWidth={2} />
+                  <span className="w-9 h-9 rounded-full bg-[#141414]/10 border border-[#141414]/20 flex items-center justify-center shrink-0">
+                    <Icon className="w-4 h-4 text-[#141414]" strokeWidth={2} />
                   </span>
                   <span className="text-[13px] text-gray-600 leading-snug pt-1">{text}</span>
                 </div>
@@ -131,7 +131,7 @@ export default function PaymentFail() {
             <div className="flex flex-col sm:flex-row gap-2.5">
               <a
                 href="tel:+905366301138"
-                className="flex-1 inline-flex items-center justify-center gap-2 h-11 border border-white/20 hover:border-[#4a9a42] hover:text-[#4a9a42] transition-colors text-sm font-semibold rounded-md"
+                className="flex-1 inline-flex items-center justify-center gap-2 h-11 border border-white/20 hover:border-[#FAFAFA] hover:text-[#FAFAFA] transition-colors text-sm font-semibold rounded-md"
                 data-testid="link-help-phone"
               >
                 <Phone className="w-3.5 h-3.5" strokeWidth={2} />
@@ -141,7 +141,7 @@ export default function PaymentFail() {
                 href="https://wa.me/905366301138"
                 target="_blank"
                 rel="noopener noreferrer"
-                className="flex-1 inline-flex items-center justify-center gap-2 h-11 bg-[#2D5A27] hover:bg-[#4a9a42] text-white transition-colors text-sm font-semibold rounded-md"
+                className="flex-1 inline-flex items-center justify-center gap-2 h-11 bg-[#141414] hover:bg-black text-white transition-colors text-sm font-semibold rounded-md"
                 data-testid="link-help-whatsapp"
               >
                 WhatsApp
@@ -154,7 +154,7 @@ export default function PaymentFail() {
           <div className="flex flex-col sm:flex-row gap-3 pb-4">
             <Link href="/odeme" className="flex-1">
               <button
-                className="w-full h-12 bg-[#2D5A27] hover:bg-[#20401c] text-white font-semibold text-sm flex items-center justify-center gap-2 rounded-md transition-colors"
+                className="w-full h-12 bg-[#141414] hover:bg-[#1F1F1F] text-white font-semibold text-sm flex items-center justify-center gap-2 rounded-md transition-colors"
                 data-testid="button-retry-payment"
               >
                 <RefreshCw className="w-4 h-4" strokeWidth={2.5} />

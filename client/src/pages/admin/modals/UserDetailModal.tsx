@@ -56,7 +56,7 @@ export default function UserDetailModal({ user, onClose }: { user: User; onClose
                   <p className="text-xs text-neutral-500">Toplam Sipariş</p>
                 </div>
                 <div className="bg-neutral-50 rounded-lg p-3 text-center">
-                  <p className="text-2xl font-bold text-green-400">{stats.totalSpent.toFixed(2)}₺</p>
+                  <p className="text-2xl font-bold text-neutral-400">{stats.totalSpent.toFixed(2)}₺</p>
                   <p className="text-xs text-neutral-500">Toplam Harcama</p>
                 </div>
                 <div className="bg-neutral-50 rounded-lg p-3 text-center">

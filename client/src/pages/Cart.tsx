@@ -70,7 +70,7 @@ export default function Cart() {
             </p>
             <Link href="/">
               <button
-                className="bg-[#2D5A27] hover:bg-[#20401c] text-white px-7 py-3 rounded-md font-bold transition-colors"
+                className="bg-[#141414] hover:bg-[#1F1F1F] text-white px-7 py-3 rounded-md font-bold transition-colors"
                 data-testid="button-continue-shopping"
               >
                 Alışverişe Başla
@@ -82,24 +82,24 @@ export default function Cart() {
             {/* ── Left: Items ─────────────────────── */}
             <div className="flex-1 space-y-4">
               {/* Free shipping progress */}
-              <div className="bg-white rounded-lg border border-green-100 shadow-sm p-4 flex gap-4 items-start sm:items-center">
-                <div className="w-10 h-10 bg-green-50 rounded-full flex items-center justify-center shrink-0">
-                  <Truck size={20} className="text-[#2D5A27]" />
+              <div className="bg-white rounded-lg border border-neutral-100 shadow-sm p-4 flex gap-4 items-start sm:items-center">
+                <div className="w-10 h-10 bg-neutral-50 rounded-full flex items-center justify-center shrink-0">
+                  <Truck size={20} className="text-[#141414]" />
                 </div>
                 <div className="flex-1">
                   <div className="flex justify-between text-sm mb-1.5">
                     <span className="font-medium text-gray-700">Kargo Bedava</span>
                     {remainingForFreeShipping > 0 ? (
-                      <span className="text-[#2D5A27] font-semibold">
+                      <span className="text-[#141414] font-semibold">
                         {remainingForFreeShipping.toLocaleString('tr-TR')} TL kaldı
                       </span>
                     ) : (
-                      <span className="text-[#2D5A27] font-semibold">Tebrikler, kargo bedava!</span>
+                      <span className="text-[#141414] font-semibold">Tebrikler, kargo bedava!</span>
                     )}
                   </div>
                   <div className="h-2 bg-gray-100 rounded-full overflow-hidden">
                     <motion.div
-                      className="h-full bg-[#4a9a42] rounded-full"
+                      className="h-full bg-black rounded-full"
                       initial={{ width: 0 }}
                       animate={{ width: `${shippingProgress}%` }}
                       transition={{ duration: 0.8, ease: 'easeOut' }}
@@ -113,7 +113,7 @@ export default function Cart() {
                 <div className="bg-gray-50 border-b border-gray-200 px-5 py-3 flex items-center gap-2 text-sm text-gray-600">
                   Satıcı:{' '}
                   <span className="font-semibold text-gray-900 ml-1">Sepetzen</span>
-                  <span className="bg-[#2D5A27] text-white text-[10px] px-1.5 py-0.5 rounded font-bold">
+                  <span className="bg-[#141414] text-white text-[10px] px-1.5 py-0.5 rounded font-bold">
                     Resmi Satıcı
                   </span>
                 </div>
@@ -140,7 +140,7 @@ export default function Cart() {
                       >
                         {/* Image */}
                         <Link href={`/urun/${product?.slug}`}>
-                          <div className="w-20 h-24 sm:w-24 sm:h-28 bg-[#2D5A27]/8 rounded-md shrink-0 overflow-hidden cursor-pointer">
+                          <div className="w-20 h-24 sm:w-24 sm:h-28 bg-[#141414]/8 rounded-md shrink-0 overflow-hidden cursor-pointer">
                             {product?.images?.[0] ? (
                               <img
                                 src={product.images[0]}
@@ -151,7 +151,7 @@ export default function Cart() {
                               />
                             ) : (
                               <div className="w-full h-full flex items-center justify-center">
-                                <Package size={24} className="text-[#2D5A27]/30" />
+                                <Package size={24} className="text-[#141414]/30" />
                               </div>
                             )}
                           </div>
@@ -191,7 +191,7 @@ export default function Cart() {
                               <button
                                 onClick={() => updateQuantity(item.id, Math.max(1, item.quantity - 1))}
                                 disabled={item.quantity <= 1}
-                                className="w-8 h-8 flex items-center justify-center text-gray-500 hover:bg-gray-50 hover:text-[#2D5A27] transition-colors rounded-l-md disabled:opacity-40"
+                                className="w-8 h-8 flex items-center justify-center text-gray-500 hover:bg-gray-50 hover:text-[#141414] transition-colors rounded-l-md disabled:opacity-40"
                                 data-testid={`button-decrease-${item.id}`}
                               >
                                 <Minus size={14} />
@@ -204,7 +204,7 @@ export default function Cart() {
                               </span>
                               <button
                                 onClick={() => updateQuantity(item.id, item.quantity + 1)}
-                                className="w-8 h-8 flex items-center justify-center text-gray-500 hover:bg-gray-50 hover:text-[#2D5A27] transition-colors rounded-r-md"
+                                className="w-8 h-8 flex items-center justify-center text-gray-500 hover:bg-gray-50 hover:text-[#141414] transition-colors rounded-r-md"
                                 data-testid={`button-increase-${item.id}`}
                               >
                                 <Plus size={14} />
@@ -213,7 +213,7 @@ export default function Cart() {
 
                             <div className="text-right">
                               <div
-                                className="text-lg sm:text-xl font-bold text-[#2D5A27]"
+                                className="text-lg sm:text-xl font-bold text-[#141414]"
                                 data-testid={`text-price-${item.id}`}
                               >
                                 {lineTotal.toLocaleString('tr-TR')} ₺
@@ -271,7 +271,7 @@ export default function Cart() {
                     <span
                       className={
                         shippingCost === 0
-                          ? 'font-medium text-[#2D5A27]'
+                          ? 'font-medium text-[#141414]'
                           : 'font-medium text-gray-900'
                       }
                       data-testid="text-shipping"
@@ -285,7 +285,7 @@ export default function Cart() {
                   <div className="flex justify-between items-end">
                     <span className="font-bold text-gray-900">Toplam</span>
                     <span
-                      className="text-2xl font-black text-[#2D5A27]"
+                      className="text-2xl font-black text-[#141414]"
                       data-testid="text-total"
                     >
                       {total.toLocaleString('tr-TR')} ₺
@@ -295,18 +295,18 @@ export default function Cart() {
 
                 <Link href="/odeme">
                   <button
-                    className="w-full bg-[#2D5A27] hover:bg-[#20401c] text-white py-3.5 rounded-md font-bold text-lg shadow-md hover:shadow-lg transition-all mb-3 flex items-center justify-center gap-2"
+                    className="w-full bg-[#141414] hover:bg-[#1F1F1F] text-white py-3.5 rounded-md font-bold text-lg shadow-md hover:shadow-lg transition-all mb-3 flex items-center justify-center gap-2"
                     data-testid="button-checkout"
                   >
                     ÖDEMEYE GEÇ
                   </button>
                 </Link>
 
-                <div className="bg-green-50 border border-green-100 rounded p-3 text-center mb-5" data-testid="info-bank-transfer-discount">
-                  <p className="text-xs text-green-800 font-medium">
+                <div className="bg-neutral-50 border border-neutral-100 rounded p-3 text-center mb-5" data-testid="info-bank-transfer-discount">
+                  <p className="text-xs text-neutral-800 font-medium">
                     Havale / EFT ile ödemede %{bankDiscountPercent} İndirim!
                   </p>
-                  <p className="text-sm font-bold text-[#2D5A27] mt-1">
+                  <p className="text-sm font-bold text-[#141414] mt-1">
                     {bankDiscountTotal.toLocaleString('tr-TR', {
                       minimumFractionDigits: 2,
                       maximumFractionDigits: 2,
@@ -317,15 +317,15 @@ export default function Cart() {
 
                 <div className="space-y-3 pt-4 border-t border-gray-100">
                   <div className="flex items-center gap-3 text-gray-500">
-                    <ShieldCheck size={18} className="text-[#4a9a42] shrink-0" />
+                    <ShieldCheck size={18} className="text-[#FAFAFA] shrink-0" />
                     <span className="text-xs font-medium">Güvenli Ödeme — 256bit SSL</span>
                   </div>
                   <div className="flex items-center gap-3 text-gray-500">
-                    <RotateCcw size={18} className="text-[#4a9a42] shrink-0" />
+                    <RotateCcw size={18} className="text-[#FAFAFA] shrink-0" />
                     <span className="text-xs font-medium">14 Gün İçinde Kolay İade</span>
                   </div>
                   <div className="flex items-center gap-3 text-gray-500">
-                    <Truck size={18} className="text-[#4a9a42] shrink-0" />
+                    <Truck size={18} className="text-[#FAFAFA] shrink-0" />
                     <span className="text-xs font-medium">Aynı Gün Hızlı Teslimat</span>
                   </div>
                 </div>
@@ -345,7 +345,7 @@ export default function Cart() {
               className="w-full px-4 py-3 flex justify-between items-center text-sm font-medium text-gray-700 active:bg-gray-50 transition-colors"
             >
               <span>Sipariş Özeti</span>
-              <div className="flex items-center gap-1 text-[#2D5A27]">
+              <div className="flex items-center gap-1 text-[#141414]">
                 <span className="font-bold">{total.toLocaleString('tr-TR')} ₺</span>
                 {summaryOpen ? <ChevronDown size={16} /> : <ChevronUp size={16} />}
               </div>
@@ -367,13 +367,13 @@ export default function Cart() {
                     </div>
                     <div className="flex justify-between text-gray-600">
                       <span>Kargo</span>
-                      <span className={shippingCost === 0 ? 'text-[#2D5A27]' : ''}>
+                      <span className={shippingCost === 0 ? 'text-[#141414]' : ''}>
                         {shippingCost === 0 ? 'Bedava' : `${shippingCost.toLocaleString('tr-TR')} ₺`}
                       </span>
                     </div>
                     <div className="flex justify-between font-bold pt-2 border-t border-gray-200 text-gray-900">
                       <span>Toplam</span>
-                      <span className="text-[#2D5A27]">{total.toLocaleString('tr-TR')} ₺</span>
+                      <span className="text-[#141414]">{total.toLocaleString('tr-TR')} ₺</span>
                     </div>
                   </div>
                 </motion.div>
@@ -385,13 +385,13 @@ export default function Cart() {
           <div className="px-4 py-3 flex items-center gap-3 bg-white">
             <div className="flex-1">
               <p className="text-xs text-gray-500 mb-0.5">Toplam Ödenecek</p>
-              <p className="text-lg font-bold text-[#2D5A27] leading-none">
+              <p className="text-lg font-bold text-[#141414] leading-none">
                 {total.toLocaleString('tr-TR')} ₺
               </p>
             </div>
             <Link href="/odeme" className="flex-[1.5]">
               <button
-                className="w-full bg-[#2D5A27] hover:bg-[#20401c] text-white font-bold py-3.5 px-4 rounded-lg flex items-center justify-center transition-colors shadow-md"
+                className="w-full bg-[#141414] hover:bg-[#1F1F1F] text-white font-bold py-3.5 px-4 rounded-lg flex items-center justify-center transition-colors shadow-md"
                 data-testid="button-checkout-mobile"
               >
                 ÖDEMEYE GEÇ

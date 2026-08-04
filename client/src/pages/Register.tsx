@@ -70,15 +70,15 @@ export default function Register() {
 
   const passwordStrength =
     formData.password.length === 0 ? 0 : formData.password.length < 6 ? 1 : formData.password.length < 8 ? 2 : 3;
-  const strengthColors = ['', 'bg-red-400', 'bg-amber-400', 'bg-[#2D5A27]'];
+  const strengthColors = ['', 'bg-red-400', 'bg-amber-400', 'bg-[#141414]'];
   const strengthTexts = ['', 'Zayıf', 'Orta', 'Güçlü'];
 
   const inputCls =
-    'h-11 bg-stone-50 border-black/12 focus:border-[#2D5A27] focus-visible:ring-0 focus-visible:ring-offset-0 rounded-none text-black placeholder:text-black/25';
+    'h-11 bg-stone-50 border-black/12 focus:border-[#141414] focus-visible:ring-0 focus-visible:ring-offset-0 rounded-none text-black placeholder:text-black/25';
   const labelCls = 'text-[10px] font-medium tracking-[0.22em] uppercase text-black/55';
 
   return (
-    <div className="min-h-screen bg-[#f5f3ef]">
+    <div className="min-h-screen bg-[#F5F5F5]">
       <SEO title="Üye Ol" description="Sepetzen üyelik kaydı." url="/kayit" noIndex />
       <Header />
 
@@ -159,7 +159,7 @@ export default function Register() {
                   value={formData.country}
                   onChange={handleChange}
                   data-testid="select-country"
-                  className="w-full h-11 bg-stone-50 border border-black/12 focus:border-[#2D5A27] focus:outline-none rounded-none px-4 text-black text-sm"
+                  className="w-full h-11 bg-stone-50 border border-black/12 focus:border-[#141414] focus:outline-none rounded-none px-4 text-black text-sm"
                 >
                   {COUNTRIES.map((country) => (
                     <option key={country} value={country}>{country}</option>
@@ -187,7 +187,7 @@ export default function Register() {
                     <button
                       type="button"
                       onClick={() => setShowPassword(!showPassword)}
-                      className="absolute right-3.5 top-1/2 -translate-y-1/2 text-black/30 hover:text-[#2D5A27] transition-colors"
+                      className="absolute right-3.5 top-1/2 -translate-y-1/2 text-black/30 hover:text-[#141414] transition-colors"
                       aria-label={showPassword ? 'Şifreyi gizle' : 'Şifreyi göster'}
                     >
                       {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
@@ -211,7 +211,7 @@ export default function Register() {
                       className={`${inputCls} pl-10 pr-10`}
                     />
                     {formData.confirmPassword && formData.password === formData.confirmPassword && (
-                      <Check className="absolute right-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-[#2D5A27]" strokeWidth={2.25} />
+                      <Check className="absolute right-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-[#141414]" strokeWidth={2.25} />
                     )}
                   </div>
                 </div>
@@ -233,7 +233,7 @@ export default function Register() {
                     className={`text-[10px] font-mono tracking-wider uppercase ${
                       passwordStrength === 1 ? 'text-red-500'
                         : passwordStrength === 2 ? 'text-amber-500'
-                        : passwordStrength === 3 ? 'text-[#2D5A27]'
+                        : passwordStrength === 3 ? 'text-[#141414]'
                         : ''
                     }`}
                   >
@@ -245,7 +245,7 @@ export default function Register() {
               <motion.div whileHover={{ scale: 1.005 }} whileTap={{ scale: 0.995 }} className="pt-2">
                 <Button
                   type="submit"
-                  className="w-full h-11 bg-[#2D5A27] text-white hover:bg-[#4a9a42] font-semibold tracking-[0.18em] text-[11px] uppercase group rounded-none transition-colors duration-300 gap-3"
+                  className="w-full h-11 bg-[#141414] text-white hover:bg-black font-semibold tracking-[0.18em] text-[11px] uppercase group rounded-none transition-colors duration-300 gap-3"
                   disabled={loading}
                   data-testid="button-register"
                 >
@@ -262,9 +262,9 @@ export default function Register() {
 
               <p className="text-[11px] text-black/40 text-center pt-1 leading-relaxed">
                 Kayıt olarak{' '}
-                <span className="underline underline-offset-2 hover:text-[#2D5A27] transition-colors cursor-pointer">Kullanım Koşulları</span>
+                <span className="underline underline-offset-2 hover:text-[#141414] transition-colors cursor-pointer">Kullanım Koşulları</span>
                 {' '}ve{' '}
-                <span className="underline underline-offset-2 hover:text-[#2D5A27] transition-colors cursor-pointer">Gizlilik Politikası</span>
+                <span className="underline underline-offset-2 hover:text-[#141414] transition-colors cursor-pointer">Gizlilik Politikası</span>
                 'nı kabul etmiş olursunuz.
               </p>
             </form>
@@ -274,7 +274,7 @@ export default function Register() {
               <Link
                 href="/giris"
                 data-testid="link-login"
-                className="group inline-flex items-center gap-1.5 text-[11px] tracking-[0.18em] uppercase font-semibold text-[#2D5A27] hover:text-[#4a9a42] transition-colors"
+                className="group inline-flex items-center gap-1.5 text-[11px] tracking-[0.18em] uppercase font-semibold text-[#141414] hover:text-[#FAFAFA] transition-colors"
               >
                 Giriş Yap
                 <ArrowUpRight className="w-3.5 h-3.5 transition-transform group-hover:rotate-[-45deg]" strokeWidth={2} />

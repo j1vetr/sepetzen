@@ -218,7 +218,7 @@ export default function OrderTracking() {
   const currentStep = currentStatus?.step || 0;
 
   return (
-    <div className="min-h-screen bg-[#faf7f1] flex flex-col overflow-x-hidden">
+    <div className="min-h-screen bg-[#FFFFFF] flex flex-col overflow-x-hidden">
       <SEO title="Sipariş Takip" description="Sepetzen sipariş durumu sorgulama." url="/siparis-takip" noIndex />
       <Header />
 
@@ -309,7 +309,7 @@ export default function OrderTracking() {
                   value={orderNumber}
                   onChange={(e) => setOrderNumber(e.target.value)}
                   placeholder="PS-XXXXXX"
-                  className="h-12 bg-[#faf7f1] border-black/15 text-black placeholder:text-black/30 focus:border-polen-orange rounded-none"
+                  className="h-12 bg-[#FFFFFF] border-black/15 text-black placeholder:text-black/30 focus:border-polen-orange rounded-none"
                   data-testid="input-order-number"
                 />
               </div>
@@ -322,7 +322,7 @@ export default function OrderTracking() {
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                   placeholder="ornek@email.com"
-                  className="h-12 bg-[#faf7f1] border-black/15 text-black placeholder:text-black/30 focus:border-polen-orange rounded-none"
+                  className="h-12 bg-[#FFFFFF] border-black/15 text-black placeholder:text-black/30 focus:border-polen-orange rounded-none"
                   data-testid="input-email"
                 />
               </div>
@@ -592,7 +592,7 @@ export default function OrderTracking() {
                               className={`w-10 h-10 rounded-full flex items-center justify-center transition-all ${
                                 isCompleted || isCurrent
                                   ? 'bg-polen-orange text-black shadow-[0_4px_14px_-4px_rgba(253,181,29,0.6)]'
-                                  : 'bg-[#faf7f1] border border-black/15 text-black/35'
+                                  : 'bg-[#FFFFFF] border border-black/15 text-black/35'
                               }`}
                             >
                               <StepIcon className="w-4 h-4" strokeWidth={2} />
@@ -669,14 +669,14 @@ export default function OrderTracking() {
                         data-testid="button-copy-tracking"
                       >
                         {copied ? (
-                          <CheckIcon className="w-4 h-4 text-emerald-600" strokeWidth={2.5} />
+                          <CheckIcon className="w-4 h-4 text-neutral-600" strokeWidth={2.5} />
                         ) : (
                           <Copy className="w-4 h-4" strokeWidth={2} />
                         )}
                       </button>
                     </div>
                     {copied && (
-                      <p className="text-[11px] text-emerald-600 mt-2">Kopyalandı</p>
+                      <p className="text-[11px] text-neutral-600 mt-2">Kopyalandı</p>
                     )}
                   </div>
 

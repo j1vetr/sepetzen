@@ -75,24 +75,24 @@ export default function CancellationPolicy() {
               viewport={{ once: true }}
               className="grid md:grid-cols-2 gap-4"
             >
-              <div className="bg-white border border-emerald-200 rounded-xl p-6 shadow-[0_2px_18px_-12px_rgba(0,0,0,0.06)]">
+              <div className="bg-white border border-neutral-200 rounded-xl p-6 shadow-[0_2px_18px_-12px_rgba(0,0,0,0.06)]">
                 <div className="flex items-center gap-3 mb-4">
-                  <div className="w-10 h-10 bg-emerald-50 rounded-lg flex items-center justify-center">
-                    <CheckCircle className="w-5 h-5 text-emerald-600" />
+                  <div className="w-10 h-10 bg-neutral-50 rounded-lg flex items-center justify-center">
+                    <CheckCircle className="w-5 h-5 text-neutral-600" />
                   </div>
                   <h3 className="font-display text-lg tracking-wide text-black">İade Edilebilir</h3>
                 </div>
                 <ul className="space-y-2 text-sm text-black/70">
                   <li className="flex items-start gap-2">
-                    <span className="text-emerald-600 mt-1">•</span>
+                    <span className="text-neutral-600 mt-1">•</span>
                     Kullanılmamış, orijinal ambalajında ürünler
                   </li>
                   <li className="flex items-start gap-2">
-                    <span className="text-emerald-600 mt-1">•</span>
+                    <span className="text-neutral-600 mt-1">•</span>
                     Etiketleri sökülmemiş ürünler
                   </li>
                   <li className="flex items-start gap-2">
-                    <span className="text-emerald-600 mt-1">•</span>
+                    <span className="text-neutral-600 mt-1">•</span>
                     Fatura ile birlikte gönderilen ürünler
                   </li>
                 </ul>

@@ -42,7 +42,7 @@
   --color-polen-cream: hsl(var(--sepetzen-light));
   --color-polen-vein: hsl(var(--sepetzen-muted));
 
-  --font-display: 'Oswald', sans-serif;
+  --font-display: 'Bebas Neue', sans-serif;
   --font-sans: 'Space Grotesk', sans-serif;
   --font-body: 'Inter', sans-serif;
 }
@@ -52,55 +52,55 @@
   --mobile-nav-bar-h: 58px;
   --mobile-nav-total: calc(var(--mobile-nav-bar-h) + env(safe-area-inset-bottom, 0px));
 
-  --background: 120 5% 98%;
-  --foreground: 120 8% 10%;
+  --background: 0 0% 100%;
+  --foreground: 0 0% 5%;
   --card: 0 0% 100%;
-  --card-foreground: 120 8% 10%;
+  --card-foreground: 0 0% 5%;
   --popover: 0 0% 100%;
-  --popover-foreground: 120 8% 10%;
-  --primary: 120 8% 10%;
-  --primary-foreground: 120 5% 98%;
-  --secondary: 120 10% 94%;
-  --secondary-foreground: 120 8% 14%;
-  --muted: 120 10% 94%;
-  --muted-foreground: 120 5% 42%;
-  --accent: 113 40% 25%;
+  --popover-foreground: 0 0% 5%;
+  --primary: 0 0% 8%;
+  --primary-foreground: 0 0% 98%;
+  --secondary: 0 0% 96%;
+  --secondary-foreground: 0 0% 8%;
+  --muted: 0 0% 96%;
+  --muted-foreground: 0 0% 45%;
+  --accent: 0 0% 8%;
   --accent-foreground: 0 0% 100%;
-  --destructive: 0 78% 52%;
+  --destructive: 0 85% 60%;
   --destructive-foreground: 0 0% 100%;
-  --border: 120 8% 88%;
-  --input: 120 8% 88%;
-  --ring: 113 40% 25%;
+  --border: 0 0% 90%;
+  --input: 0 0% 90%;
+  --ring: 0 0% 8%;
   --radius: 0.5rem;
 
-  /* Sepetzen brand tokens — dark forest green palette */
-  --sepetzen-green: 113 40% 25%;
-  --sepetzen-green-deep: 113 45% 18%;
-  --sepetzen-dark: 120 10% 12%;
-  --sepetzen-light: 120 12% 96%;
-  --sepetzen-muted: 120 8% 78%;
+  /* Sepetzen brand tokens — monochromatic palette */
+  --sepetzen-green: 0 0% 8%;
+  --sepetzen-green-deep: 0 0% 0%;
+  --sepetzen-dark: 0 0% 6%;
+  --sepetzen-light: 0 0% 96%;
+  --sepetzen-muted: 0 0% 80%;
 }
 
 .dark {
-  --background: 120 8% 6%;
-  --foreground: 120 8% 96%;
-  --card: 120 8% 9%;
-  --card-foreground: 120 8% 96%;
-  --popover: 120 8% 9%;
-  --popover-foreground: 120 8% 96%;
-  --primary: 120 8% 96%;
-  --primary-foreground: 120 8% 8%;
-  --secondary: 120 6% 14%;
-  --secondary-foreground: 120 8% 96%;
-  --muted: 120 6% 14%;
-  --muted-foreground: 120 5% 60%;
-  --accent: 113 40% 30%;
-  --accent-foreground: 0 0% 100%;
-  --destructive: 0 70% 50%;
+  --background: 0 0% 3%;
+  --foreground: 0 0% 98%;
+  --card: 0 0% 6%;
+  --card-foreground: 0 0% 98%;
+  --popover: 0 0% 6%;
+  --popover-foreground: 0 0% 98%;
+  --primary: 0 0% 100%;
+  --primary-foreground: 0 0% 0%;
+  --secondary: 0 0% 12%;
+  --secondary-foreground: 0 0% 98%;
+  --muted: 0 0% 12%;
+  --muted-foreground: 0 0% 60%;
+  --accent: 0 0% 100%;
+  --accent-foreground: 0 0% 0%;
+  --destructive: 0 85% 60%;
   --destructive-foreground: 0 0% 100%;
-  --border: 120 5% 18%;
-  --input: 120 5% 18%;
-  --ring: 113 40% 30%;
+  --border: 0 0% 15%;
+  --input: 0 0% 15%;
+  --ring: 0 0% 100%;
 }
 
 /* Sepetzen — backwards compatible static utilities (Tailwind v4 @theme above

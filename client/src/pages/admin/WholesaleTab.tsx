@@ -504,7 +504,7 @@ export default function WholesaleTab({
                     </td>
                     {hasAnyDiscount && (
                       <>
-                        <td className="px-4 py-3 text-right whitespace-nowrap font-semibold text-emerald-700">
+                        <td className="px-4 py-3 text-right whitespace-nowrap font-semibold text-neutral-700">
                           {effectiveRate > 0 ? `${formatPrice(discounted)} ₺` : '-'}
                         </td>
                         <td className="px-4 py-3 text-center whitespace-nowrap">

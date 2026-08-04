@@ -38,7 +38,7 @@ export default function Login() {
   };
 
   return (
-    <div className="min-h-screen bg-[#f5f3ef]">
+    <div className="min-h-screen bg-[#F5F5F5]">
       <SEO title="Giriş Yap" description="Sepetzen üyelik girişi." url="/giris" noIndex />
       <Header />
 
@@ -76,7 +76,7 @@ export default function Login() {
                     required
                     autoComplete="email"
                     data-testid="input-email"
-                    className="h-11 pl-10 bg-stone-50 border-black/12 focus:border-[#2D5A27] focus-visible:ring-0 focus-visible:ring-offset-0 rounded-none text-black placeholder:text-black/25"
+                    className="h-11 pl-10 bg-stone-50 border-black/12 focus:border-[#141414] focus-visible:ring-0 focus-visible:ring-offset-0 rounded-none text-black placeholder:text-black/25"
                   />
                 </div>
               </div>
@@ -88,7 +88,7 @@ export default function Login() {
                   </Label>
                   <Link
                     href="/sifremi-unuttum"
-                    className="text-[11px] tracking-wide text-black/45 hover:text-[#2D5A27] transition-colors"
+                    className="text-[11px] tracking-wide text-black/45 hover:text-[#141414] transition-colors"
                   >
                     Şifremi Unuttum
                   </Link>
@@ -104,12 +104,12 @@ export default function Login() {
                     required
                     autoComplete="current-password"
                     data-testid="input-password"
-                    className="h-11 pl-10 pr-10 bg-stone-50 border-black/12 focus:border-[#2D5A27] focus-visible:ring-0 focus-visible:ring-offset-0 rounded-none text-black placeholder:text-black/25"
+                    className="h-11 pl-10 pr-10 bg-stone-50 border-black/12 focus:border-[#141414] focus-visible:ring-0 focus-visible:ring-offset-0 rounded-none text-black placeholder:text-black/25"
                   />
                   <button
                     type="button"
                     onClick={() => setShowPassword(!showPassword)}
-                    className="absolute right-3.5 top-1/2 -translate-y-1/2 text-black/30 hover:text-[#2D5A27] transition-colors"
+                    className="absolute right-3.5 top-1/2 -translate-y-1/2 text-black/30 hover:text-[#141414] transition-colors"
                     aria-label={showPassword ? 'Şifreyi gizle' : 'Şifreyi göster'}
                   >
                     {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
@@ -120,7 +120,7 @@ export default function Login() {
               <motion.div whileHover={{ scale: 1.005 }} whileTap={{ scale: 0.995 }} className="pt-2">
                 <Button
                   type="submit"
-                  className="w-full h-11 bg-[#2D5A27] text-white hover:bg-[#4a9a42] font-semibold tracking-[0.18em] text-[11px] uppercase group rounded-none transition-colors duration-300 gap-3"
+                  className="w-full h-11 bg-[#141414] text-white hover:bg-black font-semibold tracking-[0.18em] text-[11px] uppercase group rounded-none transition-colors duration-300 gap-3"
                   disabled={loading}
                   data-testid="button-login"
                 >
@@ -141,7 +141,7 @@ export default function Login() {
               <Link
                 href="/kayit"
                 data-testid="link-register"
-                className="group inline-flex items-center gap-1.5 text-[11px] tracking-[0.18em] uppercase font-semibold text-[#2D5A27] hover:text-[#4a9a42] transition-colors"
+                className="group inline-flex items-center gap-1.5 text-[11px] tracking-[0.18em] uppercase font-semibold text-[#141414] hover:text-[#FAFAFA] transition-colors"
               >
                 Kayıt Ol
                 <ArrowUpRight className="w-3.5 h-3.5 transition-transform group-hover:rotate-[-45deg]" strokeWidth={2} />
