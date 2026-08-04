@@ -88,6 +88,9 @@ import {
   marketplaceCategories,
   marketplaceProducts,
   marketplaceSyncRuns,
+  marketplacePushQueue,
+  type MarketplacePushQueueItem,
+  type InsertMarketplacePushQueueItem,
   type Marketplace,
   type InsertMarketplace,
   type MarketplaceCategory,
@@ -339,6 +342,29 @@ export interface IStorage {
     externalId: string,
   ): Promise<MarketplaceProduct | undefined>;
   upsertMarketplaceProduct(insert: InsertMarketplaceProduct): Promise<MarketplaceProduct>;
+  getMarketplaceProduct(id: string): Promise<MarketplaceProduct | undefined>;
+  getMarketplaceProductByProduct(
+    marketplaceId: string,
+    productId: string,
+  ): Promise<MarketplaceProduct | undefined>;
+  /** Bir site ürününün push yönündeki tüm pazaryeri bağlantıları. */
+  getPushLinksForProduct(productId: string): Promise<MarketplaceProduct[]>;
+  updateMarketplaceProduct(
+    id: string,
+    patch: Partial<InsertMarketplaceProduct>,
+  ): Promise<MarketplaceProduct | undefined>;
+  createMarketplaceProductLink(insert: InsertMarketplaceProduct): Promise<MarketplaceProduct>;
+  deleteMarketplaceProduct(id: string): Promise<void>;
+
+  // Push queue (site → pazaryeri outbox)
+  enqueuePushItem(insert: InsertMarketplacePushQueueItem): Promise<MarketplacePushQueueItem>;
+  getDuePushItems(limit?: number): Promise<MarketplacePushQueueItem[]>;
+  getSentPushItems(limit?: number): Promise<MarketplacePushQueueItem[]>;
+  getPushQueue(marketplaceId: string, limit?: number): Promise<MarketplacePushQueueItem[]>;
+  updatePushItem(
+    id: string,
+    patch: Partial<InsertMarketplacePushQueueItem>,
+  ): Promise<MarketplacePushQueueItem | undefined>;
 
   // Sync runs (history)
   createSyncRun(insert: InsertMarketplaceSyncRun): Promise<MarketplaceSyncRun>;
@@ -366,6 +392,36 @@ export interface IStorage {
 }
 
 export class DbStorage implements IStorage {
+  /**
+   * Push outbox bildirimi — stok/fiyat değişen ürünün push-yönlü pazaryeri
+   * bağlantıları varsa kuyruğa 'stock_price' item'ı yazar. DAYANIKLI: aynı
+   * çağrı yolunda awaited DB insert'tir; kuyruk yazımı başarısız olursa hata
+   * yukarı fırlar (stok yazıldı ama kuyruk yazılamadıysa sessiz veri kaybı
+   * olmaz — çağıran hata görür). Push bağlantısı olmayan ürünlerde no-op.
+   */
+  private async notifyPushOutbox(productId: string): Promise<void> {
+    const links = await db
+      .select()
+      .from(marketplaceProducts)
+      .where(
+        and(
+          eq(marketplaceProducts.productId, productId),
+          eq(marketplaceProducts.syncDirection, "push"),
+        ),
+      );
+    for (const link of links) {
+      if (!link.barcode) continue;
+      await this.enqueuePushItem({
+        marketplaceId: link.marketplaceId,
+        productId,
+        kind: "stock_price",
+        payload: {},
+        status: "pending",
+        attempts: 0,
+        nextAttemptAt: new Date(),
+      });
+    }
+  }
   async getAdminUser(id: string): Promise<AdminUser | undefined> {
     const [user] = await db.select().from(adminUsers).where(eq(adminUsers.id, id));
     return user;
@@ -620,6 +676,10 @@ export class DbStorage implements IStorage {
     // Remove fields that shouldn't be updated (auto-managed or sent as strings from frontend)
     const { createdAt, updatedAt, id: productId, ...updateData } = product as any;
     const [updated] = await db.update(products).set(updateData).where(eq(products.id, id)).returning();
+    // Push outbox: fiyat/aktiflik değiştiyse push-yönlü pazaryeri bağlantılarını kuyrukla.
+    if (updated && ("basePrice" in updateData || "isActive" in updateData)) {
+      await this.notifyPushOutbox(updated.id);
+    }
     return updated;
   }
 
@@ -680,6 +740,10 @@ export class DbStorage implements IStorage {
 
   async updateProductVariant(id: string, variant: Partial<InsertProductVariant>): Promise<ProductVariant | undefined> {
     const [updated] = await db.update(productVariants).set(variant).where(eq(productVariants.id, id)).returning();
+    // Push outbox: stok/fiyat değiştiyse (sipariş düşümü, admin düzenleme, toplu işlem)
+    if (updated && ("stock" in variant || "price" in variant || "isActive" in variant)) {
+      await this.notifyPushOutbox(updated.productId);
+    }
     return updated;
   }
 
@@ -1420,6 +1484,7 @@ export class DbStorage implements IStorage {
           authorId: update.authorId,
         });
         await db.update(productVariants).set({ stock: update.stock }).where(eq(productVariants.id, update.variantId));
+        await this.notifyPushOutbox(variant.productId);
       }
     }
   }
@@ -2229,6 +2294,131 @@ export class DbStorage implements IStorage {
       return row;
     }
     const [row] = await db.insert(marketplaceProducts).values(insert).returning();
+    return row;
+  }
+
+  async getMarketplaceProduct(id: string): Promise<MarketplaceProduct | undefined> {
+    const [row] = await db.select().from(marketplaceProducts).where(eq(marketplaceProducts.id, id));
+    return row;
+  }
+
+  async getMarketplaceProductByProduct(
+    marketplaceId: string,
+    productId: string,
+  ): Promise<MarketplaceProduct | undefined> {
+    const [row] = await db
+      .select()
+      .from(marketplaceProducts)
+      .where(
+        and(
+          eq(marketplaceProducts.marketplaceId, marketplaceId),
+          eq(marketplaceProducts.productId, productId),
+        ),
+      );
+    return row;
+  }
+
+  async getPushLinksForProduct(productId: string): Promise<MarketplaceProduct[]> {
+    return db
+      .select()
+      .from(marketplaceProducts)
+      .where(
+        and(
+          eq(marketplaceProducts.productId, productId),
+          eq(marketplaceProducts.syncDirection, "push"),
+        ),
+      );
+  }
+
+  async updateMarketplaceProduct(
+    id: string,
+    patch: Partial<InsertMarketplaceProduct>,
+  ): Promise<MarketplaceProduct | undefined> {
+    const [row] = await db
+      .update(marketplaceProducts)
+      .set(patch)
+      .where(eq(marketplaceProducts.id, id))
+      .returning();
+    return row;
+  }
+
+  async createMarketplaceProductLink(insert: InsertMarketplaceProduct): Promise<MarketplaceProduct> {
+    const [row] = await db.insert(marketplaceProducts).values(insert).returning();
+    return row;
+  }
+
+  async deleteMarketplaceProduct(id: string): Promise<void> {
+    await db.delete(marketplaceProducts).where(eq(marketplaceProducts.id, id));
+  }
+
+  // === Push queue (site → pazaryeri outbox) ===
+
+  async enqueuePushItem(insert: InsertMarketplacePushQueueItem): Promise<MarketplacePushQueueItem> {
+    // Dedupe: aynı marketplace+product+kind için pending satır varsa onu tazele.
+    const [existing] = await db
+      .select()
+      .from(marketplacePushQueue)
+      .where(
+        and(
+          eq(marketplacePushQueue.marketplaceId, insert.marketplaceId),
+          eq(marketplacePushQueue.productId, insert.productId),
+          eq(marketplacePushQueue.kind, insert.kind),
+          eq(marketplacePushQueue.status, "pending"),
+        ),
+      );
+    if (existing) {
+      const [row] = await db
+        .update(marketplacePushQueue)
+        .set({ payload: insert.payload ?? existing.payload, updatedAt: new Date() })
+        .where(eq(marketplacePushQueue.id, existing.id))
+        .returning();
+      return row;
+    }
+    const [row] = await db.insert(marketplacePushQueue).values(insert).returning();
+    return row;
+  }
+
+  async getDuePushItems(limit = 100): Promise<MarketplacePushQueueItem[]> {
+    return db
+      .select()
+      .from(marketplacePushQueue)
+      .where(
+        and(
+          eq(marketplacePushQueue.status, "pending"),
+          lte(marketplacePushQueue.nextAttemptAt, new Date()),
+        ),
+      )
+      .orderBy(asc(marketplacePushQueue.nextAttemptAt))
+      .limit(limit);
+  }
+
+  async getSentPushItems(limit = 100): Promise<MarketplacePushQueueItem[]> {
+    return db
+      .select()
+      .from(marketplacePushQueue)
+      .where(eq(marketplacePushQueue.status, "sent"))
+      .orderBy(asc(marketplacePushQueue.updatedAt))
+      .limit(limit);
+  }
+
+  async getPushQueue(marketplaceId: string, limit = 50): Promise<MarketplacePushQueueItem[]> {
+    return db
+      .select()
+      .from(marketplacePushQueue)
+      .where(eq(marketplacePushQueue.marketplaceId, marketplaceId))
+      .orderBy(desc(marketplacePushQueue.updatedAt))
+      .limit(limit);
+  }
+
+  async updatePushItem(
+    id: string,
+    patch: Partial<InsertMarketplacePushQueueItem>,
+  ): Promise<MarketplacePushQueueItem | undefined> {
+    const [row] = await db
+      .update(marketplacePushQueue)
+      .set({ ...patch, updatedAt: new Date() })
+      .where(eq(marketplacePushQueue.id, id))
+      .returning();
     return row;
   }
 

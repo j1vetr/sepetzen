@@ -132,6 +132,77 @@ export interface MarketplaceAdapter {
   fetchProductDetails(externalId: string): Promise<NormalizedProduct | null>;
 }
 
+// ============================================================================
+// YAZMA (PUSH) YÜZEYİ — site → pazaryeri. Opsiyonel: adapter implement etmezse
+// push motoru o pazaryerini atlar.
+// ============================================================================
+
+/** Marka arama sonucu (ürün gönderiminde zorunlu brandId için). */
+export interface BrandOption {
+  id: string;
+  name: string;
+}
+
+/** Kategoriye özel özellik tanımı (Trendyol category-attributes). */
+export interface CategoryAttributeDef {
+  attributeId: string;
+  name: string;
+  required: boolean;
+  allowCustom: boolean;
+  /** Varyant belirleyici mi (ör. renk)? */
+  varianter: boolean;
+  /** Slicer (ör. beden) mi? */
+  slicer: boolean;
+  values: Array<{ id: string; name: string }>;
+}
+
+/** Stok+fiyat push item'ı — barcode pazaryerindeki tekil anahtar. */
+export interface StockPricePushItem {
+  barcode: string;
+  quantity: number;
+  salePrice: number;
+  listPrice: number;
+}
+
+/** Batch sonucu — pazaryeri asenkron işler, batchRequestId ile poll edilir. */
+export interface BatchResult {
+  batchRequestId: string;
+  /** 'IN_PROGRESS' | 'DONE' (normalize edilmiş) */
+  status: "IN_PROGRESS" | "DONE";
+  itemCount: number;
+  failedCount: number;
+  /** Başarısız item'lar için insan-okur hata mesajları. */
+  failures: Array<{ key: string; reasons: string[] }>;
+}
+
+/**
+ * Yazma yeteneği olan adapter'ların ek sözleşmesi.
+ * Tüm toplu işlemler batchRequestId döndürür; sonuç getBatchResult ile poll edilir.
+ */
+export interface MarketplaceWriteAdapter {
+  searchBrands(query: string): Promise<BrandOption[]>;
+  fetchCategoryAttributes(externalCategoryId: string): Promise<CategoryAttributeDef[]>;
+  /** V2 ürün oluşturma. Ham item payload'ları adapter-spesifik şemadadır. */
+  createProducts(items: Array<Record<string, unknown>>): Promise<string>;
+  /** V2 ürün güncelleme (fiyat/stok HARİÇ). */
+  updateProducts(items: Array<Record<string, unknown>>): Promise<string>;
+  /** Fiyat + stok güncelleme. */
+  updateStockAndPrice(items: StockPricePushItem[]): Promise<string>;
+  getBatchResult(batchRequestId: string): Promise<BatchResult>;
+}
+
+/** Type guard: adapter yazma yüzeyini destekliyor mu? */
+export function supportsWrites(
+  adapter: MarketplaceAdapter,
+): adapter is MarketplaceAdapter & MarketplaceWriteAdapter {
+  const a = adapter as Partial<MarketplaceWriteAdapter>;
+  return (
+    typeof a.updateStockAndPrice === "function" &&
+    typeof a.createProducts === "function" &&
+    typeof a.getBatchResult === "function"
+  );
+}
+
 /**
  * Adapter factory — registry tarafından çağrılır, her marketplace satırı için
  * ayrı instance üretir.

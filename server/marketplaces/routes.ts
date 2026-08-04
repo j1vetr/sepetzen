@@ -9,7 +9,9 @@ import { z } from "zod";
 import { storage } from "../storage";
 import { encryptCredentials, decryptCredentials, maskSecret } from "./crypto";
 import { listRegisteredAdapters, createAdapter, getAdapterEntry } from "./registry";
-import { runSync, type SyncMode } from "./sync/engine";
+import { runSync, adapterFromMarketplace, type SyncMode } from "./sync/engine";
+import { processPushQueue, enqueueStockPricePush } from "./push/engine";
+import { supportsWrites } from "./types";
 import { suggestCategoryMappings } from "./category-suggester";
 import type { Marketplace, InsertMarketplace } from "@shared/schema";
 import type {
@@ -327,6 +329,313 @@ export function registerMarketplaceRoutes(
       );
       if (!updated) return res.status(404).json({ message: "Eşleme bulunamadı" });
       res.json(updated);
+    },
+  );
+
+  // ==========================================================================
+  // PUSH (site → pazaryeri) endpoint'leri
+  // ==========================================================================
+
+  /** Yazma destekli adapter'ı getir; yoksa 400 yaz ve null dön. */
+  async function writeAdapterOr400(req: Request, res: Response) {
+    const mp = await storage.getMarketplace(req.params.id);
+    if (!mp) {
+      res.status(404).json({ message: "Bulunamadı" });
+      return null;
+    }
+    let adapter;
+    try {
+      adapter = adapterFromMarketplace(mp);
+    } catch (err) {
+      res.status(500).json({ message: err instanceof Error ? err.message : String(err) });
+      return null;
+    }
+    if (!supportsWrites(adapter)) {
+      res.status(400).json({ message: `${mp.type} ürün gönderimini desteklemiyor` });
+      return null;
+    }
+    return { mp, adapter };
+  }
+
+  // Ürün bağlantıları — pazaryeri ↔ site ürünü köprüleri (yön + push durumu)
+  app.get("/api/admin/marketplaces/:id/product-links", requireAdmin, async (req, res) => {
+    const rows = await storage.getMarketplaceProducts(req.params.id);
+    const out = [] as Array<Record<string, unknown>>;
+    for (const r of rows) {
+      const product = r.productId ? await storage.getProduct(r.productId) : undefined;
+      out.push({
+        id: r.id,
+        productId: r.productId,
+        productName: product?.name ?? null,
+        externalId: r.externalId,
+        syncDirection: r.syncDirection,
+        barcode: r.barcode,
+        stockCode: r.stockCode,
+        pushStatus: r.pushStatus,
+        pushError: r.pushError,
+        lastPushedAt: r.lastPushedAt,
+        tyBrandName: r.tyBrandName,
+        lastSyncedAt: r.lastSyncedAt,
+      });
+    }
+    res.json(out);
+  });
+
+  // Bağlantı güncelle (yön / barkod / stok kodu). Toplu yön değişimi de buradan.
+  app.put(
+    "/api/admin/marketplaces/:id/product-links/:linkId",
+    requireAdmin,
+    async (req, res) => {
+      const schema = z.object({
+        syncDirection: z.enum(["pull", "push"]).optional(),
+        barcode: z.string().trim().max(64).nullable().optional(),
+        stockCode: z.string().trim().max(64).nullable().optional(),
+      });
+      const parsed = schema.safeParse(req.body ?? {});
+      if (!parsed.success) return res.status(400).json({ message: "Geçersiz veri" });
+      const link = await storage.getMarketplaceProduct(req.params.linkId);
+      if (!link || link.marketplaceId !== req.params.id) {
+        return res.status(404).json({ message: "Bağlantı bulunamadı" });
+      }
+      if (parsed.data.syncDirection === "push") {
+        const barcode = parsed.data.barcode ?? link.barcode;
+        if (!barcode) {
+          return res
+            .status(400)
+            .json({ message: "Push yönü için barkod zorunlu (Trendyol'daki barkod)." });
+        }
+      }
+      const updated = await storage.updateMarketplaceProduct(link.id, parsed.data);
+      res.json(updated);
+    },
+  );
+
+  // Marka arama (ürün gönderim sihirbazı)
+  app.get("/api/admin/marketplaces/:id/brands", requireAdmin, async (req, res) => {
+    const ctx = await writeAdapterOr400(req, res);
+    if (!ctx) return;
+    const q = String(req.query.q ?? "").trim();
+    if (!q) return res.json([]);
+    try {
+      res.json(await ctx.adapter.searchBrands(q));
+    } catch (err) {
+      res.status(502).json({ message: err instanceof Error ? err.message : String(err) });
+    }
+  });
+
+  // Kategori özellikleri (zorunlu attribute formu için)
+  app.get(
+    "/api/admin/marketplaces/:id/categories/:externalId/attributes",
+    requireAdmin,
+    async (req, res) => {
+      const ctx = await writeAdapterOr400(req, res);
+      if (!ctx) return;
+      try {
+        res.json(await ctx.adapter.fetchCategoryAttributes(req.params.externalId));
+      } catch (err) {
+        res.status(502).json({ message: err instanceof Error ? err.message : String(err) });
+      }
+    },
+  );
+
+  // Ürün gönder (sihirbaz submit) — payload hazırla, bağlantıyı push'a çevir, kuyruğa yaz
+  app.post("/api/admin/marketplaces/:id/push-product", requireAdmin, async (req, res) => {
+    const schema = z.object({
+      productId: z.string().min(1),
+      barcode: z.string().trim().min(3).max(64),
+      stockCode: z.string().trim().max(64).optional(),
+      tyCategoryId: z.string().min(1),
+      tyBrandId: z.string().min(1),
+      tyBrandName: z.string().min(1),
+      attributes: z
+        .array(
+          z.object({
+            attributeId: z.string(),
+            attributeValueId: z.string().optional(),
+            customAttributeValue: z.string().optional(),
+          }),
+        )
+        .default([]),
+      vatRate: z.number().int().min(0).max(20).default(20),
+      listPrice: z.number().positive().optional(),
+      dimensionalWeight: z.number().min(0).default(1),
+      deliveryDuration: z.number().int().min(1).max(30).optional(),
+      cargoCompanyId: z.number().int().optional(),
+    });
+    const parsed = schema.safeParse(req.body ?? {});
+    if (!parsed.success) {
+      return res.status(400).json({ message: "Geçersiz veri", errors: parsed.error.errors });
+    }
+    const ctx = await writeAdapterOr400(req, res);
+    if (!ctx) return;
+    const d = parsed.data;
+
+    const product = await storage.getProduct(d.productId);
+    if (!product) return res.status(404).json({ message: "Ürün bulunamadı" });
+    const images = (product.images ?? []).filter(Boolean);
+    if (images.length === 0) {
+      return res.status(400).json({ message: "Ürünün en az bir görseli olmalı." });
+    }
+    const salePrice = Number(product.basePrice);
+    if (!Number.isFinite(salePrice) || salePrice <= 0) {
+      return res.status(400).json({ message: "Ürün fiyatı geçersiz." });
+    }
+    const variants = await storage.getProductVariants(d.productId);
+    const totalStock = variants
+      .filter((v) => v.isActive !== false)
+      .reduce((s, v) => s + (v.stock ?? 0), 0);
+
+    // Zorunlu attribute pre-validation (Trendyol reddetmeden önce yakala)
+    try {
+      const defs = await ctx.adapter.fetchCategoryAttributes(d.tyCategoryId);
+      const givenIds = new Set(d.attributes.map((a) => a.attributeId));
+      const missing = defs
+        .filter((a) => a.required && !givenIds.has(a.attributeId))
+        .map((a) => a.name);
+      if (missing.length > 0) {
+        return res
+          .status(400)
+          .json({ message: `Zorunlu özellikler eksik: ${missing.join(", ")}` });
+      }
+    } catch {
+      /* attribute servisi erişilemezse Trendyol batch sonucu yakalar */
+    }
+
+    // Görselleri mutlak URL'e çevir (Trendyol dış URL ister)
+    const origin = `${req.protocol}://${req.get("host")}`;
+    const absImages = images.map((u) =>
+      /^https?:\/\//i.test(u) ? { url: u } : { url: `${origin}${u.startsWith("/") ? "" : "/"}${u}` },
+    );
+
+    const listPrice = d.listPrice && d.listPrice >= salePrice ? d.listPrice : salePrice;
+    const stockCode = d.stockCode || d.barcode;
+    const item: Record<string, unknown> = {
+      barcode: d.barcode,
+      title: product.name.slice(0, 100),
+      productMainId: stockCode,
+      brandId: Number(d.tyBrandId),
+      categoryId: Number(d.tyCategoryId),
+      quantity: totalStock,
+      stockCode,
+      dimensionalWeight: d.dimensionalWeight,
+      description: (product.description || product.name).slice(0, 30000),
+      currencyType: "TRY",
+      listPrice,
+      salePrice,
+      vatRate: d.vatRate,
+      images: absImages,
+      attributes: d.attributes.map((a) => ({
+        attributeId: Number(a.attributeId),
+        ...(a.attributeValueId ? { attributeValueId: Number(a.attributeValueId) } : {}),
+        ...(a.customAttributeValue ? { customAttributeValue: a.customAttributeValue } : {}),
+      })),
+      ...(d.deliveryDuration ? { deliveryDuration: d.deliveryDuration } : {}),
+      ...(d.cargoCompanyId ? { cargoCompanyId: d.cargoCompanyId } : {}),
+    };
+
+    // Bağlantıyı oluştur/güncelle — yön 'push', externalId = barkod
+    const existing = await storage.getMarketplaceProductByProduct(ctx.mp.id, d.productId);
+    const patch = {
+      syncDirection: "push" as const,
+      barcode: d.barcode,
+      stockCode,
+      pushStatus: "sent" as const,
+      pushError: null,
+      tyCategoryId: d.tyCategoryId,
+      tyBrandId: d.tyBrandId,
+      tyBrandName: d.tyBrandName,
+      pushAttributes: Object.fromEntries(
+        d.attributes.map((a) => [a.attributeId, a.attributeValueId ?? a.customAttributeValue ?? ""]),
+      ),
+      pushMeta: {
+        vatRate: d.vatRate,
+        listPrice,
+        dimensionalWeight: d.dimensionalWeight,
+        ...(d.deliveryDuration ? { deliveryDuration: d.deliveryDuration } : {}),
+        ...(d.cargoCompanyId ? { cargoCompanyId: d.cargoCompanyId } : {}),
+      },
+    };
+    let link;
+    if (existing) {
+      link = await storage.updateMarketplaceProduct(existing.id, patch);
+    } else {
+      link = await storage.createMarketplaceProductLink({
+        marketplaceId: ctx.mp.id,
+        externalId: d.barcode,
+        productId: d.productId,
+        imageHashes: [],
+        ...patch,
+      });
+    }
+
+    const isUpdate = !!existing?.pushStatus && existing.pushStatus !== "rejected";
+    await storage.enqueuePushItem({
+      marketplaceId: ctx.mp.id,
+      productId: d.productId,
+      kind: isUpdate ? "update" : "create",
+      payload: { item },
+      status: "pending",
+      attempts: 0,
+      nextAttemptAt: new Date(),
+    });
+    // Hemen işlemeyi dene (arka planda; sonuç poll ile netleşir)
+    void processPushQueue().catch(() => {});
+    res.status(202).json({ ok: true, link });
+  });
+
+  // Push kuyruğu görünümü
+  app.get("/api/admin/marketplaces/:id/push-queue", requireAdmin, async (req, res) => {
+    const rows = await storage.getPushQueue(req.params.id, 100);
+    const out = [] as Array<Record<string, unknown>>;
+    for (const r of rows) {
+      const product = await storage.getProduct(r.productId);
+      out.push({ ...r, productName: product?.name ?? null });
+    }
+    res.json(out);
+  });
+
+  // Kuyruk item'ını yeniden dene
+  app.post(
+    "/api/admin/marketplaces/:id/push-queue/:queueId/retry",
+    requireAdmin,
+    async (req, res) => {
+      const item = (await storage.getPushQueue(req.params.id)).find(
+        (i) => i.id === req.params.queueId,
+      );
+      if (!item) return res.status(404).json({ message: "Kuyruk kaydı bulunamadı" });
+      const updated = await storage.updatePushItem(req.params.queueId, {
+        status: "pending",
+        attempts: 0,
+        error: null,
+        nextAttemptAt: new Date(),
+      });
+      if (!updated) return res.status(404).json({ message: "Kuyruk kaydı bulunamadı" });
+      void processPushQueue(req.params.id).catch(() => {});
+      res.json(updated);
+    },
+  );
+
+  // Kuyruğu hemen işle (manuel tetik)
+  app.post("/api/admin/marketplaces/:id/push-now", requireAdmin, async (req, res) => {
+    void processPushQueue(req.params.id).catch(() => {});
+    res.status(202).json({ ok: true, message: "Push kuyruğu işleniyor" });
+  });
+
+  // Tek ürünün stok/fiyatını hemen gönder
+  app.post(
+    "/api/admin/marketplaces/:id/product-links/:linkId/push-stock",
+    requireAdmin,
+    async (req, res) => {
+      const link = await storage.getMarketplaceProduct(req.params.linkId);
+      if (!link || link.marketplaceId !== req.params.id || !link.productId) {
+        return res.status(404).json({ message: "Bağlantı bulunamadı" });
+      }
+      if (link.syncDirection !== "push") {
+        return res.status(400).json({ message: "Bu bağlantı push yönünde değil." });
+      }
+      await enqueueStockPricePush(link.productId);
+      void processPushQueue(req.params.id).catch(() => {});
+      res.status(202).json({ ok: true });
     },
   );
 }

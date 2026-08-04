@@ -563,6 +563,10 @@ async function upsertProduct(
 ): Promise<void> {
   const ctx = `[${marketplace.type}] ${np.name} (${np.externalId})`;
 
+  // YÖN KORUMASI: 'push' yönlü satırlar site tarafından yönetilir — pull motoru
+  // bu ürünlerin içeriğine/stok/fiyatına ASLA dokunmaz.
+  if (existingMpRow?.syncDirection === "push") return;
+
   // İçerik hash'i değişmediyse fast-path. ANCAK iki şeyi reconcile et:
   //   (a) isActive: pazaryeri "aktif" diyor ama site soft-deactivated ise
   //       (önceki tarama yetimlemişti, ürün geri geldi) — reactivate.
@@ -688,6 +692,7 @@ async function deactivateMissing(
 ): Promise<void> {
   const allRows = await storage.getMarketplaceProducts(marketplaceId);
   for (const row of allRows) {
+    if (row.syncDirection === "push") continue; // push ürünler site yönetiminde
     if (seenExternalIds.has(row.externalId)) continue;
     if (!row.productId) continue;
     const p = await storage.getProduct(row.productId);
@@ -938,6 +943,19 @@ async function runFullSync(
   //    düşeriz (eski davranış).
   const treeCache = await loadOrRefreshCategoryTree(mp, adapter, stats, errors);
 
+  // 1b. Push-yönlü bağlantıların barkod haritası. Trendyol, site'dan gönderilen
+  // ürüne sonradan contentId atar; o andan itibaren externalId (barkod) ile
+  // eşleşme kırılır ve pull sync ürünü "yeni" sanıp duplikat yaratabilirdi.
+  // Barkod üzerinden yakala: eşleşirse externalId'yi contentId'ye migre et ve SKIP.
+  const pushByBarcode = new Map<string, MarketplaceProductRow>();
+  try {
+    for (const r of await storage.getMarketplaceProducts(mp.id)) {
+      if (r.syncDirection === "push" && r.barcode) pushByBarcode.set(r.barcode, r);
+    }
+  } catch {
+    /* harita opsiyonel — boşsa eski davranış */
+  }
+
   // 2. Sayfa sayfa ürünleri çek
   const seen = new Set<string>();
   const catCache = new Map<string, string>();
@@ -978,6 +996,34 @@ async function runFullSync(
     for (const np of resp.products) {
       seen.add(np.externalId);
       stats.currentProductName = np.name;
+
+      // YÖN KORUMASI (barkod tabanlı): bu Trendyol ürünü site'dan push edilmiş
+      // bir ürünse, pull ASLA dokunmaz. contentId ilk kez görülüyorsa
+      // bağlantının externalId'sini contentId'ye taşı (kalıcı eşleşme).
+      const pushHit =
+        pushByBarcode.get(np.externalId) ??
+        np.variants
+          .map((v) => (v.barcode ? pushByBarcode.get(v.barcode) : undefined))
+          .find((r): r is MarketplaceProductRow => !!r);
+      if (pushHit) {
+        if (pushHit.externalId !== np.externalId) {
+          try {
+            await storage.updateMarketplaceProduct(pushHit.id, {
+              externalId: np.externalId,
+              externalProductCode: np.externalProductCode ?? pushHit.externalProductCode,
+            });
+            pushHit.externalId = np.externalId;
+          } catch (err) {
+            errors.push({
+              context: `push-link migrate ${pushHit.barcode}`,
+              message: err instanceof Error ? err.message : String(err),
+            });
+          }
+        }
+        stats.processedTotal += 1;
+        continue;
+      }
+
       try {
         // Kategori adı önceliği (yeni):
         //   1) Snapshot'tan leaf — `treeCache.map[externalCategoryId]` (en güvenilir).
@@ -1116,6 +1162,7 @@ async function runDeltaSync(
       processedSinceFlush = 0;
     }
     if (!row.productId) continue;
+    if (row.syncDirection === "push") continue; // yön koruması — site yönetir
     const snap = byExt.get(row.externalId);
     if (!snap) continue;
     try {

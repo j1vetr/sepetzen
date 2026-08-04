@@ -12,6 +12,7 @@
 import * as cron from "node-cron";
 import { storage } from "./storage";
 import { runSync } from "./marketplaces/sync/engine";
+import { processPushQueue } from "./marketplaces/push/engine";
 
 type ScheduledHandle = ReturnType<typeof cron.schedule>;
 let scheduledTasks: ScheduledHandle[] = [];
@@ -64,6 +65,16 @@ export function startScheduler(): void {
   scheduledTasks.push(
     cron.schedule("0 3 * * *", () => {
       void tick("full");
+    }),
+  );
+
+  // Push kuyruğu (site → pazaryeri) — her dakika işle. Kuyruk boşsa no-op,
+  // ucuz. Trendyol stok/fiyat endpoint'i rate limitsiz.
+  scheduledTasks.push(
+    cron.schedule("* * * * *", () => {
+      processPushQueue().catch((err) =>
+        console.error("[scheduler] push queue error:", err instanceof Error ? err.message : err),
+      );
     }),
   );
 

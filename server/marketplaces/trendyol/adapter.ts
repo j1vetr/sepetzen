@@ -27,10 +27,14 @@
 import { MarketplaceHttpClient } from "../http";
 import { registerAdapter } from "../registry";
 import {
+  BatchResult,
+  BrandOption,
+  CategoryAttributeDef,
   MarketplaceAdapter,
   MarketplaceConfig,
   MarketplaceCredentials,
   MarketplaceError,
+  MarketplaceWriteAdapter,
   NormalizedCategory,
   NormalizedProduct,
   NormalizedStockPrice,
@@ -38,6 +42,7 @@ import {
   PageCursor,
   ProductsPage,
   ConnectionTestResult,
+  StockPricePushItem,
 } from "../types";
 
 interface TrendyolCreds extends MarketplaceCredentials {
@@ -102,7 +107,7 @@ interface TrendyolListResponse {
   content: TrendyolProduct[];
 }
 
-class TrendyolAdapter implements MarketplaceAdapter {
+class TrendyolAdapter implements MarketplaceAdapter, MarketplaceWriteAdapter {
   readonly type = "trendyol" as const;
   private readonly client: MarketplaceHttpClient;
   private readonly supplierId: string;
@@ -257,6 +262,135 @@ class TrendyolAdapter implements MarketplaceAdapter {
       if (!resp.content || resp.content.length === 0) return null;
       if (page > 1000) return null;
     }
+  }
+
+  // ==========================================================================
+  // YAZMA (PUSH) YÜZEYİ — V2 servisleri. (V1 ürün servisleri 10 Ağustos 2026'da
+  // kapanıyor; burada yalnız V2 endpoint'leri kullanılır.)
+  // ==========================================================================
+
+  /** Marka arama: GET /product/brands/by-name?name= */
+  async searchBrands(query: string): Promise<BrandOption[]> {
+    if (!query.trim()) return [];
+    const resp = await this.client.request<Array<{ id: number; name: string }>>(
+      `/product/brands/by-name?name=${encodeURIComponent(query.trim())}`,
+    );
+    return (Array.isArray(resp) ? resp : []).map((b) => ({
+      id: String(b.id),
+      name: b.name,
+    }));
+  }
+
+  /** Kategori özellikleri: GET /product/product-categories/{id}/attributes */
+  async fetchCategoryAttributes(externalCategoryId: string): Promise<CategoryAttributeDef[]> {
+    const resp = await this.client.request<{
+      categoryAttributes?: Array<{
+        attribute: { id: number; name: string };
+        required?: boolean;
+        allowCustom?: boolean;
+        varianter?: boolean;
+        slicer?: boolean;
+        attributeValues?: Array<{ id: number; name: string }>;
+      }>;
+    }>(`/product/product-categories/${encodeURIComponent(externalCategoryId)}/attributes`);
+    return (resp.categoryAttributes ?? []).map((a) => ({
+      attributeId: String(a.attribute.id),
+      name: a.attribute.name,
+      required: !!a.required,
+      allowCustom: !!a.allowCustom,
+      varianter: !!a.varianter,
+      slicer: !!a.slicer,
+      values: (a.attributeValues ?? []).map((v) => ({ id: String(v.id), name: v.name })),
+    }));
+  }
+
+  /** V2 ürün oluşturma: POST /product/sellers/{sellerId}/products */
+  async createProducts(items: Array<Record<string, unknown>>): Promise<string> {
+    const resp = await this.client.request<{ batchRequestId: string }>(
+      `/product/sellers/${encodeURIComponent(this.supplierId)}/products`,
+      { method: "POST", body: { items } },
+    );
+    if (!resp?.batchRequestId) {
+      throw new MarketplaceError("Trendyol createProducts: batchRequestId dönmedi");
+    }
+    return resp.batchRequestId;
+  }
+
+  /** V2 ürün güncelleme (fiyat/stok hariç): PUT /product/sellers/{sellerId}/products */
+  async updateProducts(items: Array<Record<string, unknown>>): Promise<string> {
+    const resp = await this.client.request<{ batchRequestId: string }>(
+      `/product/sellers/${encodeURIComponent(this.supplierId)}/products`,
+      { method: "PUT", body: { items } },
+    );
+    if (!resp?.batchRequestId) {
+      throw new MarketplaceError("Trendyol updateProducts: batchRequestId dönmedi");
+    }
+    return resp.batchRequestId;
+  }
+
+  /**
+   * Fiyat + stok: POST /inventory/sellers/{sellerId}/products/price-and-inventory
+   * Trendyol servis limitlerine göre bu endpoint'in rate limiti YOK.
+   */
+  async updateStockAndPrice(items: StockPricePushItem[]): Promise<string> {
+    const resp = await this.client.request<{ batchRequestId: string }>(
+      `/inventory/sellers/${encodeURIComponent(this.supplierId)}/products/price-and-inventory`,
+      {
+        method: "POST",
+        body: {
+          items: items.map((i) => ({
+            barcode: i.barcode,
+            quantity: Math.max(0, Math.floor(i.quantity)),
+            salePrice: i.salePrice,
+            listPrice: i.listPrice,
+          })),
+        },
+      },
+    );
+    if (!resp?.batchRequestId) {
+      throw new MarketplaceError("Trendyol price-and-inventory: batchRequestId dönmedi");
+    }
+    return resp.batchRequestId;
+  }
+
+  /** Batch sonucu: GET /product/sellers/{sellerId}/products/batch-requests/{id} */
+  async getBatchResult(batchRequestId: string): Promise<BatchResult> {
+    const resp = await this.client.request<{
+      batchRequestId: string;
+      status?: string;
+      itemCount?: number;
+      items?: Array<{
+        requestItem?: { barcode?: string; product?: { barcode?: string } };
+        status?: string;
+        failureReasons?: string[];
+      }>;
+    }>(
+      `/product/sellers/${encodeURIComponent(this.supplierId)}/products/batch-requests/${encodeURIComponent(batchRequestId)}`,
+    );
+    const items = resp.items ?? [];
+    const failures = items
+      .filter((i) => (i.status ?? "").toUpperCase() === "FAILED" || (i.failureReasons?.length ?? 0) > 0)
+      .map((i) => ({
+        key:
+          i.requestItem?.barcode ??
+          i.requestItem?.product?.barcode ??
+          "?",
+        reasons: i.failureReasons ?? ["Bilinmeyen hata"],
+      }));
+    // Trendyol status alanı bazen boş; item statülerinden türet.
+    const anyInProgress =
+      (resp.status ?? "").toUpperCase() === "IN_PROGRESS" ||
+      items.some((i) => {
+        const s = (i.status ?? "").toUpperCase();
+        return s !== "SUCCESS" && s !== "FAILED" && s !== "";
+      });
+    return {
+      batchRequestId: resp.batchRequestId ?? batchRequestId,
+      status: anyInProgress ? "IN_PROGRESS" : "DONE",
+      itemCount: resp.itemCount ?? items.length,
+      failedCount: failures.length,
+      failures,
+    };
   }
 }
 

@@ -21,6 +21,7 @@ import {
 } from 'lucide-react';
 import { Switch } from '@/components/ui/switch';
 import AdminModal from './_ui/AdminModal';
+import { ProductLinksDialog, PushQueueDialog } from './MarketplacePushDialogs';
 import {
   PageHeader,
   Card,
@@ -147,6 +148,8 @@ export default function MarketplacesTab({
   const [historyForId, setHistoryForId] = useState<string | null>(null);
   const [mappingsForId, setMappingsForId] = useState<string | null>(null);
   const [deletingId, setDeletingId] = useState<string | null>(null);
+  const [linksForId, setLinksForId] = useState<string | null>(null);
+  const [queueForId, setQueueForId] = useState<string | null>(null);
 
   const adaptersQuery = useQuery<AdapterMeta[]>({
     queryKey: ['/api/admin/marketplaces/adapters'],
@@ -249,6 +252,8 @@ export default function MarketplacesTab({
               onDelete={() => setDeletingId(mp.id)}
               onHistory={() => setHistoryForId(mp.id)}
               onMappings={() => setMappingsForId(mp.id)}
+              onLinks={() => setLinksForId(mp.id)}
+              onQueue={() => setQueueForId(mp.id)}
             />
           ))}
         </div>
@@ -280,6 +285,22 @@ export default function MarketplacesTab({
           siteCategories={siteCategories}
           open={!!mappingsForId}
           onClose={() => setMappingsForId(null)}
+        />
+      )}
+
+      {linksForId && (
+        <ProductLinksDialog
+          marketplaceId={linksForId}
+          open={!!linksForId}
+          onClose={() => setLinksForId(null)}
+        />
+      )}
+
+      {queueForId && (
+        <PushQueueDialog
+          marketplaceId={queueForId}
+          open={!!queueForId}
+          onClose={() => setQueueForId(null)}
         />
       )}
 
@@ -433,12 +454,16 @@ function MarketplaceCard({
   onDelete,
   onHistory,
   onMappings,
+  onLinks,
+  onQueue,
 }: {
   mp: Marketplace;
   onEdit: () => void;
   onDelete: () => void;
   onHistory: () => void;
   onMappings: () => void;
+  onLinks: () => void;
+  onQueue: () => void;
 }) {
   const qc = useQueryClient();
   const { toast } = useToast();
@@ -692,6 +717,14 @@ function MarketplaceCard({
         <GhostButton onClick={onMappings} data-testid={`button-mappings-${mp.id}`}>
           <Tags className="w-3.5 h-3.5" />
           Kategori Eşleme
+        </GhostButton>
+        <GhostButton onClick={onLinks} data-testid={`button-product-links-${mp.id}`}>
+          <Link2 className="w-3.5 h-3.5" />
+          Ürün Gönderimi
+        </GhostButton>
+        <GhostButton onClick={onQueue} data-testid={`button-push-queue-${mp.id}`}>
+          <Zap className="w-3.5 h-3.5" />
+          Gönderim Kuyruğu
         </GhostButton>
         <GhostButton
           onClick={() => refreshCategoryCacheMutation.mutate(mp.id)}

@@ -785,6 +785,31 @@ export const marketplaceProducts = pgTable("marketplace_products", {
   imageHashes: jsonb("image_hashes").$type<string[]>().default([]).notNull(),
   // İçerik diff hash'i (name + description + basePrice + stock) — değişmediyse skip
   contentHash: text("content_hash"),
+  /**
+   * Senkron yönü:
+   *   'pull' — pazaryeri yönetir, site'a çekilir (varsayılan, eski davranış)
+   *   'push' — site yönetir, değişiklikler pazaryerine gönderilir.
+   * Pull motoru 'push' satırlarına ASLA dokunmaz; push motoru 'pull'
+   * satırlarına asla göndermez. (loop/çakışma koruması)
+   */
+  syncDirection: text("sync_direction").default("pull").notNull(),
+  /** Push ürünlerde zorunlu — Trendyol barkodu (aynı zamanda externalId olarak kullanılır). */
+  barcode: text("barcode"),
+  stockCode: text("stock_code"),
+  /** Push yaşam döngüsü: null | 'sent' | 'approved' | 'rejected' | 'error' */
+  pushStatus: text("push_status"),
+  pushError: text("push_error"),
+  lastBatchRequestId: text("last_batch_request_id"),
+  /** Push sihirbazında seçilen Trendyol leaf kategori / marka. */
+  tyCategoryId: text("ty_category_id"),
+  tyBrandId: text("ty_brand_id"),
+  tyBrandName: text("ty_brand_name"),
+  /** Kategoriye özel zorunlu özellik cevapları: { [attributeId]: attributeValueId|customValue } */
+  pushAttributes: jsonb("push_attributes").$type<Record<string, unknown>>().default({}).notNull(),
+  /** KDV, kargo süresi vb. push meta: { vatRate, dimensionalWeight, deliveryDuration, listPrice } */
+  pushMeta: jsonb("push_meta").$type<Record<string, unknown>>().default({}).notNull(),
+  lastPushHash: text("last_push_hash"),
+  lastPushedAt: timestamp("last_pushed_at"),
   lastSyncedAt: timestamp("last_synced_at").defaultNow().notNull(),
   createdAt: timestamp("created_at").defaultNow().notNull(),
 }, (t) => ({
@@ -871,6 +896,46 @@ export const marketplaceSyncRuns = pgTable("marketplace_sync_runs", {
     .where(sql`status = 'running'`),
   startedIdx: index("idx_mp_runs_mp").on(t.marketplaceId, t.startedAt),
 }));
+
+// ============================================================================
+// MARKETPLACE PUSH QUEUE — site → pazaryeri outbox (stok/fiyat + ürün gönderimi)
+// ============================================================================
+
+export const marketplacePushQueue = pgTable("marketplace_push_queue", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  marketplaceId: varchar("marketplace_id")
+    .references(() => marketplaces.id, { onDelete: "cascade" })
+    .notNull(),
+  productId: varchar("product_id")
+    .references(() => products.id, { onDelete: "cascade" })
+    .notNull(),
+  /** 'stock_price' | 'create' | 'update' */
+  kind: text("kind").notNull(),
+  /** create/update için hazırlanmış Trendyol item payload'ı; stock_price'ta boş. */
+  payload: jsonb("payload").$type<Record<string, unknown>>().default({}).notNull(),
+  /** 'pending' → 'sent' (batchRequestId alındı) → 'confirmed' | 'failed' */
+  status: text("status").default("pending").notNull(),
+  attempts: integer("attempts").default(0).notNull(),
+  nextAttemptAt: timestamp("next_attempt_at").defaultNow().notNull(),
+  batchRequestId: text("batch_request_id"),
+  error: text("error"),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+}, (t) => ({
+  // Aynı ürün+pazaryeri+tür için tek pending satır (dedupe)
+  uniqPending: uniqueIndex("uniq_mp_push_pending")
+    .on(t.marketplaceId, t.productId, t.kind)
+    .where(sql`status = 'pending'`),
+  statusIdx: index("idx_mp_push_status").on(t.marketplaceId, t.status, t.nextAttemptAt),
+}));
+
+export const insertMarketplacePushQueueSchema = createInsertSchema(marketplacePushQueue).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+export type InsertMarketplacePushQueueItem = z.infer<typeof insertMarketplacePushQueueSchema>;
+export type MarketplacePushQueueItem = typeof marketplacePushQueue.$inferSelect;
 
 export const insertMarketplaceSyncRunSchema = createInsertSchema(marketplaceSyncRuns).omit({
   id: true,
