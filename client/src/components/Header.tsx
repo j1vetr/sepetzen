@@ -238,10 +238,28 @@ export function Header() {
     <>
       {/* ── Announcement Bar ── */}
       <div
-        className="bg-gradient-to-r from-black via-zinc-950 to-black text-white text-center py-2 px-4 text-[11px] tracking-[0.04em] font-medium"
+        className="bg-gradient-to-r from-black via-zinc-950 to-black text-white py-2 text-[11px] tracking-[0.04em] font-medium overflow-hidden"
         data-testid="announcement-bar"
       >
-        1500 TL ve Üzeri Ücretsiz Kargo! &nbsp;|&nbsp; İlk Siparişinize Sepette %10 İndirim! &nbsp;|&nbsp; Havale/EFT'de %3 İndirim
+        <div className="marquee-track motion-reduce:animate-none" style={{ animationDuration: '28s' }} aria-hidden={false}>
+          {[0, 1].map((copy) => (
+            <div key={copy} className="flex shrink-0 items-center" aria-hidden={copy === 1}>
+              {[
+                '1500 TL ve Üzeri Ücretsiz Kargo!',
+                'İlk Siparişinize Sepette %10 İndirim!',
+                "Havale/EFT'de %3 İndirim",
+                '14 Gün İçinde Kolay İade',
+                'Aynı Gün Kargoda',
+                'SSL ile Güvenli Ödeme',
+              ].map((msg) => (
+                <span key={msg} className="flex items-center whitespace-nowrap">
+                  <span className="px-5">{msg}</span>
+                  <span className="text-white/30">✦</span>
+                </span>
+              ))}
+            </div>
+          ))}
+        </div>
       </div>
 
       {/* ── Brand bar (desktop): E-Posta · Logo · Telefon ── */}
