@@ -341,6 +341,7 @@ function sectionIcon(type: DescSection['type']): LucideIcon {
 // ─── Feature Highlights Strip ─────────────────────────────────────────────────
 
 function ProductFeatureHighlights({ html }: { html: string }) {
+  const reduceMotion = useReducedMotion();
   const sections = useMemo(() => parseProductSections(html), [html]);
   if (sections.length === 0) return null;
   const highlights = sections.slice(0, 4);
@@ -349,8 +350,12 @@ function ProductFeatureHighlights({ html }: { html: string }) {
       {highlights.map((sec, i) => {
         const Icon = sectionIcon(sec.type);
         return (
-          <div
+          <motion.div
             key={i}
+            initial={reduceMotion ? false : { opacity: 0, y: 16 }}
+            whileInView={reduceMotion ? undefined : { opacity: 1, y: 0 }}
+            viewport={{ once: true, margin: '-60px' }}
+            transition={{ duration: 0.4, delay: i * 0.07, ease: [0.33, 1, 0.68, 1] }}
             className={`flex items-start gap-3 px-5 py-5 ${i < highlights.length - 1 ? 'border-r border-black/8' : ''}`}
           >
             <span className="shrink-0 mt-0.5 w-[18px] h-[18px] text-[#141414]">
@@ -362,7 +367,7 @@ function ProductFeatureHighlights({ html }: { html: string }) {
                 {sec.items[0] || (sec.prose ? sec.prose.split(/[.!]/)[0] : '') || ''}
               </p>
             </div>
-          </div>
+          </motion.div>
         );
       })}
     </div>
@@ -372,6 +377,7 @@ function ProductFeatureHighlights({ html }: { html: string }) {
 // ─── Product Tabs ──────────────────────────────────────────────────────────────
 
 function ProductTabs({ html }: { html: string }) {
+  const reduceMotion = useReducedMotion();
   const [active, setActive] = useState<'desc' | 'specs' | 'usage' | 'delivery' | 'faq'>('desc');
   const sections = useMemo(() => parseProductSections(html), [html]);
 
@@ -398,19 +404,32 @@ function ProductTabs({ html }: { html: string }) {
             key={tab.id}
             type="button"
             onClick={() => setActive(tab.id)}
-            className={`px-4 lg:px-6 py-3.5 text-[11px] font-semibold tracking-[0.16em] uppercase whitespace-nowrap border-b-2 -mb-px transition-colors ${
-              active === tab.id
-                ? 'border-[#141414] text-[#141414]'
-                : 'border-transparent text-black/40 hover:text-black/70'
+            className={`relative px-4 lg:px-6 py-3.5 text-[11px] font-semibold tracking-[0.16em] uppercase whitespace-nowrap -mb-px transition-colors ${
+              active === tab.id ? 'text-[#141414]' : 'text-black/40 hover:text-black/70'
             }`}
           >
             {tab.label}
+            {active === tab.id && (
+              <motion.span
+                layoutId="product-tab-underline"
+                transition={reduceMotion ? { duration: 0 } : { type: 'spring', stiffness: 420, damping: 38 }}
+                className="absolute left-0 right-0 bottom-0 h-[2px] bg-[#141414]"
+              />
+            )}
           </button>
         ))}
       </div>
 
       {/* Tab content */}
       <div className="py-8">
+        <AnimatePresence mode="wait" initial={false}>
+        <motion.div
+          key={active}
+          initial={reduceMotion ? false : { opacity: 0, y: 10 }}
+          animate={{ opacity: 1, y: 0 }}
+          exit={reduceMotion ? undefined : { opacity: 0, y: -6 }}
+          transition={{ duration: 0.22, ease: [0.33, 1, 0.68, 1] }}
+        >
         {/* ── Ürün Açıklaması ── */}
         {active === 'desc' && (
           <div className="space-y-6 max-w-2xl">
@@ -568,6 +587,8 @@ function ProductTabs({ html }: { html: string }) {
             ))}
           </div>
         )}
+        </motion.div>
+        </AnimatePresence>
       </div>
     </div>
   );
@@ -634,6 +655,13 @@ export default function ProductDetail() {
   const [selectedImage, setSelectedImage] = useState(0);
   const [quantity, setQuantity] = useState(1);
   const [isAdding, setIsAdding] = useState(false);
+  const [justAdded, setJustAdded] = useState(false);
+  const justAddedTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  useEffect(() => () => { if (justAddedTimerRef.current) clearTimeout(justAddedTimerRef.current); }, []);
+  useEffect(() => {
+    setJustAdded(false);
+    if (justAddedTimerRef.current) clearTimeout(justAddedTimerRef.current);
+  }, [params.slug]);
   const [lightboxOpen, setLightboxOpen] = useState(false);
   const [showShareMenu, setShowShareMenu] = useState(false);
   const [showReviewForm, setShowReviewForm] = useState(false);
@@ -783,6 +811,9 @@ export default function ProductDetail() {
       await addToCart(product.id, variant?.id, quantity);
       const mainImage = product.images?.[0] ?? 'https://images.unsplash.com/photo-1618354691373-d851c5c3a990?w=600&h=800&fit=crop';
       showModal({ name: product.name, image: mainImage, price: parseFloat(product.basePrice || '0') * quantity, quantity });
+      setJustAdded(true);
+      if (justAddedTimerRef.current) clearTimeout(justAddedTimerRef.current);
+      justAddedTimerRef.current = setTimeout(() => setJustAdded(false), 1500);
     } catch {
       toast({ title: 'Hata', description: 'Sepete eklenemedi.', variant: 'destructive' });
     } finally {
@@ -1056,24 +1087,36 @@ export default function ProductDetail() {
           <div className="grid lg:grid-cols-[1fr_420px] xl:grid-cols-[1fr_460px] gap-8 lg:gap-14 items-start">
 
             {/* LEFT — Sticky Gallery (only sticky when right column has enough content) */}
-            <div className={`flex flex-col sm:flex-row gap-3 sm:gap-4${product.description ? ' lg:sticky lg:top-24 lg:self-start' : ''}`}>
+            <motion.div
+              initial={reduceMotion ? false : { opacity: 0, y: 18 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.5, ease: [0.33, 1, 0.68, 1] }}
+              className={`flex flex-col sm:flex-row gap-3 sm:gap-4${product.description ? ' lg:sticky lg:top-24 lg:self-start' : ''}`}>
 
               {/* Thumbnail strip (desktop) */}
               {images.length > 1 && (
                 <div className="hidden sm:flex flex-col gap-2 w-[68px] shrink-0">
                   {images.map((img, i) => (
-                    <button
+                    <motion.button
                       key={i}
                       type="button"
                       onClick={() => setSelectedImage(i)}
-                      className={`relative aspect-square overflow-hidden bg-stone-100 transition-all duration-200 ${
-                        i === selectedImage ? 'ring-1 ring-[#141414] ring-offset-1' : 'opacity-50 hover:opacity-85'
+                      whileTap={reduceMotion ? undefined : { scale: 0.94 }}
+                      className={`relative aspect-square overflow-hidden bg-stone-100 transition-opacity duration-200 ${
+                        i === selectedImage ? '' : 'opacity-50 hover:opacity-85'
                       }`}
                       data-testid={`button-thumbnail-${i}`}
                       aria-label={`Görsel ${i + 1}`}
                     >
                       <img src={img} alt="" className="w-full h-full object-cover" loading="lazy" />
-                    </button>
+                      {i === selectedImage && (
+                        <motion.span
+                          layoutId="thumb-active-ring"
+                          transition={reduceMotion ? { duration: 0 } : { type: 'spring', stiffness: 500, damping: 40 }}
+                          className="absolute inset-0 ring-1 ring-inset ring-[#141414] pointer-events-none"
+                        />
+                      )}
+                    </motion.button>
                   ))}
                 </div>
               )}
@@ -1092,22 +1135,26 @@ export default function ProductDetail() {
                     data-testid="img-product-main"
                   >
                     <AnimatePresence mode="wait">
-                      <motion.img
+                      <motion.div
                         key={selectedImage}
-                        src={images[selectedImage]}
-                        alt={product.name}
-                        className="absolute inset-0 w-full h-full object-cover will-change-transform"
-                        initial={{ opacity: 0 }}
-                        animate={{ opacity: 1 }}
+                        className="absolute inset-0"
+                        initial={reduceMotion ? { opacity: 0 } : { opacity: 0, scale: 1.03 }}
+                        animate={{ opacity: 1, scale: 1 }}
                         exit={{ opacity: 0 }}
-                        transition={{ duration: reduceMotion ? 0 : 0.18 }}
-                        style={{
-                          transformOrigin: `${zoomPos.x}% ${zoomPos.y}%`,
-                          transform: isZooming && !reduceMotion ? 'scale(1.55)' : 'scale(1)',
-                          transition: 'transform 0.4s cubic-bezier(0.22,1,0.36,1)',
-                        }}
-                        draggable={false}
-                      />
+                        transition={{ duration: reduceMotion ? 0 : 0.28, ease: [0.33, 1, 0.68, 1] }}
+                      >
+                        <img
+                          src={images[selectedImage]}
+                          alt={product.name}
+                          className="absolute inset-0 w-full h-full object-cover will-change-transform"
+                          style={{
+                            transformOrigin: `${zoomPos.x}% ${zoomPos.y}%`,
+                            transform: isZooming && !reduceMotion ? 'scale(1.55)' : 'scale(1)',
+                            transition: 'transform 0.4s cubic-bezier(0.22,1,0.36,1)',
+                          }}
+                          draggable={false}
+                        />
+                      </motion.div>
                     </AnimatePresence>
                     {product.discountBadge && (
                       <span className="absolute top-4 left-4 z-10 bg-black text-white text-[10px] font-bold tracking-[0.2em] px-3 py-1.5 uppercase">{product.discountBadge}</span>
@@ -1145,10 +1192,14 @@ export default function ProductDetail() {
                   )}
                 </div>
               </div>
-            </div>
+            </motion.div>
 
             {/* RIGHT — Info card */}
-            <div className="border border-black/8 p-5 lg:p-6">
+            <motion.div
+              initial={reduceMotion ? false : { opacity: 0, y: 18 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.5, delay: reduceMotion ? 0 : 0.12, ease: [0.33, 1, 0.68, 1] }}
+              className="border border-black/8 p-5 lg:p-6">
 
               {/* Category */}
               {category && (
@@ -1218,30 +1269,62 @@ export default function ProductDetail() {
                 {/* Quantity + Add to cart */}
                 <div className="flex items-center gap-2">
                   <div className="flex items-center border border-black/12 shrink-0">
-                    <button type="button" onClick={() => setQuantity((q) => Math.max(1, q - 1))}
+                    <motion.button type="button" onClick={() => setQuantity((q) => Math.max(1, q - 1))}
+                      whileTap={reduceMotion ? undefined : { scale: 0.88 }}
                       className="w-10 h-11 flex items-center justify-center text-black hover:bg-black/4 transition-colors"
                       aria-label="Azalt" data-testid="button-decrease-quantity">
                       <Minus className="w-3.5 h-3.5" />
-                    </button>
-                    <span className="w-9 text-center text-sm font-semibold text-black tabular-nums" data-testid="text-quantity">{quantity}</span>
-                    <button type="button" onClick={() => setQuantity((q) => q + 1)}
+                    </motion.button>
+                    <motion.span
+                      key={quantity}
+                      initial={reduceMotion ? false : { scale: 1.25 }}
+                      animate={{ scale: 1 }}
+                      transition={{ type: 'spring', stiffness: 500, damping: 24 }}
+                      className="w-9 text-center text-sm font-semibold text-black tabular-nums inline-block"
+                      data-testid="text-quantity"
+                    >{quantity}</motion.span>
+                    <motion.button type="button" onClick={() => setQuantity((q) => q + 1)}
+                      whileTap={reduceMotion ? undefined : { scale: 0.88 }}
                       className="w-10 h-11 flex items-center justify-center text-black hover:bg-black/4 transition-colors"
                       aria-label="Artır" data-testid="button-increase-quantity">
                       <Plus className="w-3.5 h-3.5" />
-                    </button>
+                    </motion.button>
                   </div>
 
-                  <button
+                  <motion.button
                     type="button"
                     onClick={handleAddToCart}
                     disabled={isAdding || isOutOfStock}
+                    whileTap={reduceMotion || isOutOfStock ? undefined : { scale: 0.97 }}
                     className={`flex-1 h-11 font-semibold text-[11px] uppercase tracking-[0.2em] transition-colors flex items-center justify-center gap-2 rounded-lg ${
                       isOutOfStock ? 'bg-black/8 text-black/30 cursor-not-allowed' : 'btn-glass'
                     }`}
                     data-testid="button-add-to-cart"
                   >
-                    {isAdding ? <Loader2 className="w-4 h-4 animate-spin" /> : <span>{isOutOfStock ? 'Tükendi' : 'Sepete Ekle'}</span>}
-                  </button>
+                    <AnimatePresence mode="wait" initial={false}>
+                      {isAdding ? (
+                        <motion.span key="loading" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
+                          <Loader2 className="w-4 h-4 animate-spin" />
+                        </motion.span>
+                      ) : justAdded ? (
+                        <motion.span
+                          key="added"
+                          initial={reduceMotion ? { opacity: 0 } : { opacity: 0, scale: 0.6 }}
+                          animate={{ opacity: 1, scale: 1 }}
+                          exit={{ opacity: 0 }}
+                          transition={{ type: 'spring', stiffness: 500, damping: 26 }}
+                          className="flex items-center gap-2"
+                        >
+                          <Check className="w-4 h-4" strokeWidth={2.5} />
+                          Eklendi
+                        </motion.span>
+                      ) : (
+                        <motion.span key="idle" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
+                          {isOutOfStock ? 'Tükendi' : 'Sepete Ekle'}
+                        </motion.span>
+                      )}
+                    </AnimatePresence>
+                  </motion.button>
                 </div>
 
                 {/* WhatsApp */}
@@ -1268,7 +1351,17 @@ export default function ProductDetail() {
                   >
                     {isFavoriteLoading
                       ? <Loader2 className="w-3.5 h-3.5 animate-spin" />
-                      : <Heart className={`w-3.5 h-3.5 ${isLiked ? 'fill-[#141414] text-[#141414]' : ''}`} />
+                      : (
+                        <motion.span
+                          key={isLiked ? 'liked' : 'not-liked'}
+                          initial={reduceMotion ? false : { scale: 0.5 }}
+                          animate={{ scale: 1 }}
+                          transition={{ type: 'spring', stiffness: 600, damping: 18 }}
+                          className="inline-flex"
+                        >
+                          <Heart className={`w-3.5 h-3.5 ${isLiked ? 'fill-[#141414] text-[#141414]' : ''}`} />
+                        </motion.span>
+                      )
                     }
                     <span>{isLiked ? 'Favorilerde' : 'Favorilere Ekle'}</span>
                   </button>
@@ -1334,7 +1427,7 @@ export default function ProductDetail() {
                 )}
               </div>
 
-            </div>
+            </motion.div>
           </div>
 
           {/* ── Feature highlights strip ── */}
@@ -1568,17 +1661,22 @@ export default function ProductDetail() {
                 {price.toLocaleString('tr-TR', { minimumFractionDigits: 2 })} ₺
               </p>
             </div>
-            <button
+            <motion.button
               type="button"
               onClick={handleAddToCart}
               disabled={isAdding || isOutOfStock}
+              whileTap={reduceMotion || isOutOfStock ? undefined : { scale: 0.96 }}
               className={`h-10 px-5 font-semibold text-[11px] uppercase tracking-[0.18em] flex items-center justify-center gap-2 rounded-lg ${
                 isOutOfStock ? 'bg-white/10 text-white/35 cursor-not-allowed border border-white/10' : 'btn-glass'
               }`}
               data-testid="button-add-to-cart-mobile"
             >
-              {isAdding ? <Loader2 className="w-4 h-4 animate-spin" /> : <span>{isOutOfStock ? 'Tükendi' : 'Sepete Ekle'}</span>}
-            </button>
+              {isAdding
+                ? <Loader2 className="w-4 h-4 animate-spin" />
+                : justAdded
+                  ? <span className="flex items-center gap-2"><Check className="w-4 h-4" strokeWidth={2.5} />Eklendi</span>
+                  : <span>{isOutOfStock ? 'Tükendi' : 'Sepete Ekle'}</span>}
+            </motion.button>
           </motion.div>
         )}
       </AnimatePresence>
