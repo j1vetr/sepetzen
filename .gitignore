@@ -4,3 +4,9 @@ dist
 server/public
 vite.config.ts.*
 *.tar.gz
+
+# DB dump dosyaları — gizli bilgi içerebilir
+sepetzen_dump.sql
+sepetzen_dump.dump
+*.dump
+*.sql

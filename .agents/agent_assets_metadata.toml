@@ -60,3 +60,10 @@ uri = "file://sepetzen_dump.dump"
 type = "unspecified"
 title = "sepetzen_dump.dump (son sürüm)"
 description = "Google OAuth desteği, admin sepetzin/Toov1453QQ0 ve güncel schema ile tam yedek."
+
+[[outputs]]
+id = "NaB5Wv8qwcBS31JwcoYdc"
+uri = "file://sepetzen_dump.sql"
+type = "unspecified"
+title = "sepetzen_dump.sql (plain SQL)"
+description = "Tüm PostgreSQL sürümleriyle uyumlu plain SQL yedek."
