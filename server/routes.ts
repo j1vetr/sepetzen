@@ -960,7 +960,7 @@ export async function registerRoutes(
       const { email, password } = req.body;
       const user = await storage.getUserByEmail(email);
       
-      if (!user || !(await bcrypt.compare(password, user.password))) {
+      if (!user || !user.password || !(await bcrypt.compare(password, user.password))) {
         return res.status(401).json({ error: "E-posta veya şifre hatalı" });
       }
 
@@ -983,6 +983,141 @@ export async function registerRoutes(
       console.error('User login error:', error);
       res.status(500).json({ error: "Giriş işlemi başarısız" });
     }
+  });
+
+  // ============================================================
+  // Google OAuth 2.0 — kimlik bilgileri site_settings'ten okunur
+  // ============================================================
+  app.get("/api/auth/google", async (req: Request, res) => {
+    const clientId = await storage.getSiteSetting('google_client_id');
+    if (!clientId?.trim()) {
+      return res.status(503).send('Google ile giriş henüz yapılandırılmamış.');
+    }
+    const baseUrl = `${req.protocol}://${req.get('host')}`;
+    const redirectUri = `${baseUrl}/api/auth/google/callback`;
+    const state = Math.random().toString(36).slice(2);
+    const params = new URLSearchParams({
+      client_id: clientId,
+      redirect_uri: redirectUri,
+      response_type: 'code',
+      scope: 'openid email profile',
+      state,
+      access_type: 'online',
+    });
+    // state'i kısa süreli cookie ile sakla (CSRF önlemi)
+    res.cookie('google_oauth_state', state, {
+      httpOnly: true,
+      maxAge: 5 * 60 * 1000,
+      sameSite: 'lax',
+      path: '/',
+    });
+    res.redirect(`https://accounts.google.com/o/oauth2/v2/auth?${params}`);
+  });
+
+  app.get("/api/auth/google/callback", async (req: Request, res) => {
+    const { code, state, error } = req.query as Record<string, string>;
+    const storedState = req.cookies?.google_oauth_state;
+    res.clearCookie('google_oauth_state', { path: '/' });
+
+    if (error || !code) {
+      return res.redirect('/?google_error=access_denied');
+    }
+    if (!state || state !== storedState) {
+      return res.redirect('/?google_error=state_mismatch');
+    }
+
+    try {
+      const clientId = await storage.getSiteSetting('google_client_id');
+      const clientSecret = await storage.getSiteSetting('google_client_secret');
+      if (!clientId || !clientSecret) {
+        return res.redirect('/?google_error=not_configured');
+      }
+
+      const baseUrl = `${req.protocol}://${req.get('host')}`;
+      const redirectUri = `${baseUrl}/api/auth/google/callback`;
+
+      // Authorization code → access token değişimi
+      const tokenRes = await fetch('https://oauth2.googleapis.com/token', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+        body: new URLSearchParams({
+          code,
+          client_id: clientId,
+          client_secret: clientSecret,
+          redirect_uri: redirectUri,
+          grant_type: 'authorization_code',
+        }),
+      });
+      const tokenData = await tokenRes.json() as { access_token?: string; error?: string };
+      if (!tokenData.access_token) {
+        console.error('[Google OAuth] Token exchange failed:', tokenData);
+        return res.redirect('/?google_error=token_failed');
+      }
+
+      // Kullanıcı bilgilerini al
+      const userRes = await fetch('https://www.googleapis.com/oauth2/v3/userinfo', {
+        headers: { Authorization: `Bearer ${tokenData.access_token}` },
+      });
+      const googleUser = await userRes.json() as {
+        sub: string; email: string; given_name?: string; family_name?: string;
+      };
+      if (!googleUser.sub || !googleUser.email) {
+        return res.redirect('/?google_error=userinfo_failed');
+      }
+
+      // Mevcut kullanıcıyı bul ya da yeni kayıt oluştur
+      let user = await storage.getUserByGoogleId(googleUser.sub);
+      if (!user) {
+        user = await storage.getUserByEmail(googleUser.email);
+        if (user) {
+          // E-posta eşleşti → google_id bağla
+          await storage.updateUser(user.id, { googleId: googleUser.sub } as any);
+        } else {
+          // Yeni kayıt
+          user = await storage.createUser({
+            email: googleUser.email,
+            password: null as any,
+            googleId: googleUser.sub,
+            firstName: googleUser.given_name || '',
+            lastName: googleUser.family_name || '',
+            phone: '',
+          });
+        }
+      }
+
+      const payload = { userId: user.id, email: user.email, type: 'user' as const };
+      const accessToken = generateAccessToken(payload);
+      const refreshToken = await generateRefreshToken(payload, req.headers['user-agent'], req.ip);
+      const isProduction = process.env.NODE_ENV === 'production';
+      setAuthCookies(res, accessToken, refreshToken, isProduction);
+
+      res.redirect('/');
+    } catch (err) {
+      console.error('[Google OAuth] Callback error:', err);
+      res.redirect('/?google_error=server_error');
+    }
+  });
+
+  // Admin: Google OAuth kimlik bilgilerini oku / kaydet
+  app.get("/api/admin/google-oauth/config", requireAdmin, async (_req, res) => {
+    const clientId = await storage.getSiteSetting('google_client_id');
+    const clientSecret = await storage.getSiteSetting('google_client_secret');
+    res.json({
+      configured: !!(clientId && clientSecret),
+      clientIdMasked: clientId ? `${clientId.slice(0, 20)}…` : '',
+      hasClientId: !!clientId,
+      hasClientSecret: !!clientSecret,
+    });
+  });
+
+  app.post("/api/admin/google-oauth/credentials", requireAdmin, async (req, res) => {
+    const { clientId, clientSecret } = req.body as { clientId?: string; clientSecret?: string };
+    if (!clientId?.trim() || !clientSecret?.trim()) {
+      return res.status(400).json({ error: 'Client ID ve Client Secret zorunludur.' });
+    }
+    await storage.setSiteSetting('google_client_id', clientId.trim());
+    await storage.setSiteSetting('google_client_secret', clientSecret.trim());
+    res.json({ success: true });
   });
 
   app.post("/api/auth/logout", async (req: Request, res) => {

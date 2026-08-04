@@ -1,6 +1,6 @@
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useState, useEffect } from 'react';
-import { Settings, Mail, Loader2, CheckCircle2, XCircle, Send, Server, CreditCard, Copy, AlertTriangle, Wrench, MessageCircle, KeyRound, ShieldCheck, Truck, MapPin, Megaphone } from 'lucide-react';
+import { Settings, Mail, Loader2, CheckCircle2, XCircle, Send, Server, CreditCard, Copy, AlertTriangle, Wrench, MessageCircle, KeyRound, ShieldCheck, Truck, MapPin, Megaphone, Globe } from 'lucide-react';
 import { BANK_TRANSFER_INFO } from '@shared/bankInfo';
 import type { SiteIdentity, SocialLink, MobileNavItem } from '@shared/siteIdentity';
 
@@ -1120,6 +1120,9 @@ export default function SettingsPanel() {
         )}
       </div>
 
+      {/* Google OAuth Section */}
+      <GoogleOAuthSection />
+
       {/* Aras Kargo Section */}
       <div className="bg-white border border-neutral-200 rounded-xl p-6" data-testid="card-aras-kargo-settings">
         <div className="flex items-center gap-3 mb-6">
@@ -1580,6 +1583,134 @@ export default function SettingsPanel() {
         >
           {isSaving ? <Loader2 className="w-4 h-4 animate-spin" /> : <CheckCircle2 className="w-4 h-4" />}
           Ayarları Kaydet
+        </button>
+      </div>
+    </div>
+  );
+}
+
+// ============================================================================
+// Google OAuth bölümü — ayrı bileşen olarak izole edildi
+// ============================================================================
+function GoogleOAuthSection() {
+  const qc = useQueryClient();
+  const [clientId, setClientId] = useState('');
+  const [clientSecret, setClientSecret] = useState('');
+  const [saving, setSaving] = useState(false);
+  const [result, setResult] = useState<{ ok: boolean; text: string } | null>(null);
+
+  const { data: config } = useQuery<{
+    configured: boolean;
+    clientIdMasked: string;
+    hasClientId: boolean;
+    hasClientSecret: boolean;
+  }>({
+    queryKey: ['/api/admin/google-oauth/config'],
+  });
+
+  const handleSave = async () => {
+    if (!clientId.trim() || !clientSecret.trim()) {
+      setResult({ ok: false, text: 'Client ID ve Client Secret zorunludur.' });
+      return;
+    }
+    setSaving(true);
+    setResult(null);
+    try {
+      const res = await fetch('/api/admin/google-oauth/credentials', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify({ clientId: clientId.trim(), clientSecret: clientSecret.trim() }),
+      });
+      if (res.ok) {
+        setClientId('');
+        setClientSecret('');
+        await qc.invalidateQueries({ queryKey: ['/api/admin/google-oauth/config'] });
+        setResult({ ok: true, text: 'Google bilgileri kaydedildi. Kullanıcılar artık Google ile giriş yapabilir.' });
+      } else {
+        const d = await res.json();
+        setResult({ ok: false, text: d.error || 'Kayıt başarısız.' });
+      }
+    } catch {
+      setResult({ ok: false, text: 'Bağlantı hatası.' });
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  return (
+    <div className="bg-white border border-neutral-200 rounded-xl p-6" data-testid="card-google-oauth-settings">
+      <div className="flex items-center gap-3 mb-6">
+        <div className="p-2 bg-neutral-50 rounded-lg">
+          <Globe className="w-5 h-5 text-neutral-900" />
+        </div>
+        <div>
+          <h3 className="text-lg font-semibold text-neutral-900">Google ile Giriş</h3>
+          <p className="text-sm text-neutral-500">Müşterilerin Google hesabıyla giriş yapmasını sağlayın</p>
+        </div>
+      </div>
+
+      {config && (
+        <div className={`flex items-center gap-2 p-3 rounded-lg mb-5 text-xs font-medium ${config.configured ? 'bg-neutral-50 border border-neutral-200 text-neutral-700' : 'bg-amber-50 border border-amber-200 text-amber-800'}`} data-testid="text-google-oauth-status">
+          {config.configured
+            ? `✓ Google girişi aktif (Client ID: ${config.clientIdMasked})`
+            : '⚠ Henüz yapılandırılmadı — aşağıdaki bilgileri girin.'}
+        </div>
+      )}
+
+      <div className="space-y-4 mb-5">
+        <div className="flex items-start gap-2 p-3 rounded-lg bg-blue-50 border border-blue-200 text-blue-800 text-xs">
+          <CheckCircle2 className="w-4 h-4 mt-0.5 shrink-0" />
+          <span>
+            Google Cloud Console'da OAuth 2.0 Client ID oluşturun. Yetkili redirect URI olarak
+            {' '}<code className="font-mono bg-blue-100 px-1 rounded">https://siteniz.com/api/auth/google/callback</code>{' '}
+            adresini ekleyin.
+          </span>
+        </div>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div>
+            <label className="block text-sm font-medium text-neutral-700 mb-2">Client ID</label>
+            <input
+              type="text"
+              value={clientId}
+              onChange={(e) => setClientId(e.target.value)}
+              placeholder={config?.hasClientId ? config.clientIdMasked : '123456789-xxx.apps.googleusercontent.com'}
+              data-testid="input-google-client-id"
+              className="w-full px-4 py-3 bg-neutral-50 border border-neutral-200 rounded-lg text-neutral-900 text-sm font-mono focus:outline-none focus:border-neutral-900 transition-colors"
+              autoComplete="off"
+            />
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-neutral-700 mb-2">Client Secret</label>
+            <input
+              type="password"
+              value={clientSecret}
+              onChange={(e) => setClientSecret(e.target.value)}
+              placeholder={config?.hasClientSecret ? '••••••••••••••••' : 'GOCSPX-...'}
+              data-testid="input-google-client-secret"
+              className="w-full px-4 py-3 bg-neutral-50 border border-neutral-200 rounded-lg text-neutral-900 text-sm font-mono focus:outline-none focus:border-neutral-900 transition-colors"
+              autoComplete="new-password"
+            />
+          </div>
+        </div>
+      </div>
+
+      {result && (
+        <div className={`p-3 rounded-lg border text-xs mb-4 ${result.ok ? 'bg-neutral-50 border-neutral-200 text-neutral-800' : 'bg-red-50 border-red-200 text-red-800'}`} data-testid="text-google-oauth-result">
+          {result.text}
+        </div>
+      )}
+
+      <div className="flex justify-end">
+        <button
+          type="button"
+          onClick={handleSave}
+          disabled={saving || !clientId.trim() || !clientSecret.trim()}
+          data-testid="button-google-oauth-save"
+          className="flex items-center gap-2 px-5 py-2.5 bg-neutral-900 text-white rounded-lg hover:bg-neutral-800 transition-colors text-sm font-medium disabled:opacity-50 disabled:cursor-not-allowed"
+        >
+          {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : <KeyRound className="w-4 h-4" />}
+          Bilgileri Kaydet
         </button>
       </div>
     </div>

@@ -21,7 +21,8 @@ export type AdminUser = typeof adminUsers.$inferSelect;
 export const users = pgTable("users", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
   email: text("email").notNull().unique(),
-  password: text("password").notNull(),
+  password: text("password"),
+  googleId: text("google_id").unique(),
   firstName: text("first_name"),
   lastName: text("last_name"),
   phone: text("phone"),

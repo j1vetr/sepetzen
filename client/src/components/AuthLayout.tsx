@@ -3,7 +3,6 @@ import { Link } from 'wouter';
 import { Header } from '@/components/Header';
 import { SEO } from '@/components/SEO';
 import { motion } from 'framer-motion';
-import { useToast } from '@/hooks/use-toast';
 
 interface AuthLayoutProps {
   seoTitle: string;
@@ -34,23 +33,16 @@ function GoogleIcon({ className = 'w-[18px] h-[18px]' }: { className?: string })
 
 /** "Google ile devam et" butonu + "veya" ayracı. Form üstünde kullanılır. */
 export function GoogleAuthButton({ label, testId }: { label: string; testId: string }) {
-  const { toast } = useToast();
   return (
     <div className="mb-6">
-      <button
-        type="button"
-        onClick={() => {
-          toast({
-            title: 'Çok yakında',
-            description: 'Google ile giriş şu anda hazırlanıyor. Şimdilik e-posta ile devam edebilirsiniz.',
-          });
-        }}
+      <a
+        href="/api/auth/google"
         data-testid={testId}
         className="w-full h-11 flex items-center justify-center gap-3 rounded-lg bg-white text-[#1F1F1F] text-sm font-semibold hover:bg-white/90 active:bg-white/85 transition-colors"
       >
         <GoogleIcon />
         {label}
-      </button>
+      </a>
       <div className="flex items-center gap-4 mt-6">
         <span className="h-px flex-1 bg-white/10" />
         <span className="text-[10px] font-mono tracking-[0.25em] uppercase text-white/35">veya</span>
