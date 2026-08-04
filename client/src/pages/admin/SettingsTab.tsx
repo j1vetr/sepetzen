@@ -620,6 +620,101 @@ export default function SettingsPanel() {
     }
   };
 
+  // ── PayTR ayarları ──────────────────────────────────────────────
+  const [paytrSaving, setPaytrSaving] = useState(false);
+  const [paytrMerchantId, setPaytrMerchantId] = useState('');
+  const [paytrMerchantKey, setPaytrMerchantKey] = useState('');
+  const [paytrMerchantSalt, setPaytrMerchantSalt] = useState('');
+  const [paytrCallbackCopied, setPaytrCallbackCopied] = useState(false);
+
+  const { data: paytrConfig, refetch: refetchPaytr } = useQuery<{
+    mode: 'live';
+    configured: boolean;
+    merchantId: string;
+    merchantKeyMasked: string;
+    merchantSaltMasked: string;
+    callbackUrl: string;
+    baseUrl: string;
+  }>({
+    queryKey: ['/api/admin/paytr/config'],
+  });
+
+  const { data: methodToggles, refetch: refetchMethodToggles } = useQuery<{
+    iyzicoEnabled: boolean;
+    paytrEnabled: boolean;
+    iyzicoConfigured: boolean;
+    paytrConfigured: boolean;
+  }>({
+    queryKey: ['/api/admin/payment-methods'],
+  });
+
+  const handlePaytrSaveCredentials = async () => {
+    if (!paytrMerchantId.trim() || !paytrMerchantKey.trim() || !paytrMerchantSalt.trim()) {
+      setMessage({ type: 'error', text: 'Mağaza no, mağaza parola ve gizli anahtar zorunludur.' });
+      return;
+    }
+    setPaytrSaving(true);
+    setMessage(null);
+    try {
+      const res = await fetch('/api/admin/paytr/credentials', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          merchantId: paytrMerchantId.trim(),
+          merchantKey: paytrMerchantKey.trim(),
+          merchantSalt: paytrMerchantSalt.trim(),
+        }),
+        credentials: 'include',
+      });
+      if (res.ok) {
+        await Promise.all([refetchPaytr(), refetchMethodToggles()]);
+        setPaytrMerchantId('');
+        setPaytrMerchantKey('');
+        setPaytrMerchantSalt('');
+        setMessage({
+          type: 'success',
+          text: 'PayTR anahtarları kaydedildi. Ödemeler canlı modda işlenecek.',
+        });
+      } else {
+        const data = await res.json();
+        setMessage({ type: 'error', text: data.error || 'PayTR anahtarları kaydedilemedi' });
+      }
+    } catch {
+      setMessage({ type: 'error', text: 'PayTR anahtarları kaydedilemedi' });
+    } finally {
+      setPaytrSaving(false);
+    }
+  };
+
+  const handleToggleMethod = async (which: 'iyzico' | 'paytr', enabled: boolean) => {
+    try {
+      const res = await fetch('/api/admin/payment-methods', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(which === 'iyzico' ? { iyzicoEnabled: enabled } : { paytrEnabled: enabled }),
+        credentials: 'include',
+      });
+      if (res.ok) {
+        await refetchMethodToggles();
+      } else {
+        setMessage({ type: 'error', text: 'Ödeme yöntemi durumu güncellenemedi' });
+      }
+    } catch {
+      setMessage({ type: 'error', text: 'Ödeme yöntemi durumu güncellenemedi' });
+    }
+  };
+
+  const handleCopyPaytrCallback = async () => {
+    if (!paytrConfig?.callbackUrl) return;
+    try {
+      await navigator.clipboard.writeText(paytrConfig.callbackUrl);
+      setPaytrCallbackCopied(true);
+      setTimeout(() => setPaytrCallbackCopied(false), 2000);
+    } catch {
+      setMessage({ type: 'error', text: 'URL panoya kopyalanamadı' });
+    }
+  };
+
   const { data: savedSettings, isLoading } = useQuery<Record<string, string>>({
     queryKey: ['/api/admin/settings'],
   });
@@ -1154,7 +1249,165 @@ export default function SettingsPanel() {
           </div>
         )}
       </div>
+      )}
 
+      {/* PayTR Ödeme Ayarları */}
+      {section === 'odeme' && (
+      <div className="bg-white border border-neutral-200 rounded-xl p-6" data-testid="card-paytr-settings">
+        <div className="flex items-center gap-3 mb-6">
+          <div className="p-2 bg-neutral-50 rounded-lg">
+            <CreditCard className="w-5 h-5 text-neutral-900" />
+          </div>
+          <div>
+            <h3 className="text-lg font-semibold text-neutral-900">PayTR Ödeme Ayarları</h3>
+            <p className="text-sm text-neutral-500">Mağaza bilgilerini yönetin (yalnızca canlı mod, iFrame API)</p>
+          </div>
+        </div>
+
+        {!paytrConfig ? (
+          <div className="flex items-center gap-2 text-sm text-neutral-500">
+            <Loader2 className="w-4 h-4 animate-spin" /> Yükleniyor...
+          </div>
+        ) : (
+          <div className="space-y-5">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <div>
+                <label className="block text-sm font-medium text-neutral-700 mb-2">Mağaza No (merchant_id)</label>
+                <input
+                  type="text"
+                  value={paytrMerchantId}
+                  onChange={(e) => setPaytrMerchantId(e.target.value)}
+                  placeholder={paytrConfig.merchantId || '483600'}
+                  data-testid="input-paytr-merchant-id"
+                  className="w-full px-4 py-3 bg-neutral-50 border border-neutral-200 rounded-lg text-neutral-900 text-sm font-mono focus:outline-none focus:border-neutral-900 transition-colors"
+                  autoComplete="off"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-neutral-700 mb-2">Mağaza Parola (merchant_key)</label>
+                <input
+                  type="password"
+                  value={paytrMerchantKey}
+                  onChange={(e) => setPaytrMerchantKey(e.target.value)}
+                  placeholder={paytrConfig.merchantKeyMasked || 'merchant_key'}
+                  data-testid="input-paytr-merchant-key"
+                  className="w-full px-4 py-3 bg-neutral-50 border border-neutral-200 rounded-lg text-neutral-900 text-sm font-mono focus:outline-none focus:border-neutral-900 transition-colors"
+                  autoComplete="new-password"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-neutral-700 mb-2">Gizli Anahtar (merchant_salt)</label>
+                <input
+                  type="password"
+                  value={paytrMerchantSalt}
+                  onChange={(e) => setPaytrMerchantSalt(e.target.value)}
+                  placeholder={paytrConfig.merchantSaltMasked || 'merchant_salt'}
+                  data-testid="input-paytr-merchant-salt"
+                  className="w-full px-4 py-3 bg-neutral-50 border border-neutral-200 rounded-lg text-neutral-900 text-sm font-mono focus:outline-none focus:border-neutral-900 transition-colors"
+                  autoComplete="new-password"
+                />
+              </div>
+            </div>
+
+            <div className="flex flex-wrap items-center justify-between gap-3">
+              <div className={`text-xs font-medium ${paytrConfig.configured ? 'text-neutral-600' : 'text-red-600'}`} data-testid="text-paytr-status">
+                {paytrConfig.configured ? '✓ Mağaza bilgileri tanımlı - ödeme aktif edilebilir' : '⚠ Mağaza bilgileri eksik - ödeme alınamaz'}
+              </div>
+              <button
+                type="button"
+                onClick={handlePaytrSaveCredentials}
+                disabled={paytrSaving || !paytrMerchantId.trim() || !paytrMerchantKey.trim() || !paytrMerchantSalt.trim()}
+                data-testid="button-paytr-save-credentials"
+                className="flex items-center gap-2 px-5 py-2.5 bg-neutral-900 text-white rounded-lg hover:bg-neutral-800 transition-colors text-sm font-medium disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                {paytrSaving ? <Loader2 className="w-4 h-4 animate-spin" /> : <KeyRound className="w-4 h-4" />}
+                Bilgileri Kaydet
+              </button>
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-neutral-500 mb-2">
+                Bildirim URL (PayTR mağaza panelinde &ldquo;Bildirim URL&rdquo; alanına girin)
+              </label>
+              <div className="flex gap-2">
+                <input
+                  type="text"
+                  readOnly
+                  value={paytrConfig.callbackUrl}
+                  data-testid="input-paytr-callback-url"
+                  className="flex-1 px-4 py-3 bg-neutral-50 border border-neutral-200 rounded-lg text-neutral-900 text-sm font-mono"
+                />
+                <button
+                  type="button"
+                  onClick={handleCopyPaytrCallback}
+                  data-testid="button-copy-paytr-callback-url"
+                  className="flex items-center gap-2 px-4 py-3 bg-neutral-900 text-white rounded-lg hover:bg-neutral-800 transition-colors text-sm font-medium"
+                >
+                  {paytrCallbackCopied ? <CheckCircle2 className="w-4 h-4" /> : <Copy className="w-4 h-4" />}
+                  {paytrCallbackCopied ? 'Kopyalandı' : 'Kopyala'}
+                </button>
+              </div>
+              <p className="text-xs text-neutral-500 mt-2">
+                PayTR Mağaza Paneli → Ayarlar → Bildirim URL Ayarları bölümüne bu adresi kaydedin. Bu adres kaydedilmeden ödemeler onaylanmaz.
+              </p>
+            </div>
+          </div>
+        )}
+      </div>
+      )}
+
+      {/* Aktif kart sağlayıcıları */}
+      {section === 'odeme' && (
+      <div className="bg-white border border-neutral-200 rounded-xl p-6" data-testid="card-payment-methods">
+        <div className="flex items-center gap-3 mb-4">
+          <div className="p-2 bg-neutral-50 rounded-lg">
+            <CreditCard className="w-5 h-5 text-neutral-900" />
+          </div>
+          <div>
+            <h3 className="text-lg font-semibold text-neutral-900">Aktif Kart Ödeme Sağlayıcıları</h3>
+            <p className="text-sm text-neutral-500">Müşterilerin ödeme sayfasında göreceği kart sağlayıcılarını seçin. İkisi de açık olabilir.</p>
+          </div>
+        </div>
+        {!methodToggles ? (
+          <div className="flex items-center gap-2 text-sm text-neutral-500">
+            <Loader2 className="w-4 h-4 animate-spin" /> Yükleniyor...
+          </div>
+        ) : (
+          <div className="space-y-3">
+            <label className="flex items-center justify-between p-4 border border-neutral-200 rounded-lg cursor-pointer hover:bg-neutral-50 transition-colors">
+              <div>
+                <div className="text-sm font-semibold text-neutral-900">iyzico ile kart ödemesi</div>
+                <div className="text-xs text-neutral-500 mt-0.5">
+                  {methodToggles.iyzicoConfigured ? 'Anahtarlar tanımlı' : 'Anahtarlar eksik, açsanız bile ödeme alınamaz'}
+                </div>
+              </div>
+              <input
+                type="checkbox"
+                checked={methodToggles.iyzicoEnabled}
+                onChange={(e) => handleToggleMethod('iyzico', e.target.checked)}
+                className="w-5 h-5 rounded"
+                data-testid="checkbox-method-iyzico"
+              />
+            </label>
+            <label className="flex items-center justify-between p-4 border border-neutral-200 rounded-lg cursor-pointer hover:bg-neutral-50 transition-colors">
+              <div>
+                <div className="text-sm font-semibold text-neutral-900">PayTR ile kart ödemesi</div>
+                <div className="text-xs text-neutral-500 mt-0.5">
+                  {methodToggles.paytrConfigured ? 'Mağaza bilgileri tanımlı' : 'Mağaza bilgileri eksik, açsanız bile ödeme alınamaz'}
+                </div>
+              </div>
+              <input
+                type="checkbox"
+                checked={methodToggles.paytrEnabled}
+                onChange={(e) => handleToggleMethod('paytr', e.target.checked)}
+                className="w-5 h-5 rounded"
+                data-testid="checkbox-method-paytr"
+              />
+            </label>
+            <p className="text-xs text-neutral-500">Havale her zaman aktiftir. Bir sağlayıcıyı kapatırsanız müşteriler o sekmeyi görmez.</p>
+          </div>
+        )}
+      </div>
       )}
 
       {/* Google OAuth Section */}

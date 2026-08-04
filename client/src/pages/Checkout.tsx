@@ -67,8 +67,8 @@ export default function Checkout() {
   const [stepErrors, setStepErrors] = useState<Record<number, string[]>>({});
   const [savedOrderTotal, setSavedOrderTotal] = useState<number | null>(null);
   
-  // Payment method tab (card | bank_transfer)
-  const [paymentMethod, setPaymentMethod] = useState<'card' | 'bank_transfer'>('card');
+  // Payment method tab (card = iyzico | card_paytr = PayTR | bank_transfer)
+  const [paymentMethod, setPaymentMethod] = useState<'card' | 'card_paytr' | 'bank_transfer'>('card');
   const [mobileSummaryOpen, setMobileSummaryOpen] = useState(false);
   const [copiedField, setCopiedField] = useState<string | null>(null);
 
@@ -89,6 +89,9 @@ export default function Checkout() {
   const [paymentError, setPaymentError] = useState<string | null>(null);
   const checkoutFormRef = useRef<HTMLDivElement>(null);
   const initiateCheckoutTracked = useRef(false);
+
+  // PayTR iFrame State
+  const [paytrIframeUrl, setPaytrIframeUrl] = useState<string | null>(null);
   
   // Coupon state
   const [couponCode, setCouponCode] = useState('');
@@ -105,6 +108,30 @@ export default function Checkout() {
     influencerInstagram?: string;
   } | null>(null);
   const [couponError, setCouponError] = useState('');
+
+  // Aktif ödeme yöntemleri (admin panelden yönetilir)
+  const { data: payMethods = { iyzico: true, paytr: false, bankTransfer: true } } = useQuery<{
+    iyzico: boolean;
+    paytr: boolean;
+    bankTransfer: boolean;
+  }>({
+    queryKey: ['payment-methods'],
+    queryFn: async () => {
+      const res = await fetch('/api/payment/methods');
+      return res.json();
+    },
+    staleTime: 60_000,
+  });
+
+  // Varsayılan sekme: iyzico kapalıysa PayTR, o da kapalıysa havale
+  useEffect(() => {
+    if (paymentMethod === 'card' && !payMethods.iyzico) {
+      setPaymentMethod(payMethods.paytr ? 'card_paytr' : 'bank_transfer');
+    } else if (paymentMethod === 'card_paytr' && !payMethods.paytr) {
+      setPaymentMethod(payMethods.iyzico ? 'card' : 'bank_transfer');
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [payMethods.iyzico, payMethods.paytr]);
 
   const { data: products = [] } = useQuery<Product[]>({
     queryKey: ['products'],
@@ -328,10 +355,12 @@ export default function Checkout() {
   const handleNextStep = () => {
     if (validateStep(currentStep)) {
       if (currentStep === 2) {
-        // Move to payment step. If card tab is selected, kick off iyzico now.
+        // Move to payment step. If a card tab is selected, kick off the provider now.
         setCurrentStep(3);
         if (paymentMethod === 'card' && !checkoutFormContent && !paymentPageUrl) {
-          initiatePayment();
+          initiatePayment('iyzico');
+        } else if (paymentMethod === 'card_paytr' && !paytrIframeUrl) {
+          initiatePayment('paytr');
         }
       } else {
         setCurrentStep(prev => Math.min(prev + 1, 4));
@@ -383,16 +412,19 @@ export default function Checkout() {
     }
   };
 
-  // When user switches back to card tab on step 3, ensure iyzico form is loaded.
+  // When user switches back to a card tab on step 3, ensure the payment form is loaded.
   useEffect(() => {
-    if (currentStep === 3 && paymentMethod === 'card' && !checkoutFormContent && !paymentPageUrl && !paymentLoading) {
-      initiatePayment();
+    if (currentStep !== 3 || paymentLoading) return;
+    if (paymentMethod === 'card' && !checkoutFormContent && !paymentPageUrl) {
+      initiatePayment('iyzico');
+    } else if (paymentMethod === 'card_paytr' && !paytrIframeUrl) {
+      initiatePayment('paytr');
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [paymentMethod, currentStep]);
 
-  // Initiate iyzico Checkout Form
-  const initiatePayment = async () => {
+  // Initiate card payment (iyzico Checkout Form or PayTR iFrame)
+  const initiatePayment = async (provider: 'iyzico' | 'paytr' = 'iyzico') => {
     if (items.length === 0) {
       toast({ 
         title: 'Hata', 
@@ -421,6 +453,7 @@ export default function Checkout() {
           couponCode: appliedCoupon?.code || null,
           createAccount: !user && createAccount,
           accountPassword: !user && createAccount ? accountPassword : null,
+          provider,
         }),
         credentials: 'include',
       });
@@ -431,9 +464,16 @@ export default function Checkout() {
         throw new Error(data.error || 'Ödeme başlatılamadı');
       }
 
-      // Prefer iyzico hosted page in iframe (most reliable). Fallback to inline content.
-      setPaymentPageUrl(data.paymentPageUrl || null);
-      setCheckoutFormContent(data.checkoutFormContent || null);
+      if (data.provider === 'paytr') {
+        setPaytrIframeUrl(data.iframeUrl || null);
+        setPaymentPageUrl(null);
+        setCheckoutFormContent(null);
+      } else {
+        // Prefer iyzico hosted page in iframe (most reliable). Fallback to inline content.
+        setPaymentPageUrl(data.paymentPageUrl || null);
+        setCheckoutFormContent(data.checkoutFormContent || null);
+        setPaytrIframeUrl(null);
+      }
       setMerchantOid(data.merchantOid);
       setSavedOrderTotal(total);
       setCurrentStep(3);
@@ -480,14 +520,14 @@ export default function Checkout() {
 
   // Poll for payment status when on step 3 (works for both iframe and inline modes)
   useEffect(() => {
-    if (currentStep === 3 && merchantOid && (paymentPageUrl || checkoutFormContent)) {
+    if (currentStep === 3 && merchantOid && (paymentPageUrl || checkoutFormContent || paytrIframeUrl)) {
       const interval = setInterval(() => {
         checkPaymentStatus();
       }, 3000); // Check every 3 seconds
 
       return () => clearInterval(interval);
     }
-  }, [currentStep, merchantOid, paymentPageUrl, checkoutFormContent, checkPaymentStatus]);
+  }, [currentStep, merchantOid, paymentPageUrl, checkoutFormContent, paytrIframeUrl, checkPaymentStatus]);
 
   // Inject iyzico Checkout Form HTML/JS into the DOM when received.
   // iyzico's bundle.js looks for a div with id="iyzipay-checkout-form" and
@@ -1301,7 +1341,12 @@ export default function Checkout() {
                         <p className="text-[12px] text-white/45 mt-1.5">Size uygun ödeme yöntemini seçin.</p>
                       </div>
 
-                      <div className="grid grid-cols-2 mb-6 border border-white/15 rounded-lg overflow-hidden">
+                      <div
+                        className={`grid mb-6 border border-white/15 rounded-lg overflow-hidden ${
+                          payMethods.iyzico && payMethods.paytr ? 'grid-cols-3' : 'grid-cols-2'
+                        }`}
+                      >
+                        {payMethods.iyzico && (
                         <button
                           type="button"
                           onClick={() => setPaymentMethod('card')}
@@ -1311,8 +1356,22 @@ export default function Checkout() {
                           data-testid="tab-payment-card"
                         >
                           <CreditCard className="w-4 h-4 shrink-0" />
-                          <span className="truncate">KREDİ KARTI</span>
+                          <span className="truncate">{payMethods.paytr ? 'KART' : 'KREDİ KARTI'}</span>
                         </button>
+                        )}
+                        {payMethods.paytr && (
+                        <button
+                          type="button"
+                          onClick={() => setPaymentMethod('card_paytr')}
+                          className={`h-12 px-2 text-[11.5px] sm:text-[13px] font-bold tracking-wide transition-colors flex items-center justify-center gap-1.5 sm:gap-2 min-w-0 ${
+                            paymentMethod === 'card_paytr' ? 'bg-white text-black' : 'bg-[#141414] text-white/60 hover:bg-[#1A1A1A]'
+                          }`}
+                          data-testid="tab-payment-paytr"
+                        >
+                          <CreditCard className="w-4 h-4 shrink-0" />
+                          <span className="truncate">{payMethods.iyzico ? 'PAYTR' : 'KREDİ KARTI'}</span>
+                        </button>
+                        )}
                         <button
                           type="button"
                           onClick={() => setPaymentMethod('bank_transfer')}
@@ -1440,6 +1499,58 @@ export default function Checkout() {
                             </Button>
                           </div>
                         </div>
+                      ) : paymentMethod === 'card_paytr' ? (
+                        paytrIframeUrl ? (
+                          <div className="space-y-4" data-testid="paytr-panel">
+                            <div className="bg-white rounded-lg overflow-hidden">
+                              <iframe
+                                src={paytrIframeUrl}
+                                title="PayTR Güvenli Ödeme"
+                                className="w-full block"
+                                style={{ minHeight: '680px', border: 0 }}
+                                allow="payment *"
+                                data-testid="paytr-payment-iframe"
+                              />
+                            </div>
+
+                            <div className="flex items-center justify-between gap-3 text-[11.5px]">
+                              <div className="flex items-center gap-1.5 text-white/55 min-w-0">
+                                <Lock className="w-3.5 h-3.5 shrink-0" />
+                                <span className="truncate">256-bit SSL, PayTR güvencesiyle</span>
+                              </div>
+                              <a
+                                href={paytrIframeUrl}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="text-white/70 hover:text-white underline underline-offset-2 shrink-0"
+                                data-testid="link-paytr-newtab"
+                              >
+                                Yeni sekmede aç
+                              </a>
+                            </div>
+
+                            <Button
+                              type="button"
+                              variant="outline"
+                              onClick={() => {
+                                setPaytrIframeUrl(null);
+                                setCheckoutFormContent(null);
+                                setPaymentPageUrl(null);
+                                setMerchantOid(null);
+                                setPaymentError(null);
+                                setCurrentStep(2);
+                              }}
+                              className="w-full h-12 border-white/15 bg-transparent hover:bg-white/5 text-white rounded-lg"
+                            >
+                              Bilgilerimi Düzenle
+                            </Button>
+                          </div>
+                        ) : (
+                          <div className="flex flex-col items-center justify-center py-14">
+                            <Loader2 className="w-8 h-8 animate-spin text-white/30 mb-4" />
+                            <p className="text-white/50 text-sm">Ödeme formu yükleniyor...</p>
+                          </div>
+                        )
                       ) : paymentPageUrl ? (
                         <div className="space-y-4">
                           <div className="bg-white rounded-lg overflow-hidden">
@@ -1475,6 +1586,7 @@ export default function Checkout() {
                             onClick={() => {
                               setCheckoutFormContent(null);
                               setPaymentPageUrl(null);
+                              setPaytrIframeUrl(null);
                               setMerchantOid(null);
                               setPaymentError(null);
                               setCurrentStep(2);
@@ -1504,6 +1616,7 @@ export default function Checkout() {
                             onClick={() => {
                               setCheckoutFormContent(null);
                               setPaymentPageUrl(null);
+                              setPaytrIframeUrl(null);
                               setMerchantOid(null);
                               setPaymentError(null);
                               setCurrentStep(2);

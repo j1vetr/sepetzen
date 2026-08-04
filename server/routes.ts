@@ -52,6 +52,13 @@ import {
   type IyzicoBasketItem,
 } from "./iyzico";
 import {
+  isPaytrConfigured,
+  createPaytrIframeToken,
+  verifyPaytrCallbackHash,
+  type PaytrBasketItem,
+  type PaytrCallbackBody,
+} from "./paytr";
+import {
   buildGroupingPlan,
   AUTO_GROUP_DISPLAY_ORDER_BASE,
   AUTO_GROUP_DISPLAY_ORDER_MAX,
@@ -2361,8 +2368,9 @@ Bu ürün için 4 bölümlü HTML açıklama üret. Teknik Özellikler bölümü
         return res.status(400).json({ error: "Sepet boş" });
       }
 
-      const { customerName, customerEmail, customerPhone, address, city, district, postalCode, country, couponCode, createAccount, accountPassword } = req.body;
+      const { customerName, customerEmail, customerPhone, address, city, district, postalCode, country, couponCode, createAccount, accountPassword, provider } = req.body;
       const selectedCountry = country || 'Türkiye';
+      const paymentProvider: 'iyzico' | 'paytr' = provider === 'paytr' ? 'paytr' : 'iyzico';
 
       // Validate required fields
       if (!customerName || !customerEmail || !customerPhone || !address || !city || !district) {
@@ -2565,6 +2573,61 @@ Bu ürün için 4 bölümlü HTML açıklama üret. Teknik Özellikler bölümü
         clientUserAgent: req.headers['user-agent'] || '',
         expiresAt,
       });
+
+      // ── PayTR iFrame akışı ──────────────────────────────────────────
+      if (paymentProvider === 'paytr') {
+        if (!(await isPaytrConfigured())) {
+          await storage.deletePendingPayment(merchantOid);
+          console.error('[paytr] Anahtarlar yapılandırılmamış. Admin Paneli → Ayarlar → Ödeme bölümünden ekleyin.');
+          return res.status(500).json({
+            error: 'Ödeme sistemi henüz yapılandırılmadı. Lütfen daha sonra tekrar deneyin.',
+          });
+        }
+
+        const paytrBasket: PaytrBasketItem[] = cartItemsForStorage.map((it) => [
+          it.productName.substring(0, 100),
+          parseFloat(it.price).toFixed(2),
+          it.quantity,
+        ]);
+        if (shippingCost > 0) {
+          paytrBasket.push(['Kargo', shippingCost.toFixed(2), 1]);
+        }
+        if (discountAmount > 0) {
+          // PayTR sepeti bilgilendirme amaçlıdır, tahsil edilen tutar payment_amount'tur.
+          paytrBasket.push(['İndirim', `-${discountAmount.toFixed(2)}`, 1]);
+        }
+
+        const paytrResult = await createPaytrIframeToken({
+          merchantOid,
+          userIp,
+          email: customerEmail,
+          amountTl: serverTotal,
+          userName: customerName,
+          userAddress: `${address}, ${district}, ${city}`,
+          userPhone: customerPhone,
+          basket: paytrBasket,
+          okUrl: `${baseUrl}/odeme-basarili?oid=${merchantOid}`,
+          failUrl: `${baseUrl}/odeme-basarisiz?oid=${merchantOid}`,
+        });
+
+        if (paytrResult.status === 'success') {
+          await storage.updatePendingPaymentToken(merchantOid, paytrResult.token);
+          await storage.updatePendingPaymentStatus(merchantOid, 'token_received');
+          return res.json({
+            success: true,
+            provider: 'paytr',
+            token: paytrResult.token,
+            iframeUrl: paytrResult.iframeUrl,
+            merchantOid,
+          });
+        }
+
+        await storage.deletePendingPayment(merchantOid);
+        console.error('[paytr] get-token failed:', paytrResult.reason);
+        return res.status(400).json({
+          error: 'Ödeme sistemi bağlantısı kurulamadı. Lütfen daha sonra tekrar deneyin.',
+        });
+      }
 
       if (!(await isIyzicoConfigured())) {
         await storage.deletePendingPayment(merchantOid);
@@ -2822,6 +2885,146 @@ Bu ürün için 4 bölümlü HTML açıklama üret. Teknik Özellikler bölümü
     }
   });
 
+  // Ortak sipariş sonlandırma: başarılı bir ödeme (iyzico veya PayTR) sonrası
+  // pending payment kaydından gerçek siparişi oluşturur, stok düşer, kupon
+  // redeem edilir, sepet temizlenir, bildirimler gönderilir.
+  const finalizePaidPendingPayment = async (
+    pendingPayment: Awaited<ReturnType<typeof storage.claimPendingPaymentForProcessing>> & object,
+    merchantOid: string,
+    paymentMethod: 'iyzico' | 'paytr',
+  ) => {
+    const orderNumber = merchantOid;
+
+    const order = await storage.createOrder({
+      orderNumber,
+      customerName: pendingPayment.customerName,
+      customerEmail: pendingPayment.customerEmail,
+      customerPhone: pendingPayment.customerPhone,
+      shippingAddress: pendingPayment.shippingAddress,
+      subtotal: pendingPayment.subtotal,
+      shippingCost: pendingPayment.shippingCost,
+      discountAmount: pendingPayment.discountAmount || '0',
+      couponCode: pendingPayment.couponCode,
+      total: pendingPayment.total,
+      status: 'confirmed',
+      paymentMethod,
+      paymentStatus: 'paid',
+    });
+
+    // Create order items and reduce stock
+    for (const item of pendingPayment.cartItems) {
+      await storage.createOrderItem({
+        orderId: order.id,
+        productId: item.productId,
+        variantId: item.variantId,
+        productName: item.productName,
+        variantDetails: item.variantDetails,
+        price: item.price,
+        quantity: item.quantity,
+        subtotal: (parseFloat(item.price) * item.quantity).toFixed(2),
+      });
+
+      if (item.variantId) {
+        const variant = await storage.getProductVariant(item.variantId);
+        if (variant) {
+          const newStock = Math.max(0, variant.stock - item.quantity);
+          await storage.updateProductVariant(item.variantId, { stock: newStock });
+          await storage.createStockAdjustment({
+            variantId: item.variantId,
+            previousStock: variant.stock,
+            newStock: newStock,
+            adjustmentType: 'sale',
+            reason: `Sipariş: ${orderNumber}`,
+          });
+        }
+      }
+    }
+
+    // Coupon redemption + influencer commission
+    if (pendingPayment.couponCode) {
+      const coupon = await storage.getCouponByCode(pendingPayment.couponCode);
+      if (coupon) {
+        await storage.redeemCoupon(coupon.id, order.id, null, parseFloat(pendingPayment.discountAmount || '0'));
+        if (coupon.isInfluencerCode) {
+          let commission = 0;
+          const orderTotal = parseFloat(pendingPayment.total);
+          switch (coupon.commissionType) {
+            case 'percentage':
+              commission = (orderTotal * parseFloat(coupon.commissionValue || '0')) / 100;
+              break;
+            case 'per_use':
+              commission = parseFloat(coupon.commissionValue || '0');
+              break;
+          }
+          if (commission > 0) {
+            const currentCommission = parseFloat(coupon.totalCommissionEarned || '0');
+            await storage.updateCoupon(coupon.id, {
+              totalCommissionEarned: (currentCommission + commission).toFixed(2),
+            });
+          }
+        }
+      }
+    }
+
+    // Clear cart + mark completed
+    await storage.clearCart(pendingPayment.sessionId);
+    await storage.updatePendingPaymentStatus(merchantOid, 'completed');
+
+    // Notifications (best-effort)
+    const orderItems = await storage.getOrderItems(order.id);
+    sendOrderConfirmationEmail(order, orderItems).catch(err => console.error('[Email] Order confirmation failed:', err));
+    sendAdminOrderNotificationEmail(order, orderItems).catch(err => console.error('[Email] Admin notification failed:', err));
+    sendOrderReceivedToCustomer(order).catch(err => console.error('[WhatsApp] Order received (customer) failed:', err));
+    sendOrderReceivedToAdmin(order).catch(err => console.error('[WhatsApp] Order received (admin) failed:', err));
+
+    // Create user account if requested during checkout
+    if (pendingPayment.createAccount && pendingPayment.accountPasswordHash) {
+      try {
+        const existingUser = await storage.getUserByEmail(pendingPayment.customerEmail);
+        if (!existingUser) {
+          const nameParts = pendingPayment.customerName.trim().split(' ');
+          const firstName = nameParts[0] || '';
+          const lastName = nameParts.slice(1).join(' ') || '';
+          const shippingAddr = pendingPayment.shippingAddress as {
+            address: string;
+            city: string;
+            district: string;
+            postalCode: string;
+          };
+          const newUser = await storage.createUser({
+            email: pendingPayment.customerEmail,
+            password: pendingPayment.accountPasswordHash,
+            firstName,
+            lastName,
+            phone: pendingPayment.customerPhone,
+            address: shippingAddr.address,
+            city: shippingAddr.city,
+            district: shippingAddr.district,
+            postalCode: shippingAddr.postalCode || null,
+          });
+          await storage.createUserAddress({
+            userId: newUser.id,
+            title: 'Teslimat Adresi',
+            firstName,
+            lastName,
+            phone: pendingPayment.customerPhone,
+            address: shippingAddr.address,
+            city: shippingAddr.city,
+            district: shippingAddr.district,
+            postalCode: shippingAddr.postalCode || null,
+            isDefault: true,
+          });
+          sendWelcomeEmail(newUser).catch(err => console.error('[Email] Welcome email failed:', err));
+          console.log(`[${paymentMethod} Callback] User account created:`, newUser.email);
+        }
+      } catch (userError) {
+        console.error(`[${paymentMethod} Callback] Failed to create user account:`, userError);
+      }
+    }
+
+    return order;
+  };
+
   // iyzico Callback - browser POSTs here after Checkout Form completes.
   // The legacy /api/payment/callback path is kept as an alias for older webhooks.
   const iyzicoCallbackHandler = async (req: Request, res: Response) => {
@@ -2906,171 +3109,11 @@ Bu ürün için 4 bölümlü HTML açıklama üret. Teknik Özellikler bölümü
           await storage.setPendingPaymentIyzicoId(merchantOid, result.paymentId);
         }
 
-        // Payment successful - create the actual order
-        const orderNumber = merchantOid;
-
-        // Create order
-        const order = await storage.createOrder({
-          orderNumber,
-          customerName: pendingPayment.customerName,
-          customerEmail: pendingPayment.customerEmail,
-          customerPhone: pendingPayment.customerPhone,
-          shippingAddress: pendingPayment.shippingAddress,
-          subtotal: pendingPayment.subtotal,
-          shippingCost: pendingPayment.shippingCost,
-          discountAmount: pendingPayment.discountAmount || '0',
-          couponCode: pendingPayment.couponCode,
-          total: pendingPayment.total,
-          status: 'confirmed',
-          paymentMethod: 'iyzico',
-          paymentStatus: 'paid',
-        });
-
-        // Create order items and reduce stock
-        for (const item of pendingPayment.cartItems) {
-          await storage.createOrderItem({
-            orderId: order.id,
-            productId: item.productId,
-            variantId: item.variantId,
-            productName: item.productName,
-            variantDetails: item.variantDetails,
-            price: item.price,
-            quantity: item.quantity,
-            subtotal: (parseFloat(item.price) * item.quantity).toFixed(2),
-          });
-
-          // Reduce stock for the variant
-          if (item.variantId) {
-            const variant = await storage.getProductVariant(item.variantId);
-            if (variant) {
-              const newStock = Math.max(0, variant.stock - item.quantity);
-              await storage.updateProductVariant(item.variantId, { stock: newStock });
-              
-              await storage.createStockAdjustment({
-                variantId: item.variantId,
-                previousStock: variant.stock,
-                newStock: newStock,
-                adjustmentType: 'sale',
-                reason: `Sipariş: ${orderNumber}`,
-              });
-            }
-          }
-        }
-
-        // Handle coupon redemption
-        if (pendingPayment.couponCode) {
-          const coupon = await storage.getCouponByCode(pendingPayment.couponCode);
-          if (coupon) {
-            await storage.redeemCoupon(coupon.id, order.id, null, parseFloat(pendingPayment.discountAmount || '0'));
-            
-            // Update influencer commission if applicable
-            if (coupon.isInfluencerCode) {
-              let commission = 0;
-              const orderTotal = parseFloat(pendingPayment.total);
-              
-              switch (coupon.commissionType) {
-                case 'percentage':
-                  commission = (orderTotal * parseFloat(coupon.commissionValue || '0')) / 100;
-                  break;
-                case 'per_use':
-                  commission = parseFloat(coupon.commissionValue || '0');
-                  break;
-              }
-              
-              if (commission > 0) {
-                const currentCommission = parseFloat(coupon.totalCommissionEarned || '0');
-                await storage.updateCoupon(coupon.id, {
-                  totalCommissionEarned: (currentCommission + commission).toFixed(2),
-                });
-              }
-            }
-          }
-        }
-
-        // Clear cart
-        await storage.clearCart(pendingPayment.sessionId);
-
-        // Update pending payment status
-        await storage.updatePendingPaymentStatus(merchantOid, 'completed');
+        // Payment successful - create the actual order (shared with PayTR callback)
+        const order = await finalizePaidPendingPayment(pendingPayment, merchantOid, 'iyzico');
         terminalized = true;
 
-        // Send confirmation emails
-        const orderItems = await storage.getOrderItems(order.id);
-        sendOrderConfirmationEmail(order, orderItems).catch(err => console.error('[Email] Order confirmation failed:', err));
-        sendAdminOrderNotificationEmail(order, orderItems).catch(err => console.error('[Email] Admin notification failed:', err));
-
-        // Send WhatsApp notifications (best-effort, never blocks order flow)
-        sendOrderReceivedToCustomer(order).catch(err => console.error('[WhatsApp] Order received (customer) failed:', err));
-        sendOrderReceivedToAdmin(order).catch(err => console.error('[WhatsApp] Order received (admin) failed:', err));
-
-        // Fetch variant SKUs for invoice
-        const variantSkus = new Map<string, string>();
-        for (const item of orderItems) {
-          if (item.variantId) {
-            const variant = await storage.getProductVariant(item.variantId);
-            if (variant?.sku) {
-              variantSkus.set(item.variantId, variant.sku);
-            }
-          }
-        }
-
-        // Create user account if requested during checkout
-        if (pendingPayment.createAccount && pendingPayment.accountPasswordHash) {
-          try {
-            // Check if user doesn't already exist
-            const existingUser = await storage.getUserByEmail(pendingPayment.customerEmail);
-            if (!existingUser) {
-              // Parse name to firstName and lastName
-              const nameParts = pendingPayment.customerName.trim().split(' ');
-              const firstName = nameParts[0] || '';
-              const lastName = nameParts.slice(1).join(' ') || '';
-              
-              const shippingAddr = pendingPayment.shippingAddress as {
-                address: string;
-                city: string;
-                district: string;
-                postalCode: string;
-              };
-
-              // Create the user
-              const newUser = await storage.createUser({
-                email: pendingPayment.customerEmail,
-                password: pendingPayment.accountPasswordHash, // Already hashed
-                firstName,
-                lastName,
-                phone: pendingPayment.customerPhone,
-                address: shippingAddr.address,
-                city: shippingAddr.city,
-                district: shippingAddr.district,
-                postalCode: shippingAddr.postalCode || null,
-              });
-
-              // Create saved address
-              await storage.createUserAddress({
-                userId: newUser.id,
-                title: 'Teslimat Adresi',
-                firstName,
-                lastName,
-                phone: pendingPayment.customerPhone,
-                address: shippingAddr.address,
-                city: shippingAddr.city,
-                district: shippingAddr.district,
-                postalCode: shippingAddr.postalCode || null,
-                isDefault: true,
-              });
-
-              // Send welcome email
-              sendWelcomeEmail(newUser).catch(err => console.error('[Email] Welcome email failed:', err));
-
-              console.log('[iyzico Callback] User account created:', newUser.email);
-            }
-          } catch (userError) {
-            console.error('[iyzico Callback] Failed to create user account:', userError);
-            // Don't fail the order, just log the error
-          }
-        }
-
-        console.log('[iyzico Callback] Order created successfully:', orderNumber);
+        console.log('[iyzico Callback] Order created successfully:', order.orderNumber);
         return sendRedirect(`/odeme-basarili?oid=${merchantOid}`);
       } else {
         // Payment failed
@@ -3107,6 +3150,87 @@ Bu ürün için 4 bölümlü HTML açıklama üret. Teknik Özellikler bölümü
   app.post("/api/payment/iyzico/callback", iyzicoCallbackHandler);
   // Backwards-compatible alias for any legacy webhook configuration
   app.post("/api/payment/callback", iyzicoCallbackHandler);
+
+  // ── PayTR Bildirim (Callback) URL ──────────────────────────────────────
+  // PayTR sunucudan sunucuya POST eder (form-urlencoded). Yanıt her durumda
+  // düz metin "OK" olmalı, aksi halde PayTR bildirimi tekrar tekrar gönderir.
+  app.post("/api/payment/paytr/callback", async (req: Request, res: Response) => {
+    try {
+      const body = req.body as PaytrCallbackBody;
+      const merchantOid = body.merchant_oid || '';
+      console.log('[PayTR Callback] Received:', { merchantOid, status: body.status, total_amount: body.total_amount });
+
+      if (!(await verifyPaytrCallbackHash(body))) {
+        console.error('[PayTR Callback] Hash verification FAILED for', merchantOid);
+        // Hash tutmuyorsa isteği reddet: OK dönme, PayTR tekrar denesin/panelde görünsün.
+        return res.status(400).send('PAYTR notification failed: bad hash');
+      }
+
+      // Tekrarlanan bildirimler: zaten sonuçlanmışsa sadece OK dön.
+      const existing = await storage.getPendingPaymentByMerchantOid(merchantOid);
+      if (!existing) {
+        console.error('[PayTR Callback] Pending payment not found:', merchantOid);
+        return res.send('OK');
+      }
+      if (existing.status === 'completed' || existing.status === 'failed') {
+        return res.send('OK');
+      }
+
+      const claimed = await storage.claimPendingPaymentForProcessing(merchantOid);
+      if (!claimed) {
+        // Başka bir işleyici üzerinde çalışıyor. OK dönmüyoruz ki işleyici
+        // çökerse PayTR bildirimi tekrar göndersin (aksi halde ödeme askıda kalır).
+        return res.status(409).send('PAYTR notification retry: processing in progress');
+      }
+
+      try {
+        if (body.status === 'success') {
+          // Tutar doğrulaması (kuruş cinsinden, 1 kuruş tolerans)
+          const expectedKurus = Math.round(parseFloat(claimed.total) * 100);
+          const paidKurus = parseInt(body.total_amount || '0', 10);
+          if (paidKurus + 1 < expectedKurus) {
+            console.error('[PayTR Callback] Amount mismatch', { expectedKurus, paidKurus, merchantOid });
+            await storage.updatePendingPaymentStatus(merchantOid, 'failed');
+            return res.send('OK');
+          }
+          const order = await finalizePaidPendingPayment(claimed, merchantOid, 'paytr');
+          console.log('[PayTR Callback] Order created successfully:', order.orderNumber);
+        } else {
+          await storage.updatePendingPaymentStatus(merchantOid, 'failed');
+          console.log('[PayTR Callback] Payment failed:', merchantOid, body.failed_reason_code, body.failed_reason_msg);
+        }
+      } catch (procErr) {
+        console.error('[PayTR Callback] Processing error:', procErr);
+        await storage.updatePendingPaymentStatus(merchantOid, 'failed').catch(() => {});
+      }
+
+      return res.send('OK');
+    } catch (error) {
+      console.error('[PayTR Callback] Error:', error);
+      return res.status(500).send('ERROR');
+    }
+  });
+
+  // ── Aktif ödeme yöntemleri (storefront için public) ────────────────────
+  app.get("/api/payment/methods", async (_req, res) => {
+    try {
+      const [iyzicoConfigured, paytrConfigured, iyzicoToggle, paytrToggle] = await Promise.all([
+        isIyzicoConfigured(),
+        isPaytrConfigured(),
+        storage.getSiteSetting('payment_iyzico_enabled'),
+        storage.getSiteSetting('payment_paytr_enabled'),
+      ]);
+      res.json({
+        iyzico: iyzicoConfigured && iyzicoToggle !== '0',
+        paytr: paytrConfigured && paytrToggle !== '0',
+        bankTransfer: true,
+      });
+    } catch (error) {
+      console.error('[payment methods] error:', error);
+      // Emniyetli varsayılan: kart (iyzico) + havale
+      res.json({ iyzico: true, paytr: false, bankTransfer: true });
+    }
+  });
 
   // ── Maintenance mode admin controls ────────────────────────────────────
   app.get("/api/admin/maintenance", requireAdmin, async (_req, res) => {
@@ -3195,6 +3319,82 @@ Bu ürün için 4 bölümlü HTML açıklama üret. Teknik Özellikler bölümü
     } catch (error) {
       console.error('[iyzico credentials] error:', error);
       res.status(500).json({ error: 'iyzico anahtarları kaydedilemedi' });
+    }
+  });
+
+  // ── PayTR admin controls (DB-backed credentials) ───────────────────────
+  app.get("/api/admin/paytr/config", requireAdmin, async (_req, res) => {
+    try {
+      const merchantId = (await storage.getSiteSetting('paytr_merchant_id')) || '';
+      const merchantKey = (await storage.getSiteSetting('paytr_merchant_key')) || '';
+      const merchantSalt = (await storage.getSiteSetting('paytr_merchant_salt')) || '';
+      const baseUrl = process.env.PUBLIC_BASE_URL || 'https://sepetzen.com';
+      res.json({
+        configured: Boolean(merchantId && merchantKey && merchantSalt),
+        merchantId,
+        merchantKeyMasked: maskSecret(merchantKey),
+        merchantSaltMasked: maskSecret(merchantSalt),
+        callbackUrl: `${baseUrl}/api/payment/paytr/callback`,
+        baseUrl,
+        mode: 'live' as const,
+      });
+    } catch (error) {
+      console.error('[paytr config] error:', error);
+      res.status(500).json({ error: 'PayTR ayarları alınamadı' });
+    }
+  });
+
+  app.post("/api/admin/paytr/credentials", requireAdmin, async (req, res) => {
+    try {
+      const merchantId = typeof req.body?.merchantId === 'string' ? req.body.merchantId.trim() : '';
+      const merchantKey = typeof req.body?.merchantKey === 'string' ? req.body.merchantKey.trim() : '';
+      const merchantSalt = typeof req.body?.merchantSalt === 'string' ? req.body.merchantSalt.trim() : '';
+      if (!merchantId || !merchantKey || !merchantSalt) {
+        return res.status(400).json({ error: 'Mağaza no, mağaza parola ve gizli anahtar zorunludur.' });
+      }
+      await storage.setSiteSetting('paytr_merchant_id', merchantId);
+      await storage.setSiteSetting('paytr_merchant_key', merchantKey);
+      await storage.setSiteSetting('paytr_merchant_salt', merchantSalt);
+      console.log('[paytr] credentials updated via admin panel');
+      res.json({ success: true });
+    } catch (error) {
+      console.error('[paytr credentials] error:', error);
+      res.status(500).json({ error: 'PayTR anahtarları kaydedilemedi' });
+    }
+  });
+
+  // Kart sağlayıcı aç/kapa anahtarları (iyzico / PayTR)
+  app.get("/api/admin/payment-methods", requireAdmin, async (_req, res) => {
+    try {
+      const [iyzicoToggle, paytrToggle, iyzicoConfigured, paytrConfigured] = await Promise.all([
+        storage.getSiteSetting('payment_iyzico_enabled'),
+        storage.getSiteSetting('payment_paytr_enabled'),
+        isIyzicoConfigured(),
+        isPaytrConfigured(),
+      ]);
+      res.json({
+        iyzicoEnabled: iyzicoToggle !== '0',
+        paytrEnabled: paytrToggle !== '0',
+        iyzicoConfigured,
+        paytrConfigured,
+      });
+    } catch (error) {
+      res.status(500).json({ error: 'Ödeme yöntemi ayarları alınamadı' });
+    }
+  });
+
+  app.post("/api/admin/payment-methods", requireAdmin, async (req, res) => {
+    try {
+      const { iyzicoEnabled, paytrEnabled } = req.body || {};
+      if (typeof iyzicoEnabled === 'boolean') {
+        await storage.setSiteSetting('payment_iyzico_enabled', iyzicoEnabled ? '1' : '0');
+      }
+      if (typeof paytrEnabled === 'boolean') {
+        await storage.setSiteSetting('payment_paytr_enabled', paytrEnabled ? '1' : '0');
+      }
+      res.json({ success: true });
+    } catch (error) {
+      res.status(500).json({ error: 'Ödeme yöntemi ayarları kaydedilemedi' });
     }
   });
 
