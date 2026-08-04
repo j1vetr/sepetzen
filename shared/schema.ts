@@ -78,6 +78,9 @@ export const categories = pgTable("categories", {
   slug: text("slug").notNull().unique(),
   image: text("image"),
   displayOrder: integer("display_order").default(0).notNull(),
+  seoTitle: text("seo_title"),
+  seoDescription: text("seo_description"),
+  contentHtml: text("content_html"),
 });
 
 export const insertCategorySchema = createInsertSchema(categories).omit({

@@ -7,6 +7,7 @@ import { Link, useParams, useSearch } from 'wouter';
 import { ChevronRight, X, SlidersHorizontal } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useProducts, useCategories, type ProductFilters } from '@/hooks/useProducts';
+import { sanitizeAdminHtml } from '@/lib/sanitizeHtml';
 import { Slider } from '@/components/ui/slider';
 import {
   Select,
@@ -140,6 +141,11 @@ export default function Category() {
     return result;
   }, [products, showOnlyNew, showOnlyDiscounted]);
 
+  const categoryContentHtml = useMemo(
+    () => (category?.contentHtml ? sanitizeAdminHtml(category.contentHtml) : ''),
+    [category?.contentHtml],
+  );
+
   const priceActive = priceRange[0] > 0 || priceRange[1] < 10000;
   const hasActiveFilters = showOnlyNew || showOnlyDiscounted || priceActive;
   const activeFilterCount =
@@ -166,8 +172,11 @@ export default function Category() {
   return (
     <div className="min-h-screen bg-[#0A0A0A] overflow-x-hidden">
       <SEO
-        title={category?.name || 'Kategori'}
-        description={`${category?.name || 'Ürünler'} - Sepetzen kamp, outdoor ve bıçak koleksiyonu`}
+        title={category?.seoTitle?.trim() || category?.name || 'Kategori'}
+        description={
+          category?.seoDescription?.trim() ||
+          `${category?.name || 'Ürünler'} - Sepetzen kamp, outdoor ve bıçak koleksiyonu`
+        }
         url={`/kategori/${slug}`}
         breadcrumbs={[
           { name: 'Ana Sayfa', url: '/' },
@@ -445,6 +454,18 @@ export default function Category() {
           )}
         </div>
       </main>
+
+      {/* ─── CATEGORY SEO CONTENT ─── */}
+      {categoryContentHtml && (
+        <section className="py-12 px-5 lg:px-8 border-t border-white/8" data-testid="section-category-content">
+          <div className="max-w-[840px] mx-auto">
+            <div
+              className="product-rich-copy"
+              dangerouslySetInnerHTML={{ __html: categoryContentHtml }}
+            />
+          </div>
+        </section>
+      )}
 
       {/* ─── OTHER CATEGORIES ─── */}
       {categories.length > 1 && (

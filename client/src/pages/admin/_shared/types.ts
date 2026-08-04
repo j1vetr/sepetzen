@@ -25,6 +25,9 @@ export interface Category {
   slug: string;
   image: string;
   displayOrder: number;
+  seoTitle?: string | null;
+  seoDescription?: string | null;
+  contentHtml?: string | null;
 }
 
 export interface Order {
