@@ -1802,6 +1802,21 @@ Bu ürün için 4 bölümlü HTML açıklama üret. Teknik Özellikler bölümü
         return res.status(400).json({ error: "Ürün stokta yok" });
       }
 
+      // İstenen adet + sepetteki mevcut adet, kalan stoğu aşmasın.
+      const requestedQty = Math.max(1, parseInt(quantity, 10) || 1);
+      const existingCartItems = await storage.getCartItems(cartToken);
+      const existingQty = existingCartItems
+        .filter(ci => ci.productId === productId && (ci.variantId ?? null) === (variantId ?? null))
+        .reduce((sum, ci) => sum + (ci.quantity || 0), 0);
+      const availableStock = resolvedVariant.stock ?? 0;
+      if (existingQty + requestedQty > availableStock) {
+        return res.status(400).json({
+          error: availableStock - existingQty <= 0
+            ? "Ürün için yeterli stok yok"
+            : `Stok yetersiz: en fazla ${availableStock - existingQty} adet daha ekleyebilirsiniz`,
+        });
+      }
+
       const validated = insertCartItemSchema.parse({
         productId,
         variantId,
@@ -1818,7 +1833,23 @@ Bu ürün için 4 bölümlü HTML açıklama üret. Teknik Özellikler bölümü
 
   app.patch("/api/cart/:id", async (req, res) => {
     try {
-      const { quantity } = req.body;
+      const quantity = Math.max(1, parseInt(req.body.quantity, 10) || 1);
+      const existingItem = await storage.getCartItem(req.params.id);
+      if (!existingItem) {
+        return res.status(404).json({ error: "Cart item not found" });
+      }
+      // Yeni adet kalan stoğu aşmasın.
+      if (existingItem.variantId) {
+        const variant = await storage.getProductVariant(existingItem.variantId);
+        const availableStock = variant?.stock ?? 0;
+        if (quantity > availableStock) {
+          return res.status(400).json({
+            error: availableStock <= 0
+              ? "Ürün stokta yok"
+              : `Stok yetersiz: en fazla ${availableStock} adet seçebilirsiniz`,
+          });
+        }
+      }
       const item = await storage.updateCartItem(req.params.id, quantity);
       if (!item) {
         return res.status(404).json({ error: "Cart item not found" });
@@ -2240,6 +2271,15 @@ Bu ürün için 4 bölümlü HTML açıklama üret. Teknik Özellikler bölümü
         const product = await storage.getProduct(actualProductId);
         
         if (product) {
+          // Ödeme öncesi son stok kontrolü: sepetteki adet kalan stoğu aşmasın.
+          const availableStock = variant?.stock ?? 0;
+          if (!variant || cartItem.quantity > availableStock) {
+            return res.status(400).json({
+              error: availableStock <= 0
+                ? `"${product.name}" tükendi, lütfen sepetinizden çıkarın`
+                : `"${product.name}" için yeterli stok yok (kalan: ${availableStock})`,
+            });
+          }
           const itemPrice = parseFloat(product.basePrice);
           serverSubtotal += itemPrice * cartItem.quantity;
           
@@ -2515,6 +2555,15 @@ Bu ürün için 4 bölümlü HTML açıklama üret. Teknik Özellikler bölümü
         const actualProductId = variant?.productId || cartItem.productId;
         const product = await storage.getProduct(actualProductId);
         if (product) {
+          // Ödeme öncesi son stok kontrolü: sepetteki adet kalan stoğu aşmasın.
+          const availableStock = variant?.stock ?? 0;
+          if (!variant || cartItem.quantity > availableStock) {
+            return res.status(400).json({
+              error: availableStock <= 0
+                ? `"${product.name}" tükendi, lütfen sepetinizden çıkarın`
+                : `"${product.name}" için yeterli stok yok (kalan: ${availableStock})`,
+            });
+          }
           const itemPrice = parseFloat(product.basePrice);
           serverSubtotal += itemPrice * cartItem.quantity;
           cartItemsForOrder.push({
@@ -3148,6 +3197,15 @@ Bu ürün için 4 bölümlü HTML açıklama üret. Teknik Özellikler bölümü
         const actualProductId = variant?.productId || cartItem.productId;
         const product = await storage.getProduct(actualProductId);
         if (product) {
+          // Sipariş öncesi son stok kontrolü: sepetteki adet kalan stoğu aşmasın.
+          const availableStock = variant?.stock ?? 0;
+          if (!variant || cartItem.quantity > availableStock) {
+            return res.status(400).json({
+              error: availableStock <= 0
+                ? `"${product.name}" tükendi, lütfen sepetinizden çıkarın`
+                : `"${product.name}" için yeterli stok yok (kalan: ${availableStock})`,
+            });
+          }
           const itemPrice = parseFloat(product.basePrice);
           serverSubtotal += itemPrice * cartItem.quantity;
         }
