@@ -384,6 +384,32 @@ export function registerMarketplaceRoutes(
     res.json(out);
   });
 
+  // Sipariş satırları — Trendyol siparişlerinin stok düşümü izleme listesi.
+  // Eşleşmeyen (productId null) satırlar admin panelde vurgulanır.
+  app.get("/api/admin/marketplaces/:id/order-lines", requireAdmin, async (req, res) => {
+    const mp = await storage.getMarketplace(req.params.id);
+    if (!mp) return res.status(404).json({ message: "Bulunamadı" });
+    const rows = await storage.listMarketplaceOrderLines(req.params.id, 200);
+    res.json(
+      rows.map((r) => ({
+        id: r.id,
+        orderNumber: r.orderNumber,
+        lineId: r.lineId,
+        barcode: r.barcode,
+        quantity: r.quantity,
+        status: r.status,
+        productId: r.productId,
+        productName: r.productName,
+        stockApplied: r.stockApplied,
+        stockRestored: r.stockRestored,
+        note: r.note,
+        orderedAt: r.orderedAt,
+        createdAt: r.createdAt,
+        updatedAt: r.updatedAt,
+      })),
+    );
+  });
+
   // Bağlantı güncelle (yön / barkod / stok kodu). Toplu yön değişimi de buradan.
   app.put(
     "/api/admin/marketplaces/:id/product-links/:linkId",

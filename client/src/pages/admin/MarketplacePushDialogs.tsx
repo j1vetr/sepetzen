@@ -16,6 +16,8 @@ import {
   RotateCcw,
   ArrowDownToLine,
   ArrowUpFromLine,
+  ShoppingCart,
+  AlertTriangle,
 } from 'lucide-react';
 import AdminModal from './_ui/AdminModal';
 import {
@@ -108,6 +110,36 @@ const KIND_LABEL: Record<string, string> = {
   stock_price: 'Stok/Fiyat',
   create: 'Ürün oluşturma',
   update: 'Ürün güncelleme',
+};
+
+type OrderLine = {
+  id: string;
+  orderNumber: string;
+  lineId: string;
+  barcode: string | null;
+  quantity: number;
+  status: string | null;
+  productId: string | null;
+  productName: string | null;
+  stockApplied: boolean;
+  stockRestored: boolean;
+  note: string | null;
+  orderedAt: string | null;
+  createdAt: string;
+  updatedAt: string;
+};
+
+/** Trendyol sipariş satırı durumları (bilinenler için Türkçe etiket + ton). */
+const ORDER_STATUS_BADGE: Record<string, { label: string; tone: 'blue' | 'emerald' | 'amber' | 'red' | 'neutral' }> = {
+  created: { label: 'Oluşturuldu', tone: 'blue' },
+  picking: { label: 'Hazırlanıyor', tone: 'blue' },
+  invoiced: { label: 'Faturalandı', tone: 'blue' },
+  shipped: { label: 'Kargoda', tone: 'emerald' },
+  delivered: { label: 'Teslim edildi', tone: 'emerald' },
+  cancelled: { label: 'İptal', tone: 'red' },
+  unsupplied: { label: 'Tedarik edilemedi', tone: 'red' },
+  returned: { label: 'İade', tone: 'amber' },
+  undeliveredandreturned: { label: 'Teslim edilemedi/İade', tone: 'amber' },
 };
 
 function fmt(d: string | null): string {
@@ -870,6 +902,131 @@ export function PushQueueDialog({
                       Tekrar Dene
                     </GhostButton>
                   )}
+                </div>
+              );
+            })}
+          </div>
+        )}
+      </div>
+    </AdminModal>
+  );
+}
+
+// ============================================================================
+// Sipariş Satırları (Trendyol → site stok düşümleri)
+// ============================================================================
+export function OrderLinesDialog({
+  marketplaceId,
+  open,
+  onClose,
+}: {
+  marketplaceId: string;
+  open: boolean;
+  onClose: () => void;
+}) {
+  const [onlyUnmatched, setOnlyUnmatched] = useState(false);
+
+  const linesQuery = useQuery<OrderLine[]>({
+    queryKey: ['/api/admin/marketplaces', marketplaceId, 'order-lines'],
+    queryFn: async () => {
+      const res = await apiRequest('GET', `/api/admin/marketplaces/${marketplaceId}/order-lines`);
+      return await res.json();
+    },
+    refetchInterval: 15000,
+    enabled: open,
+  });
+
+  const rows = linesQuery.data ?? [];
+  const unmatchedCount = rows.filter((r) => !r.productId).length;
+  const restoredCount = rows.filter((r) => r.stockRestored).length;
+  const visible = onlyUnmatched ? rows.filter((r) => !r.productId) : rows;
+
+  return (
+    <AdminModal open={open} onClose={onClose} title="Sipariş Stok Düşümleri" size="lg">
+      <div className="space-y-3" data-testid="dialog-order-lines">
+        <div className="flex flex-wrap items-center gap-2">
+          <StatusBadge tone="neutral">Toplam: {rows.length}</StatusBadge>
+          <StatusBadge tone={unmatchedCount > 0 ? 'red' : 'neutral'}>
+            Eşleşmeyen: {unmatchedCount}
+          </StatusBadge>
+          <StatusBadge tone={restoredCount > 0 ? 'amber' : 'neutral'}>
+            Stok iadesi: {restoredCount}
+          </StatusBadge>
+          <div className="flex-1" />
+          {unmatchedCount > 0 && (
+            <GhostButton
+              onClick={() => setOnlyUnmatched((v) => !v)}
+              data-testid="button-toggle-unmatched"
+            >
+              <AlertTriangle className="w-3.5 h-3.5" />
+              {onlyUnmatched ? 'Tümünü göster' : 'Sadece eşleşmeyenler'}
+            </GhostButton>
+          )}
+        </div>
+
+        {linesQuery.isLoading ? (
+          <LoadingState />
+        ) : visible.length === 0 ? (
+          <EmptyState
+            icon={ShoppingCart}
+            title={onlyUnmatched ? 'Eşleşmeyen satır yok' : 'Henüz sipariş satırı yok'}
+            description={
+              onlyUnmatched
+                ? 'Tüm sipariş satırları bir site ürünüyle eşleşti.'
+                : "Trendyol'dan sipariş çekildikçe stok düşümleri burada listelenir."
+            }
+          />
+        ) : (
+          <div className="border border-neutral-200 rounded-lg divide-y divide-neutral-100 overflow-hidden max-h-[55vh] overflow-y-auto">
+            {visible.map((r) => {
+              const unmatched = !r.productId;
+              const statusKey = (r.status ?? '').toLowerCase();
+              const badge = ORDER_STATUS_BADGE[statusKey] ?? {
+                label: r.status ?? '-',
+                tone: 'neutral' as const,
+              };
+              return (
+                <div
+                  key={r.id}
+                  className={`p-3 flex flex-wrap items-center gap-2 ${
+                    unmatched ? 'bg-red-50/70 border-l-2 border-l-red-400' : ''
+                  }`}
+                  data-testid={`row-order-line-${r.id}`}
+                >
+                  <div className="min-w-0 flex-1">
+                    <div className="text-[13px] font-medium text-neutral-900 truncate flex items-center gap-1.5">
+                      {unmatched && <AlertTriangle className="w-3.5 h-3.5 text-red-500 shrink-0" />}
+                      <span className="truncate">
+                        {r.productName ?? (unmatched ? 'Eşleşmeyen ürün' : r.productId)}
+                      </span>
+                    </div>
+                    <div className="text-[11px] text-neutral-500 flex flex-wrap gap-x-2">
+                      <span>Sipariş: {r.orderNumber}</span>
+                      {r.barcode && <span>Barkod: {r.barcode}</span>}
+                      <span>Adet: {r.quantity}</span>
+                      <span>{fmt(r.orderedAt ?? r.createdAt)}</span>
+                    </div>
+                    {r.note && (
+                      <div
+                        className={`text-[11px] mt-0.5 break-words ${
+                          unmatched ? 'text-red-600' : 'text-neutral-500'
+                        }`}
+                        title={r.note}
+                      >
+                        {r.note}
+                      </div>
+                    )}
+                  </div>
+                  <div className="flex items-center gap-1.5 shrink-0">
+                    <StatusBadge tone={badge.tone}>{badge.label}</StatusBadge>
+                    {r.stockRestored ? (
+                      <StatusBadge tone="amber">Stok iade edildi</StatusBadge>
+                    ) : r.stockApplied ? (
+                      <StatusBadge tone="emerald">Stok düşüldü</StatusBadge>
+                    ) : (
+                      <StatusBadge tone="red">Stok düşülmedi</StatusBadge>
+                    )}
+                  </div>
                 </div>
               );
             })}

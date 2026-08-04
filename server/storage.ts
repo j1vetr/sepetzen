@@ -373,6 +373,11 @@ export interface IStorage {
     id: string,
     patch: Partial<InsertMarketplaceOrderLine>,
   ): Promise<MarketplaceOrderLine | undefined>;
+  /** Sipariş satırlarını (son N) ürün adıyla birlikte listele — admin izleme. */
+  listMarketplaceOrderLines(
+    marketplaceId: string,
+    limit?: number,
+  ): Promise<Array<MarketplaceOrderLine & { productName: string | null }>>;
 
   // Push queue (site → pazaryeri outbox)
   enqueuePushItem(insert: InsertMarketplacePushQueueItem): Promise<MarketplacePushQueueItem>;
@@ -2428,6 +2433,23 @@ export class DbStorage implements IStorage {
       .where(eq(marketplaceOrderLines.id, id))
       .returning();
     return row;
+  }
+
+  async listMarketplaceOrderLines(
+    marketplaceId: string,
+    limit = 200,
+  ): Promise<Array<MarketplaceOrderLine & { productName: string | null }>> {
+    const rows = await db
+      .select({
+        line: marketplaceOrderLines,
+        productName: products.name,
+      })
+      .from(marketplaceOrderLines)
+      .leftJoin(products, eq(marketplaceOrderLines.productId, products.id))
+      .where(eq(marketplaceOrderLines.marketplaceId, marketplaceId))
+      .orderBy(desc(marketplaceOrderLines.createdAt))
+      .limit(limit);
+    return rows.map((r) => ({ ...r.line, productName: r.productName ?? null }));
   }
 
   // === Push queue (site → pazaryeri outbox) ===
