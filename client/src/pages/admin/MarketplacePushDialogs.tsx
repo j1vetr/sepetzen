@@ -4,7 +4,7 @@
  *     push durumu, "Trendyol'a Gönder" sihirbazı, stok/fiyatı hemen gönder.
  *   - PushQueueDialog: outbox kuyruğu (bekleyen/gönderilen/hatalı), retry.
  */
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { apiRequest } from '@/lib/queryClient';
 import { useToast } from '@/hooks/use-toast';
@@ -44,6 +44,9 @@ type ProductLink = {
   pushError: string | null;
   lastPushedAt: string | null;
   tyBrandName: string | null;
+  tyCategoryId: string | null;
+  tyBrandId: string | null;
+  pushAttributes: Record<string, string>;
   lastSyncedAt: string;
 };
 
@@ -131,6 +134,8 @@ export function ProductLinksDialog({
   const qc = useQueryClient();
   const { toast } = useToast();
   const [wizardProduct, setWizardProduct] = useState<SiteProduct | null>(null);
+  const [wizardLink, setWizardLink] = useState<ProductLink | null>(null);
+  const [errorLink, setErrorLink] = useState<ProductLink | null>(null);
   const [search, setSearch] = useState('');
 
   const linksQuery = useQuery<ProductLink[]>({
@@ -233,6 +238,8 @@ export function ProductLinksDialog({
               <div className="border border-neutral-200 rounded-lg divide-y divide-neutral-100 overflow-hidden">
                 {filteredLinks.map((link) => {
                   const badge = link.pushStatus ? PUSH_STATUS_BADGE[link.pushStatus] : null;
+                  const hasErrorDetail =
+                    !!link.pushError && (link.pushStatus === 'rejected' || link.pushStatus === 'error');
                   return (
                     <div
                       key={link.id}
@@ -254,7 +261,40 @@ export function ProductLinksDialog({
                           </div>
                         )}
                       </div>
-                      {badge && <StatusBadge tone={badge.tone}>{badge.label}</StatusBadge>}
+                      {badge &&
+                        (hasErrorDetail ? (
+                          <button
+                            type="button"
+                            onClick={() => setErrorLink(link)}
+                            className="cursor-pointer"
+                            title="Hata detayını göster"
+                            data-testid={`button-push-error-${link.id}`}
+                          >
+                            <StatusBadge tone={badge.tone}>{badge.label} ⓘ</StatusBadge>
+                          </button>
+                        ) : (
+                          <StatusBadge tone={badge.tone}>{badge.label}</StatusBadge>
+                        ))}
+                      {link.pushStatus === 'rejected' && link.productId && (
+                        <GhostButton
+                          onClick={() => {
+                            const p = products.find((sp) => sp.id === link.productId);
+                            setWizardLink(link);
+                            setWizardProduct(
+                              p ?? {
+                                id: link.productId!,
+                                name: link.productName ?? '(ürün)',
+                                basePrice: '0',
+                                isActive: true,
+                              },
+                            );
+                          }}
+                          data-testid={`button-fix-resend-${link.id}`}
+                        >
+                          <RotateCcw className="w-3.5 h-3.5" />
+                          Düzelt &amp; Yeniden Gönder
+                        </GhostButton>
+                      )}
                       <StatusBadge tone={link.syncDirection === 'push' ? 'blue' : 'neutral'}>
                         {link.syncDirection === 'push' ? (
                           <span className="inline-flex items-center gap-1">
@@ -340,13 +380,40 @@ export function ProductLinksDialog({
         <PushWizardDialog
           marketplaceId={marketplaceId}
           product={wizardProduct}
+          initialLink={wizardLink}
           open={!!wizardProduct}
-          onClose={() => setWizardProduct(null)}
+          onClose={() => {
+            setWizardProduct(null);
+            setWizardLink(null);
+          }}
           onDone={() => {
             setWizardProduct(null);
+            setWizardLink(null);
             invalidate();
           }}
         />
+      )}
+
+      {errorLink && (
+        <AdminModal
+          open={!!errorLink}
+          onClose={() => setErrorLink(null)}
+          title={`Trendyol Red Nedeni — ${errorLink.productName ?? errorLink.barcode ?? errorLink.externalId}`}
+          size="md"
+        >
+          <div className="space-y-3" data-testid="dialog-push-error-detail">
+            <InlineAlert tone="error">
+              Trendyol bu ürünü {errorLink.pushStatus === 'rejected' ? 'reddetti' : 'hata ile yanıtladı'}.
+              Aşağıdaki kural ihlallerini düzeltip yeniden gönderebilirsiniz.
+            </InlineAlert>
+            <div
+              className="text-[13px] text-neutral-800 whitespace-pre-wrap break-words bg-neutral-50 border border-neutral-200 rounded-lg p-3 max-h-[50vh] overflow-y-auto"
+              data-testid="text-push-error-full"
+            >
+              {errorLink.pushError}
+            </div>
+          </div>
+        </AdminModal>
       )}
     </AdminModal>
   );
@@ -358,24 +425,31 @@ export function ProductLinksDialog({
 function PushWizardDialog({
   marketplaceId,
   product,
+  initialLink,
   open,
   onClose,
   onDone,
 }: {
   marketplaceId: string;
   product: SiteProduct;
+  initialLink?: ProductLink | null;
   open: boolean;
   onClose: () => void;
   onDone: () => void;
 }) {
   const { toast } = useToast();
-  const [barcode, setBarcode] = useState('');
-  const [stockCode, setStockCode] = useState('');
+  const [barcode, setBarcode] = useState(initialLink?.barcode ?? '');
+  const [stockCode, setStockCode] = useState(initialLink?.stockCode ?? '');
   const [categorySearch, setCategorySearch] = useState('');
-  const [categoryId, setCategoryId] = useState('');
-  const [brandSearch, setBrandSearch] = useState('Sepetzen');
-  const [brand, setBrand] = useState<BrandOption | null>(null);
+  const [categoryId, setCategoryId] = useState(initialLink?.tyCategoryId ?? '');
+  const [brandSearch, setBrandSearch] = useState(initialLink?.tyBrandName ?? 'Sepetzen');
+  const [brand, setBrand] = useState<BrandOption | null>(
+    initialLink?.tyBrandId && initialLink?.tyBrandName
+      ? { id: initialLink.tyBrandId, name: initialLink.tyBrandName }
+      : null,
+  );
   const [attrValues, setAttrValues] = useState<Record<string, { valueId?: string; custom?: string }>>({});
+  const [attrsPrefilled, setAttrsPrefilled] = useState(false);
   const [vatRate, setVatRate] = useState('20');
   const [listPrice, setListPrice] = useState('');
   const [dimensionalWeight, setDimensionalWeight] = useState('1');
@@ -428,6 +502,27 @@ function PushWizardDialog({
 
   const attributes = attributesQuery.data ?? [];
   const requiredAttrs = attributes.filter((a) => a.required);
+
+  // Reddedilen ürün yeniden gönderilirken önceki attribute değerlerini doldur.
+  // Saklanan değer valueId ya da serbest metin olabilir; kategori tanımına bakarak ayırt ederiz.
+  useEffect(() => {
+    if (attrsPrefilled || !initialLink?.pushAttributes || attributes.length === 0) return;
+    if (categoryId !== initialLink.tyCategoryId) return;
+    const next: Record<string, { valueId?: string; custom?: string }> = {};
+    for (const [attributeId, stored] of Object.entries(initialLink.pushAttributes)) {
+      if (!stored) continue;
+      const def = attributes.find((a) => a.attributeId === attributeId);
+      if (def && def.values.some((v) => v.id === stored)) {
+        next[attributeId] = { valueId: stored };
+      } else {
+        next[attributeId] = { custom: stored };
+      }
+    }
+    if (Object.keys(next).length > 0) {
+      setAttrValues((prev) => ({ ...next, ...prev }));
+    }
+    setAttrsPrefilled(true);
+  }, [attributes, attrsPrefilled, initialLink, categoryId]);
 
   const submitMutation = useMutation({
     mutationFn: async () => {

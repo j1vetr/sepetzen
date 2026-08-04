@@ -375,6 +375,9 @@ export function registerMarketplaceRoutes(
         pushError: r.pushError,
         lastPushedAt: r.lastPushedAt,
         tyBrandName: r.tyBrandName,
+        tyCategoryId: r.tyCategoryId,
+        tyBrandId: r.tyBrandId,
+        pushAttributes: r.pushAttributes ?? {},
         lastSyncedAt: r.lastSyncedAt,
       });
     }
