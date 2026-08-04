@@ -1218,10 +1218,6 @@ export default function ProductDetail() {
                    <p className="font-display text-[17px] tracking-[0.12em] text-white">SEPETZEN</p>
                    <p className="mt-0.5 text-[10px] uppercase tracking-[0.14em] text-white/45">Outdoor Gear · Dalaman / Muğla</p>
                  </div>
-                 <div className="ml-auto hidden text-right sm:block">
-                   <p className="text-[10px] font-semibold uppercase tracking-[0.12em] text-white/70">2020’den beri</p>
-                   <p className="mt-1 text-[10px] text-white/35">El işçiliğiyle üretim</p>
-                 </div>
                </div>
 
                {/* Category */}

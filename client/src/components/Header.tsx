@@ -123,6 +123,8 @@ function getCategoryDesc(title: string): string {
   return 'Sepetzen kalitesinde seçilmiş ürün koleksiyonu';
 }
 
+const scrollToTop = () => window.scrollTo({ top: 0, left: 0, behavior: 'auto' });
+
 export function Header() {
   const [location, navigate] = useLocation();
   const [mobileOpen, setMobileOpen] = useState(false);
@@ -280,7 +282,7 @@ export function Header() {
           </a>
 
           {/* Orta: Logo */}
-          <Link href="/" data-testid="link-logo" className="justify-self-center block">
+          <Link href="/" onClick={scrollToTop} data-testid="link-logo" className="justify-self-center block">
             <img
               src="/uploads/branding/sepetzen-logo-white.png"
               alt="Sepetzen – Kamp, Outdoor, Bıçak ve Bağ Bahçe"
@@ -329,7 +331,7 @@ export function Header() {
               <span className="block h-px w-6 bg-white" />
             </button>
 
-            <Link href="/" data-testid="link-logo-mobile-header" className="justify-self-center block">
+            <Link href="/" onClick={scrollToTop} data-testid="link-logo-mobile-header" className="justify-self-center block">
               <img
                 src="/uploads/branding/sepetzen-logo-white.png"
                 alt="Sepetzen"
@@ -388,7 +390,7 @@ export function Header() {
                     transition={{ duration: 0.3, ease: [0.33, 1, 0.68, 1] }}
                     className="shrink-0"
                   >
-                    <Link href="/" data-testid="link-logo-compact" className="block">
+                    <Link href="/" onClick={scrollToTop} data-testid="link-logo-compact" className="block">
                       <img
                         src="/uploads/branding/sepetzen-logo-white.png"
                         alt="Sepetzen"
@@ -783,7 +785,7 @@ export function Header() {
                   <X className="relative w-3.5 h-3.5" strokeWidth={1.75} />
                 </motion.button>
 
-                <Link href="/" onClick={() => setMobileOpen(false)} data-testid="link-logo-mobile-drawer" className="block">
+                <Link href="/" onClick={() => { setMobileOpen(false); scrollToTop(); }} data-testid="link-logo-mobile-drawer" className="block">
                   <img
                     src="/uploads/branding/sepetzen-logo-white.png"
                     alt="Sepetzen"
