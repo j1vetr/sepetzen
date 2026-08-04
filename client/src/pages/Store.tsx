@@ -314,7 +314,7 @@ export default function Store() {
                 </SelectTrigger>
                 <SelectContent className="rounded-sm border-white/12 bg-[#141414]">
                   {sortOptions.map(option => (
-                    <SelectItem key={option.value} value={option.value} className="text-[12px]">
+                    <SelectItem key={option.value} value={option.value} className="text-[12px] text-white focus:bg-white/10 focus:text-white cursor-pointer">
                       {option.label}
                     </SelectItem>
                   ))}

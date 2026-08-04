@@ -413,21 +413,37 @@ function ProductFeatureHighlights({ html }: { html: string }) {
 
 // ─── Product Tabs ──────────────────────────────────────────────────────────────
 
-function ProductTabs({ html }: { html: string }) {
-  const reduceMotion = useReducedMotion();
-  const [active, setActive] = useState<'desc' | 'specs' | 'usage' | 'delivery' | 'faq'>('desc');
-  const sections = useMemo(() => parseProductSections(html), [html]);
+const SPEC_ROWS: [key: string, label: string][] = [
+  ['urunCinsi', 'Ürün Cinsi'],
+  ['tamUzunluk', 'Tam Uzunluk'],
+  ['namluUzunlugu', 'Namlu Uzunluğu'],
+  ['etKalinligi', 'Et Kalınlığı'],
+  ['agirlik', 'Ağırlık'],
+  ['celikCinsi', 'Çelik Cinsi'],
+  ['sapCinsi', 'Sap Cinsi'],
+];
 
-  const specs = sections.find((s) => s.type === 'specs');
-  const material = sections.find((s) => s.type === 'material');
-  const usage = sections.find((s) => s.type === 'usage');
-  const gift = sections.find((s) => s.type === 'gift');
-  const generics = sections.filter((s) => s.type === 'generic');
+const INSTALLMENT_COUNTS = [1, 2, 3, 6, 9];
+
+function ProductTabs({
+  html,
+  specs,
+  price,
+}: {
+  html: string;
+  specs?: Record<string, string | undefined> | null;
+  price: number;
+}) {
+  const reduceMotion = useReducedMotion();
+  const [active, setActive] = useState<'desc' | 'installments' | 'delivery' | 'faq'>('desc');
+
+  const specRows = SPEC_ROWS
+    .map(([key, label]) => [label, (specs?.[key] || '').trim()] as [string, string])
+    .filter(([, value]) => value.length > 0);
 
   const TABS = [
     { id: 'desc', label: 'Ürün Açıklaması' },
-    { id: 'specs', label: 'Teknik Özellikler' },
-    { id: 'usage', label: 'Kullanım Alanları' },
+    { id: 'installments', label: 'Taksit Seçenekleri' },
     { id: 'delivery', label: 'Teslimat ve İade' },
     { id: 'faq', label: 'Sık Sorulan Sorular' },
   ] as const;
@@ -469,61 +485,51 @@ function ProductTabs({ html }: { html: string }) {
         >
         {/* ── Ürün Açıklaması ── */}
          {active === 'desc' && (
-           <div
-             className="product-rich-copy max-w-3xl"
-             dangerouslySetInnerHTML={{ __html: normalizeDescriptionHtml(html) }}
-           />
+           <div className="max-w-3xl space-y-8">
+             {specRows.length > 0 && (
+               <div>
+                 <h3 className="text-[12px] font-semibold uppercase tracking-[0.16em] text-white/50 mb-3">
+                   Teknik Özellikler
+                 </h3>
+                 <dl className="divide-y divide-white/8 border-t border-b border-white/8 max-w-xl" data-testid="table-product-specs">
+                   {specRows.map(([label, value]) => (
+                     <div key={label} className="flex items-baseline gap-6 py-2.5">
+                       <dt className="text-[12px] text-white/45 w-36 shrink-0">{label}</dt>
+                       <dd className="text-[13px] text-white font-medium">{value}</dd>
+                     </div>
+                   ))}
+                 </dl>
+               </div>
+             )}
+             <div
+               className="product-rich-copy"
+               dangerouslySetInnerHTML={{ __html: normalizeDescriptionHtml(html) }}
+             />
+           </div>
          )}
 
-        {/* ── Teknik Özellikler ── */}
-        {active === 'specs' && (
-          <div>
-            {specs ? (
-              specs.items.length > 0 ? (
-                <dl className="divide-y divide-white/8 max-w-xl">
-                  {specs.items.map((item, j) => {
-                    const ci = item.indexOf(':');
-                    const hasColon = ci > 0 && ci < 60;
-                    const label = hasColon ? item.slice(0, ci).trim() : null;
-                    const value = hasColon ? item.slice(ci + 1).trim() : item;
-                    return (
-                      <div key={j} className="flex items-baseline gap-6 py-2.5">
-                        {label && (
-                          <dt className="text-[12px] text-white/45 w-36 shrink-0">{label}</dt>
-                        )}
-                        <dd className="text-[13px] text-white/80 font-medium">{value}</dd>
-                      </div>
-                    );
-                  })}
-                </dl>
-              ) : (
-                <p className="text-[14px] text-white/60 leading-relaxed">{specs.prose}</p>
-              )
-            ) : (
-              <p className="text-[13px] text-white/35 italic">Teknik özellik bilgisi bulunmamaktadır.</p>
-            )}
-          </div>
-        )}
-
-        {/* ── Kullanım Alanları ── */}
-        {active === 'usage' && (
-          <div>
-            {usage ? (
-              usage.items.length > 0 ? (
-                <ul className="space-y-3 max-w-xl">
-                  {usage.items.map((item, j) => (
-                    <li key={j} className="flex items-start gap-3 text-[13px] text-white/75 leading-snug">
-                      <span className="mt-[5px] w-[6px] h-[6px] rounded-full bg-[#141414] shrink-0" />
-                      {item}
-                    </li>
-                  ))}
-                </ul>
-              ) : (
-                <p className="text-[14px] text-white/65 leading-[1.75]">{usage.prose}</p>
-              )
-            ) : (
-              <p className="text-[13px] text-white/35 italic">Kullanım alanı bilgisi bulunmamaktadır.</p>
-            )}
+        {/* ── Taksit Seçenekleri ── */}
+        {active === 'installments' && (
+          <div className="max-w-xl">
+            <dl className="divide-y divide-white/8 border-t border-b border-white/8" data-testid="table-installments">
+              {INSTALLMENT_COUNTS.map((n) => (
+                <div key={n} className="flex items-baseline justify-between gap-6 py-2.5">
+                  <dt className="text-[12px] text-white/45">
+                    {n === 1 ? 'Tek Çekim' : `${n} Taksit`}
+                  </dt>
+                  <dd className="text-[13px] text-white font-medium tabular-nums">
+                    {n === 1
+                      ? `${price.toLocaleString('tr-TR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} ₺`
+                      : `${n} × ${(price / n).toLocaleString('tr-TR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} ₺`}
+                  </dd>
+                </div>
+              ))}
+            </dl>
+            <p className="mt-4 text-[11.5px] text-white/40 leading-relaxed">
+              Taksit seçenekleri kredi kartıyla ödemelerde geçerlidir. Bankanıza göre taksit
+              sayısı ve tutarlar değişiklik gösterebilir; güncel tutarlar ödeme adımında görüntülenir.
+              Havale/EFT ile ödemelerde %3 indirim uygulanır.
+            </p>
           </div>
         )}
 
@@ -1220,18 +1226,23 @@ export default function ProductDetail() {
                  </div>
                </div>
 
-               {/* Category */}
-              {category && (
-                <Link href={`/kategori/${category.slug}`}>
-                  <span className="inline-block text-[10px] text-white uppercase tracking-[0.3em] mb-4 hover:underline font-mono">
-                    {category.name}
-                  </span>
-                </Link>
-              )}
+               {/* Category + Brand */}
+              <div className="flex items-center justify-between gap-4 pb-3 mb-4 border-b border-white/8">
+                {category ? (
+                  <Link href={`/kategori/${category.slug}`}>
+                    <span className="inline-block text-[10px] text-white uppercase tracking-[0.3em] hover:underline font-mono">
+                      {category.name}
+                    </span>
+                  </Link>
+                ) : <span />}
+                <span className="text-[11px] text-white/45 shrink-0" data-testid="text-product-brand">
+                  Marka: <span className="text-white font-semibold">{product.brand || 'Sepetzen'}</span>
+                </span>
+              </div>
 
               {/* Product name */}
                <h1
-                 className="font-display text-3xl sm:text-4xl font-bold text-white leading-[1.05] mb-3 tracking-[0.015em]"
+                 className="font-display text-3xl sm:text-4xl font-bold text-white leading-[1.05] tracking-[0.015em]"
                 data-testid="text-product-name"
               >
                 {product.name}
@@ -1239,7 +1250,7 @@ export default function ProductDetail() {
 
               {/* Rating */}
               {ratingData && ratingData.count > 0 && (
-                <div className="flex items-center gap-2.5 mb-5">
+                <div className="flex items-center gap-2.5 mt-3">
                   <StarRating rating={Math.round(ratingData.average)} size={13} />
                   <span className="text-[12px] text-white/45">
                     {ratingData.average.toFixed(1)} <span className="text-white/25">·</span> {ratingData.count} değerlendirme
@@ -1248,7 +1259,7 @@ export default function ProductDetail() {
               )}
 
               {/* Price */}
-               <div className="flex items-baseline gap-3 mb-3">
+               <div className="flex items-baseline gap-3 mt-4 pt-4 mb-3 border-t border-white/8">
                 {originalPrice && (
                   <span className="text-base text-white/30 line-through" data-testid="text-original-price">
                     {originalPrice.toLocaleString('tr-TR', { maximumFractionDigits: 0 })} ₺
@@ -1449,11 +1460,8 @@ export default function ProductDetail() {
             </motion.div>
           </div>
 
-          {/* ── Feature highlights strip ── */}
-          {product.description && <ProductFeatureHighlights html={product.description} />}
-
           {/* ── Description tabs ── */}
-          <ProductTabs html={product.description || ''} />
+          <ProductTabs html={product.description || ''} specs={product.specs} price={price} />
 
           {/* ── Reviews ── */}
           <motion.section

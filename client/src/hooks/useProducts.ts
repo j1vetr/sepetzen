@@ -15,6 +15,16 @@ export interface Product {
   isFeatured: boolean;
   isNew: boolean;
   discountBadge?: string | null;
+  brand?: string | null;
+  specs?: {
+    urunCinsi?: string;
+    tamUzunluk?: string;
+    namluUzunlugu?: string;
+    etKalinligi?: string;
+    agirlik?: string;
+    celikCinsi?: string;
+    sapCinsi?: string;
+  } | null;
   createdAt: string;
   updatedAt: string;
   variants?: ProductVariant[];

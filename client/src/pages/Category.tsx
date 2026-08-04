@@ -314,7 +314,7 @@ export default function Category() {
                     <SelectItem
                       key={opt.value}
                       value={opt.value}
-                      className="text-xs text-white focus:bg-white/5 cursor-pointer"
+                      className="text-xs text-white focus:bg-white/10 focus:text-white cursor-pointer"
                     >
                       {opt.label}
                     </SelectItem>

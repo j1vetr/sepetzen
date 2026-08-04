@@ -98,10 +98,20 @@ export const products = pgTable("products", {
   images: jsonb("images").$type<string[]>().default([]).notNull(),
   availableSizes: jsonb("available_sizes").$type<string[]>().default([]).notNull(),
   availableColors: jsonb("available_colors").$type<{name: string, hex: string | null}[]>().default([]).notNull(),
+  specs: jsonb("specs").$type<{
+    urunCinsi?: string;
+    tamUzunluk?: string;
+    namluUzunlugu?: string;
+    etKalinligi?: string;
+    agirlik?: string;
+    celikCinsi?: string;
+    sapCinsi?: string;
+  }>().default({}).notNull(),
   isActive: boolean("is_active").default(true).notNull(),
   isFeatured: boolean("is_featured").default(false).notNull(),
   isNew: boolean("is_new").default(false).notNull(),
   discountBadge: text("discount_badge"),
+  brand: text("brand"),
   createdAt: timestamp("created_at").defaultNow().notNull(),
   updatedAt: timestamp("updated_at").defaultNow().notNull(),
 });

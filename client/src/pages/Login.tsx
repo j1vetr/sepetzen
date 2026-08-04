@@ -6,7 +6,7 @@ import { Label } from '@/components/ui/label';
 import { useAuth } from '@/hooks/useAuth';
 import { useToast } from '@/hooks/use-toast';
 import { Eye, EyeOff } from 'lucide-react';
-import { AuthLayout, authInputCls, authLabelCls, authButtonCls } from '@/components/AuthLayout';
+import { AuthLayout, GoogleAuthButton, authInputCls, authLabelCls, authButtonCls } from '@/components/AuthLayout';
 
 export default function Login() {
   const [, navigate] = useLocation();
@@ -47,6 +47,8 @@ export default function Login() {
       footerLinkLabel="Kayıt Ol"
       footerLinkTestId="link-register"
     >
+      <GoogleAuthButton label="Google ile Giriş Yap" testId="button-google-login" />
+
       <form onSubmit={handleSubmit} className="space-y-4">
         <div className="space-y-1.5">
           <Label htmlFor="email" className={authLabelCls}>

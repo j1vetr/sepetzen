@@ -14,6 +14,8 @@ export interface Product {
   isFeatured: boolean;
   isNew: boolean;
   discountBadge?: string | null;
+  brand?: string | null;
+  specs?: Record<string, string> | null;
   createdAt: string;
 }
 

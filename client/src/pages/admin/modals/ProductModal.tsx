@@ -81,6 +81,8 @@ export default function ProductModal({
     isFeatured: product?.isFeatured ?? false,
     isNew: product?.isNew ?? false,
     initialStock: '',
+    brand: product?.brand || '',
+    specs: (product?.specs || {}) as Record<string, string>,
   });
 
   const [pendingFiles, setPendingFiles] = useState<File[]>([]);
@@ -121,6 +123,8 @@ export default function ProductModal({
       isFeatured: product?.isFeatured ?? false,
       isNew: product?.isNew ?? false,
       initialStock: '',
+      brand: product?.brand || '',
+      specs: (product?.specs || {}) as Record<string, string>,
     });
     setPendingFiles([]);
     setUploadError(null);
@@ -347,6 +351,15 @@ export default function ProductModal({
                   data-testid="input-product-sku"
                 />
               </FormField>
+              <FormField label="Marka">
+                <TextInput
+                  type="text"
+                  value={formData.brand}
+                  onChange={(e) => setFormData({ ...formData, brand: e.target.value })}
+                  placeholder="Örn: Sepetzen"
+                  data-testid="input-product-brand"
+                />
+              </FormField>
             </div>
 
             <div className="mt-3">
@@ -462,6 +475,40 @@ export default function ProductModal({
                 />
               </div>
             )}
+
+            {/* Teknik özellik tablosu (ürün detay sayfasında gösterilir) */}
+            <div className="mt-5">
+              <p className="text-[12px] font-semibold text-neutral-800 mb-1">Teknik Özellik Tablosu</p>
+              <p className="text-[11px] text-neutral-500 mb-3">
+                Doldurulan alanlar ürün detay sayfasındaki özellik tablosunda görünür. Boş bırakılan satırlar gösterilmez.
+              </p>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                {([
+                  ['urunCinsi', 'Ürün Cinsi', 'Örn: Avcı Bıçağı'],
+                  ['tamUzunluk', 'Tam Uzunluk', 'Örn: 26 cm'],
+                  ['namluUzunlugu', 'Namlu Uzunluğu', 'Örn: 13 cm'],
+                  ['etKalinligi', 'Et Kalınlığı', 'Örn: 4 mm'],
+                  ['agirlik', 'Ağırlık', 'Örn: 220 g'],
+                  ['celikCinsi', 'Çelik Cinsi', 'Örn: 4116 Paslanmaz Çelik'],
+                  ['sapCinsi', 'Sap Cinsi', 'Örn: Ceviz Ağacı'],
+                ] as [string, string, string][]).map(([key, label, placeholder]) => (
+                  <FormField key={key} label={label}>
+                    <TextInput
+                      type="text"
+                      value={formData.specs[key] || ''}
+                      onChange={(e) =>
+                        setFormData({
+                          ...formData,
+                          specs: { ...formData.specs, [key]: e.target.value },
+                        })
+                      }
+                      placeholder={placeholder}
+                      data-testid={`input-product-spec-${key}`}
+                    />
+                  </FormField>
+                ))}
+              </div>
+            </div>
           </section>
 
           {/* Section 3 — Görseller */}

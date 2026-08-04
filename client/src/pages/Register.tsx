@@ -7,7 +7,7 @@ import { useAuth } from '@/hooks/useAuth';
 import { useToast } from '@/hooks/use-toast';
 import { Eye, EyeOff, Check } from 'lucide-react';
 import { COUNTRIES } from '@/lib/countries';
-import { AuthLayout, authInputCls, authLabelCls, authButtonCls } from '@/components/AuthLayout';
+import { AuthLayout, GoogleAuthButton, authInputCls, authLabelCls, authButtonCls } from '@/components/AuthLayout';
 
 export default function Register() {
   const [, navigate] = useLocation();
@@ -86,6 +86,8 @@ export default function Register() {
       footerLinkTestId="link-login"
       maxWidth="max-w-[460px]"
     >
+      <GoogleAuthButton label="Google ile Kayıt Ol" testId="button-google-register" />
+
       <form onSubmit={handleSubmit} className="space-y-3.5">
         <p className={sectionCls}>Kişisel Bilgiler</p>
         <div className="grid grid-cols-2 gap-3">
