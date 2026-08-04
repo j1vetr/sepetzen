@@ -7,11 +7,11 @@ const LIVE_URL = 'https://api.iyzipay.com';
 // Read iyzico credentials per call from site_settings so the admin can
 // rotate keys without restarting the app. Env vars are no longer read.
 async function getApiKey(): Promise<string> {
-  return (await storage.getSiteSetting('iyzico_api_key')) || '';
+  return (await storage.getSiteSetting('iyzico_api_key')) || process.env.IYZICO_API_KEY || '';
 }
 
 async function getSecretKey(): Promise<string> {
-  return (await storage.getSiteSetting('iyzico_secret_key')) || '';
+  return (await storage.getSiteSetting('iyzico_secret_key')) || process.env.IYZICO_SECRET_KEY || '';
 }
 
 export type IyzicoBuyer = {

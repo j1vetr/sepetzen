@@ -664,7 +664,7 @@ export default function Checkout() {
     <div className="min-h-screen bg-[#0A0A0A] overflow-x-hidden w-full">
       <Header />
       
-      <main className="pt-8 pb-12 px-4 sm:px-6 w-full box-border overflow-hidden">
+      <main className="pt-8 pb-32 lg:pb-12 px-4 sm:px-6 w-full box-border overflow-hidden">
         <div className="max-w-5xl mx-auto w-full overflow-hidden">
           <motion.div
             initial={{ opacity: 0, y: 12 }}
@@ -834,7 +834,7 @@ export default function Checkout() {
                         </div>
                       </div>
 
-                      <motion.div whileHover={{ scale: 1.01 }} whileTap={{ scale: 0.99 }} className="mt-6">
+                      <motion.div whileHover={{ scale: 1.01 }} whileTap={{ scale: 0.99 }} className="mt-6 hidden lg:block">
                         <Button 
                           type="button" 
                           onClick={handleNextStep}
@@ -1106,7 +1106,7 @@ export default function Checkout() {
                         >
                           Geri
                         </Button>
-                        <motion.div whileHover={{ scale: 1.01 }} whileTap={{ scale: 0.99 }} className="flex-1">
+                        <motion.div whileHover={{ scale: 1.01 }} whileTap={{ scale: 0.99 }} className="flex-1 hidden lg:block">
                           <Button 
                             type="button" 
                             onClick={handleNextStep}
@@ -1579,6 +1579,32 @@ export default function Checkout() {
           </div>
         </div>
       </main>
+
+      {/* ── Mobile sticky CTA (adım 1-2) ─────────── */}
+      {(currentStep === 1 || currentStep === 2) && (
+        <div
+          className="fixed left-0 right-0 lg:hidden bg-[#141414] border-t border-white/8 shadow-[0_-8px_30px_rgba(0,0,0,0.4)] z-[90]"
+          style={{ bottom: 'var(--mobile-nav-total, 58px)' }}
+        >
+          <div className="px-4 py-3 flex items-center gap-3">
+            <div className="flex-1 min-w-0">
+              <p className="text-[11px] text-white/50 mb-0.5">Toplam</p>
+              <p className="text-lg font-bold text-white leading-none tabular-nums">
+                {finalTotal.toLocaleString('tr-TR')} ₺
+              </p>
+            </div>
+            <button
+              type="button"
+              onClick={handleNextStep}
+              className="flex-[1.4] h-12 btn-glass text-white font-bold tracking-wide rounded-lg flex items-center justify-center gap-2"
+              data-testid="button-next-mobile"
+            >
+              DEVAM ET
+              <ArrowRight className="w-4 h-4" />
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

@@ -337,7 +337,10 @@ export default function Cart() {
 
       {/* ── Mobile sticky bottom bar ─────────────── */}
       {items.length > 0 && (
-         <div className="fixed bottom-0 left-0 right-0 lg:hidden bg-[#141414] border-t border-white/8 shadow-[0_-8px_30px_rgba(0,0,0,0.4)] z-40">
+         <div
+           className="fixed left-0 right-0 lg:hidden bg-[#141414] border-t border-white/8 shadow-[0_-8px_30px_rgba(0,0,0,0.4)] z-[90]"
+           style={{ bottom: 'var(--mobile-nav-total, 58px)' }}
+         >
           {/* Accordion order summary */}
            <div className="border-b border-white/8">
             <button

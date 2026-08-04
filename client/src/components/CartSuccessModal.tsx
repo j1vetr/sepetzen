@@ -87,7 +87,10 @@ export function CartSuccessModal({ isOpen, onClose, product, cartTotal, cartItem
                 <X className="w-4 h-4 text-white/60" strokeWidth={2} />
               </button>
 
-              <div className="px-5 sm:px-6 pt-4 pb-5">
+              <div
+                className="px-5 sm:px-6 pt-4 pb-5"
+                style={isMobile ? { paddingBottom: 'calc(1.25rem + env(safe-area-inset-bottom, 0px))' } : undefined}
+              >
                 <div className="flex items-center gap-2.5 mb-4">
                   <span className="w-7 h-7 rounded-full bg-white flex items-center justify-center shrink-0">
                     <Check className="w-4 h-4 text-black" strokeWidth={3} />

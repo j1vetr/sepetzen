@@ -198,7 +198,7 @@ export function Header() {
   };
 
   const navLinkCls = (active: boolean) =>
-    `relative inline-flex items-center gap-1.5 whitespace-nowrap text-[10.5px] 2xl:text-[11.5px] font-medium tracking-[0.05em] 2xl:tracking-[0.08em] uppercase transition-colors nav-link-hover ${
+    `relative h-full inline-flex items-center gap-1.5 whitespace-nowrap text-[10.5px] 2xl:text-[11.5px] font-medium tracking-[0.05em] 2xl:tracking-[0.08em] uppercase transition-colors nav-link-hover ${
       active ? 'text-white' : 'text-white/70 hover:text-white'
     }`;
 
@@ -534,7 +534,8 @@ export function Header() {
             {/* Orta: Desktop nav */}
             <nav className="justify-self-center self-center h-[44px] flex items-center justify-center gap-2 2xl:gap-4 min-w-0 max-w-full overflow-hidden">
               {useMenuTree ? (
-                menuRoots.map((root) => {
+                <>
+                {menuRoots.slice(0, 5).map((root) => {
                   const children = (root.children || []).filter(c => c.isActive);
                   const isActiveMega = megaMenuId === root.id;
 
@@ -542,7 +543,7 @@ export function Header() {
                     return (
                       <div
                         key={root.id}
-                        className="relative"
+                        className="relative h-full flex items-center"
                         onMouseEnter={() => openMega(root.id)}
                         onMouseLeave={closeMega}
                       >
@@ -579,7 +580,54 @@ export function Header() {
                                             {root.title}
                     </Link>
                   );
-                })
+                })}
+                {menuRoots.length > 5 && (
+                  <DropdownMenu modal={false}>
+                    <DropdownMenuTrigger asChild>
+                      <button className={navLinkCls(false)} data-testid="button-nav-more">
+                        Daha Fazla
+                        <ChevronDown className="w-2.5 h-2.5" />
+                      </button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent
+                      align="end"
+                      sideOffset={12}
+                      className="bg-[#141414] border border-white/8 shadow-[0_8px_30px_rgba(0,0,0,0.4)] rounded-md p-2 min-w-[220px] z-[9999]"
+                    >
+                      {menuRoots.slice(5).map((root) => {
+                        const children = (root.children || []).filter(c => c.isActive);
+                        if (root.type === 'submenu' && children.length > 0) {
+                          return (
+                            <div key={root.id} className="mb-1 last:mb-0">
+                              <div className="px-3 pt-2 pb-1 text-[9px] tracking-[0.2em] uppercase text-white/35 font-bold">{root.title}</div>
+                              {children.map((child) => (
+                                <DropdownMenuItem
+                                  key={child.id}
+                                  onClick={() => navigate(hrefForMenu(child))}
+                                  className="text-[11px] tracking-[0.10em] uppercase text-white/75 hover:bg-white/5 hover:text-white cursor-pointer py-2 px-3 rounded-md transition-colors"
+                                  data-testid={`link-nav-more-${child.id}`}
+                                >
+                                  {child.title}
+                                </DropdownMenuItem>
+                              ))}
+                            </div>
+                          );
+                        }
+                        return (
+                          <DropdownMenuItem
+                            key={root.id}
+                            onClick={() => navigate(hrefForMenu(root))}
+                            className="text-[11px] tracking-[0.10em] uppercase text-white/75 hover:bg-white/5 hover:text-white cursor-pointer py-2 px-3 rounded-md transition-colors"
+                            data-testid={`link-nav-more-${root.id}`}
+                          >
+                            {root.title}
+                          </DropdownMenuItem>
+                        );
+                      })}
+                    </DropdownMenuContent>
+                  </DropdownMenu>
+                )}
+                </>
               ) : (
                 <DropdownMenu>
                   <DropdownMenuTrigger asChild>
