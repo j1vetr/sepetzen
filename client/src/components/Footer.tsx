@@ -213,6 +213,31 @@ export function Footer() {
             </a>
           </div>
         </div>
+
+        {/* ── Ödeme Yöntemleri ── */}
+        <div className="mt-6 pt-5 border-t border-white/[0.08] flex flex-col sm:flex-row items-center justify-between gap-4">
+          <span className="text-[10px] font-mono tracking-[0.22em] uppercase text-white/35">
+            Güvenli Ödeme — 256bit SSL
+          </span>
+          <div className="flex items-center gap-2.5 flex-wrap justify-center" data-testid="footer-payment-methods">
+            {[
+              { src: '/uploads/branding/payments/visa.svg', alt: 'Visa' },
+              { src: '/uploads/branding/payments/mastercard.svg', alt: 'Mastercard' },
+              { src: '/uploads/branding/payments/troy.png', alt: 'Troy' },
+              { src: '/uploads/branding/payments/axess.png', alt: 'Axess' },
+              { src: '/uploads/branding/payments/paraf.png', alt: 'Paraf' },
+            ].map((pm) => (
+              <span
+                key={pm.alt}
+                className="h-9 w-14 bg-white rounded-md flex items-center justify-center px-2"
+                title={pm.alt}
+                data-testid={`img-payment-${pm.alt.toLowerCase()}`}
+              >
+                <img src={pm.src} alt={pm.alt} loading="lazy" className="max-h-5 max-w-full object-contain" />
+              </span>
+            ))}
+          </div>
+        </div>
       </div>
     </footer>
   );
