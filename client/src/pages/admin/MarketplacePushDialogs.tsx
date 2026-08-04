@@ -18,6 +18,7 @@ import {
   ArrowUpFromLine,
   ShoppingCart,
   AlertTriangle,
+  Percent,
 } from 'lucide-react';
 import AdminModal from './_ui/AdminModal';
 import {
@@ -34,10 +35,15 @@ import {
   InlineAlert,
 } from './_ui/AdminUI';
 
+type PriceRule = { type: 'percent' | 'fixed'; value: number };
+
 type ProductLink = {
   id: string;
   productId: string | null;
   productName: string | null;
+  sitePrice: number | null;
+  priceRule: PriceRule | null;
+  pushPrice: number | null;
   externalId: string;
   syncDirection: 'pull' | 'push';
   barcode: string | null;
@@ -142,6 +148,17 @@ const ORDER_STATUS_BADGE: Record<string, { label: string; tone: 'blue' | 'emeral
   undeliveredandreturned: { label: 'Teslim edilemedi/İade', tone: 'amber' },
 };
 
+function fmtPrice(n: number): string {
+  return n.toLocaleString('tr-TR', { maximumFractionDigits: 2 }) + ' TL';
+}
+
+/** Fiyat kuralını istemci tarafında da hesapla (önizleme için, sunucu ile aynı mantık). */
+function applyPriceRule(basePrice: number, rule?: PriceRule | null): number {
+  if (!rule || !Number.isFinite(rule.value) || rule.value <= 0) return basePrice;
+  if (rule.type === 'fixed') return Math.round(rule.value * 100) / 100;
+  return Math.round(basePrice * (1 + rule.value / 100) * 100) / 100;
+}
+
 function fmt(d: string | null): string {
   if (!d) return '-';
   try {
@@ -168,6 +185,7 @@ export function ProductLinksDialog({
   const [wizardProduct, setWizardProduct] = useState<SiteProduct | null>(null);
   const [wizardLink, setWizardLink] = useState<ProductLink | null>(null);
   const [errorLink, setErrorLink] = useState<ProductLink | null>(null);
+  const [priceRuleLink, setPriceRuleLink] = useState<ProductLink | null>(null);
   const [search, setSearch] = useState('');
 
   const linksQuery = useQuery<ProductLink[]>({
@@ -287,6 +305,22 @@ export function ProductLinksDialog({
                           {link.tyBrandName && <span>Marka: {link.tyBrandName}</span>}
                           {link.lastPushedAt && <span>Son gönderim: {fmt(link.lastPushedAt)}</span>}
                         </div>
+                        {link.syncDirection === 'push' && link.sitePrice !== null && (
+                          <div className="text-[11px] text-neutral-600 mt-0.5 flex flex-wrap items-center gap-x-2">
+                            <span>Site: {fmtPrice(link.sitePrice)}</span>
+                            <span>→</span>
+                            <span className="font-medium">
+                              Trendyol: {fmtPrice(link.pushPrice ?? link.sitePrice)}
+                            </span>
+                            {link.priceRule && (
+                              <span className="text-neutral-400">
+                                {link.priceRule.type === 'percent'
+                                  ? `(yüzde ${link.priceRule.value} artış)`
+                                  : '(sabit fiyat)'}
+                              </span>
+                            )}
+                          </div>
+                        )}
                         {link.pushError && (
                           <div className="text-[11px] text-red-600 mt-0.5 truncate" title={link.pushError}>
                             {link.pushError}
@@ -360,14 +394,23 @@ export function ProductLinksDialog({
                         <option value="push">Gönder</option>
                       </SelectInput>
                       {link.syncDirection === 'push' && (
-                        <GhostButton
-                          onClick={() => pushStockMutation.mutate(link.id)}
-                          disabled={pushStockMutation.isPending}
-                          data-testid={`button-push-stock-${link.id}`}
-                        >
-                          <Send className="w-3.5 h-3.5" />
-                          Stok/Fiyat Gönder
-                        </GhostButton>
+                        <>
+                          <GhostButton
+                            onClick={() => setPriceRuleLink(link)}
+                            data-testid={`button-price-rule-${link.id}`}
+                          >
+                            <Percent className="w-3.5 h-3.5" />
+                            Fiyat Kuralı
+                          </GhostButton>
+                          <GhostButton
+                            onClick={() => pushStockMutation.mutate(link.id)}
+                            disabled={pushStockMutation.isPending}
+                            data-testid={`button-push-stock-${link.id}`}
+                          >
+                            <Send className="w-3.5 h-3.5" />
+                            Stok/Fiyat Gönder
+                          </GhostButton>
+                        </>
                       )}
                     </div>
                   );
@@ -421,6 +464,19 @@ export function ProductLinksDialog({
           onDone={() => {
             setWizardProduct(null);
             setWizardLink(null);
+            invalidate();
+          }}
+        />
+      )}
+
+      {priceRuleLink && (
+        <PriceRuleDialog
+          marketplaceId={marketplaceId}
+          link={priceRuleLink}
+          open={!!priceRuleLink}
+          onClose={() => setPriceRuleLink(null)}
+          onSaved={() => {
+            setPriceRuleLink(null);
             invalidate();
           }}
         />
@@ -485,6 +541,19 @@ function PushWizardDialog({
   const [vatRate, setVatRate] = useState('20');
   const [listPrice, setListPrice] = useState('');
   const [dimensionalWeight, setDimensionalWeight] = useState('1');
+  const [ruleType, setRuleType] = useState<'none' | 'percent' | 'fixed'>(
+    initialLink?.priceRule?.type ?? 'none',
+  );
+  const [ruleValue, setRuleValue] = useState(
+    initialLink?.priceRule ? String(initialLink.priceRule.value) : '',
+  );
+
+  const ruleNum = Number(ruleValue);
+  const wizardPriceRule: PriceRule | null =
+    ruleType === 'none' || !Number.isFinite(ruleNum) || ruleNum <= 0
+      ? null
+      : { type: ruleType, value: ruleNum };
+  const computedSalePrice = applyPriceRule(Number(product.basePrice), wizardPriceRule);
 
   // Trendyol kategori snapshot'ı (mevcut mapping tablosundan)
   const categoriesQuery = useQuery<CategoryMapping[]>({
@@ -575,6 +644,7 @@ function PushWizardDialog({
         attributes: attrs,
         vatRate: Number(vatRate),
         ...(listPrice ? { listPrice: Number(listPrice) } : {}),
+        ...(wizardPriceRule ? { priceRule: wizardPriceRule } : {}),
         dimensionalWeight: Number(dimensionalWeight) || 1,
       });
       return await res.json();
@@ -593,8 +663,13 @@ function PushWizardDialog({
   const missingRequired = requiredAttrs.filter(
     (a) => !(attrValues[a.attributeId]?.valueId || attrValues[a.attributeId]?.custom),
   );
+  const ruleValid = ruleType === 'none' || (Number.isFinite(ruleNum) && ruleNum > 0);
   const canSubmit =
-    barcode.trim().length >= 3 && !!categoryId && !!brand && missingRequired.length === 0;
+    barcode.trim().length >= 3 &&
+    !!categoryId &&
+    !!brand &&
+    missingRequired.length === 0 &&
+    ruleValid;
 
   return (
     <AdminModal
@@ -759,6 +834,38 @@ function PushWizardDialog({
           </div>
         )}
 
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+          <FormField label="Fiyat kuralı" hint="Trendyol fiyatı site fiyatından farklı olabilir.">
+            <SelectInput
+              value={ruleType}
+              onChange={(e) => setRuleType(e.target.value as 'none' | 'percent' | 'fixed')}
+              data-testid="select-wizard-price-rule"
+            >
+              <option value="none">Site fiyatı (kural yok)</option>
+              <option value="percent">Yüzde artış</option>
+              <option value="fixed">Sabit fiyat</option>
+            </SelectInput>
+          </FormField>
+          {ruleType !== 'none' && (
+            <FormField
+              label={ruleType === 'percent' ? 'Artış yüzdesi' : 'Trendyol fiyatı (TL)'}
+              hint={`Gidecek fiyat: ${fmtPrice(computedSalePrice)}`}
+              error={
+                !ruleValid ? 'Sıfırdan büyük bir değer girin, yoksa kural uygulanmaz.' : undefined
+              }
+            >
+              <TextInput
+                type="number"
+                min="0"
+                value={ruleValue}
+                onChange={(e) => setRuleValue(e.target.value)}
+                placeholder={ruleType === 'percent' ? 'örn. 30' : 'örn. 1300'}
+                data-testid="input-wizard-price-rule-value"
+              />
+            </FormField>
+          )}
+        </div>
+
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
           <FormField label="KDV Oranı (%)">
             <SelectInput value={vatRate} onChange={(e) => setVatRate(e.target.value)} data-testid="select-push-vat">
@@ -768,7 +875,7 @@ function PushWizardDialog({
               <option value="20">20</option>
             </SelectInput>
           </FormField>
-          <FormField label="Liste Fiyatı (TL)" hint={`Satış: ${Number(product.basePrice).toLocaleString('tr-TR')} TL`}>
+          <FormField label="Liste Fiyatı (TL)" hint={`Satış: ${fmtPrice(computedSalePrice)}`}>
             <TextInput
               type="number"
               value={listPrice}
@@ -1032,6 +1139,132 @@ export function OrderLinesDialog({
             })}
           </div>
         )}
+      </div>
+    </AdminModal>
+  );
+}
+
+// ============================================================================
+// Fiyat Kuralı — site fiyatından farklı Trendyol fiyatı (yüzde artış veya sabit)
+// ============================================================================
+function PriceRuleDialog({
+  marketplaceId,
+  link,
+  open,
+  onClose,
+  onSaved,
+}: {
+  marketplaceId: string;
+  link: ProductLink;
+  open: boolean;
+  onClose: () => void;
+  onSaved: () => void;
+}) {
+  const { toast } = useToast();
+  const [ruleType, setRuleType] = useState<'none' | 'percent' | 'fixed'>(
+    link.priceRule?.type ?? 'none',
+  );
+  const [ruleValue, setRuleValue] = useState(
+    link.priceRule ? String(link.priceRule.value) : '',
+  );
+
+  const sitePrice = link.sitePrice ?? 0;
+  const numValue = Number(ruleValue);
+  const previewRule: PriceRule | null =
+    ruleType === 'none' || !Number.isFinite(numValue) || numValue <= 0
+      ? null
+      : { type: ruleType, value: numValue };
+  const previewPrice = applyPriceRule(sitePrice, previewRule);
+  const valid = ruleType === 'none' || (Number.isFinite(numValue) && numValue > 0);
+
+  const saveMutation = useMutation({
+    mutationFn: async () => {
+      const res = await apiRequest(
+        'PUT',
+        `/api/admin/marketplaces/${marketplaceId}/product-links/${link.id}`,
+        { priceRule: previewRule },
+      );
+      return await res.json();
+    },
+    onSuccess: () => {
+      toast({
+        title: 'Fiyat kuralı kaydedildi',
+        description: 'Yeni fiyat otomatik olarak Trendyol gönderim kuyruğuna eklendi.',
+      });
+      onSaved();
+    },
+    onError: (err: Error) =>
+      toast({ title: 'Kaydedilemedi', description: err.message, variant: 'destructive' }),
+  });
+
+  return (
+    <AdminModal
+      open={open}
+      onClose={onClose}
+      title={`Fiyat Kuralı — ${link.productName ?? link.barcode ?? link.externalId}`}
+      size="sm"
+      footer={
+        <>
+          <GhostButton onClick={onClose}>Vazgeç</GhostButton>
+          <PrimaryButton
+            onClick={() => saveMutation.mutate()}
+            disabled={!valid || saveMutation.isPending}
+            data-testid="button-save-price-rule"
+          >
+            {saveMutation.isPending && <Loader2 className="w-3.5 h-3.5 animate-spin" />}
+            Kaydet
+          </PrimaryButton>
+        </>
+      }
+    >
+      <div className="space-y-4" data-testid="dialog-price-rule">
+        <InlineAlert tone="neutral">
+          Trendyol fiyatı site fiyatından farklı olabilir. Kural kaydedilince yeni fiyat
+          hemen Trendyol'a gönderilir ve site fiyatı her değiştiğinde kural otomatik uygulanır.
+        </InlineAlert>
+
+        <FormField label="Fiyat kuralı">
+          <SelectInput
+            value={ruleType}
+            onChange={(e) => setRuleType(e.target.value as 'none' | 'percent' | 'fixed')}
+            data-testid="select-price-rule-type"
+          >
+            <option value="none">Site fiyatı (kural yok)</option>
+            <option value="percent">Yüzde artış</option>
+            <option value="fixed">Sabit fiyat</option>
+          </SelectInput>
+        </FormField>
+
+        {ruleType !== 'none' && (
+          <FormField
+            label={ruleType === 'percent' ? 'Artış yüzdesi' : 'Trendyol fiyatı (TL)'}
+            hint={
+              ruleType === 'percent'
+                ? 'Örnek: 30 girilirse 1000 TL olan ürün 1300 TL olarak gönderilir.'
+                : 'Site fiyatından bağımsız, elle girilen fiyat gönderilir.'
+            }
+          >
+            <TextInput
+              type="number"
+              min="0"
+              value={ruleValue}
+              onChange={(e) => setRuleValue(e.target.value)}
+              placeholder={ruleType === 'percent' ? 'örn. 30' : 'örn. 1300'}
+              data-testid="input-price-rule-value"
+            />
+          </FormField>
+        )}
+
+        <div className="bg-neutral-50 border border-neutral-200 rounded-lg p-3 text-[13px]">
+          <div className="flex items-center justify-between text-neutral-600">
+            <span>Site fiyatı</span>
+            <span>{fmtPrice(sitePrice)}</span>
+          </div>
+          <div className="flex items-center justify-between font-semibold text-neutral-900 mt-1">
+            <span>Trendyol'a gidecek fiyat</span>
+            <span data-testid="text-price-preview">{fmtPrice(previewPrice)}</span>
+          </div>
+        </div>
       </div>
     </AdminModal>
   );

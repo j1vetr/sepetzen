@@ -10,7 +10,12 @@ import { storage } from "../storage";
 import { encryptCredentials, decryptCredentials, maskSecret } from "./crypto";
 import { listRegisteredAdapters, createAdapter, getAdapterEntry } from "./registry";
 import { runSync, adapterFromMarketplace, type SyncMode } from "./sync/engine";
-import { processPushQueue, enqueueStockPricePush } from "./push/engine";
+import {
+  processPushQueue,
+  enqueueStockPricePush,
+  applyPriceRule,
+  type PriceRule,
+} from "./push/engine";
 import { supportsWrites } from "./types";
 import { suggestCategoryMappings } from "./category-suggester";
 import type { Marketplace, InsertMarketplace } from "@shared/schema";
@@ -363,10 +368,15 @@ export function registerMarketplaceRoutes(
     const out = [] as Array<Record<string, unknown>>;
     for (const r of rows) {
       const product = r.productId ? await storage.getProduct(r.productId) : undefined;
+      const meta = (r.pushMeta ?? {}) as { priceRule?: PriceRule };
+      const sitePrice = product ? Number(product.basePrice) : null;
       out.push({
         id: r.id,
         productId: r.productId,
         productName: product?.name ?? null,
+        sitePrice,
+        priceRule: meta.priceRule ?? null,
+        pushPrice: sitePrice !== null ? applyPriceRule(sitePrice, meta.priceRule) : null,
         externalId: r.externalId,
         syncDirection: r.syncDirection,
         barcode: r.barcode,
@@ -419,6 +429,13 @@ export function registerMarketplaceRoutes(
         syncDirection: z.enum(["pull", "push"]).optional(),
         barcode: z.string().trim().max(64).nullable().optional(),
         stockCode: z.string().trim().max(64).nullable().optional(),
+        priceRule: z
+          .object({
+            type: z.enum(["percent", "fixed"]),
+            value: z.number().positive().max(1_000_000),
+          })
+          .nullable()
+          .optional(),
       });
       const parsed = schema.safeParse(req.body ?? {});
       if (!parsed.success) return res.status(400).json({ message: "Geçersiz veri" });
@@ -434,7 +451,22 @@ export function registerMarketplaceRoutes(
             .json({ message: "Push yönü için barkod zorunlu (Trendyol'daki barkod)." });
         }
       }
-      const updated = await storage.updateMarketplaceProduct(link.id, parsed.data);
+      const { priceRule, ...rest } = parsed.data;
+      const patch: Record<string, unknown> = { ...rest };
+      let priceRuleChanged = false;
+      if (priceRule !== undefined) {
+        const meta = { ...((link.pushMeta ?? {}) as Record<string, unknown>) };
+        if (priceRule === null) delete meta.priceRule;
+        else meta.priceRule = priceRule;
+        patch.pushMeta = meta;
+        priceRuleChanged = true;
+      }
+      const updated = await storage.updateMarketplaceProduct(link.id, patch);
+      // Kural değişince yeni fiyat otomatik Trendyol'a gitsin
+      if (priceRuleChanged && updated?.syncDirection === "push" && updated.productId) {
+        await enqueueStockPricePush(updated.productId);
+        void processPushQueue(req.params.id).catch(() => {});
+      }
       res.json(updated);
     },
   );
@@ -487,6 +519,13 @@ export function registerMarketplaceRoutes(
         .default([]),
       vatRate: z.number().int().min(0).max(20).default(20),
       listPrice: z.number().positive().optional(),
+      priceRule: z
+        .object({
+          type: z.enum(["percent", "fixed"]),
+          value: z.number().positive().max(1_000_000),
+        })
+        .nullable()
+        .optional(),
       dimensionalWeight: z.number().min(0).default(1),
       deliveryDuration: z.number().int().min(1).max(30).optional(),
       cargoCompanyId: z.number().int().optional(),
@@ -505,7 +544,8 @@ export function registerMarketplaceRoutes(
     if (images.length === 0) {
       return res.status(400).json({ message: "Ürünün en az bir görseli olmalı." });
     }
-    const salePrice = Number(product.basePrice);
+    // Fiyat kuralı: yüzde artış veya sabit Trendyol fiyatı (yoksa site fiyatı)
+    const salePrice = applyPriceRule(Number(product.basePrice), d.priceRule);
     if (!Number.isFinite(salePrice) || salePrice <= 0) {
       return res.status(400).json({ message: "Ürün fiyatı geçersiz." });
     }
@@ -579,6 +619,7 @@ export function registerMarketplaceRoutes(
       pushMeta: {
         vatRate: d.vatRate,
         listPrice,
+        ...(d.priceRule ? { priceRule: d.priceRule } : {}),
         dimensionalWeight: d.dimensionalWeight,
         ...(d.deliveryDuration ? { deliveryDuration: d.deliveryDuration } : {}),
         ...(d.cargoCompanyId ? { cargoCompanyId: d.cargoCompanyId } : {}),

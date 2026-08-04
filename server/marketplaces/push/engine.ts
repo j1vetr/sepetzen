@@ -54,6 +54,20 @@ export async function enqueueStockPricePush(productId: string): Promise<void> {
 }
 
 /** Bir bağlantı için güncel stok+fiyat push item'ını hesapla. */
+/**
+ * Bağlantı bazlı fiyat kuralı. Sitede 1000 TL olan ürün Trendyol'a
+ * yüzde 30 artışla 1300 TL veya elle girilen sabit fiyatla gidebilir.
+ * Kural yoksa site fiyatı aynen kullanılır.
+ */
+export type PriceRule = { type: "percent" | "fixed"; value: number };
+
+export function applyPriceRule(basePrice: number, rule?: PriceRule | null): number {
+  if (!rule || !Number.isFinite(rule.value) || rule.value <= 0) return basePrice;
+  if (rule.type === "fixed") return Math.round(rule.value * 100) / 100;
+  if (rule.type === "percent") return Math.round(basePrice * (1 + rule.value / 100) * 100) / 100;
+  return basePrice;
+}
+
 async function buildStockPriceItem(
   link: MarketplaceProduct,
 ): Promise<StockPricePushItem | null> {
@@ -65,8 +79,8 @@ async function buildStockPriceItem(
   // Trendyol'da barcode başına tek satır. Çok varyantlı ürünlerde toplam stok
   // gönderilir (katalogdaki ürünler ağırlıkla tek varyant — bıçaklar).
   const totalStock = active.reduce((s, v) => s + (v.stock ?? 0), 0);
-  const salePrice = Number(product.basePrice);
-  const meta = (link.pushMeta ?? {}) as { listPrice?: number };
+  const meta = (link.pushMeta ?? {}) as { listPrice?: number; priceRule?: PriceRule };
+  const salePrice = applyPriceRule(Number(product.basePrice), meta.priceRule);
   const listPrice = typeof meta.listPrice === "number" && meta.listPrice >= salePrice
     ? meta.listPrice
     : salePrice;
