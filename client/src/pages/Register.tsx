@@ -1,15 +1,13 @@
 import { useState } from 'react';
-import { Link, useLocation } from 'wouter';
-import { Header } from '@/components/Header';
+import { useLocation } from 'wouter';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { useAuth } from '@/hooks/useAuth';
 import { useToast } from '@/hooks/use-toast';
-import { SEO } from '@/components/SEO';
-import { motion } from 'framer-motion';
-import { Eye, EyeOff, Mail, Lock, User, Phone, ArrowUpRight, Check } from 'lucide-react';
+import { Eye, EyeOff, Check } from 'lucide-react';
 import { COUNTRIES } from '@/lib/countries';
+import { AuthLayout, authInputCls, authLabelCls, authButtonCls } from '@/components/AuthLayout';
 
 export default function Register() {
   const [, navigate] = useLocation();
@@ -70,219 +68,169 @@ export default function Register() {
 
   const passwordStrength =
     formData.password.length === 0 ? 0 : formData.password.length < 6 ? 1 : formData.password.length < 8 ? 2 : 3;
-  const strengthColors = ['', 'bg-red-400', 'bg-amber-400', 'bg-[#141414]'];
+  const strengthColors = ['', 'bg-[#F04444]', 'bg-black/40', 'bg-black'];
   const strengthTexts = ['', 'Zayıf', 'Orta', 'Güçlü'];
 
-  const inputCls =
-    'h-11 bg-stone-50 border-black/12 focus:border-[#141414] focus-visible:ring-0 focus-visible:ring-offset-0 rounded-md text-black placeholder:text-black/25';
-  const labelCls = 'text-[10px] font-medium tracking-[0.22em] uppercase text-black/55';
+  const sectionCls = 'text-[10px] font-semibold tracking-[0.2em] uppercase text-black/55 pt-2';
 
   return (
-    <div className="min-h-screen bg-[#F5F5F5]">
-      <SEO title="Üye Ol" description="Sepetzen üyelik kaydı." url="/kayit" noIndex />
-      <Header />
+    <AuthLayout
+      seoTitle="Üye Ol"
+      seoDescription="Sepetzen üyelik kaydı."
+      seoUrl="/kayit"
+      title="HESAP OLUŞTUR"
+      subtitle="Bilgilerinizi bir kez girin; sonraki siparişlerde otomatik dolu gelsin."
+      footerPrompt="Zaten üye misiniz?"
+      footerLinkHref="/giris"
+      footerLinkLabel="Giriş Yap"
+      footerLinkTestId="link-login"
+      maxWidth="max-w-[460px]"
+    >
+      <form onSubmit={handleSubmit} className="space-y-3.5">
+        <p className={sectionCls}>Kişisel Bilgiler</p>
+        <div className="grid grid-cols-2 gap-3">
+          <div className="space-y-1.5">
+            <Label htmlFor="firstName" className={authLabelCls}>Ad</Label>
+            <Input id="firstName" name="firstName" value={formData.firstName} onChange={handleChange} placeholder="Adınız" data-testid="input-firstName" className={authInputCls} />
+          </div>
+          <div className="space-y-1.5">
+            <Label htmlFor="lastName" className={authLabelCls}>Soyad</Label>
+            <Input id="lastName" name="lastName" value={formData.lastName} onChange={handleChange} placeholder="Soyadınız" data-testid="input-lastName" className={authInputCls} />
+          </div>
+        </div>
 
-      <main className="flex items-start justify-center px-5 py-14" style={{ minHeight: 'calc(100svh - 60px)' }}>
-        <motion.div
-          initial={{ opacity: 0, y: 14 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.45, ease: [0.33, 1, 0.68, 1] }}
-          className="w-full max-w-[480px]"
-        >
-          <div className="bg-white border border-black/8 shadow-sm p-8">
-            <h1
-              className="font-black text-[26px] tracking-tight text-black mb-1.5 leading-tight"
-              data-testid="text-page-title"
-            >
-              Hesap Oluşturun
-            </h1>
-            <p className="text-black/50 text-[13px] leading-relaxed mb-7">
-              Bilgilerinizi bir kez girin; sonraki siparişlerde otomatik dolu gelsin.
-            </p>
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+          <div className="space-y-1.5">
+            <Label htmlFor="email" className={authLabelCls}>E-posta *</Label>
+            <Input id="email" name="email" type="email" value={formData.email} onChange={handleChange} placeholder="ornek@email.com" required autoComplete="email" data-testid="input-email" className={authInputCls} />
+          </div>
+          <div className="space-y-1.5">
+            <Label htmlFor="phone" className={authLabelCls}>Telefon *</Label>
+            <Input id="phone" name="phone" type="tel" value={formData.phone} onChange={handleChange} placeholder="05XX XXX XX XX" required autoComplete="tel" data-testid="input-phone" className={authInputCls} />
+          </div>
+        </div>
 
-            <form onSubmit={handleSubmit} className="space-y-3.5">
-              <div className="grid grid-cols-2 gap-3">
-                <div className="space-y-1.5">
-                  <Label htmlFor="firstName" className={labelCls}>Ad</Label>
-                  <div className="relative">
-                    <User className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-black/30" strokeWidth={1.75} />
-                    <Input id="firstName" name="firstName" value={formData.firstName} onChange={handleChange} placeholder="Adınız" data-testid="input-firstName" className={`${inputCls} pl-10`} />
-                  </div>
-                </div>
-                <div className="space-y-1.5">
-                  <Label htmlFor="lastName" className={labelCls}>Soyad</Label>
-                  <div className="relative">
-                    <User className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-black/30" strokeWidth={1.75} />
-                    <Input id="lastName" name="lastName" value={formData.lastName} onChange={handleChange} placeholder="Soyadınız" data-testid="input-lastName" className={`${inputCls} pl-10`} />
-                  </div>
-                </div>
-              </div>
+        <p className={sectionCls}>Adres Bilgileri</p>
+        <div className="space-y-1.5">
+          <Label htmlFor="address" className={authLabelCls}>Adres</Label>
+          <Input id="address" name="address" value={formData.address} onChange={handleChange} placeholder="Sokak, Mahalle, Bina No, Daire No" data-testid="input-address" className={authInputCls} />
+        </div>
 
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                <div className="space-y-1.5">
-                  <Label htmlFor="email" className={labelCls}>E-posta *</Label>
-                  <div className="relative">
-                    <Mail className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-black/30" strokeWidth={1.75} />
-                    <Input id="email" name="email" type="email" value={formData.email} onChange={handleChange} placeholder="ornek@email.com" required autoComplete="email" data-testid="input-email" className={`${inputCls} pl-10`} />
-                  </div>
-                </div>
-                <div className="space-y-1.5">
-                  <Label htmlFor="phone" className={labelCls}>Telefon *</Label>
-                  <div className="relative">
-                    <Phone className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-black/30" strokeWidth={1.75} />
-                    <Input id="phone" name="phone" type="tel" value={formData.phone} onChange={handleChange} placeholder="05XX XXX XX XX" required autoComplete="tel" data-testid="input-phone" className={`${inputCls} pl-10`} />
-                  </div>
-                </div>
-              </div>
+        <div className="grid grid-cols-2 gap-3">
+          <div className="space-y-1.5">
+            <Label htmlFor="city" className={authLabelCls}>İl</Label>
+            <Input id="city" name="city" value={formData.city} onChange={handleChange} placeholder="İstanbul" data-testid="input-city" className={authInputCls} />
+          </div>
+          <div className="space-y-1.5">
+            <Label htmlFor="district" className={authLabelCls}>İlçe</Label>
+            <Input id="district" name="district" value={formData.district} onChange={handleChange} placeholder="Kadıköy" data-testid="input-district" className={authInputCls} />
+          </div>
+        </div>
 
-              <div className="space-y-1.5">
-                <Label htmlFor="address" className={labelCls}>Adres</Label>
-                <Input id="address" name="address" value={formData.address} onChange={handleChange} placeholder="Sokak, Mahalle, Bina No, Daire No" data-testid="input-address" className={inputCls} />
-              </div>
+        <div className="space-y-1.5">
+          <Label htmlFor="country" className={authLabelCls}>Ülke</Label>
+          <select
+            id="country"
+            name="country"
+            value={formData.country}
+            onChange={handleChange}
+            data-testid="select-country"
+            className="w-full h-11 bg-white border border-black/15 focus:border-black focus:outline-none rounded-lg px-4 text-black text-sm"
+          >
+            {COUNTRIES.map((country) => (
+              <option key={country} value={country}>{country}</option>
+            ))}
+          </select>
+        </div>
 
-              <div className="grid grid-cols-2 gap-3">
-                <div className="space-y-1.5">
-                  <Label htmlFor="city" className={labelCls}>İl</Label>
-                  <Input id="city" name="city" value={formData.city} onChange={handleChange} placeholder="İstanbul" data-testid="input-city" className={inputCls} />
-                </div>
-                <div className="space-y-1.5">
-                  <Label htmlFor="district" className={labelCls}>İlçe</Label>
-                  <Input id="district" name="district" value={formData.district} onChange={handleChange} placeholder="Kadıköy" data-testid="input-district" className={inputCls} />
-                </div>
-              </div>
-
-              <div className="space-y-1.5">
-                <Label htmlFor="country" className={labelCls}>Ülke</Label>
-                <select
-                  id="country"
-                  name="country"
-                  value={formData.country}
-                  onChange={handleChange}
-                  data-testid="select-country"
-                  className="w-full h-11 bg-stone-50 border border-black/12 focus:border-[#141414] focus:outline-none rounded-md px-4 text-black text-sm"
-                >
-                  {COUNTRIES.map((country) => (
-                    <option key={country} value={country}>{country}</option>
-                  ))}
-                </select>
-              </div>
-
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                <div className="space-y-1.5">
-                  <Label htmlFor="password" className={labelCls}>Şifre *</Label>
-                  <div className="relative">
-                    <Lock className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-black/30" strokeWidth={1.75} />
-                    <Input
-                      id="password"
-                      name="password"
-                      type={showPassword ? 'text' : 'password'}
-                      value={formData.password}
-                      onChange={handleChange}
-                      placeholder="En az 6 karakter"
-                      required
-                      autoComplete="new-password"
-                      data-testid="input-password"
-                      className={`${inputCls} pl-10 pr-10`}
-                    />
-                    <button
-                      type="button"
-                      onClick={() => setShowPassword(!showPassword)}
-                      className="absolute right-3.5 top-1/2 -translate-y-1/2 text-black/30 hover:text-[#141414] transition-colors"
-                      aria-label={showPassword ? 'Şifreyi gizle' : 'Şifreyi göster'}
-                    >
-                      {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
-                    </button>
-                  </div>
-                </div>
-                <div className="space-y-1.5">
-                  <Label htmlFor="confirmPassword" className={labelCls}>Şifre Tekrar *</Label>
-                  <div className="relative">
-                    <Lock className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-black/30" strokeWidth={1.75} />
-                    <Input
-                      id="confirmPassword"
-                      name="confirmPassword"
-                      type={showPassword ? 'text' : 'password'}
-                      value={formData.confirmPassword}
-                      onChange={handleChange}
-                      placeholder="Tekrar girin"
-                      required
-                      autoComplete="new-password"
-                      data-testid="input-confirmPassword"
-                      className={`${inputCls} pl-10 pr-10`}
-                    />
-                    {formData.confirmPassword && formData.password === formData.confirmPassword && (
-                      <Check className="absolute right-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-[#141414]" strokeWidth={2.25} />
-                    )}
-                  </div>
-                </div>
-              </div>
-
-              {formData.password.length > 0 && (
-                <div className="flex items-center gap-3 -mt-1">
-                  <div className="flex-1 flex gap-1">
-                    {[1, 2, 3].map((level) => (
-                      <div
-                        key={level}
-                        className={`h-0.5 flex-1 transition-colors ${
-                          passwordStrength >= level ? strengthColors[passwordStrength] : 'bg-black/10'
-                        }`}
-                      />
-                    ))}
-                  </div>
-                  <span
-                    className={`text-[10px] font-mono tracking-wider uppercase ${
-                      passwordStrength === 1 ? 'text-red-500'
-                        : passwordStrength === 2 ? 'text-amber-500'
-                        : passwordStrength === 3 ? 'text-[#141414]'
-                        : ''
-                    }`}
-                  >
-                    {strengthTexts[passwordStrength]}
-                  </span>
-                </div>
-              )}
-
-              <motion.div whileHover={{ scale: 1.005 }} whileTap={{ scale: 0.995 }} className="pt-2">
-                <Button
-                  type="submit"
-                  className="w-full h-11 bg-[#141414] text-white hover:bg-black font-semibold tracking-[0.18em] text-[11px] uppercase group rounded-md transition-colors duration-300 gap-3"
-                  disabled={loading}
-                  data-testid="button-register"
-                >
-                  {loading ? (
-                    'Kayıt yapılıyor...'
-                  ) : (
-                    <>
-                      <span>Kayıt Ol</span>
-                      <ArrowUpRight className="w-4 h-4 transition-transform duration-300 group-hover:rotate-[-45deg]" strokeWidth={1.75} />
-                    </>
-                  )}
-                </Button>
-              </motion.div>
-
-              <p className="text-[11px] text-black/40 text-center pt-1 leading-relaxed">
-                Kayıt olarak{' '}
-                <span className="underline underline-offset-2 hover:text-[#141414] transition-colors cursor-pointer">Kullanım Koşulları</span>
-                {' '}ve{' '}
-                <span className="underline underline-offset-2 hover:text-[#141414] transition-colors cursor-pointer">Gizlilik Politikası</span>
-                'nı kabul etmiş olursunuz.
-              </p>
-            </form>
-
-            <div className="mt-6 pt-5 border-t border-black/8 flex items-center justify-between gap-4">
-              <p className="text-[13px] text-black/50">Zaten üye misiniz?</p>
-              <Link
-                href="/giris"
-                data-testid="link-login"
-                className="group inline-flex items-center gap-1.5 text-[11px] tracking-[0.18em] uppercase font-semibold text-[#141414] hover:text-[#FAFAFA] transition-colors"
+        <p className={sectionCls}>Şifre</p>
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+          <div className="space-y-1.5">
+            <Label htmlFor="password" className={authLabelCls}>Şifre *</Label>
+            <div className="relative">
+              <Input
+                id="password"
+                name="password"
+                type={showPassword ? 'text' : 'password'}
+                value={formData.password}
+                onChange={handleChange}
+                placeholder="En az 6 karakter"
+                required
+                autoComplete="new-password"
+                data-testid="input-password"
+                className={`${authInputCls} pr-11`}
+              />
+              <button
+                type="button"
+                onClick={() => setShowPassword(!showPassword)}
+                className="absolute right-3.5 top-1/2 -translate-y-1/2 text-black/35 hover:text-black transition-colors"
+                aria-label={showPassword ? 'Şifreyi gizle' : 'Şifreyi göster'}
               >
-                Giriş Yap
-                <ArrowUpRight className="w-3.5 h-3.5 transition-transform group-hover:rotate-[-45deg]" strokeWidth={2} />
-              </Link>
+                {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+              </button>
             </div>
           </div>
-        </motion.div>
-      </main>
-    </div>
+          <div className="space-y-1.5">
+            <Label htmlFor="confirmPassword" className={authLabelCls}>Şifre Tekrar *</Label>
+            <div className="relative">
+              <Input
+                id="confirmPassword"
+                name="confirmPassword"
+                type={showPassword ? 'text' : 'password'}
+                value={formData.confirmPassword}
+                onChange={handleChange}
+                placeholder="Tekrar girin"
+                required
+                autoComplete="new-password"
+                data-testid="input-confirmPassword"
+                className={`${authInputCls} pr-11`}
+              />
+              {formData.confirmPassword && formData.password === formData.confirmPassword && (
+                <Check className="absolute right-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-black" strokeWidth={2.25} />
+              )}
+            </div>
+          </div>
+        </div>
+
+        {formData.password.length > 0 && (
+          <div className="flex items-center gap-3 -mt-1">
+            <div className="flex-1 flex gap-1">
+              {[1, 2, 3].map((level) => (
+                <div
+                  key={level}
+                  className={`h-0.5 flex-1 rounded-full transition-colors ${
+                    passwordStrength >= level ? strengthColors[passwordStrength] : 'bg-black/10'
+                  }`}
+                />
+              ))}
+            </div>
+            <span
+              className={`text-[10px] font-mono tracking-wider uppercase ${
+                passwordStrength === 1 ? 'text-[#F04444]'
+                  : passwordStrength === 2 ? 'text-black/50'
+                  : passwordStrength === 3 ? 'text-black'
+                  : ''
+              }`}
+            >
+              {strengthTexts[passwordStrength]}
+            </span>
+          </div>
+        )}
+
+        <div className="pt-2">
+          <Button type="submit" className={authButtonCls} disabled={loading} data-testid="button-register">
+            {loading ? 'Kayıt yapılıyor...' : 'Kayıt Ol'}
+          </Button>
+        </div>
+
+        <p className="text-[11px] text-black/55 text-center pt-1 leading-relaxed">
+          Kayıt olarak{' '}
+          <span className="underline underline-offset-2 hover:text-black transition-colors cursor-pointer">Kullanım Koşulları</span>
+          {' '}ve{' '}
+          <span className="underline underline-offset-2 hover:text-black transition-colors cursor-pointer">Gizlilik Politikası</span>
+          'nı kabul etmiş olursunuz.
+        </p>
+      </form>
+    </AuthLayout>
   );
 }

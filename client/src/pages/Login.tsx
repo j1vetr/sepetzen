@@ -1,14 +1,12 @@
 import { useState } from 'react';
 import { Link, useLocation } from 'wouter';
-import { Header } from '@/components/Header';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { useAuth } from '@/hooks/useAuth';
 import { useToast } from '@/hooks/use-toast';
-import { SEO } from '@/components/SEO';
-import { motion } from 'framer-motion';
-import { Eye, EyeOff, Mail, Lock, ArrowUpRight } from 'lucide-react';
+import { Eye, EyeOff } from 'lucide-react';
+import { AuthLayout, authInputCls, authLabelCls, authButtonCls } from '@/components/AuthLayout';
 
 export default function Login() {
   const [, navigate] = useLocation();
@@ -38,118 +36,75 @@ export default function Login() {
   };
 
   return (
-    <div className="min-h-screen bg-[#F5F5F5]">
-      <SEO title="Giriş Yap" description="Sepetzen üyelik girişi." url="/giris" noIndex />
-      <Header />
+    <AuthLayout
+      seoTitle="Giriş Yap"
+      seoDescription="Sepetzen üyelik girişi."
+      seoUrl="/giris"
+      title="GİRİŞ YAP"
+      subtitle="Hesabınıza giriş yaparak siparişlerinizi yönetin."
+      footerPrompt="Hesabınız yok mu?"
+      footerLinkHref="/kayit"
+      footerLinkLabel="Kayıt Ol"
+      footerLinkTestId="link-register"
+    >
+      <form onSubmit={handleSubmit} className="space-y-4">
+        <div className="space-y-1.5">
+          <Label htmlFor="email" className={authLabelCls}>
+            E-posta
+          </Label>
+          <Input
+            id="email"
+            type="email"
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+            placeholder="ornek@email.com"
+            required
+            autoComplete="email"
+            data-testid="input-email"
+            className={authInputCls}
+          />
+        </div>
 
-      <main className="flex items-center justify-center px-5 py-14" style={{ minHeight: 'calc(100svh - 60px)' }}>
-        <motion.div
-          initial={{ opacity: 0, y: 14 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.45, ease: [0.33, 1, 0.68, 1] }}
-          className="w-full max-w-[420px]"
-        >
-          <div className="bg-white border border-black/8 shadow-sm p-8">
-            <h1
-              className="font-black text-[26px] tracking-tight text-black mb-1.5 leading-tight"
-              data-testid="text-page-title"
+        <div className="space-y-1.5">
+          <Label htmlFor="password" className={authLabelCls}>
+            Şifre
+          </Label>
+          <div className="relative">
+            <Input
+              id="password"
+              type={showPassword ? 'text' : 'password'}
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              placeholder="••••••••"
+              required
+              autoComplete="current-password"
+              data-testid="input-password"
+              className={`${authInputCls} pr-11`}
+            />
+            <button
+              type="button"
+              onClick={() => setShowPassword(!showPassword)}
+              className="absolute right-3.5 top-1/2 -translate-y-1/2 text-black/35 hover:text-black transition-colors"
+              aria-label={showPassword ? 'Şifreyi gizle' : 'Şifreyi göster'}
             >
-              Hoş Geldiniz
-            </h1>
-            <p className="text-black/50 text-[13px] leading-relaxed mb-7">
-              Hesabınıza giriş yapın.
-            </p>
-
-            <form onSubmit={handleSubmit} className="space-y-4">
-              <div className="space-y-1.5">
-                <Label htmlFor="email" className="text-[10px] font-medium tracking-[0.22em] uppercase text-black/55">
-                  E-posta
-                </Label>
-                <div className="relative">
-                  <Mail className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-black/30" strokeWidth={1.75} />
-                  <Input
-                    id="email"
-                    type="email"
-                    value={email}
-                    onChange={(e) => setEmail(e.target.value)}
-                    placeholder="ornek@email.com"
-                    required
-                    autoComplete="email"
-                    data-testid="input-email"
-                    className="h-11 pl-10 bg-stone-50 border-black/12 focus:border-[#141414] focus-visible:ring-0 focus-visible:ring-offset-0 rounded-md text-black placeholder:text-black/25"
-                  />
-                </div>
-              </div>
-
-              <div className="space-y-1.5">
-                <div className="flex items-center justify-between">
-                  <Label htmlFor="password" className="text-[10px] font-medium tracking-[0.22em] uppercase text-black/55">
-                    Şifre
-                  </Label>
-                  <Link
-                    href="/sifremi-unuttum"
-                    className="text-[11px] tracking-wide text-black/45 hover:text-[#141414] transition-colors"
-                  >
-                    Şifremi Unuttum
-                  </Link>
-                </div>
-                <div className="relative">
-                  <Lock className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-black/30" strokeWidth={1.75} />
-                  <Input
-                    id="password"
-                    type={showPassword ? 'text' : 'password'}
-                    value={password}
-                    onChange={(e) => setPassword(e.target.value)}
-                    placeholder="••••••••"
-                    required
-                    autoComplete="current-password"
-                    data-testid="input-password"
-                    className="h-11 pl-10 pr-10 bg-stone-50 border-black/12 focus:border-[#141414] focus-visible:ring-0 focus-visible:ring-offset-0 rounded-md text-black placeholder:text-black/25"
-                  />
-                  <button
-                    type="button"
-                    onClick={() => setShowPassword(!showPassword)}
-                    className="absolute right-3.5 top-1/2 -translate-y-1/2 text-black/30 hover:text-[#141414] transition-colors"
-                    aria-label={showPassword ? 'Şifreyi gizle' : 'Şifreyi göster'}
-                  >
-                    {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
-                  </button>
-                </div>
-              </div>
-
-              <motion.div whileHover={{ scale: 1.005 }} whileTap={{ scale: 0.995 }} className="pt-2">
-                <Button
-                  type="submit"
-                  className="w-full h-11 bg-[#141414] text-white hover:bg-black font-semibold tracking-[0.18em] text-[11px] uppercase group rounded-md transition-colors duration-300 gap-3"
-                  disabled={loading}
-                  data-testid="button-login"
-                >
-                  {loading ? (
-                    'Giriş yapılıyor...'
-                  ) : (
-                    <>
-                      <span>Giriş Yap</span>
-                      <ArrowUpRight className="w-4 h-4 transition-transform duration-300 group-hover:rotate-[-45deg]" strokeWidth={1.75} />
-                    </>
-                  )}
-                </Button>
-              </motion.div>
-            </form>
-
-            <div className="mt-6 pt-5 border-t border-black/8 flex items-center justify-between gap-4">
-              <p className="text-[13px] text-black/50">Hesabınız yok mu?</p>
-              <Link
-                href="/kayit"
-                data-testid="link-register"
-                className="group inline-flex items-center gap-1.5 text-[11px] tracking-[0.18em] uppercase font-semibold text-[#141414] hover:text-[#FAFAFA] transition-colors"
-              >
-                Kayıt Ol
-                <ArrowUpRight className="w-3.5 h-3.5 transition-transform group-hover:rotate-[-45deg]" strokeWidth={2} />
-              </Link>
-            </div>
+              {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+            </button>
           </div>
-        </motion.div>
-      </main>
-    </div>
+          <div className="text-right">
+            <Link
+              href="/sifremi-unuttum"
+              className="text-[12px] text-black/60 hover:text-black transition-colors underline underline-offset-4 decoration-black/15 hover:decoration-black/60"
+              data-testid="link-forgot-password"
+            >
+              Şifremi Unuttum
+            </Link>
+          </div>
+        </div>
+
+        <Button type="submit" className={authButtonCls} disabled={loading} data-testid="button-login">
+          {loading ? 'Giriş yapılıyor...' : 'Giriş Yap'}
+        </Button>
+      </form>
+    </AuthLayout>
   );
 }
