@@ -65,5 +65,5 @@ description = "Google OAuth desteği, admin sepetzin/Toov1453QQ0 ve güncel sche
 id = "NaB5Wv8qwcBS31JwcoYdc"
 uri = "file://sepetzen_dump.sql"
 type = "unspecified"
-title = "sepetzen_dump.sql"
-description = "Production sunucuya yüklenecek plain SQL yedek."
+title = "sepetzen_dump.sql (sepetzen kullanıcı adı)"
+description = "Kullanıcı adı sepetzen olarak güncellenmiş son yedek."
