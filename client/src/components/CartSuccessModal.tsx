@@ -89,7 +89,7 @@ export function CartSuccessModal({ isOpen, onClose, product, cartTotal, cartItem
 
               <div className="px-5 sm:px-6 pt-4 pb-5">
                 <div className="flex items-center gap-2.5 mb-4">
-                  <span className="w-7 h-7 rounded-full bg-polen-orange flex items-center justify-center shrink-0">
+                  <span className="w-7 h-7 rounded-full bg-white flex items-center justify-center shrink-0">
                     <Check className="w-4 h-4 text-black" strokeWidth={3} />
                   </span>
                   <div className="leading-tight">
@@ -137,8 +137,8 @@ export function CartSuccessModal({ isOpen, onClose, product, cartTotal, cartItem
 
                 <div className="mt-3.5">
                   {freeShipReached ? (
-                    <div className="bg-polen-orange/15 border border-polen-orange/40 px-3 py-2.5 flex items-center gap-2">
-                      <Truck className="w-4 h-4 text-polen-orange shrink-0" strokeWidth={2} />
+                    <div className="bg-white/12 border border-white/40 px-3 py-2.5 flex items-center gap-2">
+                      <Truck className="w-4 h-4 text-white shrink-0" strokeWidth={2} />
                       <span className="text-[12px] text-white/90 font-medium">
                         Ücretsiz kargo kazandınız.
                       </span>
@@ -146,7 +146,7 @@ export function CartSuccessModal({ isOpen, onClose, product, cartTotal, cartItem
                   ) : (
                     <div className="bg-white/[0.04] border border-white/10 px-3 py-2.5">
                       <div className="flex items-center gap-2 mb-1.5">
-                        <Truck className="w-4 h-4 text-polen-orange shrink-0" strokeWidth={2} />
+                        <Truck className="w-4 h-4 text-white shrink-0" strokeWidth={2} />
                         <span className="text-[11.5px] text-white/65 leading-tight">
                           Ücretsiz kargo için{' '}
                           <span className="font-semibold text-white">
@@ -157,7 +157,7 @@ export function CartSuccessModal({ isOpen, onClose, product, cartTotal, cartItem
                       </div>
                       <div className="h-1 bg-white/[0.08] overflow-hidden rounded-full">
                         <div
-                          className="h-full bg-polen-orange rounded-full transition-all"
+                          className="h-full bg-white rounded-full transition-all"
                           style={{ width: `${shippingProgress}%`, transitionDuration: '300ms' }}
                         />
                       </div>
@@ -186,7 +186,7 @@ export function CartSuccessModal({ isOpen, onClose, product, cartTotal, cartItem
                   </Button>
                   <Link href="/sepet" onClick={onClose}>
                     <Button
-                      className="w-full h-11 bg-polen-orange text-black hover:bg-[hsl(var(--polen-orange-deep))] hover:text-white font-semibold tracking-[0.08em] text-[11.5px] uppercase group rounded-md"
+                      className="w-full h-11 bg-white text-black hover:bg-white/85 font-semibold tracking-[0.08em] text-[11.5px] uppercase group rounded-md"
                       data-testid="button-go-to-cart"
                     >
                       Sepete Git

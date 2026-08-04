@@ -108,7 +108,7 @@ function StarRating({
           <Star
             style={{ width: size, height: size }}
             className={`${
-              star <= (hover || rating) ? 'fill-yellow-400 text-yellow-400' : 'text-black/15'
+              star <= (hover || rating) ? 'fill-yellow-400 text-yellow-400' : 'text-white/15'
             } transition-colors`}
           />
         </button>
@@ -142,9 +142,9 @@ function emojiToType(emoji: string, title: string): DescSection['type'] {
 /** Legacy DB descriptions carry inline green styles — remap to monochrome palette */
 function neutralizeLegacyColors(html: string): string {
   return html
-    .replace(/#2D5A27/gi, '#141414')
-    .replace(/#4A9A42/gi, '#737373')
-    .replace(/#1B3D17/gi, '#1F1F1F');
+    .replace(/#2D5A27/gi, '#D4D4D4')
+    .replace(/#4A9A42/gi, '#FAFAFA')
+    .replace(/#1B3D17/gi, '#D4D4D4');
 }
 
 function parseProductSections(rawHtml: string): DescSection[] {
@@ -213,7 +213,7 @@ function ProductDescriptionSections({ html }: { html: string }) {
   if (sections.length === 0) {
     return (
       <div
-        className="text-sm text-black/60 leading-relaxed prose prose-sm max-w-none"
+        className="text-sm text-white/70 leading-relaxed prose prose-sm prose-invert max-w-none"
         dangerouslySetInnerHTML={{ __html: neutralizeLegacyColors(html) }}
       />
     );
@@ -233,7 +233,7 @@ function ProductDescriptionSections({ html }: { html: string }) {
           {/* Teknik Özellikler */}
           {specs && (
             <div>
-              <h3 className="text-[12px] font-semibold text-black/50 mb-4">
+              <h3 className="text-[12px] font-semibold text-white/50 mb-4">
                 {specs.title || 'Teknik Özellikler'}
               </h3>
               {specs.items.length > 0 ? (
@@ -246,18 +246,18 @@ function ProductDescriptionSections({ html }: { html: string }) {
                     return (
                       <div
                         key={j}
-                        className="flex items-baseline gap-6 py-2.5 border-b border-black/[0.06]"
+                        className="flex items-baseline gap-6 py-2.5 border-b border-white/8"
                       >
                         {label && (
-                          <dt className="text-[12px] text-black/45 w-36 shrink-0">{label}</dt>
+                          <dt className="text-[12px] text-white/50 w-36 shrink-0">{label}</dt>
                         )}
-                        <dd className="text-[13px] text-black/80 font-medium">{value}</dd>
+                        <dd className="text-[13px] text-white font-medium">{value}</dd>
                       </div>
                     );
                   })}
                 </dl>
               ) : (
-                <p className="text-[13px] text-black/60 leading-relaxed">{specs.prose}</p>
+                <p className="text-[13px] text-white/70 leading-relaxed">{specs.prose}</p>
               )}
             </div>
           )}
@@ -265,10 +265,10 @@ function ProductDescriptionSections({ html }: { html: string }) {
           {/* Materyal */}
           {material && (
             <div>
-              <h3 className="text-[12px] font-semibold text-black/50 mb-4">
+              <h3 className="text-[12px] font-semibold text-white/50 mb-4">
                 {material.title || 'Materyal'}
               </h3>
-              <p className="text-[14px] text-black/65 leading-[1.75]">
+              <p className="text-[14px] text-white/70 leading-[1.75]">
                 {material.prose || material.items.join(' · ')}
               </p>
             </div>
@@ -279,7 +279,7 @@ function ProductDescriptionSections({ html }: { html: string }) {
       {/* Kullanım Alanları */}
       {usage && (
         <div>
-          <h3 className="text-[12px] font-semibold text-black/50 mb-4">
+          <h3 className="text-[12px] font-semibold text-white/50 mb-4">
             {usage.title || 'Kullanım Alanları'}
           </h3>
           {usage.items.length > 0 ? (
@@ -287,25 +287,25 @@ function ProductDescriptionSections({ html }: { html: string }) {
               {usage.items.map((chip, j) => (
                 <span
                   key={j}
-                  className="px-3 py-1.5 border border-[#141414]/20 text-[12px] text-[#141414] font-medium"
+                  className="px-3 py-1.5 border border-white/20 text-[12px] text-white/70 font-medium"
                 >
                   {chip}
                 </span>
               ))}
             </div>
           ) : (
-            <p className="text-[14px] text-black/65 leading-[1.75]">{usage.prose}</p>
+            <p className="text-[14px] text-white/70 leading-[1.75]">{usage.prose}</p>
           )}
         </div>
       )}
 
       {/* Hediye */}
       {gift && (
-        <div className="border-l-2 border-[#141414] pl-5 py-1">
-          <h3 className="text-[12px] font-semibold text-[#141414]/80 mb-2">
+          <div className="border-l-2 border-white/40 pl-5 py-1">
+          <h3 className="text-[12px] font-semibold text-white/80 mb-2">
             {gift.title || 'Hediye'}
           </h3>
-          <p className="text-[14px] text-black/70 leading-[1.75]">
+          <p className="text-[14px] text-white/70 leading-[1.75]">
             {gift.prose || gift.items.join(' ')}
           </p>
         </div>
@@ -315,11 +315,11 @@ function ProductDescriptionSections({ html }: { html: string }) {
       {generics.map((section, i) => (
         <div key={i}>
           {section.title && (
-            <h3 className="text-[12px] font-semibold text-black/50 mb-4">
+            <h3 className="text-[12px] font-semibold text-white/50 mb-4">
               {section.title}
             </h3>
           )}
-          <p className="text-[14px] text-black/65 leading-[1.75]">
+          <p className="text-[14px] text-white/70 leading-[1.75]">
             {section.prose || section.items.join(', ')}
           </p>
         </div>
@@ -346,7 +346,7 @@ function ProductFeatureHighlights({ html }: { html: string }) {
   if (sections.length === 0) return null;
   const highlights = sections.slice(0, 4);
   return (
-    <div className="grid grid-cols-2 lg:grid-cols-4 border-t border-b border-black/8">
+    <div className="grid grid-cols-2 lg:grid-cols-4 border-t border-b border-white/8">
       {highlights.map((sec, i) => {
         const Icon = sectionIcon(sec.type);
         return (
@@ -356,14 +356,14 @@ function ProductFeatureHighlights({ html }: { html: string }) {
             whileInView={reduceMotion ? undefined : { opacity: 1, y: 0 }}
             viewport={{ once: true, margin: '-60px' }}
             transition={{ duration: 0.4, delay: i * 0.07, ease: [0.33, 1, 0.68, 1] }}
-            className={`flex items-start gap-3 px-5 py-5 ${i < highlights.length - 1 ? 'border-r border-black/8' : ''}`}
+            className={`flex items-start gap-3 px-5 py-5 ${i < highlights.length - 1 ? 'border-r border-white/8' : ''}`}
           >
-            <span className="shrink-0 mt-0.5 w-[18px] h-[18px] text-[#141414]">
+            <span className="shrink-0 mt-0.5 w-[18px] h-[18px] text-white/80">
               <Icon className="w-[18px] h-[18px]" strokeWidth={1.75} />
             </span>
             <div className="min-w-0">
-              <p className="text-[12px] font-semibold text-black leading-tight mb-1">{sec.title}</p>
-              <p className="text-[11.5px] text-black/45 leading-snug line-clamp-2">
+              <p className="text-[12px] font-semibold text-white leading-tight mb-1">{sec.title}</p>
+              <p className="text-[11.5px] text-white/50 leading-snug line-clamp-2">
                 {sec.items[0] || (sec.prose ? sec.prose.split(/[.!]/)[0] : '') || ''}
               </p>
             </div>
@@ -396,16 +396,16 @@ function ProductTabs({ html }: { html: string }) {
   ] as const;
 
   return (
-    <div className="mt-8 border-t border-black/8">
+    <div className="mt-8 border-t border-white/8">
       {/* Tab bar */}
-      <div className="flex border-b border-black/8 overflow-x-auto">
+      <div className="flex border-b border-white/8 overflow-x-auto">
         {TABS.map((tab) => (
           <button
             key={tab.id}
             type="button"
             onClick={() => setActive(tab.id)}
             className={`relative px-4 lg:px-6 py-3.5 text-[11px] font-semibold tracking-[0.16em] uppercase whitespace-nowrap -mb-px transition-colors ${
-              active === tab.id ? 'text-[#141414]' : 'text-black/40 hover:text-black/70'
+              active === tab.id ? 'text-white' : 'text-white/50 hover:text-white/80'
             }`}
           >
             {tab.label}
@@ -435,20 +435,20 @@ function ProductTabs({ html }: { html: string }) {
           <div className="space-y-6 max-w-2xl">
             {material && (
               <div>
-                <h3 className="text-[12px] font-semibold text-black/50 mb-4">
+                <h3 className="text-[12px] font-semibold text-white/50 mb-4">
                   {material.title}
                 </h3>
-                <p className="text-[14px] text-black/65 leading-[1.75]">
+                <p className="text-[14px] text-white/65 leading-[1.75]">
                   {material.prose || material.items.join(' · ')}
                 </p>
               </div>
             )}
             {gift && (
-              <div className="border-l-2 border-[#141414] pl-5 py-1">
-                <h3 className="text-[12px] font-semibold text-[#141414]/80 mb-2">
+              <div className="border-l-2 border-white/20 pl-5 py-1">
+                <h3 className="text-[12px] font-semibold text-white/80 mb-2">
                   {gift.title}
                 </h3>
-                <p className="text-[14px] text-black/70 leading-[1.75]">
+                <p className="text-[14px] text-white/70 leading-[1.75]">
                   {gift.prose || gift.items.join(' ')}
                 </p>
               </div>
@@ -456,17 +456,17 @@ function ProductTabs({ html }: { html: string }) {
             {generics.map((s, i) => (
               <div key={i}>
                 {s.title && (
-                  <h3 className="text-[12px] font-semibold text-black/50 mb-4">
+                  <h3 className="text-[12px] font-semibold text-white/50 mb-4">
                     {s.title}
                   </h3>
                 )}
-                <p className="text-[14px] text-black/65 leading-[1.75]">
+                <p className="text-[14px] text-white/65 leading-[1.75]">
                   {s.prose || s.items.join(', ')}
                 </p>
               </div>
             ))}
             {!material && !gift && generics.length === 0 && (
-              <p className="text-[13px] text-black/35 italic">Bu ürün için açıklama eklenmemiştir.</p>
+              <p className="text-[13px] text-white/35 italic">Bu ürün için açıklama eklenmemiştir.</p>
             )}
           </div>
         )}
@@ -476,7 +476,7 @@ function ProductTabs({ html }: { html: string }) {
           <div>
             {specs ? (
               specs.items.length > 0 ? (
-                <dl className="divide-y divide-black/[0.06] max-w-xl">
+                <dl className="divide-y divide-white/8 max-w-xl">
                   {specs.items.map((item, j) => {
                     const ci = item.indexOf(':');
                     const hasColon = ci > 0 && ci < 60;
@@ -485,18 +485,18 @@ function ProductTabs({ html }: { html: string }) {
                     return (
                       <div key={j} className="flex items-baseline gap-6 py-2.5">
                         {label && (
-                          <dt className="text-[12px] text-black/45 w-36 shrink-0">{label}</dt>
+                          <dt className="text-[12px] text-white/45 w-36 shrink-0">{label}</dt>
                         )}
-                        <dd className="text-[13px] text-black/80 font-medium">{value}</dd>
+                        <dd className="text-[13px] text-white/80 font-medium">{value}</dd>
                       </div>
                     );
                   })}
                 </dl>
               ) : (
-                <p className="text-[14px] text-black/60 leading-relaxed">{specs.prose}</p>
+                <p className="text-[14px] text-white/60 leading-relaxed">{specs.prose}</p>
               )
             ) : (
-              <p className="text-[13px] text-black/35 italic">Teknik özellik bilgisi bulunmamaktadır.</p>
+              <p className="text-[13px] text-white/35 italic">Teknik özellik bilgisi bulunmamaktadır.</p>
             )}
           </div>
         )}
@@ -508,17 +508,17 @@ function ProductTabs({ html }: { html: string }) {
               usage.items.length > 0 ? (
                 <ul className="space-y-3 max-w-xl">
                   {usage.items.map((item, j) => (
-                    <li key={j} className="flex items-start gap-3 text-[13px] text-black/75 leading-snug">
+                    <li key={j} className="flex items-start gap-3 text-[13px] text-white/75 leading-snug">
                       <span className="mt-[5px] w-[6px] h-[6px] rounded-full bg-[#141414] shrink-0" />
                       {item}
                     </li>
                   ))}
                 </ul>
               ) : (
-                <p className="text-[14px] text-black/65 leading-[1.75]">{usage.prose}</p>
+                <p className="text-[14px] text-white/65 leading-[1.75]">{usage.prose}</p>
               )
             ) : (
-              <p className="text-[13px] text-black/35 italic">Kullanım alanı bilgisi bulunmamaktadır.</p>
+              <p className="text-[13px] text-white/35 italic">Kullanım alanı bilgisi bulunmamaktadır.</p>
             )}
           </div>
         )}
@@ -527,10 +527,10 @@ function ProductTabs({ html }: { html: string }) {
         {active === 'delivery' && (
           <div className="space-y-8 max-w-2xl">
             <div>
-              <h3 className="text-[12px] font-semibold text-black/50 mb-4">
+              <h3 className="text-[12px] font-semibold text-white/50 mb-4">
                 Kargo & Teslimat
               </h3>
-              <dl className="divide-y divide-black/[0.06]">
+              <dl className="divide-y divide-white/8">
                 {[
                   ['Kargo Süresi', '1–3 iş günü'],
                   ['Ücretsiz Kargo', '1.500 ₺ ve üzeri siparişlerde'],
@@ -538,17 +538,17 @@ function ProductTabs({ html }: { html: string }) {
                   ['Aynı Gün Kargo', 'Hafta içi 14:00\'a kadar verilen siparişler'],
                 ].map(([k, v]) => (
                   <div key={k} className="flex items-baseline gap-6 py-2.5">
-                    <dt className="text-[12px] text-black/45 w-36 shrink-0">{k}</dt>
-                    <dd className="text-[13px] text-black/80 font-medium">{v}</dd>
+                    <dt className="text-[12px] text-white/45 w-36 shrink-0">{k}</dt>
+                    <dd className="text-[13px] text-white/80 font-medium">{v}</dd>
                   </div>
                 ))}
               </dl>
             </div>
             <div>
-              <h3 className="text-[12px] font-semibold text-black/50 mb-4">
+              <h3 className="text-[12px] font-semibold text-white/50 mb-4">
                 İade & İptal
               </h3>
-              <dl className="divide-y divide-black/[0.06]">
+              <dl className="divide-y divide-white/8">
                 {[
                   ['İade Süresi', '14 gün içinde'],
                   ['İade Şartı', 'Açılmamış, kullanılmamış, orijinal ambalajında'],
@@ -556,8 +556,8 @@ function ProductTabs({ html }: { html: string }) {
                   ['İptal', 'Kargoya verilmemiş siparişler iptal edilebilir'],
                 ].map(([k, v]) => (
                   <div key={k} className="flex items-baseline gap-6 py-2.5">
-                    <dt className="text-[12px] text-black/45 w-36 shrink-0">{k}</dt>
-                    <dd className="text-[13px] text-black/80 font-medium">{v}</dd>
+                    <dt className="text-[12px] text-white/45 w-36 shrink-0">{k}</dt>
+                    <dd className="text-[13px] text-white/80 font-medium">{v}</dd>
                   </div>
                 ))}
               </dl>
@@ -577,12 +577,12 @@ function ProductTabs({ html }: { html: string }) {
                 ['Fatura kesilecek mi?', 'Evet, tüm siparişlerinize e-fatura kesilmektedir.'],
               ] as [string, string][]
             ).map(([q, a]) => (
-              <details key={q} className="group border-b border-black/6 pb-0">
-                <summary className="text-[13px] font-semibold text-black cursor-pointer list-none flex items-center justify-between gap-3 py-4">
+              <details key={q} className="group border-b border-white/6 pb-0">
+                <summary className="text-[13px] font-semibold text-white cursor-pointer list-none flex items-center justify-between gap-3 py-4">
                   {q}
-                  <span className="text-black/30 group-open:rotate-180 transition-transform duration-200 shrink-0 text-xs">▾</span>
+                  <span className="text-white/30 group-open:rotate-180 transition-transform duration-200 shrink-0 text-xs">▾</span>
                 </summary>
-                <p className="text-[13px] text-black/55 leading-relaxed pb-4">{a}</p>
+                <p className="text-[13px] text-white/55 leading-relaxed pb-4">{a}</p>
               </details>
             ))}
           </div>
@@ -903,10 +903,10 @@ export default function ProductDetail() {
 
   if (isLoading) {
     return (
-      <div className="min-h-screen bg-white">
+      <div className="min-h-screen bg-[#0A0A0A]">
         <Header />
         <main className="pt-24 pb-20 px-6 flex items-center justify-center min-h-[60vh]">
-          <Loader2 className="w-8 h-8 text-black/20 animate-spin" />
+          <Loader2 className="w-8 h-8 text-white/20 animate-spin" />
         </main>
       </div>
     );
@@ -914,15 +914,15 @@ export default function ProductDetail() {
 
   if (!product) {
     return (
-      <div className="min-h-screen bg-white">
+      <div className="min-h-screen bg-[#0A0A0A]">
         <Header />
         <main className="pt-24 pb-20 px-6 flex items-center justify-center min-h-[60vh]">
           <div className="text-center">
-            <Package className="w-12 h-12 text-black/15 mx-auto mb-4" />
+            <Package className="w-12 h-12 text-white/15 mx-auto mb-4" />
             <h1 className="text-2xl font-semibold mb-3">Ürün Bulunamadı</h1>
-            <p className="text-black/40 mb-6 text-sm">Bu ürün mevcut değil ya da kaldırılmış.</p>
+            <p className="text-white/40 mb-6 text-sm">Bu ürün mevcut değil ya da kaldırılmış.</p>
             <Link href="/">
-              <span className="inline-flex items-center gap-2 px-5 py-2.5 bg-black text-white text-xs tracking-[0.18em] uppercase font-semibold hover:bg-[#141414] transition-colors">
+              <span className="inline-flex items-center gap-2 px-5 py-2.5 bg-white text-black text-xs tracking-[0.18em] uppercase font-semibold hover:bg-white/85 transition-colors">
                 Ana Sayfaya Dön
               </span>
             </Link>
@@ -969,7 +969,7 @@ export default function ProductDetail() {
   // ─── Render ───────────────────────────────────────────────────────────────
 
   return (
-    <div className="min-h-screen bg-white overflow-x-hidden">
+    <div className="min-h-screen bg-[#0A0A0A] overflow-x-hidden">
       <SEO
         title={product.name}
         description={
@@ -1008,7 +1008,7 @@ export default function ProductDetail() {
             <button
               type="button"
               onClick={() => setLightboxOpen(false)}
-              className="absolute top-5 right-5 w-10 h-10 flex items-center justify-center bg-white/10 hover:bg-white/20 rounded-full text-white transition-colors z-20"
+              className="absolute top-5 right-5 w-10 h-10 flex items-center justify-center bg-[#141414]/10 hover:bg-[#141414]/20 rounded-full text-white transition-colors z-20"
               aria-label="Kapat"
               data-testid="button-lightbox-close"
             >
@@ -1017,10 +1017,10 @@ export default function ProductDetail() {
 
             {images.length > 1 && (
               <>
-                <button type="button" onClick={(e) => { e.stopPropagation(); setSelectedImage((p) => p === 0 ? images.length - 1 : p - 1); }} className="hidden sm:flex absolute left-5 w-11 h-11 items-center justify-center bg-white/10 hover:bg-white/20 rounded-full text-white z-20" aria-label="Önceki">
+                <button type="button" onClick={(e) => { e.stopPropagation(); setSelectedImage((p) => p === 0 ? images.length - 1 : p - 1); }} className="hidden sm:flex absolute left-5 w-11 h-11 items-center justify-center bg-[#141414]/10 hover:bg-[#141414]/20 rounded-full text-white z-20" aria-label="Önceki">
                   <ChevronLeft className="w-5 h-5" />
                 </button>
-                <button type="button" onClick={(e) => { e.stopPropagation(); setSelectedImage((p) => p === images.length - 1 ? 0 : p + 1); }} className="hidden sm:flex absolute right-5 w-11 h-11 items-center justify-center bg-white/10 hover:bg-white/20 rounded-full text-white z-20" aria-label="Sonraki">
+                <button type="button" onClick={(e) => { e.stopPropagation(); setSelectedImage((p) => p === images.length - 1 ? 0 : p + 1); }} className="hidden sm:flex absolute right-5 w-11 h-11 items-center justify-center bg-[#141414]/10 hover:bg-[#141414]/20 rounded-full text-white z-20" aria-label="Sonraki">
                   <ChevronRight className="w-5 h-5" />
                 </button>
               </>
@@ -1057,7 +1057,7 @@ export default function ProductDetail() {
               <div className="absolute bottom-5 left-1/2 -translate-x-1/2 flex gap-1.5 z-20">
                 {images.map((_, i) => (
                   <button key={i} type="button" onClick={(e) => { e.stopPropagation(); setSelectedImage(i); }}
-                    className={`h-1.5 rounded-full transition-all ${i === selectedImage ? 'bg-white w-6' : 'bg-white/30 w-1.5'}`}
+                    className={`h-1.5 rounded-full transition-all ${i === selectedImage ? 'bg-[#141414] w-6' : 'bg-[#141414]/30 w-1.5'}`}
                     aria-label={`Görsel ${i + 1}`} />
                 ))}
               </div>
@@ -1071,16 +1071,16 @@ export default function ProductDetail() {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
 
           {/* Breadcrumb */}
-          <nav className="flex items-center gap-1.5 text-[11px] text-black/38 mb-8 font-mono tracking-[0.15em] uppercase flex-wrap">
-            <Link href="/" className="hover:text-black transition-colors">Ana Sayfa</Link>
+          <nav className="flex items-center gap-1.5 text-[11px] text-white/38 mb-8 font-mono tracking-[0.15em] uppercase flex-wrap">
+            <Link href="/" className="hover:text-white transition-colors">Ana Sayfa</Link>
             {category && (
               <>
-                <ChevronRight className="w-3 h-3 text-black/20" />
-                <Link href={`/kategori/${category.slug}`} className="hover:text-black transition-colors">{category.name}</Link>
+                <ChevronRight className="w-3 h-3 text-white/20" />
+                <Link href={`/kategori/${category.slug}`} className="hover:text-white transition-colors">{category.name}</Link>
               </>
             )}
-            <ChevronRight className="w-3 h-3 text-black/20" />
-            <span className="text-black/60 normal-case font-sans tracking-normal text-[12px] truncate max-w-[200px]">{product.name}</span>
+            <ChevronRight className="w-3 h-3 text-white/20" />
+            <span className="text-white/60 normal-case font-sans tracking-normal text-[12px] truncate max-w-[200px]">{product.name}</span>
           </nav>
 
           {/* ── Product grid: Gallery + Info ── */}
@@ -1102,7 +1102,7 @@ export default function ProductDetail() {
                       type="button"
                       onClick={() => setSelectedImage(i)}
                       whileTap={reduceMotion ? undefined : { scale: 0.94 }}
-                      className={`relative aspect-square overflow-hidden bg-stone-100 transition-opacity duration-200 ${
+                      className={`relative aspect-square overflow-hidden bg-[#151515] transition-opacity duration-200 ${
                         i === selectedImage ? '' : 'opacity-50 hover:opacity-85'
                       }`}
                       data-testid={`button-thumbnail-${i}`}
@@ -1127,7 +1127,7 @@ export default function ProductDetail() {
                 <div className="hidden sm:block">
                   <div
                     ref={heroImageRef}
-                    className="relative aspect-[4/5] bg-stone-100 overflow-hidden cursor-zoom-in"
+                    className="relative aspect-[4/5] bg-[#151515] overflow-hidden cursor-zoom-in"
                     onMouseEnter={() => setIsZooming(true)}
                     onMouseLeave={() => setIsZooming(false)}
                     onMouseMove={handleHeroMove}
@@ -1157,10 +1157,10 @@ export default function ProductDetail() {
                       </motion.div>
                     </AnimatePresence>
                     {product.discountBadge && (
-                      <span className="absolute top-4 left-4 z-10 bg-black text-white text-[10px] font-bold tracking-[0.2em] px-3 py-1.5 uppercase">{product.discountBadge}</span>
+                      <span className="absolute top-4 left-4 z-10 bg-white text-black text-[10px] font-bold tracking-[0.2em] px-3 py-1.5 uppercase">{product.discountBadge}</span>
                     )}
                     {product.isNew && !product.discountBadge && (
-                      <span className="absolute top-4 left-4 z-10 bg-black text-white text-[10px] font-bold tracking-[0.2em] px-3 py-1.5 uppercase">Yeni</span>
+                      <span className="absolute top-4 left-4 z-10 bg-white text-black text-[10px] font-bold tracking-[0.2em] px-3 py-1.5 uppercase">Yeni</span>
                     )}
                     <div className="absolute bottom-4 right-4 text-[10px] text-white/50 bg-black/25 px-2 py-1 backdrop-blur-sm font-mono">
                       {selectedImage + 1} / {images.length}
@@ -1170,7 +1170,7 @@ export default function ProductDetail() {
 
                 {/* Mobile carousel */}
                 <div className="sm:hidden -mx-4">
-                  <div className="relative aspect-square bg-stone-100 overflow-hidden" ref={emblaRef}>
+                  <div className="relative aspect-square bg-[#151515] overflow-hidden" ref={emblaRef}>
                     <div className="flex h-full">
                       {images.map((img, i) => (
                         <button type="button" key={i} className="flex-[0_0_100%] min-w-0 h-full" onClick={() => setLightboxOpen(true)} aria-label={`Görsel ${i + 1} - büyüt`}>
@@ -1178,8 +1178,8 @@ export default function ProductDetail() {
                         </button>
                       ))}
                     </div>
-                    {product.discountBadge && <span className="absolute top-4 left-4 z-10 bg-black text-white text-[10px] font-bold tracking-[0.2em] px-3 py-1.5 uppercase">{product.discountBadge}</span>}
-                    {product.isNew && !product.discountBadge && <span className="absolute top-4 left-4 z-10 bg-black text-white text-[10px] font-bold tracking-[0.2em] px-3 py-1.5 uppercase">Yeni</span>}
+                    {product.discountBadge && <span className="absolute top-4 left-4 z-10 bg-white text-black text-[10px] font-bold tracking-[0.2em] px-3 py-1.5 uppercase">{product.discountBadge}</span>}
+                    {product.isNew && !product.discountBadge && <span className="absolute top-4 left-4 z-10 bg-white text-black text-[10px] font-bold tracking-[0.2em] px-3 py-1.5 uppercase">Yeni</span>}
                   </div>
                   {images.length > 1 && (
                     <div className="flex justify-center gap-1.5 mt-3">
@@ -1199,12 +1199,12 @@ export default function ProductDetail() {
               initial={reduceMotion ? false : { opacity: 0, y: 18 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.5, delay: reduceMotion ? 0 : 0.12, ease: [0.33, 1, 0.68, 1] }}
-              className="border border-black/8 p-5 lg:p-6">
+              className="border border-white/8 p-5 lg:p-6">
 
               {/* Category */}
               {category && (
                 <Link href={`/kategori/${category.slug}`}>
-                  <span className="inline-block text-[10px] text-[#141414] uppercase tracking-[0.3em] mb-4 hover:underline font-mono">
+                  <span className="inline-block text-[10px] text-white uppercase tracking-[0.3em] mb-4 hover:underline font-mono">
                     {category.name}
                   </span>
                 </Link>
@@ -1212,7 +1212,7 @@ export default function ProductDetail() {
 
               {/* Product name */}
               <h1
-                className="text-2xl sm:text-3xl font-bold text-black leading-[1.15] mb-3 tracking-[-0.01em]"
+                className="text-2xl sm:text-3xl font-bold text-white leading-[1.15] mb-3 tracking-[-0.01em]"
                 data-testid="text-product-name"
               >
                 {product.name}
@@ -1222,8 +1222,8 @@ export default function ProductDetail() {
               {ratingData && ratingData.count > 0 && (
                 <div className="flex items-center gap-2.5 mb-5">
                   <StarRating rating={Math.round(ratingData.average)} size={13} />
-                  <span className="text-[12px] text-black/45">
-                    {ratingData.average.toFixed(1)} <span className="text-black/25">·</span> {ratingData.count} değerlendirme
+                  <span className="text-[12px] text-white/45">
+                    {ratingData.average.toFixed(1)} <span className="text-white/25">·</span> {ratingData.count} değerlendirme
                   </span>
                 </div>
               )}
@@ -1231,12 +1231,12 @@ export default function ProductDetail() {
               {/* Price */}
               <div className="flex items-baseline gap-3 mb-3">
                 {originalPrice && (
-                  <span className="text-base text-black/30 line-through" data-testid="text-original-price">
+                  <span className="text-base text-white/30 line-through" data-testid="text-original-price">
                     {originalPrice.toLocaleString('tr-TR', { maximumFractionDigits: 0 })} ₺
                   </span>
                 )}
                 <span
-                  className="text-3xl sm:text-4xl font-bold text-[#141414] tabular-nums tracking-[-0.02em]"
+                  className="text-3xl sm:text-4xl font-bold text-white tabular-nums tracking-[-0.02em]"
                   data-testid="text-product-price"
                 >
                   {price.toLocaleString('tr-TR', { minimumFractionDigits: 2 })} ₺
@@ -1247,31 +1247,31 @@ export default function ProductDetail() {
               {product.description && (() => {
                 const blurb = extractBlurb(product.description);
                 return blurb ? (
-                  <p className="text-[13px] text-black/50 leading-relaxed mb-5">{blurb}</p>
+                  <p className="text-[13px] text-white/50 leading-relaxed mb-5">{blurb}</p>
                 ) : null;
               })()}
 
-              <div className="border-t border-black/6 pt-5 space-y-3">
+              <div className="border-t border-white/6 pt-5 space-y-3">
                 {/* Stock status + Shipping countdown */}
                 <div className="flex items-center gap-3 flex-wrap">
                   {isOutOfStock ? (
                     <span className="text-[12px] text-red-500 font-medium">Tükendi</span>
                   ) : (
-                    <span className="flex items-center gap-1.5 text-[12px] text-[#141414] font-semibold">
+                    <span className="flex items-center gap-1.5 text-[12px] text-white font-semibold">
                       <Check className="w-3.5 h-3.5" strokeWidth={2.5} />
                       Stokta var
                     </span>
                   )}
-                  <span className="text-black/15 text-xs">|</span>
+                  <span className="text-white/15 text-xs">|</span>
                   <ShippingCountdown />
                 </div>
 
                 {/* Quantity + Add to cart */}
                 <div className="flex items-center gap-2">
-                  <div className="flex items-center border border-black/12 shrink-0">
+                  <div className="flex items-center border border-white/12 shrink-0">
                     <motion.button type="button" onClick={() => setQuantity((q) => Math.max(1, q - 1))}
                       whileTap={reduceMotion ? undefined : { scale: 0.88 }}
-                      className="w-10 h-11 flex items-center justify-center text-black hover:bg-black/4 transition-colors"
+                      className="w-10 h-11 flex items-center justify-center text-white hover:bg-white hover:text-black transition-colors"
                       aria-label="Azalt" data-testid="button-decrease-quantity">
                       <Minus className="w-3.5 h-3.5" />
                     </motion.button>
@@ -1280,12 +1280,12 @@ export default function ProductDetail() {
                       initial={reduceMotion ? false : { scale: 1.25 }}
                       animate={{ scale: 1 }}
                       transition={{ type: 'spring', stiffness: 500, damping: 24 }}
-                      className="w-9 text-center text-sm font-semibold text-black tabular-nums inline-block"
+                      className="w-9 text-center text-sm font-semibold text-white tabular-nums inline-block"
                       data-testid="text-quantity"
                     >{quantity}</motion.span>
                     <motion.button type="button" onClick={() => setQuantity((q) => q + 1)}
                       whileTap={reduceMotion ? undefined : { scale: 0.88 }}
-                      className="w-10 h-11 flex items-center justify-center text-black hover:bg-black/4 transition-colors"
+                      className="w-10 h-11 flex items-center justify-center text-white hover:bg-white hover:text-black transition-colors"
                       aria-label="Artır" data-testid="button-increase-quantity">
                       <Plus className="w-3.5 h-3.5" />
                     </motion.button>
@@ -1297,7 +1297,7 @@ export default function ProductDetail() {
                     disabled={isAdding || isOutOfStock}
                     whileTap={reduceMotion || isOutOfStock ? undefined : { scale: 0.97 }}
                     className={`flex-1 h-11 font-semibold text-[11px] uppercase tracking-[0.2em] transition-colors flex items-center justify-center gap-2 rounded-lg ${
-                      isOutOfStock ? 'bg-black/8 text-black/30 cursor-not-allowed' : 'btn-glass'
+                      isOutOfStock ? 'bg-[#141414]/8 text-white/30 cursor-not-allowed' : 'btn-glass'
                     }`}
                     data-testid="button-add-to-cart"
                   >
@@ -1346,7 +1346,7 @@ export default function ProductDetail() {
                     type="button"
                     onClick={() => product && !isFavoriteLoading && toggleFavorite(product.id, isLiked)}
                     disabled={isFavoriteLoading}
-                    className="flex items-center gap-1.5 text-[12px] text-black/50 hover:text-black transition-colors"
+                    className="flex items-center gap-1.5 text-[12px] text-white/50 hover:text-white transition-colors"
                     aria-label="Favorilere ekle" data-testid="button-like"
                   >
                     {isFavoriteLoading
@@ -1359,7 +1359,7 @@ export default function ProductDetail() {
                           transition={{ type: 'spring', stiffness: 600, damping: 18 }}
                           className="inline-flex"
                         >
-                          <Heart className={`w-3.5 h-3.5 ${isLiked ? 'fill-[#141414] text-[#141414]' : ''}`} />
+                          <Heart className={`w-3.5 h-3.5 ${isLiked ? 'fill-[#141414] text-white' : ''}`} />
                         </motion.span>
                       )
                     }
@@ -1370,7 +1370,7 @@ export default function ProductDetail() {
                     <button
                       type="button"
                       onClick={() => setShowShareMenu((v) => !v)}
-                      className="flex items-center gap-1.5 text-[12px] text-black/50 hover:text-black transition-colors"
+                      className="flex items-center gap-1.5 text-[12px] text-white/50 hover:text-white transition-colors"
                       aria-label="Paylaş" data-testid="button-share"
                     >
                       <Share2 className="w-3.5 h-3.5" />
@@ -1382,17 +1382,17 @@ export default function ProductDetail() {
                           initial={{ opacity: 0, y: 6 }}
                           animate={{ opacity: 1, y: 0 }}
                           exit={{ opacity: 0, y: 6 }}
-                          className="absolute bottom-full left-0 mb-2 bg-white border border-black/10 shadow-xl min-w-[170px] z-30"
+                          className="absolute bottom-full left-0 mb-2 bg-[#141414] border border-white/10 shadow-xl min-w-[170px] z-30"
                         >
                           {socialLinks.map((s) => (
                             <a key={s.name} href={s.url} target="_blank" rel="noopener noreferrer"
                               onClick={() => setShowShareMenu(false)}
-                              className="block px-4 py-2.5 text-[13px] text-black hover:bg-black/4 transition-colors">
+                              className="block px-4 py-2.5 text-[13px] text-white hover:bg-white hover:text-black transition-colors">
                               {s.name}
                             </a>
                           ))}
                           <button type="button" onClick={copyLink}
-                            className="w-full text-left px-4 py-2.5 text-[13px] text-black hover:bg-black/4 transition-colors flex items-center gap-2 border-t border-black/6">
+                            className="w-full text-left px-4 py-2.5 text-[13px] text-white hover:bg-white hover:text-black transition-colors flex items-center gap-2 border-t border-white/6">
                             <Copy className="w-3.5 h-3.5" />Bağlantıyı Kopyala
                           </button>
                         </motion.div>
@@ -1405,24 +1405,24 @@ export default function ProductDetail() {
                 <div ref={ctaSentinelRef} aria-hidden="true" className="h-px" />
 
                 {/* Trust strip */}
-                <div className="grid grid-cols-3 gap-2 pt-4 border-t border-black/6">
+                <div className="grid grid-cols-3 gap-2 pt-4 border-t border-white/6">
                   {[
                     { icon: Truck, title: 'Ücretsiz Kargo', sub: '1.500 ₺ üzeri' },
                     { icon: RotateCcw, title: 'Kolay İade', sub: '14 gün içinde' },
                     { icon: Shield, title: 'Güvenli Ödeme', sub: 'SSL korumalı' },
                   ].map((it) => (
                     <div key={it.title} className="text-center py-3">
-                      <it.icon className="w-4 h-4 text-[#141414] mx-auto mb-1.5" strokeWidth={1.75} />
-                      <p className="text-[10.5px] font-semibold text-black leading-tight">{it.title}</p>
-                      <p className="text-[9.5px] text-black/35 mt-0.5">{it.sub}</p>
+                      <it.icon className="w-4 h-4 text-white mx-auto mb-1.5" strokeWidth={1.75} />
+                      <p className="text-[10.5px] font-semibold text-white leading-tight">{it.title}</p>
+                      <p className="text-[9.5px] text-white/35 mt-0.5">{it.sub}</p>
                     </div>
                   ))}
                 </div>
 
                 {/* SKU */}
                 {product.sku && (
-                  <p className="text-[11px] text-black/35 font-mono tracking-[0.10em]" data-testid="text-sku">
-                    Stok Kodu: <span className="text-black/55">{product.sku}</span>
+                  <p className="text-[11px] text-white/35 font-mono tracking-[0.10em]" data-testid="text-sku">
+                    Stok Kodu: <span className="text-white/55">{product.sku}</span>
                   </p>
                 )}
               </div>
@@ -1442,20 +1442,20 @@ export default function ProductDetail() {
             whileInView={reduceMotion ? undefined : { opacity: 1, y: 0 }}
             viewport={{ once: true, margin: '-80px' }}
             transition={{ duration: 0.45 }}
-            className="mt-16 lg:mt-20 pt-12 border-t border-black/6"
+            className="mt-16 lg:mt-20 pt-12 border-t border-white/6"
           >
             <div className="flex items-center justify-between mb-8 flex-wrap gap-4">
-              <h2 className="text-lg font-bold text-black tracking-[-0.01em]">
+              <h2 className="text-lg font-bold text-white tracking-[-0.01em]">
                 Müşteri Değerlendirmeleri
                 {ratingData && ratingData.count > 0 && (
-                  <span className="ml-2 text-sm font-normal text-black/40">({ratingData.count})</span>
+                  <span className="ml-2 text-sm font-normal text-white/40">({ratingData.count})</span>
                 )}
               </h2>
               {!userReview && !reviewSubmitted && (
                 <button
                   type="button"
                   onClick={() => setShowReviewForm((v) => !v)}
-                  className="text-[11px] uppercase tracking-[0.18em] font-semibold text-black border border-black/15 px-4 py-2 hover:bg-black hover:text-white transition-colors"
+                  className="text-[11px] uppercase tracking-[0.18em] font-semibold text-white border border-white/15 px-4 py-2 hover:bg-white hover:text-black transition-colors"
                   data-testid="button-toggle-review-form"
                 >
                   {showReviewForm ? 'İptal' : 'Yorum Yaz'}
@@ -1467,18 +1467,18 @@ export default function ProductDetail() {
             {ratingData && ratingData.count > 0 && (
               <div className="flex items-start gap-8 mb-10 flex-wrap">
                 <div className="text-center shrink-0">
-                  <div className="text-5xl font-bold text-black tabular-nums">{ratingData.average.toFixed(1)}</div>
+                  <div className="text-5xl font-bold text-white tabular-nums">{ratingData.average.toFixed(1)}</div>
                   <StarRating rating={Math.round(ratingData.average)} size={14} />
-                  <div className="text-[11px] text-black/40 mt-1">{ratingData.count} yorum</div>
+                  <div className="text-[11px] text-white/40 mt-1">{ratingData.count} yorum</div>
                 </div>
                 <div className="flex-1 min-w-[180px] space-y-1.5">
                   {ratingBars.map(({ star, pct, count }) => (
                     <div key={star} className="flex items-center gap-2.5">
-                      <span className="text-[11px] text-black/45 w-4 text-right">{star}</span>
-                      <div className="flex-1 h-1.5 bg-black/8 rounded-full overflow-hidden">
+                      <span className="text-[11px] text-white/45 w-4 text-right">{star}</span>
+                      <div className="flex-1 h-1.5 bg-[#141414]/8 rounded-full overflow-hidden">
                         <div className="h-full bg-[#141414] rounded-full transition-all duration-500" style={{ width: `${pct}%` }} />
                       </div>
-                      <span className="text-[11px] text-black/35 w-4">{count}</span>
+                      <span className="text-[11px] text-white/35 w-4">{count}</span>
                     </div>
                   ))}
                 </div>
@@ -1505,47 +1505,47 @@ export default function ProductDetail() {
                   exit={{ opacity: 0, height: 0 }}
                   className="overflow-hidden"
                 >
-                  <div className="bg-stone-50 p-6 mb-8 border border-black/6">
+                  <div className="bg-[#141414] p-6 mb-8 border border-white/6">
                     <div className="flex items-baseline justify-between mb-5 gap-3 flex-wrap">
-                      <h3 className="font-semibold text-black text-[15px]">Değerlendirme Yaz</h3>
+                      <h3 className="font-semibold text-white text-[15px]">Değerlendirme Yaz</h3>
                       {!user && (
-                        <p className="text-[11px] text-black/45">
+                        <p className="text-[11px] text-white/45">
                           Üye misin?{' '}
-                          <Link href="/giris"><span className="underline hover:text-[#141414] cursor-pointer">Giriş yap</span></Link>
+                          <Link href="/giris"><span className="underline hover:text-white cursor-pointer">Giriş yap</span></Link>
                         </p>
                       )}
                     </div>
                     <form onSubmit={handleSubmitReview} className="space-y-4">
                       <div>
-                        <label className="block text-[11px] text-black/40 mb-2 uppercase tracking-wider">Puanınız</label>
+                        <label className="block text-[11px] text-white/40 mb-2 uppercase tracking-wider">Puanınız</label>
                         <StarRating rating={reviewRating} size={24} interactive onChange={setReviewRating} />
                       </div>
                       {!user && (
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                           <input type="text" required placeholder="Adınız *" value={reviewGuestName} onChange={(e) => setReviewGuestName(e.target.value)} maxLength={100}
-                            className="w-full px-4 py-3 bg-white border border-black/10 text-black placeholder:text-black/28 focus:outline-none focus:border-black/30 transition-colors text-sm"
+                            className="w-full px-4 py-3 bg-[#141414] border border-white/10 text-white placeholder:text-white/28 focus:outline-none focus:border-white/30 transition-colors text-sm"
                             data-testid="input-review-guest-name" />
                           <input type="email" required placeholder="E-posta *" value={reviewGuestEmail} onChange={(e) => setReviewGuestEmail(e.target.value)} maxLength={200}
-                            className="w-full px-4 py-3 bg-white border border-black/10 text-black placeholder:text-black/28 focus:outline-none focus:border-black/30 transition-colors text-sm"
+                            className="w-full px-4 py-3 bg-[#141414] border border-white/10 text-white placeholder:text-white/28 focus:outline-none focus:border-white/30 transition-colors text-sm"
                             data-testid="input-review-guest-email" />
                         </div>
                       )}
                       <input type="text" placeholder="Başlık (isteğe bağlı)" value={reviewTitle} onChange={(e) => setReviewTitle(e.target.value)} maxLength={200}
-                        className="w-full px-4 py-3 bg-white border border-black/10 text-black placeholder:text-black/28 focus:outline-none focus:border-black/30 transition-colors text-sm"
+                        className="w-full px-4 py-3 bg-[#141414] border border-white/10 text-white placeholder:text-white/28 focus:outline-none focus:border-white/30 transition-colors text-sm"
                         data-testid="input-review-title" />
                       <textarea placeholder="Yorumunuz (isteğe bağlı)" value={reviewContent} onChange={(e) => setReviewContent(e.target.value)} rows={4} maxLength={4000}
-                        className="w-full px-4 py-3 bg-white border border-black/10 text-black placeholder:text-black/28 focus:outline-none focus:border-black/30 transition-colors resize-none text-sm"
+                        className="w-full px-4 py-3 bg-[#141414] border border-white/10 text-white placeholder:text-white/28 focus:outline-none focus:border-white/30 transition-colors resize-none text-sm"
                         data-testid="input-review-content" />
                       {!user && turnstileSiteKey && (
                         <div ref={turnstileContainerRef} data-testid="turnstile-container" className="min-h-[65px]" />
                       )}
                       {!user && (
-                        <p className="text-[11px] text-black/38 leading-relaxed">
+                        <p className="text-[11px] text-white/38 leading-relaxed">
                           E-postanız sadece yorum doğrulama için kullanılır, yayınlanmaz. Yorumlar yönetici onayından geçer.
                         </p>
                       )}
                       <button type="submit" disabled={createReviewMutation.isPending}
-                        className="px-6 py-2.5 bg-black text-white font-semibold hover:bg-[#141414] transition-colors disabled:opacity-50 flex items-center gap-2 text-[11px] tracking-[0.18em] uppercase"
+                        className="px-6 py-2.5 bg-white text-black font-semibold hover:bg-white/85 transition-colors disabled:opacity-50 flex items-center gap-2 text-[11px] tracking-[0.18em] uppercase"
                         data-testid="button-submit-review">
                         {createReviewMutation.isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : <Send className="w-3.5 h-3.5" />}
                         Gönder
@@ -1558,7 +1558,7 @@ export default function ProductDetail() {
 
             {/* User's own review */}
             {userReview && (
-              <div className="border border-[#141414]/20 bg-[#141414]/[0.03] p-5 mb-6">
+              <div className="border border-white/20/20 bg-[#141414]/[0.03] p-5 mb-6">
                 <div className="flex items-center gap-2 mb-2 flex-wrap">
                   <StarRating rating={userReview.rating} size={13} />
                   {userReview.isApproved ? (
@@ -1569,8 +1569,8 @@ export default function ProductDetail() {
                     <span className="text-[11px] text-amber-700 font-medium px-2 py-0.5 bg-amber-50 border border-amber-100">Onay Bekliyor</span>
                   )}
                 </div>
-                {userReview.title && <h4 className="font-semibold text-[14px] text-black">{userReview.title}</h4>}
-                {userReview.content && <p className="text-black/55 mt-1 text-[13px] leading-relaxed">{userReview.content}</p>}
+                {userReview.title && <h4 className="font-semibold text-[14px] text-white">{userReview.title}</h4>}
+                {userReview.content && <p className="text-white/55 mt-1 text-[13px] leading-relaxed">{userReview.content}</p>}
                 {userReview.rejectionReason && (
                   <p className="text-[12px] text-red-700 mt-2"><strong>Reddetme nedeni:</strong> {userReview.rejectionReason}</p>
                 )}
@@ -1583,36 +1583,36 @@ export default function ProductDetail() {
                 {reviews.filter((r) => r.id !== userReview?.id).map((review) => {
                   const mask = (n?: string | null) => !n ? '***' : n.slice(0, 2) + '***';
                   return (
-                    <div key={review.id} className="border border-black/6 p-5">
+                    <div key={review.id} className="border border-white/6 p-5">
                       <div className="flex items-center gap-3 mb-3">
-                        <div className="w-8 h-8 bg-stone-100 border border-black/6 flex items-center justify-center text-[13px] font-bold text-black/60 shrink-0">
+                        <div className="w-8 h-8 bg-[#151515] border border-white/6 flex items-center justify-center text-[13px] font-bold text-white/60 shrink-0">
                           {review.user.firstName?.charAt(0)?.toUpperCase() || 'A'}
                         </div>
                         <div>
-                          <p className="font-medium text-[13px] text-black">
+                          <p className="font-medium text-[13px] text-white">
                             {mask(review.user.firstName)} {mask(review.user.lastName)}
                           </p>
                           <div className="flex items-center gap-2 mt-0.5">
                             <StarRating rating={review.rating} size={10} />
-                            <span className="text-[11px] text-black/35">
+                            <span className="text-[11px] text-white/35">
                               {new Date(review.createdAt).toLocaleDateString('tr-TR')}
                             </span>
                           </div>
                         </div>
                       </div>
-                      {review.title && <h4 className="font-semibold text-[13px] text-black mb-1">{review.title}</h4>}
-                      {review.content && <p className="text-black/55 text-[13px] leading-relaxed">{review.content}</p>}
+                      {review.title && <h4 className="font-semibold text-[13px] text-white mb-1">{review.title}</h4>}
+                      {review.content && <p className="text-white/55 text-[13px] leading-relaxed">{review.content}</p>}
                     </div>
                   );
                 })}
               </div>
             ) : (
               !userReview && !reviewSubmitted && (
-                <div className="text-center py-10 border border-dashed border-black/10">
-                  <Star className="w-8 h-8 mx-auto mb-3 text-black/12" />
-                  <p className="text-[13px] text-black/40">Henüz değerlendirme yok.</p>
+                <div className="text-center py-10 border border-dashed border-white/10">
+                  <Star className="w-8 h-8 mx-auto mb-3 text-white/12" />
+                  <p className="text-[13px] text-white/40">Henüz değerlendirme yok.</p>
                   <button type="button" onClick={() => setShowReviewForm(true)}
-                    className="mt-4 text-[11px] text-[#141414] font-semibold hover:underline tracking-[0.12em] uppercase">
+                    className="mt-4 text-[11px] text-white font-semibold hover:underline tracking-[0.12em] uppercase">
                     İlk yorumu yap
                   </button>
                 </div>
@@ -1627,9 +1627,9 @@ export default function ProductDetail() {
               whileInView={reduceMotion ? undefined : { opacity: 1, y: 0 }}
               viewport={{ once: true, margin: '-80px' }}
               transition={{ duration: 0.45 }}
-              className="mt-16 lg:mt-20 pt-12 border-t border-black/6"
+              className="mt-16 lg:mt-20 pt-12 border-t border-white/6"
             >
-              <h2 className="text-lg font-bold text-black mb-8 tracking-[-0.01em]">Birlikte Alınabilir</h2>
+              <h2 className="text-lg font-bold text-white mb-8 tracking-[-0.01em]">Birlikte Alınabilir</h2>
               <div className="grid grid-cols-2 lg:grid-cols-4 gap-x-4 gap-y-10 sm:gap-x-6">
                 {moreProducts.map((p) => (
                   <ProductCard key={p.id} product={p} />
@@ -1667,7 +1667,7 @@ export default function ProductDetail() {
               disabled={isAdding || isOutOfStock}
               whileTap={reduceMotion || isOutOfStock ? undefined : { scale: 0.96 }}
               className={`h-10 px-5 font-semibold text-[11px] uppercase tracking-[0.18em] flex items-center justify-center gap-2 rounded-lg ${
-                isOutOfStock ? 'bg-white/10 text-white/35 cursor-not-allowed border border-white/10' : 'btn-glass'
+                isOutOfStock ? 'bg-[#141414]/10 text-white/35 cursor-not-allowed border border-white/10' : 'btn-glass'
               }`}
               data-testid="button-add-to-cart-mobile"
             >

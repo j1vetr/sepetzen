@@ -68,10 +68,10 @@ export default function Register() {
 
   const passwordStrength =
     formData.password.length === 0 ? 0 : formData.password.length < 6 ? 1 : formData.password.length < 8 ? 2 : 3;
-  const strengthColors = ['', 'bg-[#F04444]', 'bg-black/40', 'bg-black'];
+  const strengthColors = ['', 'bg-[#F04444]', 'bg-white/40', 'bg-white'];
   const strengthTexts = ['', 'Zayıf', 'Orta', 'Güçlü'];
 
-  const sectionCls = 'text-[10px] font-semibold tracking-[0.2em] uppercase text-black/55 pt-2';
+  const sectionCls = 'text-[10px] font-semibold tracking-[0.2em] uppercase text-white/55 pt-2';
 
   return (
     <AuthLayout
@@ -135,7 +135,7 @@ export default function Register() {
             value={formData.country}
             onChange={handleChange}
             data-testid="select-country"
-            className="w-full h-11 bg-white border border-black/15 focus:border-black focus:outline-none rounded-lg px-4 text-black text-sm"
+             className="w-full h-11 bg-white/5 border border-white/12 focus:border-white/35 focus:outline-none rounded-lg px-4 text-white text-sm"
           >
             {COUNTRIES.map((country) => (
               <option key={country} value={country}>{country}</option>
@@ -163,7 +163,7 @@ export default function Register() {
               <button
                 type="button"
                 onClick={() => setShowPassword(!showPassword)}
-                className="absolute right-3.5 top-1/2 -translate-y-1/2 text-black/35 hover:text-black transition-colors"
+                 className="absolute right-3.5 top-1/2 -translate-y-1/2 text-white/35 hover:text-white transition-colors"
                 aria-label={showPassword ? 'Şifreyi gizle' : 'Şifreyi göster'}
               >
                 {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
@@ -186,7 +186,7 @@ export default function Register() {
                 className={`${authInputCls} pr-11`}
               />
               {formData.confirmPassword && formData.password === formData.confirmPassword && (
-                <Check className="absolute right-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-black" strokeWidth={2.25} />
+                 <Check className="absolute right-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-white" strokeWidth={2.25} />
               )}
             </div>
           </div>
@@ -199,7 +199,7 @@ export default function Register() {
                 <div
                   key={level}
                   className={`h-0.5 flex-1 rounded-full transition-colors ${
-                    passwordStrength >= level ? strengthColors[passwordStrength] : 'bg-black/10'
+                     passwordStrength >= level ? strengthColors[passwordStrength] : 'bg-white/10'
                   }`}
                 />
               ))}
@@ -207,8 +207,8 @@ export default function Register() {
             <span
               className={`text-[10px] font-mono tracking-wider uppercase ${
                 passwordStrength === 1 ? 'text-[#F04444]'
-                  : passwordStrength === 2 ? 'text-black/50'
-                  : passwordStrength === 3 ? 'text-black'
+                   : passwordStrength === 2 ? 'text-white/50'
+                   : passwordStrength === 3 ? 'text-white'
                   : ''
               }`}
             >
@@ -223,11 +223,11 @@ export default function Register() {
           </Button>
         </div>
 
-        <p className="text-[11px] text-black/55 text-center pt-1 leading-relaxed">
+         <p className="text-[11px] text-white/55 text-center pt-1 leading-relaxed">
           Kayıt olarak{' '}
-          <span className="underline underline-offset-2 hover:text-black transition-colors cursor-pointer">Kullanım Koşulları</span>
+           <span className="underline underline-offset-2 hover:text-white transition-colors cursor-pointer">Kullanım Koşulları</span>
           {' '}ve{' '}
-          <span className="underline underline-offset-2 hover:text-black transition-colors cursor-pointer">Gizlilik Politikası</span>
+           <span className="underline underline-offset-2 hover:text-white transition-colors cursor-pointer">Gizlilik Politikası</span>
           'nı kabul etmiş olursunuz.
         </p>
       </form>

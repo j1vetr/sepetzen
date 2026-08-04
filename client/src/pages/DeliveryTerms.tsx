@@ -14,7 +14,7 @@ const highlights = [
 
 export default function DeliveryTerms() {
   return (
-    <div className="min-h-screen bg-stone-50">
+    <div className="min-h-screen bg-[#0A0A0A]">
       <SEO
         title="Teslimat Koşulları - Polen Stone Doğal Taş & Mermer"
         description="Polen Stone Doğal Taş & Mermer teslimat koşulları, kargo süreleri ve ücretsiz kargo bilgileri."
@@ -22,27 +22,27 @@ export default function DeliveryTerms() {
       <Header />
 
       <main className="pt-6 pb-12">
-        <section className="px-4 sm:px-6 py-12 lg:py-16 bg-white border-b border-black/[0.06]">
+        <section className="px-4 sm:px-6 py-12 lg:py-16 bg-[#0F0F0F] border-b border-white/8">
           <div className="max-w-4xl mx-auto">
             <motion.nav
               initial={{ opacity: 0, y: -10 }}
               animate={{ opacity: 1, y: 0 }}
-              className="flex items-center gap-2 text-xs text-black/55 mb-8"
+              className="flex items-center gap-2 text-xs text-white/55 mb-8"
             >
-              <Link href="/" data-testid="link-home" className="hover:text-polen-orange transition-colors">Ana Sayfa</Link>
+              <Link href="/" data-testid="link-home" className="hover:text-white transition-colors">Ana Sayfa</Link>
               <ChevronRight className="w-3 h-3" />
-              <span className="text-black">Teslimat Koşulları</span>
+              <span className="text-white">Teslimat Koşulları</span>
             </motion.nav>
 
             <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}>
-              <span className="text-xs tracking-[0.3em] uppercase text-polen-orange mb-4 block font-semibold">
+              <span className="text-xs tracking-[0.3em] uppercase text-white mb-4 block font-semibold">
                 Kargo & Teslimat
               </span>
-              <h1 className="font-display text-4xl sm:text-5xl lg:text-6xl tracking-wider mb-6 text-black">
+              <h1 className="font-display text-4xl sm:text-5xl lg:text-6xl tracking-wider mb-6 text-white">
                 TESLİMAT<br />
-                <span className="text-black/45">KOŞULLARI</span>
+                <span className="text-white/45">KOŞULLARI</span>
               </h1>
-              <p className="text-lg text-black/65 max-w-2xl mb-10 leading-relaxed">
+              <p className="text-lg text-white/65 max-w-2xl mb-10 leading-relaxed">
                 Siparişlerinizi güvenli ve hızlı bir şekilde kapınıza ulaştırıyoruz. Teslimat
                 süreleri ve koşullarımız hakkında tüm detayları aşağıda bulabilirsiniz.
               </p>
@@ -54,13 +54,13 @@ export default function DeliveryTerms() {
                     initial={{ opacity: 0, y: 20 }}
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ delay: index * 0.08 }}
-                    className="bg-stone-50 border border-black/[0.08] rounded-xl p-5 hover:border-polen-orange/40 transition-colors"
+                    className="bg-[#141414] border border-white/8 rounded-xl p-5 hover:border-white/40 transition-colors"
                   >
-                    <div className="w-12 h-12 bg-polen-orange/10 rounded-xl flex items-center justify-center mb-4">
-                      <item.icon className="w-6 h-6 text-polen-orange" strokeWidth={1.75} />
+                    <div className="w-12 h-12 bg-white/10 rounded-xl flex items-center justify-center mb-4">
+                      <item.icon className="w-6 h-6 text-white" strokeWidth={1.75} />
                     </div>
-                    <h3 className="font-semibold mb-1 text-black">{item.label}</h3>
-                    <p className="text-sm text-black/60">{item.desc}</p>
+                    <h3 className="font-semibold mb-1 text-white">{item.label}</h3>
+                    <p className="text-sm text-white/60">{item.desc}</p>
                   </motion.div>
                 ))}
               </div>
@@ -70,8 +70,8 @@ export default function DeliveryTerms() {
 
         <section className="py-12 px-4 sm:px-6">
           <div className="max-w-4xl mx-auto">
-            <div className="bg-white border border-black/[0.08] rounded-2xl p-6 sm:p-8 lg:p-10 shadow-[0_2px_24px_-12px_rgba(0,0,0,0.08)]">
-              <div className="prose prose-zinc max-w-none prose-headings:font-display prose-headings:tracking-wide prose-headings:text-black prose-h2:text-xl prose-h2:border-b prose-h2:border-black/10 prose-h2:pb-3 prose-h2:mb-4 prose-p:text-black/70 prose-li:text-black/70 prose-strong:text-black prose-a:text-polen-orange hover:prose-a:underline">
+            <div className="bg-[#141414] border border-white/8 rounded-2xl p-6 sm:p-8 lg:p-10 shadow-[0_8px_30px_rgba(0,0,0,0.4)]">
+              <div className="prose prose-invert max-w-none prose-headings:font-display prose-headings:tracking-wide prose-headings:text-white prose-h2:text-xl prose-h2:border-b prose-h2:border-white/8 prose-h2:pb-3 prose-h2:mb-4 prose-p:text-white/70 prose-li:text-white/70 prose-strong:text-white prose-a:text-white hover:prose-a:underline">
                 <h2>1) Genel Bilgiler</h2>
                 <p>
                   Polen Stone olarak siparişlerinizi güvenli, hızlı ve eksiksiz şekilde teslim etmeyi hedefliyoruz.

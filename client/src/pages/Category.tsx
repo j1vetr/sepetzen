@@ -147,13 +147,13 @@ export default function Category() {
 
   if (!category && !isLoading) {
     return (
-      <div className="min-h-screen bg-white">
+      <div className="min-h-screen bg-[#0A0A0A]">
         <Header />
         <main className="pt-8 pb-12 px-6">
           <div className="max-w-[1400px] mx-auto text-center">
-            <h1 className="font-display text-5xl mb-4 text-black">Kategori Bulunamadı</h1>
+            <h1 className="font-display text-5xl mb-4 text-white">Kategori Bulunamadı</h1>
             <Link href="/">
-              <span className="text-sm text-black/40 hover:text-black transition-colors underline underline-offset-4">
+              <span className="text-sm text-white/50 hover:text-white transition-colors underline underline-offset-4">
                 Ana Sayfaya Dön
               </span>
             </Link>
@@ -164,7 +164,7 @@ export default function Category() {
   }
 
   return (
-    <div className="min-h-screen bg-white overflow-x-hidden">
+    <div className="min-h-screen bg-[#0A0A0A] overflow-x-hidden">
       <SEO
         title={category?.name || 'Kategori'}
         description={`${category?.name || 'Ürünler'} - Sepetzen kamp, outdoor ve bıçak koleksiyonu`}
@@ -237,7 +237,7 @@ export default function Category() {
       </section>
 
       {/* ─── FILTER BAR ─── */}
-      <div className="border-b border-black/8 sticky top-16 lg:top-0 bg-white z-30">
+      <div className="border-b border-white/8 sticky top-16 lg:top-0 bg-[#0F0F0F] z-30">
         <div className="max-w-[1400px] mx-auto px-5 lg:px-8">
           <div className="flex items-center justify-between h-14 gap-4">
 
@@ -245,7 +245,7 @@ export default function Category() {
             <div className="flex items-center gap-3 overflow-x-auto scrollbar-hide">
               <button
                 onClick={() => setFilterOpen(!filterOpen)}
-                className="flex items-center gap-2 text-[11px] tracking-[0.15em] uppercase font-medium text-black shrink-0 hover:text-black/60 transition-colors"
+                className="flex items-center gap-2 text-[11px] tracking-[0.15em] uppercase font-medium text-white shrink-0 hover:text-white/60 transition-colors"
                 data-testid="button-open-filters"
               >
                 <SlidersHorizontal className="w-3.5 h-3.5" />
@@ -261,7 +261,7 @@ export default function Category() {
               {showOnlyNew && (
                 <button
                   onClick={() => { setShowOnlyNew(false); updateUrl({ isNew: false }); }}
-                  className="flex items-center gap-1 text-[10px] tracking-[0.1em] uppercase border border-black text-black px-2.5 py-1 shrink-0 hover:bg-black hover:text-white transition-colors"
+                  className="flex items-center gap-1 text-[10px] tracking-[0.1em] uppercase border border-white/25 text-white px-2.5 py-1 shrink-0 hover:bg-white hover:text-black transition-colors"
                   data-testid="button-remove-filter-new"
                 >
                   Yeni
@@ -271,7 +271,7 @@ export default function Category() {
               {showOnlyDiscounted && (
                 <button
                   onClick={() => { setShowOnlyDiscounted(false); updateUrl({ discounted: false }); }}
-                  className="flex items-center gap-1 text-[10px] tracking-[0.1em] uppercase border border-[var(--sepetzen-green)] text-[var(--sepetzen-green)] px-2.5 py-1 shrink-0 hover:bg-[var(--sepetzen-green)] hover:text-white transition-colors"
+                  className="flex items-center gap-1 text-[10px] tracking-[0.1em] uppercase border border-white/25 text-white/70 px-2.5 py-1 shrink-0 hover:bg-white hover:text-black transition-colors"
                   data-testid="button-remove-filter-discount"
                 >
                   İndirimli
@@ -281,7 +281,7 @@ export default function Category() {
               {priceActive && (
                 <button
                   onClick={() => { setPriceRange([0, 10000]); updateUrl({ minPrice: 0, maxPrice: 10000 }); }}
-                  className="flex items-center gap-1 text-[10px] tracking-[0.1em] uppercase border border-black/30 text-black/60 px-2.5 py-1 shrink-0 hover:border-black hover:text-black transition-colors"
+                  className="flex items-center gap-1 text-[10px] tracking-[0.1em] uppercase border border-white/25 text-white/60 px-2.5 py-1 shrink-0 hover:border-white hover:text-white transition-colors"
                   data-testid="button-remove-filter-price"
                 >
                   {priceRange[0].toLocaleString('tr-TR')}–{priceRange[1].toLocaleString('tr-TR')} ₺
@@ -292,7 +292,7 @@ export default function Category() {
               {hasActiveFilters && (
                 <button
                   onClick={clearFilters}
-                  className="text-[10px] tracking-[0.1em] uppercase text-black/35 hover:text-black transition-colors shrink-0 underline underline-offset-2"
+                  className="text-[10px] tracking-[0.1em] uppercase text-white/40 hover:text-white transition-colors shrink-0 underline underline-offset-2"
                   data-testid="button-clear-filters"
                 >
                   Temizle
@@ -304,17 +304,17 @@ export default function Category() {
             <div className="shrink-0">
               <Select value={sortBy} onValueChange={handleSortChange}>
                 <SelectTrigger
-                  className="h-8 border-0 bg-transparent text-[11px] tracking-[0.12em] uppercase font-medium text-black/50 hover:text-black focus:ring-0 focus:ring-offset-0 gap-1 pr-0 shadow-none"
+                  className="h-8 border-0 bg-transparent text-[11px] tracking-[0.12em] uppercase font-medium text-white/55 hover:text-white focus:ring-0 focus:ring-offset-0 gap-1 pr-0 shadow-none"
                   data-testid="select-sort"
                 >
                   <SelectValue placeholder="Sırala" />
                 </SelectTrigger>
-                <SelectContent className="bg-white border-black/10 shadow-lg">
+                <SelectContent className="bg-[#141414] border-white/12 shadow-[0_8px_30px_rgba(0,0,0,0.4)]">
                   {sortOptions.map(opt => (
                     <SelectItem
                       key={opt.value}
                       value={opt.value}
-                      className="text-xs text-black focus:bg-black/5 cursor-pointer"
+                      className="text-xs text-white focus:bg-white/5 cursor-pointer"
                     >
                       {opt.label}
                     </SelectItem>
@@ -334,14 +334,14 @@ export default function Category() {
             animate={{ height: 'auto', opacity: 1 }}
             exit={{ height: 0, opacity: 0 }}
             transition={{ duration: 0.3, ease: [0.33, 1, 0.68, 1] }}
-            className="overflow-hidden border-b border-black/8 bg-white"
+            className="overflow-hidden border-b border-white/8 bg-[#0F0F0F]"
           >
             <div className="max-w-[1400px] mx-auto px-5 lg:px-8 py-8">
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-10 max-w-xl">
 
                 {/* Price range */}
                 <div>
-                  <h4 className="text-[10px] font-semibold tracking-[0.25em] uppercase text-black/40 mb-5">Fiyat Aralığı</h4>
+                  <h4 className="text-[10px] font-semibold tracking-[0.25em] uppercase text-white/50 mb-5">Fiyat Aralığı</h4>
                   <Slider
                     value={priceRange}
                     onValueChange={handlePriceChange}
@@ -351,7 +351,7 @@ export default function Category() {
                     className="mb-3"
                     data-testid="slider-price-range"
                   />
-                  <div className="flex justify-between text-xs text-black/50">
+                  <div className="flex justify-between text-xs text-white/55">
                     <span data-testid="text-price-min">{priceRange[0].toLocaleString('tr-TR')} ₺</span>
                     <span data-testid="text-price-max">{priceRange[1].toLocaleString('tr-TR')} ₺</span>
                   </div>
@@ -359,14 +359,14 @@ export default function Category() {
 
                 {/* Quick filters */}
                 <div>
-                  <h4 className="text-[10px] font-semibold tracking-[0.25em] uppercase text-black/40 mb-5">Hızlı Filtre</h4>
+                  <h4 className="text-[10px] font-semibold tracking-[0.25em] uppercase text-white/50 mb-5">Hızlı Filtre</h4>
                   <div className="flex flex-wrap gap-2">
                     <button
                       onClick={handleToggleNew}
                       className={`px-4 h-11 border text-[11px] tracking-[0.12em] uppercase font-medium transition-all ${
                         showOnlyNew
-                          ? 'bg-black text-white border-black'
-                          : 'border-black/20 text-black hover:border-black'
+                          ? 'bg-white text-black border-white'
+                          : 'border-white/20 text-white hover:border-white'
                       }`}
                       data-testid="button-filter-new"
                     >
@@ -376,8 +376,8 @@ export default function Category() {
                       onClick={handleToggleDiscounted}
                       className={`px-4 h-11 border text-[11px] tracking-[0.12em] uppercase font-medium transition-all ${
                         showOnlyDiscounted
-                          ? 'bg-[var(--sepetzen-green)] text-white border-[var(--sepetzen-green)]'
-                          : 'border-black/20 text-black hover:border-[var(--sepetzen-green)] hover:text-[var(--sepetzen-green)]'
+                          ? 'bg-white text-black border-white'
+                          : 'border-white/20 text-white hover:border-white hover:text-white'
                       }`}
                       data-testid="button-filter-discounted"
                     >
@@ -398,10 +398,10 @@ export default function Category() {
             <div className="grid grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 lg:gap-6">
               {Array.from({ length: 8 }).map((_, i) => (
                 <div key={i} className="animate-pulse">
-                  <div className="aspect-[3/4] bg-stone-100" />
+                  <div className="aspect-[3/4] bg-[#151515]" />
                   <div className="mt-3 space-y-2">
-                    <div className="h-3.5 bg-stone-100 w-4/5" />
-                    <div className="h-3.5 bg-stone-100 w-1/3" />
+                    <div className="h-3.5 bg-white/10 w-4/5" />
+                    <div className="h-3.5 bg-white/10 w-1/3" />
                   </div>
                 </div>
               ))}
@@ -412,17 +412,17 @@ export default function Category() {
               animate={{ opacity: 1 }}
               className="text-center py-24"
             >
-              <p className="font-display text-3xl text-black mb-2">Ürün Bulunamadı</p>
-              <p className="text-sm text-black/40 mb-8">
+              <p className="font-display text-3xl text-white mb-2">Ürün Bulunamadı</p>
+              <p className="text-sm text-white/50 mb-8">
                 {hasActiveFilters ? 'Filtreleri değiştirerek tekrar deneyin.' : 'Bu kategoride henüz ürün bulunmuyor.'}
               </p>
               {hasActiveFilters ? (
-                <button onClick={clearFilters} className="text-[11px] tracking-[0.15em] uppercase border border-black px-6 py-3 hover:bg-black hover:text-white transition-colors">
+                <button onClick={clearFilters} className="text-[11px] tracking-[0.15em] uppercase border border-white/25 text-white px-6 py-3 hover:bg-white hover:text-black transition-colors">
                   Filtreleri Temizle
                 </button>
               ) : (
                 <Link href="/">
-                  <span className="text-[11px] tracking-[0.15em] uppercase border border-black px-6 py-3 hover:bg-black hover:text-white transition-colors">
+                  <span className="text-[11px] tracking-[0.15em] uppercase border border-white/25 text-white px-6 py-3 hover:bg-white hover:text-black transition-colors">
                     Alışverişe Devam Et
                   </span>
                 </Link>
@@ -448,16 +448,16 @@ export default function Category() {
 
       {/* ─── OTHER CATEGORIES ─── */}
       {categories.length > 1 && (
-        <section className="py-12 px-5 lg:px-8 border-t border-black/8">
+        <section className="py-12 px-5 lg:px-8 border-t border-white/8">
           <div className="max-w-[1400px] mx-auto">
-            <h3 className="text-[10px] tracking-[0.3em] uppercase text-black/35 font-medium mb-6">Diğer Kategoriler</h3>
+            <h3 className="text-[10px] tracking-[0.3em] uppercase text-white/40 font-medium mb-6">Diğer Kategoriler</h3>
             <div className="flex flex-wrap gap-2">
               {categories.filter(c => c.slug !== slug).map(cat => (
                 <Link key={cat.id} href={`/kategori/${cat.slug}`}>
                   <motion.span
                     whileHover={{ backgroundColor: '#000', color: '#fff' }}
                     transition={{ duration: 0.2 }}
-                    className="inline-block border border-black/20 text-black text-[11px] tracking-[0.12em] uppercase px-4 py-2.5 cursor-pointer transition-colors hover:border-black"
+                    className="inline-block border border-white/20 text-white text-[11px] tracking-[0.12em] uppercase px-4 py-2.5 cursor-pointer transition-colors hover:border-white"
                     data-testid={`button-other-category-${cat.slug}`}
                   >
                     {cat.name}

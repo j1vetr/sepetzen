@@ -90,8 +90,8 @@ export default function ResetPassword() {
         title="ŞİFRE SIFIRLA"
       >
         <div className="flex flex-col items-center py-6">
-          <Loader2 className="w-8 h-8 animate-spin text-black mb-4" />
-          <p className="text-black/50 text-[13px]">Bağlantı doğrulanıyor...</p>
+           <Loader2 className="w-8 h-8 animate-spin text-white mb-4" />
+           <p className="text-white/50 text-[13px]">Bağlantı doğrulanıyor...</p>
         </div>
       </AuthLayout>
     );
@@ -132,8 +132,8 @@ export default function ResetPassword() {
         subtitle="Şifreniz başarıyla değiştirildi. Artık yeni şifrenizle giriş yapabilirsiniz."
       >
         <div className="flex justify-center mb-6" data-testid="text-success">
-          <div className="w-14 h-14 rounded-full bg-black flex items-center justify-center">
-            <CheckCircle2 className="w-7 h-7 text-white" strokeWidth={1.75} />
+           <div className="w-14 h-14 rounded-full bg-white flex items-center justify-center">
+             <CheckCircle2 className="w-7 h-7 text-black" strokeWidth={1.75} />
           </div>
         </div>
         <Link href="/giris">
@@ -152,7 +152,7 @@ export default function ResetPassword() {
       subtitle={
         email ? (
           <>
-            <strong className="text-black">{email}</strong> için yeni şifre belirleyin
+             <strong className="text-white">{email}</strong> için yeni şifre belirleyin
           </>
         ) : undefined
       }
@@ -178,7 +178,7 @@ export default function ResetPassword() {
             <button
               type="button"
               onClick={() => setShowPassword(!showPassword)}
-              className="absolute right-3.5 top-1/2 -translate-y-1/2 text-black/35 hover:text-black transition-colors"
+               className="absolute right-3.5 top-1/2 -translate-y-1/2 text-white/35 hover:text-white transition-colors"
               aria-label={showPassword ? 'Şifreyi gizle' : 'Şifreyi göster'}
             >
               {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}

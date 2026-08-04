@@ -195,9 +195,7 @@ export function Header() {
 
   const navLinkCls = (active: boolean) =>
     `relative inline-flex items-center gap-1.5 whitespace-nowrap text-[9.5px] xl:text-[10px] font-medium tracking-[0.06em] xl:tracking-[0.10em] uppercase transition-colors nav-link-hover ${
-      scrolled
-        ? (active ? 'text-white' : 'text-white/70 hover:text-white')
-        : (active ? 'text-black' : 'text-black/70 hover:text-black')
+      active ? 'text-white' : 'text-white/70 hover:text-white'
     }`;
 
   const activeMegaRoot = megaMenuId ? menuRoots.find(r => r.id === megaMenuId) : null;
@@ -263,28 +261,28 @@ export function Header() {
       </div>
 
       {/* ── Brand bar (desktop): E-Posta · Logo · Telefon ── */}
-      <div className="hidden lg:block bg-white border-b border-black/[0.06]">
+      <div className="hidden lg:block bg-[#0A0A0A] border-b border-white/8">
         <div className="max-w-[1400px] mx-auto px-8 py-4 grid grid-cols-3 items-center gap-6">
           {/* Sol: E-Posta */}
           <a
             href="mailto:sepetzen@gmail.com"
             data-testid="link-header-email"
             aria-label="E-posta gönder"
-            className="justify-self-start group flex items-center gap-3"
+            className="justify-self-start group flex items-center gap-3 text-white"
           >
-            <span className="w-11 h-11 rounded-full border border-black/10 group-hover:border-[#141414] flex items-center justify-center shrink-0 transition-colors">
-              <Mail className="w-[17px] h-[17px] text-black/70 group-hover:text-[#141414] transition-colors" strokeWidth={1.75} />
+            <span className="w-11 h-11 rounded-full border border-white/12 group-hover:border-white/35 flex items-center justify-center shrink-0 transition-colors">
+              <Mail className="w-[17px] h-[17px] text-white/70 group-hover:text-white transition-colors" strokeWidth={1.75} />
             </span>
             <span className="flex flex-col leading-tight whitespace-nowrap">
-              <span className="text-[9px] tracking-[0.22em] uppercase text-black/45 font-mono">E-Posta</span>
-              <span className="text-[13px] font-semibold text-black tracking-wide group-hover:text-[#141414] transition-colors" data-testid="text-header-email">sepetzen@gmail.com</span>
+              <span className="text-[9px] tracking-[0.22em] uppercase text-white/45 font-mono">E-Posta</span>
+              <span className="text-[13px] font-semibold text-white tracking-wide group-hover:text-white/90 transition-colors" data-testid="text-header-email">sepetzen@gmail.com</span>
             </span>
           </a>
 
           {/* Orta: Logo */}
           <Link href="/" data-testid="link-logo" className="justify-self-center block">
             <img
-              src="/uploads/branding/sepetzen-logo-dark.png"
+              src="/uploads/branding/sepetzen-logo-white.png"
               alt="Sepetzen – Kamp, Outdoor, Bıçak ve Bağ Bahçe"
               data-testid="img-logo"
               className="h-20 w-auto object-contain mx-auto"
@@ -296,14 +294,14 @@ export function Header() {
             href="tel:+905366301138"
             data-testid="link-header-phone"
             aria-label="Telefonla ara"
-            className="justify-self-end group flex items-center gap-3"
+            className="justify-self-end group flex items-center gap-3 text-white"
           >
-            <span className="w-11 h-11 rounded-full border border-black/10 group-hover:border-[#141414] flex items-center justify-center shrink-0 transition-colors">
-              <Phone className="w-[17px] h-[17px] text-black/70 group-hover:text-[#141414] transition-colors" strokeWidth={1.75} />
+            <span className="w-11 h-11 rounded-full border border-white/12 group-hover:border-white/35 flex items-center justify-center shrink-0 transition-colors">
+              <Phone className="w-[17px] h-[17px] text-white/70 group-hover:text-white transition-colors" strokeWidth={1.75} />
             </span>
             <span className="flex flex-col leading-tight whitespace-nowrap">
-              <span className="text-[9px] tracking-[0.22em] uppercase text-black/45 font-mono">Bize Ulaşın</span>
-              <span className="text-[13px] font-semibold text-black tracking-wide group-hover:text-[#141414] transition-colors" data-testid="text-header-phone">0536 630 11 38</span>
+              <span className="text-[9px] tracking-[0.22em] uppercase text-white/45 font-mono">Bize Ulaşın</span>
+              <span className="text-[13px] font-semibold text-white tracking-wide group-hover:text-white/90 transition-colors" data-testid="text-header-phone">0536 630 11 38</span>
             </span>
           </a>
         </div>
@@ -313,8 +311,8 @@ export function Header() {
       <header
         className={`sticky top-0 left-0 right-0 z-40 flex items-center h-16 lg:h-auto overflow-visible transition-all duration-300 ${
           scrolled
-            ? 'bg-white lg:surface-glass-dark border-b border-black/8 lg:border-white/10 shadow-[0_4px_20px_-10px_rgba(0,0,0,0.25)] lg:shadow-[0_4px_24px_-8px_rgba(0,0,0,0.45)]'
-            : 'bg-white border-b border-black/8'
+            ? 'surface-glass-dark border-b border-white/10 shadow-[0_4px_24px_-8px_rgba(0,0,0,0.45)]'
+            : 'bg-[#0A0A0A] border-b border-white/8'
         }`}
       >
         <div className="w-full max-w-[1400px] mx-auto px-4 lg:px-8 lg:py-3">
@@ -326,14 +324,14 @@ export function Header() {
               className="justify-self-start flex flex-col gap-[5px] p-2 -ml-2 group"
               aria-label="Menü"
             >
-              <span className="block h-px w-5 bg-black transition-all group-hover:w-6" />
-              <span className="block h-px w-4 bg-black transition-all group-hover:w-6" />
-              <span className="block h-px w-6 bg-black" />
+              <span className="block h-px w-5 bg-white transition-all group-hover:w-6" />
+              <span className="block h-px w-4 bg-white transition-all group-hover:w-6" />
+              <span className="block h-px w-6 bg-white" />
             </button>
 
             <Link href="/" data-testid="link-logo-mobile-header" className="justify-self-center block">
               <img
-                src="/uploads/branding/sepetzen-logo-dark.png"
+                src="/uploads/branding/sepetzen-logo-white.png"
                 alt="Sepetzen"
                 data-testid="img-logo-mobile-header"
                 className="h-14 w-auto object-contain"
@@ -344,7 +342,7 @@ export function Header() {
               <motion.button
                 whileTap={{ scale: 0.9 }}
                 onClick={() => setSearchOpen(true)}
-                className="p-2.5 text-black/65 hover:text-[#141414] transition-colors"
+                className="p-2.5 text-white/65 hover:text-white transition-colors"
                 data-testid="button-search-mobile"
                 aria-label="Ara"
               >
@@ -353,7 +351,7 @@ export function Header() {
               <Link href="/sepet" data-testid="link-cart-mobile">
                 <motion.button
                   whileTap={{ scale: 0.9 }}
-                  className="p-2.5 text-black/65 hover:text-[#141414] transition-colors relative"
+                  className="p-2.5 text-white/65 hover:text-white transition-colors relative"
                   aria-label="Sepet"
                 >
                   <ShoppingBag className="w-[18px] h-[18px]" strokeWidth={1.75} />
@@ -364,7 +362,7 @@ export function Header() {
                         initial={{ scale: 0, opacity: 0 }}
                         animate={{ scale: 1, opacity: 1 }}
                         exit={{ scale: 0, opacity: 0 }}
-                        className="absolute top-1 right-1 min-w-[16px] h-[16px] px-1 bg-[#141414] text-white text-[9px] font-bold flex items-center justify-center rounded-full leading-none"
+                        className="absolute top-1 right-1 min-w-[16px] h-[16px] px-1 bg-white text-black text-[9px] font-bold flex items-center justify-center rounded-full leading-none"
                       >
                         {totalItems > 9 ? '9+' : totalItems}
                       </motion.span>
@@ -418,7 +416,7 @@ export function Header() {
                         onMouseLeave={closeMega}
                       >
                         <button
-                          className={`${navLinkCls(isActiveMega)} ${isActiveMega && !scrolled ? 'text-[#141414]' : ''}`}
+                          className={navLinkCls(isActiveMega)}
                           data-testid={`button-nav-root-${root.id}`}
                           aria-expanded={isActiveMega}
                           aria-haspopup="true"
@@ -465,13 +463,13 @@ export function Header() {
                   <DropdownMenuContent
                     align="start"
                     sideOffset={20}
-                    className="bg-white border-black/8 shadow-xl rounded-md p-5"
+                    className="bg-[#141414] border border-white/8 shadow-[0_8px_30px_rgba(0,0,0,0.4)] rounded-md p-5"
                     style={{ minWidth: visibleCategories.length > 6 ? 520 : 240 }}
                   >
                     {visibleCategories.length === 0 ? (
                       <DropdownMenuItem
                         onClick={() => navigate('/magaza')}
-                        className="text-[11px] tracking-wider uppercase text-black hover:bg-black/5 cursor-pointer py-2.5"
+                        className="text-[11px] tracking-wider uppercase text-white/75 hover:bg-white/5 cursor-pointer py-2.5"
                       >
                         Tüm Ürünler
                       </DropdownMenuItem>
@@ -484,7 +482,7 @@ export function Header() {
                           <DropdownMenuItem
                             key={c.id}
                             onClick={() => navigate(`/kategori/${c.slug}`)}
-                            className="text-[11px] tracking-[0.16em] uppercase text-black hover:bg-[hsl(var(--polen-cream))] hover:text-[#141414] cursor-pointer py-2.5 px-3 rounded-md transition-colors"
+                            className="text-[11px] tracking-[0.16em] uppercase text-white/75 hover:bg-white/5 hover:text-white cursor-pointer py-2.5 px-3 rounded-md transition-colors"
                             data-testid={`link-cat-${c.slug}`}
                           >
                             {c.name}
@@ -503,7 +501,7 @@ export function Header() {
               <motion.button
                 whileTap={{ scale: 0.9 }}
                 onClick={() => setSearchOpen(true)}
-                className={`p-3 transition-colors ${scrolled ? 'text-white/65 hover:text-white' : 'text-black/65 hover:text-[#141414]'}`}
+                className="p-3 transition-colors text-white/65 hover:text-white"
                 data-testid="button-search"
                 aria-label="Ara"
               >
@@ -513,17 +511,17 @@ export function Header() {
               {user ? (
                 <DropdownMenu modal={false}>
                   <DropdownMenuTrigger asChild>
-                    <motion.button whileTap={{ scale: 0.9 }} className={`p-3 transition-colors flex items-center gap-2 ${scrolled ? 'text-white/65 hover:text-white' : 'text-black/65 hover:text-[#141414]'}`} data-testid="button-account" aria-label="Hesabım">
+                    <motion.button whileTap={{ scale: 0.9 }} className="p-3 transition-colors flex items-center gap-2 text-white/65 hover:text-white" data-testid="button-account" aria-label="Hesabım">
                       <User className="w-[18px] h-[18px]" strokeWidth={1.75} />
                       <span className="text-[11px] tracking-[0.18em] uppercase font-medium hidden xl:inline">Hesabım</span>
                     </motion.button>
                   </DropdownMenuTrigger>
-                  <DropdownMenuContent align="end" className="bg-white border-black/8 shadow-lg rounded-md min-w-[180px] z-[9999]">
-                    <DropdownMenuItem disabled className="text-[10px] tracking-widest text-black/30 uppercase">{user.firstName || user.email}</DropdownMenuItem>
-                    <DropdownMenuItem onClick={() => navigate('/hesabim')} className="text-[11px] tracking-wider uppercase text-black hover:bg-black/5 cursor-pointer py-2.5">
+                  <DropdownMenuContent align="end" className="bg-[#141414] border border-white/8 shadow-[0_8px_30px_rgba(0,0,0,0.4)] rounded-md min-w-[180px] z-[9999]">
+                    <DropdownMenuItem disabled className="text-[10px] tracking-widest text-white/30 uppercase">{user.firstName || user.email}</DropdownMenuItem>
+                    <DropdownMenuItem onClick={() => navigate('/hesabim')} className="text-[11px] tracking-wider uppercase text-white/75 hover:bg-white/5 hover:text-white cursor-pointer py-2.5">
                       <User className="w-4 h-4 mr-2" />Hesabım
                     </DropdownMenuItem>
-                    <DropdownMenuItem onClick={() => { logout(); navigate('/'); }} className="text-[11px] tracking-wider uppercase text-black hover:bg-black/5 cursor-pointer py-2.5">
+                    <DropdownMenuItem onClick={() => { logout(); navigate('/'); }} className="text-[11px] tracking-wider uppercase text-white/75 hover:bg-white/5 hover:text-white cursor-pointer py-2.5">
                       <LogOut className="w-4 h-4 mr-2" />Çıkış Yap
                     </DropdownMenuItem>
                   </DropdownMenuContent>
@@ -533,27 +531,27 @@ export function Header() {
                   <DropdownMenuTrigger asChild>
                     <motion.button
                       whileTap={{ scale: 0.9 }}
-                      className={`p-3 transition-colors flex items-center gap-1.5 ${scrolled ? 'text-white/65 hover:text-white' : 'text-black/65 hover:text-[#141414]'}`}
+                      className="p-3 transition-colors flex items-center gap-1.5 text-white/65 hover:text-white"
                       data-testid="button-account-guest"
                       aria-label="Giriş Yap"
                     >
                       <User className="w-[22px] h-[22px]" strokeWidth={1.75} />
                     </motion.button>
                   </DropdownMenuTrigger>
-                  <DropdownMenuContent align="end" sideOffset={6} className="bg-white border border-black/10 shadow-xl rounded-md min-w-[190px] p-0 overflow-hidden z-[9999]">
+                  <DropdownMenuContent align="end" sideOffset={6} className="bg-[#141414] border border-white/12 shadow-[0_8px_30px_rgba(0,0,0,0.4)] rounded-md min-w-[190px] p-0 overflow-hidden z-[9999]">
                     <DropdownMenuItem
                       onClick={() => navigate('/giris')}
-                      className="text-[11px] tracking-[0.14em] uppercase text-black hover:bg-black/5 cursor-pointer py-3.5 px-4 gap-2.5 rounded-md"
+                      className="text-[11px] tracking-[0.14em] uppercase text-white/75 hover:bg-white/5 hover:text-white cursor-pointer py-3.5 px-4 gap-2.5 rounded-md"
                       data-testid="link-header-giris"
                     >
-                      <User className="w-4 h-4 shrink-0 text-black/40" strokeWidth={1.75} />
+                      <User className="w-4 h-4 shrink-0 text-white/40" strokeWidth={1.75} />
                       Giriş Yap
                     </DropdownMenuItem>
-                    <div className="p-2 pt-1 border-t border-black/8">
+                    <div className="p-2 pt-1 border-t border-white/8">
                       <button
                         type="button"
                         onClick={() => navigate('/kayit')}
-                        className="w-full py-2.5 text-[11px] tracking-[0.14em] uppercase font-bold text-white bg-[#141414] hover:bg-[#1F1F1F] transition-colors cursor-pointer text-center"
+                         className="w-full py-2.5 text-[11px] tracking-[0.14em] uppercase font-bold bg-white text-black hover:bg-white/90 transition-colors cursor-pointer text-center"
                         data-testid="link-header-kayit"
                       >
                         Kayıt Ol
@@ -564,7 +562,7 @@ export function Header() {
               )}
 
               <Link href="/sepet">
-                <motion.button whileTap={{ scale: 0.9 }} className={`p-3 transition-colors relative ${scrolled ? 'text-white/65 hover:text-white' : 'text-black/65 hover:text-[#141414]'}`} data-testid="button-cart" aria-label="Sepet">
+                <motion.button whileTap={{ scale: 0.9 }} className="p-3 transition-colors relative text-white/65 hover:text-white" data-testid="button-cart" aria-label="Sepet">
                   <ShoppingBag className="w-[22px] h-[22px]" strokeWidth={1.75} />
                   <AnimatePresence>
                     {totalItems > 0 && (
@@ -573,7 +571,7 @@ export function Header() {
                         initial={{ scale: 0, opacity: 0 }}
                         animate={{ scale: 1, opacity: 1 }}
                         exit={{ scale: 0, opacity: 0 }}
-                        className="absolute top-1.5 right-1.5 min-w-[18px] h-[18px] px-1 bg-[#141414] text-white text-[10px] font-bold flex items-center justify-center rounded-full leading-none"
+                        className="absolute top-1.5 right-1.5 min-w-[18px] h-[18px] px-1 bg-white text-black text-[10px] font-bold flex items-center justify-center rounded-full leading-none"
                       >
                         {totalItems > 9 ? '9+' : totalItems}
                       </motion.span>
@@ -593,7 +591,7 @@ export function Header() {
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -6 }}
             transition={{ duration: 0.26, ease: [0.16, 1, 0.3, 1] }}
-            className="absolute top-full left-0 right-0 bg-white shadow-[0_40px_80px_-16px_rgba(0,0,0,0.24)] z-50 overflow-hidden"
+            className="absolute top-full left-0 right-0 bg-[#141414] shadow-[0_40px_80px_-16px_rgba(0,0,0,0.55)] z-50 overflow-hidden"
             onMouseEnter={cancelClose}
             onMouseLeave={closeMega}
             data-testid={`mega-panel-${megaMenuId}`}
@@ -680,8 +678,8 @@ export function Header() {
               </div>
 
               {/* ── MIDDLE: Subcategory grid ── */}
-              <div className="flex-1 px-8 xl:px-10 py-8 border-r border-black/[0.06]">
-                <div className="text-[9px] tracking-[0.30em] uppercase text-black/30 font-mono mb-5">Alt Kategoriler</div>
+              <div className="flex-1 px-8 xl:px-10 py-8 border-r border-white/8">
+                <div className="text-[9px] tracking-[0.30em] uppercase text-white/30 font-mono mb-5">Alt Kategoriler</div>
                 <div className={`grid gap-x-3 gap-y-0.5 ${activeMegaChildren.length <= 4 ? 'grid-cols-1' : activeMegaChildren.length <= 8 ? 'grid-cols-2' : 'grid-cols-2 xl:grid-cols-3'}`}>
                   {activeMegaChildren.map((child) => {
                     const childHref = hrefForMenu(child);
@@ -690,13 +688,13 @@ export function Header() {
                         key={child.id}
                         href={childHref}
                         onClick={() => setMegaMenuId(null)}
-                        className="group flex items-center gap-3 px-3 py-3.5 rounded-lg hover:bg-[#141414]/[0.07] transition-all duration-150"
+                        className="group flex items-center gap-3 px-3 py-3.5 rounded-lg hover:bg-white/5 transition-all duration-150"
                         data-testid={`link-mega-${child.id}`}
                       >
-                        <span className="text-[13px] text-black/65 group-hover:text-black transition-colors font-medium leading-tight flex-1">
+                        <span className="text-[13px] text-white/65 group-hover:text-white transition-colors font-medium leading-tight flex-1">
                           {child.title}
                         </span>
-                        <ArrowUpRight className="w-3.5 h-3.5 text-transparent group-hover:text-[#141414]/50 transition-colors shrink-0" />
+                        <ArrowUpRight className="w-3.5 h-3.5 text-transparent group-hover:text-white/50 transition-colors shrink-0" />
                       </Link>
                     );
                   })}
@@ -706,7 +704,7 @@ export function Header() {
               {/* ── RIGHT: Featured products ── */}
               {rightProducts.length > 0 && (
                 <div className="w-52 xl:w-60 shrink-0 px-6 py-8">
-                  <div className="text-[9px] tracking-[0.30em] uppercase text-black/30 font-mono mb-5">Öne Çıkan</div>
+                  <div className="text-[9px] tracking-[0.30em] uppercase text-white/30 font-mono mb-5">Öne Çıkan</div>
                   <div className="space-y-4">
                     {rightProducts.map((product: any) => (
                       <Link
@@ -716,18 +714,18 @@ export function Header() {
                         className="group flex gap-3 items-start"
                         data-testid={`link-mega-product-${product.id}`}
                       >
-                        <div className="w-[60px] h-[60px] rounded-lg overflow-hidden shrink-0 bg-black/[0.04]">
+                          <div className="w-[60px] h-[60px] rounded-lg overflow-hidden shrink-0 bg-[#151515]">
                           {product.images?.[0] ? (
                             <img src={product.images[0]} alt={product.name} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300" loading="lazy" decoding="async" />
                           ) : (
                             <div className="w-full h-full flex items-center justify-center">
-                              {(() => { const Icon = getMenuIcon(activeMegaRoot.title); return <Icon className="w-5 h-5 text-black/20" />; })()}
+                              {(() => { const Icon = getMenuIcon(activeMegaRoot.title); return <Icon className="w-5 h-5 text-white/20" />; })()}
                             </div>
                           )}
                         </div>
                         <div className="min-w-0 flex-1">
-                          <p className="text-[12px] font-medium text-black/75 leading-snug line-clamp-2 group-hover:text-black transition-colors">{product.name}</p>
-                          <p className="text-[13.5px] font-bold text-[#141414] mt-1">{Number(product.price || product.basePrice).toLocaleString('tr-TR')} ₺</p>
+                          <p className="text-[12px] font-medium text-white/75 leading-snug line-clamp-2 group-hover:text-white transition-colors">{product.name}</p>
+                          <p className="text-[13.5px] font-bold text-white mt-1">{Number(product.price || product.basePrice).toLocaleString('tr-TR')} ₺</p>
                         </div>
                       </Link>
                     ))}
@@ -736,7 +734,7 @@ export function Header() {
                     <Link
                       href={`/kategori/${activeMegaRoot.category.slug}`}
                       onClick={() => setMegaMenuId(null)}
-                      className="mt-5 text-[9.5px] tracking-[0.18em] uppercase text-[#141414] hover:text-[#141414]/70 transition-colors font-semibold flex items-center gap-1"
+                      className="mt-5 text-[9.5px] tracking-[0.18em] uppercase text-white/75 hover:text-white transition-colors font-semibold flex items-center gap-1"
                     >
                       Tüm ürünleri gör <ArrowUpRight className="w-3 h-3" />
                     </Link>

@@ -94,7 +94,7 @@ export function QuickViewModal({ product, isOpen, onClose }: QuickViewModalProps
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50"
+            className="fixed inset-0 bg-black/70 backdrop-blur-sm z-50"
             onClick={onClose}
           />
           <motion.div
@@ -102,20 +102,20 @@ export function QuickViewModal({ product, isOpen, onClose }: QuickViewModalProps
             animate={{ opacity: 1, scale: 1, y: 0 }}
             exit={{ opacity: 0, scale: 0.96, y: 20 }}
             transition={{ type: 'spring', damping: 25, stiffness: 300 }}
-            className="fixed left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 z-50 w-[95vw] max-w-4xl max-h-[90vh] overflow-y-auto bg-white border border-black/8"
+            className="fixed left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 z-50 w-[95vw] max-w-4xl max-h-[90vh] overflow-y-auto bg-[#141414] border border-white/8"
           >
             <button
               type="button"
               onClick={onClose}
-              className="absolute top-4 right-4 z-10 w-10 h-10 bg-black/6 flex items-center justify-center hover:bg-black/12 transition-colors"
+              className="absolute top-4 right-4 z-10 w-10 h-10 bg-white/8 flex items-center justify-center hover:bg-white/12 transition-colors"
               aria-label="Kapat"
             >
-              <X className="w-5 h-5 text-black/60" />
+              <X className="w-5 h-5 text-white/60" />
             </button>
 
             <div className="grid grid-cols-1 md:grid-cols-2">
               {/* Image */}
-              <div className="relative aspect-square md:aspect-auto md:h-full bg-stone-100">
+              <div className="relative aspect-square md:aspect-auto md:h-full bg-[#151515]">
                 <img
                   src={product.images[currentImageIndex] || '/placeholder.jpg'}
                   alt={product.name}
@@ -130,7 +130,7 @@ export function QuickViewModal({ product, isOpen, onClose }: QuickViewModalProps
                         onClick={() => setCurrentImageIndex(index)}
                         className={`w-12 h-12 overflow-hidden border-2 transition-colors ${
                           currentImageIndex === index
-                            ? 'border-black'
+                            ? 'border-white'
                             : 'border-transparent opacity-50 hover:opacity-100'
                         }`}
                       >
@@ -143,56 +143,56 @@ export function QuickViewModal({ product, isOpen, onClose }: QuickViewModalProps
 
               {/* Info */}
               <div className="p-6 md:p-8 flex flex-col">
-                <h2 className="font-display text-2xl md:text-3xl tracking-wide mb-2 text-black">
+                <h2 className="font-display text-2xl md:text-3xl tracking-wide mb-2 text-white">
                   {product.name}
                 </h2>
 
                 <div className="flex items-baseline gap-3 mb-8">
                   {originalPrice && (
-                    <span className="text-lg text-black/30 line-through">
+                    <span className="text-lg text-white/30 line-through">
                       {originalPrice.toLocaleString('tr-TR', { maximumFractionDigits: 0 })} ₺
                     </span>
                   )}
-                  <p className="text-2xl font-bold text-black">
+                  <p className="text-2xl font-bold text-white">
                     {price.toLocaleString('tr-TR')} ₺
                   </p>
                 </div>
 
                 {/* Quantity */}
                 <div className="mb-6">
-                  <p className="text-xs text-black/45 mb-3 uppercase tracking-wider">Adet</p>
+                  <p className="text-xs text-white/45 mb-3 uppercase tracking-wider">Adet</p>
                   <div className="flex items-center gap-4">
                     <button
                       type="button"
                       onClick={() => setQuantity((q) => Math.max(1, q - 1))}
-                      className="w-10 h-10 border border-black/15 flex items-center justify-center hover:border-black/50 transition-colors"
+                      className="w-10 h-10 border border-white/15 flex items-center justify-center hover:border-white/50 transition-colors"
                       aria-label="Azalt"
                     >
-                      <Minus className="w-4 h-4 text-black/60" />
+                      <Minus className="w-4 h-4 text-white/60" />
                     </button>
-                    <span className="text-xl font-medium w-8 text-center text-black tabular-nums">
+                    <span className="text-xl font-medium w-8 text-center text-white tabular-nums">
                       {quantity}
                     </span>
                     <button
                       type="button"
                       onClick={() => setQuantity((q) => q + 1)}
-                      className="w-10 h-10 border border-black/15 flex items-center justify-center hover:border-black/50 transition-colors"
+                      className="w-10 h-10 border border-white/15 flex items-center justify-center hover:border-white/50 transition-colors"
                       aria-label="Artır"
                     >
-                      <Plus className="w-4 h-4 text-black/60" />
+                      <Plus className="w-4 h-4 text-white/60" />
                     </button>
                   </div>
                 </div>
 
-                <div className="mt-auto pt-4 border-t border-black/8">
+                <div className="mt-auto pt-4 border-t border-white/8">
                   <button
                     type="button"
                     onClick={handleAddToCart}
                     disabled={isAdding || isOutOfStock}
                     className={`w-full py-4 font-bold tracking-wider uppercase flex items-center justify-center gap-3 transition-colors ${
                       isOutOfStock
-                        ? 'bg-black/8 text-black/35 cursor-not-allowed'
-                        : 'bg-black text-white hover:bg-polen-orange'
+                        ? 'bg-white/8 text-white/35 cursor-not-allowed'
+                        : 'bg-white text-black hover:bg-white/90'
                     } disabled:cursor-not-allowed`}
                   >
                     {isAdding ? (
@@ -205,7 +205,7 @@ export function QuickViewModal({ product, isOpen, onClose }: QuickViewModalProps
 
                   <a
                     href={`/urun/${product.slug}`}
-                    className="block text-center text-sm text-black/50 hover:text-polen-orange mt-4 transition-colors"
+                    className="block text-center text-sm text-white/50 hover:text-white mt-4 transition-colors"
                   >
                     Ürün Detaylarını Gör →
                   </a>

@@ -102,16 +102,16 @@ export default function PaymentSuccess() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-gray-50 flex flex-col">
+      <div className="min-h-screen bg-[#0A0A0A] text-white flex flex-col">
         <SEO title="Sipariş Onayı" description="Sepetzen sipariş onay sayfası." url="/odeme-basarili" noIndex />
         <Header />
         <main className="flex-1 flex items-center justify-center px-4 py-16">
           <div className="text-center max-w-md mx-auto">
-            <div className="w-16 h-16 mx-auto mb-5 rounded-full bg-gray-100 border border-gray-200 flex items-center justify-center">
-              <Loader2 className="w-8 h-8 animate-spin text-[#141414]" strokeWidth={2} />
+            <div className="w-16 h-16 mx-auto mb-5 rounded-full bg-[#141414] border border-white/8 flex items-center justify-center">
+              <Loader2 className="w-8 h-8 animate-spin text-white" strokeWidth={2} />
             </div>
-            <h2 className="text-xl font-bold text-gray-900 mb-2">Ödemeniz Onaylanıyor</h2>
-            <p className="text-sm text-gray-500">Banka cevabı bekleniyor, lütfen sayfayı kapatmayın…</p>
+            <h2 className="text-xl font-bold text-white mb-2">Ödemeniz Onaylanıyor</h2>
+            <p className="text-sm text-white/50">Banka cevabı bekleniyor, lütfen sayfayı kapatmayın…</p>
           </div>
         </main>
         <Footer />
@@ -121,17 +121,17 @@ export default function PaymentSuccess() {
 
   if (error) {
     return (
-      <div className="min-h-screen bg-gray-50 flex flex-col">
+      <div className="min-h-screen bg-[#0A0A0A] text-white flex flex-col">
         <Header />
         <main className="flex-1 flex items-center justify-center px-4 py-16">
           <div className="max-w-md mx-auto text-center">
-            <div className="w-16 h-16 mx-auto mb-5 rounded-full bg-amber-100 border border-amber-200 flex items-center justify-center">
-              <AlertTriangle className="w-7 h-7 text-amber-600" strokeWidth={2} />
+            <div className="w-16 h-16 mx-auto mb-5 rounded-full bg-[#141414] border border-white/12 flex items-center justify-center">
+              <AlertTriangle className="w-7 h-7 text-white" strokeWidth={2} />
             </div>
-            <h1 className="text-2xl font-bold text-gray-900 mb-3">Bir Sorun Oluştu</h1>
-            <p className="text-sm text-gray-500 mb-7">{error}</p>
+            <h1 className="text-2xl font-bold text-white mb-3">Bir Sorun Oluştu</h1>
+            <p className="text-sm text-white/50 mb-7">{error}</p>
             <Link href="/">
-              <button className="h-12 px-7 bg-[#141414] text-white hover:bg-[#1F1F1F] font-semibold rounded-md transition-colors">
+               <button className="h-12 px-7 bg-white text-black hover:bg-white/90 font-semibold rounded-md transition-colors">
                 Ana Sayfaya Dön
               </button>
             </Link>
@@ -145,12 +145,12 @@ export default function PaymentSuccess() {
   const isBankTransfer = paymentMethod === 'bank_transfer';
 
   return (
-    <div className="min-h-screen bg-gray-50 flex flex-col overflow-x-hidden">
+    <div className="min-h-screen bg-[#0A0A0A] text-white flex flex-col overflow-x-hidden">
       <SEO title="Sipariş Onayı" description="Sepetzen sipariş onay sayfası." url="/odeme-basarili" noIndex />
       <Header />
 
       {/* Success banner */}
-      <section className="bg-white border-b border-gray-200">
+      <section className="bg-[#141414] border-b border-white/8">
         <div className="max-w-3xl mx-auto px-5 lg:px-8 pt-12 pb-10 text-center">
           <motion.div
             initial={{ scale: 0, rotate: -15 }}
@@ -169,7 +169,7 @@ export default function PaymentSuccess() {
             initial={{ opacity: 0, y: 8 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.08 }}
-            className="text-2xl sm:text-3xl font-bold text-gray-900 mb-3"
+            className="text-2xl sm:text-3xl font-bold text-white mb-3"
             data-testid="text-order-success"
           >
             {isBankTransfer ? 'Siparişiniz Alındı' : 'Ödemeniz Alındı'}
@@ -178,7 +178,7 @@ export default function PaymentSuccess() {
             initial={{ opacity: 0, y: 8 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.14 }}
-            className="text-sm text-gray-500 max-w-md mx-auto"
+            className="text-sm text-white/50 max-w-md mx-auto"
           >
             {isBankTransfer
               ? 'Havale ödemeniz alındığında siparişiniz onaylanıp hazırlığa alınacak.'
@@ -195,21 +195,21 @@ export default function PaymentSuccess() {
             initial={{ opacity: 0, y: 12 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.18 }}
-            className="bg-white border border-gray-200 rounded-lg shadow-sm p-5 sm:p-6"
+            className="bg-[#141414] border border-white/8 rounded-lg shadow-[0_8px_30px_rgba(0,0,0,0.4)] p-5 sm:p-6"
           >
             <div className="flex items-start justify-between gap-4 flex-wrap">
               <div>
-                <p className="text-xs text-gray-400 font-medium mb-1.5 uppercase tracking-wide">Sipariş No</p>
+                <p className="text-xs text-white/50 font-medium mb-1.5 uppercase tracking-wide">Sipariş No</p>
                 <div className="flex items-center gap-2">
                   <p
-                    className="font-mono text-xl sm:text-2xl font-bold text-gray-900 tracking-wide"
+                    className="font-mono text-xl sm:text-2xl font-bold text-white tracking-wide"
                     data-testid="text-order-number"
                   >
                     #{orderNumber}
                   </p>
                   <button
                     onClick={copyOrderNumber}
-                    className="p-1.5 text-gray-400 hover:text-[#141414] hover:bg-gray-50 transition-colors rounded"
+                     className="p-1.5 text-white/40 hover:text-white hover:bg-white/5 transition-colors rounded"
                     aria-label="Sipariş numarasını kopyala"
                     data-testid="button-copy-order-number"
                   >
@@ -222,10 +222,10 @@ export default function PaymentSuccess() {
                 </div>
               </div>
               <div className="text-right">
-                <p className="text-xs text-gray-400 font-medium mb-1.5 uppercase tracking-wide">
+                 <p className="text-xs text-white/50 font-medium mb-1.5 uppercase tracking-wide">
                   {isBankTransfer ? 'Durum' : 'Tahmini Teslim'}
                 </p>
-                <p className={`text-sm font-semibold ${isBankTransfer ? 'text-amber-600' : 'text-gray-900'}`}>
+                 <p className={`text-sm font-semibold ${isBankTransfer ? 'text-white/70' : 'text-white'}`}>
                   {isBankTransfer ? 'Havale Bekleniyor' : '2-4 İş Günü'}
                 </p>
               </div>
@@ -233,7 +233,7 @@ export default function PaymentSuccess() {
 
             <Link href={`/siparis-takip?no=${orderNumber}`}>
               <button
-                className="mt-5 w-full h-11 border border-gray-200 text-gray-700 hover:bg-gray-50 font-semibold text-sm flex items-center justify-center gap-2 transition-colors rounded-md"
+                 className="mt-5 w-full h-11 border border-white/25 text-white hover:bg-white hover:text-black font-semibold text-sm flex items-center justify-center gap-2 transition-colors rounded-md"
                 data-testid="button-track-order"
               >
                 Siparişimi Takip Et
@@ -248,28 +248,28 @@ export default function PaymentSuccess() {
               initial={{ opacity: 0, y: 12 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.21 }}
-              className="bg-neutral-50 border border-neutral-200 rounded-lg p-5 sm:p-6"
+               className="bg-[#141414] border border-white/8 rounded-lg p-5 sm:p-6"
               data-testid="card-bank-info"
             >
-              <p className="text-xs font-semibold text-[#141414] uppercase tracking-wide mb-3">Banka Bilgileri</p>
+               <p className="text-xs font-semibold text-white uppercase tracking-wide mb-3">Banka Bilgileri</p>
               <div className="space-y-2.5 text-sm">
                 <div className="flex justify-between gap-3">
-                  <span className="text-gray-500">Banka</span>
-                  <span className="font-semibold text-gray-900">{BANK_TRANSFER_INFO.bankName}</span>
+                   <span className="text-white/50">Banka</span>
+                   <span className="font-semibold text-white">{BANK_TRANSFER_INFO.bankName}</span>
                 </div>
                 <div className="flex justify-between gap-3">
-                  <span className="text-gray-500">Hesap Sahibi</span>
-                  <span className="font-semibold text-gray-900">{BANK_TRANSFER_INFO.accountHolder}</span>
+                   <span className="text-white/50">Hesap Sahibi</span>
+                   <span className="font-semibold text-white">{BANK_TRANSFER_INFO.accountHolder}</span>
                 </div>
                 <div className="flex flex-col gap-1.5">
-                  <span className="text-gray-500 text-xs">IBAN</span>
-                  <div className="flex items-center gap-2 bg-white border border-gray-200 rounded px-3 py-2.5">
-                    <span className="font-mono text-[13px] sm:text-sm font-bold text-gray-900 flex-1 break-all" data-testid="text-iban">
+                   <span className="text-white/50 text-xs">IBAN</span>
+                   <div className="flex items-center gap-2 bg-white/5 border border-white/12 rounded px-3 py-2.5">
+                     <span className="font-mono text-[13px] sm:text-sm font-bold text-white flex-1 break-all" data-testid="text-iban">
                       {BANK_TRANSFER_INFO.iban}
                     </span>
                     <button
                       onClick={copyIban}
-                      className="p-1.5 text-gray-400 hover:text-[#141414] hover:bg-gray-50 transition-colors rounded shrink-0"
+                       className="p-1.5 text-white/40 hover:text-white hover:bg-white/5 transition-colors rounded shrink-0"
                       aria-label="IBAN'ı kopyala"
                       data-testid="button-copy-iban"
                     >
@@ -282,8 +282,8 @@ export default function PaymentSuccess() {
                   </div>
                 </div>
               </div>
-              <p className="mt-4 text-xs text-gray-600 leading-relaxed">
-                Açıklama alanına <span className="font-mono font-semibold text-gray-900">#{orderNumber}</span> yazmanız
+               <p className="mt-4 text-xs text-white/55 leading-relaxed">
+                 Açıklama alanına <span className="font-mono font-semibold text-white">#{orderNumber}</span> yazmanız
                 işlemi hızlandırır. Ödemeniz onaylandıktan sonra siparişiniz hazırlığa alınır.
               </p>
             </motion.div>
@@ -294,9 +294,9 @@ export default function PaymentSuccess() {
             initial={{ opacity: 0, y: 12 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.24 }}
-            className="bg-white border border-gray-200 rounded-lg shadow-sm p-5 sm:p-6"
+             className="bg-[#141414] border border-white/8 rounded-lg shadow-[0_8px_30px_rgba(0,0,0,0.4)] p-5 sm:p-6"
           >
-            <h3 className="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-5">Şimdi Ne Olacak?</h3>
+             <h3 className="text-xs font-semibold text-white/50 uppercase tracking-wide mb-5">Şimdi Ne Olacak?</h3>
             <ol className="relative">
               {(isBankTransfer
                 ? [
@@ -315,20 +315,20 @@ export default function PaymentSuccess() {
                 return (
                   <li key={step.title} className="flex gap-4 pb-5 last:pb-0 relative">
                     {!isLast && (
-                      <span aria-hidden className="absolute left-[18px] top-9 bottom-0 w-px bg-gray-200" />
+                       <span aria-hidden className="absolute left-[18px] top-9 bottom-0 w-px bg-white/8" />
                     )}
                     <div
                       className={`relative w-9 h-9 rounded-full flex items-center justify-center shrink-0 ${
-                        step.active ? 'bg-[#141414] text-white' : 'bg-gray-100 text-gray-400'
+                         step.active ? 'bg-white text-black' : 'bg-white/8 text-white/30'
                       }`}
                     >
                       <Icon className="w-4 h-4" strokeWidth={2} />
                     </div>
                     <div className="flex-1 pt-1">
-                      <p className={`text-[13px] font-semibold mb-0.5 ${step.active ? 'text-gray-900' : 'text-gray-400'}`}>
+                         <p className={`text-[13px] font-semibold mb-0.5 ${step.active ? 'text-white' : 'text-white/30'}`}>
                         {step.title}
                       </p>
-                      <p className="text-[12px] text-gray-500 leading-relaxed">{step.desc}</p>
+                       <p className="text-[12px] text-white/50 leading-relaxed">{step.desc}</p>
                     </div>
                   </li>
                 );
@@ -341,7 +341,7 @@ export default function PaymentSuccess() {
             initial={{ opacity: 0, y: 12 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.3 }}
-            className="bg-gray-900 text-white rounded-lg p-5 sm:p-6"
+            className="bg-[#141414] text-white rounded-lg p-5 sm:p-6"
           >
             <p className="text-xs font-medium text-white/50 uppercase tracking-wide mb-2">Yardım gerekirse</p>
             <p className="text-sm text-white/85 mb-4 leading-relaxed">
@@ -380,9 +380,9 @@ export default function PaymentSuccess() {
                 <ArrowRight className="w-4 h-4 transition-transform group-hover:translate-x-1" strokeWidth={2.5} />
               </button>
             </Link>
-            <Link href="/hesabim/siparislerim" className="flex-1">
+             <Link href="/hesabim/siparislerim" className="flex-1">
               <button
-                className="w-full h-12 border border-gray-300 text-gray-700 hover:bg-gray-50 font-semibold text-sm flex items-center justify-center rounded-md transition-colors"
+                 className="w-full h-12 border border-white/25 text-white hover:bg-white hover:text-black font-semibold text-sm flex items-center justify-center rounded-md transition-colors"
                 data-testid="button-view-orders"
               >
                 Siparişlerim

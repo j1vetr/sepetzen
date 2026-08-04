@@ -218,15 +218,15 @@ export default function OrderTracking() {
   const currentStep = currentStatus?.step || 0;
 
   return (
-    <div className="min-h-screen bg-[#FFFFFF] flex flex-col overflow-x-hidden">
+    <div className="min-h-screen bg-[#0A0A0A] flex flex-col overflow-x-hidden">
       <SEO title="Sipariş Takip" description="Sepetzen sipariş durumu sorgulama." url="/siparis-takip" noIndex />
       <Header />
 
       {/* Üst — sayfa başlığı */}
-      <section className="relative bg-white border-b border-black/[0.06]">
+      <section className="relative bg-[#141414] border-b border-white/8">
         <div
           aria-hidden
-          className="absolute inset-x-0 top-0 h-1 bg-gradient-to-r from-transparent via-polen-orange to-transparent"
+          className="absolute inset-x-0 top-0 h-1 bg-gradient-to-r from-transparent via-white/50 to-transparent"
         />
         <div className="max-w-4xl mx-auto px-5 lg:px-8 pt-12 pb-10">
           {/* Mobil — dikey ortalı */}
@@ -235,7 +235,7 @@ export default function OrderTracking() {
               initial={{ scale: 0, rotate: -15 }}
               animate={{ scale: 1, rotate: 0 }}
               transition={{ type: 'spring', stiffness: 220, damping: 18 }}
-              className="w-20 h-20 mb-5 rounded-full bg-polen-orange flex items-center justify-center shadow-[0_8px_24px_-6px_rgba(253,181,29,0.55)]"
+              className="w-20 h-20 mb-5 rounded-full bg-white flex items-center justify-center shadow-[0_8px_24px_-6px_rgba(255,255,255,0.25)]"
             >
               <Package className="w-9 h-9 text-black" strokeWidth={2} />
             </motion.div>
@@ -243,7 +243,7 @@ export default function OrderTracking() {
               initial={{ opacity: 0, y: 8 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.08 }}
-              className="font-display text-2xl tracking-[0.14em] uppercase text-black mb-3"
+              className="font-display text-2xl tracking-[0.14em] uppercase text-white mb-3"
               data-testid="text-page-title"
             >
               Sipariş Takip
@@ -252,7 +252,7 @@ export default function OrderTracking() {
               initial={{ opacity: 0, y: 8 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.14 }}
-              className="text-sm text-black/60 max-w-md"
+              className="text-sm text-white/60 max-w-md"
             >
               Sipariş numaranızı girerek siparişinizin güncel durumunu öğrenin.
             </motion.p>
@@ -264,7 +264,7 @@ export default function OrderTracking() {
               initial={{ scale: 0, rotate: -15 }}
               animate={{ scale: 1, rotate: 0 }}
               transition={{ type: 'spring', stiffness: 220, damping: 18 }}
-              className="w-20 h-20 rounded-full bg-polen-orange flex items-center justify-center shadow-[0_8px_24px_-6px_rgba(253,181,29,0.55)] shrink-0"
+              className="w-20 h-20 rounded-full bg-white flex items-center justify-center shadow-[0_8px_24px_-6px_rgba(255,255,255,0.25)] shrink-0"
             >
               <Package className="w-9 h-9 text-black" strokeWidth={2} />
             </motion.div>
@@ -273,7 +273,7 @@ export default function OrderTracking() {
                 initial={{ opacity: 0, x: -8 }}
                 animate={{ opacity: 1, x: 0 }}
                 transition={{ delay: 0.08 }}
-                className="font-display text-3xl tracking-[0.14em] uppercase text-black mb-2"
+                className="font-display text-3xl tracking-[0.14em] uppercase text-white mb-2"
               >
                 Sipariş Takip
               </motion.h1>
@@ -281,7 +281,7 @@ export default function OrderTracking() {
                 initial={{ opacity: 0, x: -8 }}
                 animate={{ opacity: 1, x: 0 }}
                 transition={{ delay: 0.14 }}
-                className="text-sm text-black/60 max-w-md"
+                className="text-sm text-white/60 max-w-md"
               >
                 Sipariş numaranızı girerek siparişinizin güncel durumunu öğrenin.
               </motion.p>
@@ -298,23 +298,23 @@ export default function OrderTracking() {
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.18 }}
             onSubmit={handleSearch}
-            className="bg-white border border-black/[0.08] p-5 sm:p-6 mb-5"
+            className="bg-[#141414] border border-white/8 p-5 sm:p-6 mb-5"
           >
             <div className="grid sm:grid-cols-2 gap-4 mb-4">
               <div>
-                <label className="block text-[10px] tracking-[0.2em] uppercase text-black/55 font-medium mb-2">
+                <label className="block text-[10px] tracking-[0.2em] uppercase text-white/55 font-medium mb-2">
                   Sipariş Numarası *
                 </label>
                 <Input
                   value={orderNumber}
                   onChange={(e) => setOrderNumber(e.target.value)}
                   placeholder="PS-XXXXXX"
-                  className="h-12 bg-[#FFFFFF] border-black/15 text-black placeholder:text-black/30 focus:border-polen-orange rounded-md"
+                  className="h-12 bg-[#0A0A0A] border-black/15 text-white placeholder:text-white/30 focus:border-white rounded-md"
                   data-testid="input-order-number"
                 />
               </div>
               <div>
-                <label className="block text-[10px] tracking-[0.2em] uppercase text-black/55 font-medium mb-2">
+                <label className="block text-[10px] tracking-[0.2em] uppercase text-white/55 font-medium mb-2">
                   E-posta (Opsiyonel)
                 </label>
                 <Input
@@ -322,7 +322,7 @@ export default function OrderTracking() {
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                   placeholder="ornek@email.com"
-                  className="h-12 bg-[#FFFFFF] border-black/15 text-black placeholder:text-black/30 focus:border-polen-orange rounded-md"
+                  className="h-12 bg-[#0A0A0A] border-black/15 text-white placeholder:text-white/30 focus:border-white rounded-md"
                   data-testid="input-email"
                 />
               </div>
@@ -341,7 +341,7 @@ export default function OrderTracking() {
             <Button
               type="submit"
               disabled={loading}
-              className="w-full h-12 bg-polen-orange text-black hover:bg-[hsl(var(--polen-orange-deep))] hover:text-white font-semibold tracking-[0.1em] uppercase text-[12px] rounded-md"
+              className="w-full h-12 bg-white text-black hover:bg-white/85 font-semibold tracking-[0.1em] uppercase text-[12px] rounded-md"
               data-testid="button-search-order"
             >
               {loading ? (
@@ -365,48 +365,48 @@ export default function OrderTracking() {
               {user ? (
                 <Link
                   href="/hesabim/siparislerim"
-                  className="flex items-center justify-between gap-3 bg-white border border-black/[0.08] hover:border-polen-orange/60 hover:bg-polen-orange/5 transition-colors px-5 py-4 group"
+                  className="flex items-center justify-between gap-3 bg-[#141414] border border-white/8 hover:border-white/60 hover:bg-white/5 transition-colors px-5 py-4 group"
                   data-testid="link-all-orders"
                 >
                   <div className="flex items-center gap-3 min-w-0">
-                    <div className="w-9 h-9 rounded-full bg-polen-orange/15 flex items-center justify-center shrink-0">
-                      <ListOrdered className="w-4 h-4 text-black" strokeWidth={2.2} />
+                    <div className="w-9 h-9 rounded-full bg-white/12 flex items-center justify-center shrink-0">
+                      <ListOrdered className="w-4 h-4 text-white" strokeWidth={2.2} />
                     </div>
                     <div className="min-w-0">
-                      <p className="text-[13px] font-semibold text-black">
+                      <p className="text-[13px] font-semibold text-white">
                         Tüm Siparişlerim
                       </p>
-                      <p className="text-[11px] text-black/55 truncate">
+                      <p className="text-[11px] text-white/55 truncate">
                         Hesabınızdaki tüm siparişleri görüntüleyin
                       </p>
                     </div>
                   </div>
                   <ArrowRight
-                    className="w-4 h-4 text-black/45 group-hover:text-polen-orange group-hover:translate-x-1 transition-all shrink-0"
+                    className="w-4 h-4 text-white/45 group-hover:text-white group-hover:translate-x-1 transition-all shrink-0"
                     strokeWidth={2.2}
                   />
                 </Link>
               ) : (
                 <Link
                   href="/giris"
-                  className="flex items-center justify-between gap-3 bg-white border border-black/[0.08] hover:border-polen-orange/60 hover:bg-polen-orange/5 transition-colors px-5 py-4 group"
+                  className="flex items-center justify-between gap-3 bg-[#141414] border border-white/8 hover:border-white/60 hover:bg-white/5 transition-colors px-5 py-4 group"
                   data-testid="link-login-for-orders"
                 >
                   <div className="flex items-center gap-3 min-w-0">
-                    <div className="w-9 h-9 rounded-full bg-polen-orange/15 flex items-center justify-center shrink-0">
-                      <LogIn className="w-4 h-4 text-black" strokeWidth={2.2} />
+                    <div className="w-9 h-9 rounded-full bg-white/12 flex items-center justify-center shrink-0">
+                      <LogIn className="w-4 h-4 text-white" strokeWidth={2.2} />
                     </div>
                     <div className="min-w-0">
-                      <p className="text-[13px] font-semibold text-black">
+                      <p className="text-[13px] font-semibold text-white">
                         Giriş Yap
                       </p>
-                      <p className="text-[11px] text-black/55 truncate">
+                      <p className="text-[11px] text-white/55 truncate">
                         Tüm siparişlerinizi tek yerden görmek için giriş yapın
                       </p>
                     </div>
                   </div>
                   <ArrowRight
-                    className="w-4 h-4 text-black/45 group-hover:text-polen-orange group-hover:translate-x-1 transition-all shrink-0"
+                    className="w-4 h-4 text-white/45 group-hover:text-white group-hover:translate-x-1 transition-all shrink-0"
                     strokeWidth={2.2}
                   />
                 </Link>
@@ -422,29 +422,29 @@ export default function OrderTracking() {
               className="space-y-5"
             >
               {/* Sipariş üst bilgisi */}
-              <div className="bg-white border border-black/[0.08] p-5 sm:p-6">
+              <div className="bg-[#141414] border border-white/8 p-5 sm:p-6">
                 <div className="flex items-start justify-between gap-4 flex-wrap">
                   <div>
-                    <p className="text-[10px] tracking-[0.2em] uppercase text-black/45 font-medium mb-1.5">
+                    <p className="text-[10px] tracking-[0.2em] uppercase text-white/45 font-medium mb-1.5">
                       Sipariş No
                     </p>
                     <p
-                      className="font-mono text-xl sm:text-2xl font-bold text-black tracking-wide"
+                      className="font-mono text-xl sm:text-2xl font-bold text-white tracking-wide"
                       data-testid="text-order-number"
                     >
                       #{order.orderNumber}
                     </p>
-                    <p className="text-xs text-black/50 mt-2">
+                    <p className="text-xs text-white/50 mt-2">
                       {formatTRDateTime(order.createdAt)}
                     </p>
                   </div>
                   {currentStatus && (
                     <div className="text-right">
-                      <p className="text-[10px] tracking-[0.2em] uppercase text-black/45 font-medium mb-1.5">
+                      <p className="text-[10px] tracking-[0.2em] uppercase text-white/45 font-medium mb-1.5">
                         Durum
                       </p>
                       <span
-                        className="inline-flex items-center gap-2 px-3 py-1.5 bg-polen-orange/15 text-black border border-polen-orange/40 text-[12px] font-semibold tracking-[0.06em] uppercase"
+                        className="inline-flex items-center gap-2 px-3 py-1.5 bg-white/12 text-white border border-white/40 text-[12px] font-semibold tracking-[0.06em] uppercase"
                         data-testid="text-order-status"
                       >
                         {order.paymentMethod === 'bank_transfer' && order.paymentStatus === 'awaiting_transfer' ? (
@@ -464,48 +464,48 @@ export default function OrderTracking() {
               {/* Havale bekleme uyarısı */}
               {order.paymentMethod === 'bank_transfer' && order.paymentStatus === 'awaiting_transfer' && (
                 <div
-                  className="bg-polen-orange/[0.08] border border-polen-orange/30 p-5 sm:p-6"
+                  className="bg-white/[0.08] border border-white/30 p-5 sm:p-6"
                   data-testid="card-awaiting-transfer"
                 >
                   <div className="flex items-start gap-3 mb-4">
-                    <div className="w-10 h-10 bg-polen-orange/20 flex items-center justify-center shrink-0">
+                    <div className="w-10 h-10 bg-white/15 flex items-center justify-center shrink-0">
                       <span className="text-xl">🏦</span>
                     </div>
                     <div>
-                      <p className="font-display text-base tracking-[0.1em] uppercase text-black mb-1">
+                      <p className="font-display text-base tracking-[0.1em] uppercase text-white mb-1">
                         Havale Ödemesi Bekleniyor
                       </p>
-                      <p className="text-[13px] text-black/65 leading-relaxed">
+                      <p className="text-[13px] text-white/65 leading-relaxed">
                         Aşağıdaki banka hesabına ödemeniz geçtiğinde siparişiniz onaylanıp hazırlığa alınacak.
                       </p>
                     </div>
                   </div>
-                  <div className="bg-white border border-black/8 p-4 space-y-2 text-sm">
+                  <div className="bg-[#141414] border border-white/8 p-4 space-y-2 text-sm">
                     <div className="flex justify-between gap-3">
-                      <span className="text-black/55">Banka</span>
-                      <span className="font-semibold text-black">{BANK_TRANSFER_INFO.bankName}</span>
+                      <span className="text-white/55">Banka</span>
+                      <span className="font-semibold text-white">{BANK_TRANSFER_INFO.bankName}</span>
                     </div>
                     <div className="flex justify-between gap-3">
-                      <span className="text-black/55">Hesap Sahibi</span>
-                      <span className="font-semibold text-black">{BANK_TRANSFER_INFO.accountHolder}</span>
+                      <span className="text-white/55">Hesap Sahibi</span>
+                      <span className="font-semibold text-white">{BANK_TRANSFER_INFO.accountHolder}</span>
                     </div>
                     <div className="flex flex-col gap-1 pt-1">
-                      <span className="text-black/55 text-xs">IBAN</span>
-                      <span className="font-mono text-[13px] sm:text-sm font-bold text-black break-all" data-testid="text-bank-iban">
+                      <span className="text-white/55 text-xs">IBAN</span>
+                      <span className="font-mono text-[13px] sm:text-sm font-bold text-white break-all" data-testid="text-bank-iban">
                         {BANK_TRANSFER_INFO.iban}
                       </span>
                     </div>
                   </div>
-                  <p className="mt-3 text-xs text-black/55 leading-relaxed">
-                    Açıklamaya <span className="font-mono font-semibold text-black">#{order.orderNumber}</span> yazmanız işlemi hızlandırır.
+                  <p className="mt-3 text-xs text-white/55 leading-relaxed">
+                    Açıklamaya <span className="font-mono font-semibold text-white">#{order.orderNumber}</span> yazmanız işlemi hızlandırır.
                   </p>
                 </div>
               )}
 
               {/* Timeline — sipariş aşamaları (havale onayı bekleyen siparişlerde gizli) */}
               {order.status !== 'cancelled' && !(order.paymentMethod === 'bank_transfer' && order.paymentStatus === 'awaiting_transfer') && (
-                <div className="bg-white border border-black/[0.08] p-5 sm:p-6">
-                  <h3 className="text-[11px] tracking-[0.2em] uppercase text-black/55 font-semibold mb-6">
+                <div className="bg-[#141414] border border-white/8 p-5 sm:p-6">
+                  <h3 className="text-[11px] tracking-[0.2em] uppercase text-white/55 font-semibold mb-6">
                     Sipariş Aşamaları
                   </h3>
 
@@ -527,15 +527,15 @@ export default function OrderTracking() {
                             <span
                               aria-hidden
                               className={`absolute left-[18px] top-9 bottom-0 w-px ${
-                                isCompleted ? 'bg-polen-orange' : 'bg-black/10'
+                                isCompleted ? 'bg-white' : 'bg-black/10'
                               }`}
                             />
                           )}
                           <div
                             className={`relative w-9 h-9 rounded-full flex items-center justify-center shrink-0 ${
                               isCompleted || isCurrent
-                                ? 'bg-polen-orange text-black'
-                                : 'bg-black/[0.05] text-black/35'
+                                ? 'bg-white text-black'
+                                : 'bg-white/8 text-white/35'
                             }`}
                           >
                             <StepIcon className="w-4 h-4" strokeWidth={2} />
@@ -543,14 +543,14 @@ export default function OrderTracking() {
                           <div className="flex-1 pt-1.5">
                             <p
                               className={`text-[13px] font-semibold ${
-                                isCompleted || isCurrent ? 'text-black' : 'text-black/55'
+                                isCompleted || isCurrent ? 'text-white' : 'text-white/55'
                               }`}
                             >
                               {step.label}
                             </p>
                             {stepDate && (isCompleted || isCurrent) && (
                               <p
-                                className="text-[11px] text-black/55 mt-0.5"
+                                className="text-[11px] text-white/55 mt-0.5"
                                 title={stepDate.absolute}
                                 data-testid={`text-step-date-${step.id}`}
                               >
@@ -568,7 +568,7 @@ export default function OrderTracking() {
                     <div className="flex justify-between items-start relative">
                       <div className="absolute left-5 right-5 top-5 h-px bg-black/10 z-0" />
                       <div
-                        className="absolute left-5 top-5 h-px bg-polen-orange z-0 transition-all duration-500"
+                        className="absolute left-5 top-5 h-px bg-white z-0 transition-all duration-500"
                         style={{
                           width: `calc(${
                             ((Math.max(currentStep, 1) - 1) / (steps.length - 1)) * 100
@@ -591,22 +591,22 @@ export default function OrderTracking() {
                             <div
                               className={`w-10 h-10 rounded-full flex items-center justify-center transition-all ${
                                 isCompleted || isCurrent
-                                  ? 'bg-polen-orange text-black shadow-[0_4px_14px_-4px_rgba(253,181,29,0.6)]'
-                                  : 'bg-[#FFFFFF] border border-black/15 text-black/35'
+                                  ? 'bg-white text-black'
+                                  : 'bg-[#0A0A0A] border border-black/15 text-white/35'
                               }`}
                             >
                               <StepIcon className="w-4 h-4" strokeWidth={2} />
                             </div>
                             <span
                               className={`text-[11px] mt-3 font-semibold tracking-[0.06em] uppercase text-center ${
-                                isCompleted || isCurrent ? 'text-black' : 'text-black/45'
+                                isCompleted || isCurrent ? 'text-white' : 'text-white/45'
                               }`}
                             >
                               {step.label}
                             </span>
                             {stepDate && (isCompleted || isCurrent) ? (
                               <span
-                                className="text-[10px] mt-1 text-black/55 text-center"
+                                className="text-[10px] mt-1 text-white/55 text-center"
                                 title={stepDate.absolute}
                                 data-testid={`text-step-date-${step.id}`}
                               >
@@ -622,7 +622,7 @@ export default function OrderTracking() {
                   </div>
 
                   {currentStatus && (
-                    <p className="text-[12px] text-black/55 mt-6 text-center leading-relaxed">
+                    <p className="text-[12px] text-white/55 mt-6 text-center leading-relaxed">
                       {currentStatus.description}
                     </p>
                   )}
@@ -632,39 +632,39 @@ export default function OrderTracking() {
               {/* Aras Kargo takip kartı */}
               {order.trackingNumber && (
                 <div
-                  className="relative bg-white border border-polen-orange/40 p-5 sm:p-6"
+                  className="relative bg-[#141414] border border-white/40 p-5 sm:p-6"
                   data-testid="card-tracking"
                 >
                   <div
                     aria-hidden
-                    className="absolute inset-x-0 top-0 h-1 bg-polen-orange"
+                    className="absolute inset-x-0 top-0 h-1 bg-white"
                   />
                   <div className="flex items-center gap-2 mb-4">
-                    <Truck className="w-4 h-4 text-black/70" strokeWidth={2} />
-                    <span className="text-[11px] tracking-[0.2em] uppercase text-black/55 font-semibold">
+                    <Truck className="w-4 h-4 text-white/70" strokeWidth={2} />
+                    <span className="text-[11px] tracking-[0.2em] uppercase text-white/55 font-semibold">
                       Kargo Takibi
                     </span>
                     {order.shippingCarrier && (
-                      <span className="ml-auto text-[11px] text-black/50 font-medium">
+                      <span className="ml-auto text-[11px] text-white/50 font-medium">
                         {order.shippingCarrier}
                       </span>
                     )}
                   </div>
 
                   <div className="text-center mb-5">
-                    <p className="text-[10px] tracking-[0.2em] uppercase text-black/45 font-medium mb-2">
+                    <p className="text-[10px] tracking-[0.2em] uppercase text-white/45 font-medium mb-2">
                       Takip Numarası
                     </p>
                     <div className="flex items-center justify-center gap-2">
                       <p
-                        className="font-mono text-xl sm:text-2xl font-bold text-black tracking-widest break-all"
+                        className="font-mono text-xl sm:text-2xl font-bold text-white tracking-widest break-all"
                         data-testid="text-tracking-number"
                       >
                         {order.trackingNumber}
                       </p>
                       <button
                         onClick={copyTracking}
-                        className="p-1.5 text-black/45 hover:text-polen-orange hover:bg-black/[0.04] transition-colors rounded shrink-0"
+                        className="p-1.5 text-white/45 hover:text-white hover:bg-white/5 transition-colors rounded shrink-0"
                         aria-label="Takip numarasını kopyala"
                         data-testid="button-copy-tracking"
                       >
@@ -687,7 +687,7 @@ export default function OrderTracking() {
                     }
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="flex items-center justify-center gap-2 w-full h-12 bg-polen-orange text-black hover:bg-[hsl(var(--polen-orange-deep))] hover:text-white transition-colors font-semibold tracking-[0.1em] uppercase text-[12px]"
+                    className="flex items-center justify-center gap-2 w-full h-12 bg-white text-black hover:bg-white/85 transition-colors font-semibold tracking-[0.1em] uppercase text-[12px]"
                     data-testid="link-tracking-external"
                   >
                     Kargoda Takip Et
@@ -697,8 +697,8 @@ export default function OrderTracking() {
               )}
 
               {/* Ürünler */}
-              <div className="bg-white border border-black/[0.08] p-5 sm:p-6">
-                <h3 className="text-[11px] tracking-[0.2em] uppercase text-black/55 font-semibold mb-4 flex items-center gap-2">
+              <div className="bg-[#141414] border border-white/8 p-5 sm:p-6">
+                <h3 className="text-[11px] tracking-[0.2em] uppercase text-white/55 font-semibold mb-4 flex items-center gap-2">
                   <ShoppingBag className="w-3.5 h-3.5" strokeWidth={2} />
                   Ürünler
                 </h3>
@@ -711,19 +711,19 @@ export default function OrderTracking() {
                     >
                       <div className="flex-1 min-w-0">
                         <p
-                          className="text-[13px] font-semibold text-black"
+                          className="text-[13px] font-semibold text-white"
                           data-testid={`text-product-${item.id}`}
                         >
                           {item.productName}
                         </p>
                         {item.variantDetails && (
-                          <p className="text-[11px] text-black/50 mt-0.5">
+                          <p className="text-[11px] text-white/50 mt-0.5">
                             {item.variantDetails}
                           </p>
                         )}
-                        <p className="text-[11px] text-black/55 mt-1">Adet: {item.quantity}</p>
+                        <p className="text-[11px] text-white/55 mt-1">Adet: {item.quantity}</p>
                       </div>
-                      <p className="text-[13px] font-bold text-black whitespace-nowrap">
+                      <p className="text-[13px] font-bold text-white whitespace-nowrap">
                         {item.subtotal}₺
                       </p>
                     </div>
@@ -733,27 +733,27 @@ export default function OrderTracking() {
 
               {/* Adres + özet */}
               <div className="grid sm:grid-cols-2 gap-5">
-                <div className="bg-white border border-black/[0.08] p-5">
-                  <h3 className="text-[11px] tracking-[0.2em] uppercase text-black/55 font-semibold mb-3">
+                <div className="bg-[#141414] border border-white/8 p-5">
+                  <h3 className="text-[11px] tracking-[0.2em] uppercase text-white/55 font-semibold mb-3">
                     Teslimat Adresi
                   </h3>
-                  <p className="text-[13px] font-semibold text-black mb-1">
+                  <p className="text-[13px] font-semibold text-white mb-1">
                     {order.customerName}
                   </p>
-                  <p className="text-[12px] text-black/65 leading-relaxed">
+                  <p className="text-[12px] text-white/65 leading-relaxed">
                     {order.shippingAddress.address}
                   </p>
-                  <p className="text-[12px] text-black/65 leading-relaxed">
+                  <p className="text-[12px] text-white/65 leading-relaxed">
                     {order.shippingAddress.district}, {order.shippingAddress.city}{' '}
                     {order.shippingAddress.postalCode}
                   </p>
                 </div>
-                <div className="bg-white border border-black/[0.08] p-5">
-                  <h3 className="text-[11px] tracking-[0.2em] uppercase text-black/55 font-semibold mb-3">
+                <div className="bg-[#141414] border border-white/8 p-5">
+                  <h3 className="text-[11px] tracking-[0.2em] uppercase text-white/55 font-semibold mb-3">
                     Özet
                   </h3>
                   <div className="space-y-2">
-                    <div className="flex justify-between text-[12px] text-black/65">
+                    <div className="flex justify-between text-[12px] text-white/65">
                       <span>Kargo</span>
                       <span>
                         {parseFloat(order.shippingCost) === 0
@@ -761,7 +761,7 @@ export default function OrderTracking() {
                           : `${order.shippingCost}₺`}
                       </span>
                     </div>
-                    <div className="flex justify-between text-[14px] font-bold text-black pt-2 border-t border-black/10">
+                    <div className="flex justify-between text-[14px] font-bold text-white pt-2 border-t border-black/10">
                       <span>Toplam</span>
                       <span data-testid="text-order-total">{order.total}₺</span>
                     </div>
@@ -773,7 +773,7 @@ export default function OrderTracking() {
               <div className="pt-2">
                 <Link href="/">
                   <Button
-                    className="w-full h-12 bg-polen-orange text-black hover:bg-[hsl(var(--polen-orange-deep))] hover:text-white font-semibold tracking-[0.1em] uppercase text-[12px] group rounded-md"
+                    className="w-full h-12 bg-white text-black hover:bg-white/85 font-semibold tracking-[0.1em] uppercase text-[12px] group rounded-md"
                     data-testid="button-continue-shopping"
                   >
                     Alışverişe Devam Et

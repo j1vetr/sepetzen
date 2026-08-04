@@ -6,7 +6,7 @@ import { SEO } from '@/components/SEO';
 
 export default function NotFound() {
   return (
-    <div className="min-h-screen bg-background">
+    <div className="min-h-screen bg-[#0A0A0A]">
       <SEO title="Sayfa Bulunamadı" description="Aradığınız sayfa mevcut değil." noIndex />
       <Header />
       

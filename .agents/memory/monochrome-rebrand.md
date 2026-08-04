@@ -1,14 +1,13 @@
 ---
-name: Monochrome rebrand
-description: Sitewide palette rules after the Aug 2026 rebrand to black/white/gray
+name: Monochrome rebrand & dark theme
+description: Sepetzen palette rules — dark monochrome storefront, allowed accents, legacy token pitfalls
 ---
 
-Palette is strictly monochromatic: page bg #000000/#FFFFFF, dark surfaces #080808/#0F0F0F/#1F1F1F, borders #262626 (dark) / #E6E6E6 (light), text #FAFAFA / #0D0D0D, primary button #141414, muted #737373. Only accent color allowed: destructive red #F04444. Fonts: Bebas Neue (display), Space Grotesk (UI), Inter (body).
+# Sepetzen palette
 
-**Why:** User explicitly replaced the old green palette ("sadece bu renkler olacak").
-
-**How to apply:**
-- CSS tokens in `client/src/index.css` are all grayscale now; the legacy `sepetzen-green`/`polen-*` token names still exist but resolve to grayscale — don't reintroduce green values.
-- DB product descriptions still contain inline `color:#2D5A27` styles; `neutralizeLegacyColors()` in ProductDetail.tsx remaps them at render time. Any new place rendering raw description HTML must do the same (or the DB rows should be cleaned).
-- When mechanically swapping dark greens → dark grays, watch for contrast collapse (white-on-white hovers, active states on dark navs).
-- The logo image asset still contains green artwork.
+- Storefront is now FULL DARK monochrome (Aug 2026): page bg #0A0A0A, cards #141414 (elevated #1A1A1A), borders white/8–12, text white opacity scale, inputs bg-white/5. High-emphasis CTAs are inverted (bg-white text-black). Destructive is only #F04444; WhatsApp #25D366 is the sole brand-color exception.
+- Admin pages (pages/admin, Admin*, WholesaleTab) intentionally remain light — do NOT flip :root shadcn tokens; they'd break admin.
+- Legacy tokens `polen-orange`/`polen-cream`/`sepetzen-green` alias to near-black HSL values — on the dark storefront they render invisible. **Why:** the old "accent" was near-black for light backgrounds. **How to apply:** never use these tokens in storefront files; replace with white/opacity classes. They may still be valid in admin.
+- Legacy green hexes may live in DB product-description HTML; ProductDetail's neutralizeLegacyColors() now maps them to LIGHT colors (#D4D4D4 body / #FAFAFA emphasis) for the dark background.
+- Logo: use /uploads/branding/sepetzen-logo-white.png on dark surfaces (sepetzen-logo-dark.png vanishes).
+- Mobile header is sticky/in-flow (h-16), NOT fixed — pages must not add fixed-header padding compensations (pt-20 etc.).

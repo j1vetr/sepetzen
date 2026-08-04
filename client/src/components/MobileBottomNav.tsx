@@ -50,7 +50,7 @@ export function MobileBottomNav() {
 
   return (
     <nav
-      className="lg:hidden fixed bottom-0 inset-x-0 z-40 bg-[#0F0F0F] border-t-[1.5px] border-[#141414]/70"
+      className="lg:hidden fixed bottom-0 inset-x-0 z-40 surface-glass-dark border-t border-white/10"
       style={{
         paddingBottom: 'env(safe-area-inset-bottom, 0px)',
         boxShadow: '0 -4px 24px rgba(0,0,0,0.45)',

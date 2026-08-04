@@ -554,7 +554,7 @@ export default function Checkout() {
 
   if (orderComplete) {
     return (
-      <div className="min-h-screen bg-background overflow-x-hidden">
+      <div className="min-h-screen bg-[#0A0A0A] overflow-x-hidden">
         <SEO title="Ödeme" description="Sepetzen güvenli ödeme sayfası." url="/odeme" noIndex />
         <Header />
         <main className="pt-8 pb-12 px-4 sm:px-6">
@@ -577,12 +577,12 @@ export default function Checkout() {
             <p className="text-muted-foreground mb-2">
               Siparişiniz başarıyla oluşturuldu.
             </p>
-            <p className="text-lg font-mono font-bold text-black mb-8">
+            <p className="text-lg font-mono font-bold text-white mb-8">
               Sipariş No: #{orderNumber}
             </p>
             
-            <div className="bg-stone-50 border border-black/8 p-6 mb-8 text-left">
-              <h3 className="font-semibold text-black mb-4">Sipariş Detayları</h3>
+            <div className="bg-[#0F0F0F] border border-white/8 p-6 mb-8 text-left">
+              <h3 className="font-semibold text-white mb-4">Sipariş Detayları</h3>
               <div className="space-y-2 text-sm">
                 <div className="flex justify-between">
                   <span className="text-muted-foreground">E-posta</span>
@@ -611,7 +611,7 @@ export default function Checkout() {
             <div className="flex flex-col sm:flex-row gap-3">
               {user ? (
                 <Link href="/hesabim" className="flex-1">
-                  <Button className="w-full h-12 bg-black hover:bg-black/85 text-white font-bold tracking-wide rounded-md">
+                  <Button className="w-full h-12 bg-black hover:bg-white/85 text-white font-bold tracking-wide rounded-md">
                     SİPARİŞLERİM
                   </Button>
                 </Link>
@@ -631,7 +631,7 @@ export default function Checkout() {
 
   if (items.length === 0) {
     return (
-      <div className="min-h-screen bg-background overflow-x-hidden w-full">
+      <div className="min-h-screen bg-[#0A0A0A] overflow-x-hidden w-full">
         <Header />
         <main className="pt-8 pb-12 px-4 sm:px-6 w-full box-border">
           <motion.div 
@@ -639,7 +639,7 @@ export default function Checkout() {
             animate={{ opacity: 1, scale: 1 }}
             className="max-w-md mx-auto text-center"
           >
-            <div className="w-20 h-20 mx-auto mb-6 bg-stone-100 flex items-center justify-center">
+            <div className="w-20 h-20 mx-auto mb-6 bg-[#151515] flex items-center justify-center">
               <ShoppingBag className="w-8 h-8 text-muted-foreground" />
             </div>
             <h1 className="font-display text-3xl tracking-wider mb-4">
@@ -649,7 +649,7 @@ export default function Checkout() {
               Ödeme yapabilmek için önce sepetinize ürün eklemelisiniz.
             </p>
             <Link href="/">
-              <Button className="h-12 px-8 bg-white text-black hover:bg-white/90 font-bold tracking-wide group">
+              <Button className="h-12 px-8 bg-[#141414] text-white hover:bg-[#141414]/90 font-bold tracking-wide group">
                 ALIŞVERİŞE BAŞLA
                 <ArrowRight className="w-4 h-4 ml-2 transition-transform group-hover:translate-x-1" />
               </Button>
@@ -661,7 +661,7 @@ export default function Checkout() {
   }
 
   return (
-    <div className="min-h-screen bg-background overflow-x-hidden w-full">
+    <div className="min-h-screen bg-[#0A0A0A] overflow-x-hidden w-full">
       <Header />
       
       <main className="pt-8 pb-12 px-4 sm:px-6 w-full box-border overflow-hidden">
@@ -695,10 +695,10 @@ export default function Checkout() {
                       <div
                         className={`w-10 h-10 sm:w-11 sm:h-11 rounded-full flex items-center justify-center border transition-all ${
                           isActive
-                            ? 'bg-polen-orange text-white border-polen-orange shadow-[0_4px_14px_-4px_rgba(217,127,42,0.6)]'
+                            ? 'bg-white text-black border-white'
                             : isDone
                               ? 'bg-neutral-500 text-white border-neutral-500'
-                              : 'bg-white text-black/40 border-black/15 group-hover:border-black/40'
+                              : 'bg-[#141414] text-white/40 border-white/15 group-hover:border-white/40'
                         }`}
                       >
                         {isDone ? (
@@ -709,7 +709,7 @@ export default function Checkout() {
                       </div>
                       <span
                         className={`text-[10px] sm:text-xs font-medium whitespace-nowrap transition-colors ${
-                          isActive ? 'text-black' : isDone ? 'text-neutral-700' : 'text-black/45'
+                          isActive ? 'text-white' : isDone ? 'text-white/70' : 'text-white/45'
                         }`}
                       >
                         {step.title}
@@ -738,11 +738,11 @@ export default function Checkout() {
                       initial={{ opacity: 0, y: 20 }}
                       animate={{ opacity: 1, y: 0 }}
                       exit={{ opacity: 0, y: -20 }}
-                      className="bg-white border border-black/8 rounded-md p-4 sm:p-6 overflow-hidden"
+                      className="bg-[#141414] border border-white/8 rounded-md p-4 sm:p-6 overflow-hidden"
                     >
                       <div className="flex items-center gap-3 mb-6">
-                        <div className="w-10 h-10 bg-stone-100 flex items-center justify-center">
-                          <User className="w-5 h-5 text-black/50" />
+                        <div className="w-10 h-10 bg-[#151515] flex items-center justify-center">
+                          <User className="w-5 h-5 text-white/50" />
                         </div>
                         <div>
                           <h2 className="font-display text-xl tracking-wide">
@@ -757,13 +757,13 @@ export default function Checkout() {
                       </div>
 
                       {!user && (
-                        <div className="mb-6 p-4 bg-stone-50 border border-black/8 rounded-lg">
+                        <div className="mb-6 p-4 bg-[#0F0F0F] border border-white/8 rounded-lg">
                           <div className="flex items-start gap-3">
-                            <UserPlus className="w-5 h-5 text-black/40 shrink-0 mt-0.5" />
+                            <UserPlus className="w-5 h-5 text-white/40 shrink-0 mt-0.5" />
                             <div className="flex-1">
-                              <p className="text-sm font-medium text-black/70">Zaten üye misiniz?</p>
-                              <p className="text-xs text-black/40 mt-1">
-                                <Link href="/giris" className="text-black font-semibold hover:underline underline-offset-2">Giriş yapın</Link> ve bilgilerinizi otomatik doldurun.
+                              <p className="text-sm font-medium text-white/70">Zaten üye misiniz?</p>
+                              <p className="text-xs text-white/40 mt-1">
+                                <Link href="/giris" className="text-white font-semibold hover:underline underline-offset-2">Giriş yapın</Link> ve bilgilerinizi otomatik doldurun.
                               </p>
                             </div>
                           </div>
@@ -792,7 +792,7 @@ export default function Checkout() {
                               value={formData.customerName}
                               onChange={handleChange}
                               data-testid="input-customerName"
-                              className="h-12 pl-11 bg-stone-50 border-black/12 focus:border-black/40 rounded-md text-black placeholder:text-black/25"
+                              className="h-12 pl-11 bg-[#0F0F0F] border-white/12 focus:border-white/40 rounded-md text-white placeholder:text-white/25"
                               placeholder="Adınız Soyadınız"
                             />
                           </div>
@@ -810,7 +810,7 @@ export default function Checkout() {
                                 value={formData.customerEmail}
                                 onChange={handleChange}
                                 data-testid="input-customerEmail"
-                                className="h-12 pl-11 bg-stone-50 border-black/12 focus:border-black/40 rounded-md text-black placeholder:text-black/25"
+                                className="h-12 pl-11 bg-[#0F0F0F] border-white/12 focus:border-white/40 rounded-md text-white placeholder:text-white/25"
                                 placeholder="ornek@email.com"
                               />
                             </div>
@@ -826,7 +826,7 @@ export default function Checkout() {
                                 value={formData.customerPhone}
                                 onChange={handleChange}
                                 data-testid="input-customerPhone"
-                                className="h-12 pl-11 bg-stone-50 border-black/12 focus:border-black/40 rounded-md text-black placeholder:text-black/25"
+                                className="h-12 pl-11 bg-[#0F0F0F] border-white/12 focus:border-white/40 rounded-md text-white placeholder:text-white/25"
                                 placeholder="05XX XXX XX XX"
                               />
                             </div>
@@ -838,7 +838,7 @@ export default function Checkout() {
                         <Button 
                           type="button" 
                           onClick={handleNextStep}
-                          className="w-full h-12 bg-white text-black hover:bg-white/90 font-bold tracking-wide group rounded-lg"
+                          className="w-full h-12 bg-[#141414] text-white hover:bg-[#141414]/90 font-bold tracking-wide group rounded-lg"
                           data-testid="button-next-step1"
                         >
                           DEVAM ET
@@ -854,11 +854,11 @@ export default function Checkout() {
                       initial={{ opacity: 0, y: 20 }}
                       animate={{ opacity: 1, y: 0 }}
                       exit={{ opacity: 0, y: -20 }}
-                      className="bg-white border border-black/8 rounded-md p-4 sm:p-6 overflow-hidden"
+                      className="bg-[#141414] border border-white/8 rounded-md p-4 sm:p-6 overflow-hidden"
                     >
                       <div className="flex items-center gap-3 mb-6">
-                        <div className="w-10 h-10 bg-stone-100 flex items-center justify-center">
-                          <MapPin className="w-5 h-5 text-black/50" />
+                        <div className="w-10 h-10 bg-[#151515] flex items-center justify-center">
+                          <MapPin className="w-5 h-5 text-white/50" />
                         </div>
                         <h2 className="font-display text-xl tracking-wide">
                           TESLİMAT ADRESİ
@@ -888,8 +888,8 @@ export default function Checkout() {
                                 onClick={() => handleSelectAddress(addr)}
                                 className={`w-full text-left p-4 border transition-all ${
                                   selectedAddressId === addr.id 
-                                    ? 'border-black bg-stone-50' 
-                                    : 'border-black/10 hover:border-black/25 bg-white'
+                                    ? 'border-white bg-[#0F0F0F]' 
+                                    : 'border-white/10 hover:border-white/25 bg-[#141414]'
                                 }`}
                                 data-testid={`address-option-${addr.id}`}
                               >
@@ -898,7 +898,7 @@ export default function Checkout() {
                                     <div className="flex items-center gap-2 mb-1">
                                       <span className="font-medium">{addr.title}</span>
                                       {addr.isDefault && (
-                                        <span className="text-xs bg-white/10 px-2 py-0.5 rounded">Varsayılan</span>
+                                        <span className="text-xs bg-[#141414]/10 px-2 py-0.5 rounded">Varsayılan</span>
                                       )}
                                     </div>
                                     <p className="text-sm text-muted-foreground truncate">
@@ -932,7 +932,7 @@ export default function Checkout() {
                                 country: 'Türkiye',
                               }));
                             }}
-                            className="flex items-center gap-2 text-sm text-muted-foreground hover:text-black transition-colors"
+                            className="flex items-center gap-2 text-sm text-muted-foreground hover:text-white transition-colors"
                             data-testid="button-new-address"
                           >
                             <UserPlus className="w-4 h-4" />
@@ -954,7 +954,7 @@ export default function Checkout() {
                                   if (defaultAddr) handleSelectAddress(defaultAddr);
                                 }
                               }}
-                              className="flex items-center gap-2 text-sm text-muted-foreground hover:text-black transition-colors mb-4"
+                              className="flex items-center gap-2 text-sm text-muted-foreground hover:text-white transition-colors mb-4"
                             >
                               <ArrowRight className="w-4 h-4 rotate-180" />
                               Kayıtlı Adreslerime Dön
@@ -969,7 +969,7 @@ export default function Checkout() {
                               onChange={handleChange}
                               placeholder="Sokak, Mahalle, Bina No, Daire No"
                               data-testid="input-address"
-                              className="h-12 bg-stone-50 border-black/12 focus:border-black/40 rounded-md text-black placeholder:text-black/25"
+                              className="h-12 bg-[#0F0F0F] border-white/12 focus:border-white/40 rounded-md text-white placeholder:text-white/25"
                             />
                           </div>
 
@@ -982,7 +982,7 @@ export default function Checkout() {
                                 value={formData.city}
                                 onChange={handleChange}
                                 data-testid="input-city"
-                                className="h-12 bg-stone-50 border-black/12 focus:border-black/40 rounded-md text-black placeholder:text-black/25"
+                                className="h-12 bg-[#0F0F0F] border-white/12 focus:border-white/40 rounded-md text-white placeholder:text-white/25"
                                 placeholder="İstanbul"
                               />
                             </div>
@@ -994,7 +994,7 @@ export default function Checkout() {
                                 value={formData.district}
                                 onChange={handleChange}
                                 data-testid="input-district"
-                                className="h-12 bg-stone-50 border-black/12 focus:border-black/40 rounded-md text-black placeholder:text-black/25"
+                                className="h-12 bg-[#0F0F0F] border-white/12 focus:border-white/40 rounded-md text-white placeholder:text-white/25"
                                 placeholder="Kadıköy"
                               />
                             </div>
@@ -1009,7 +1009,7 @@ export default function Checkout() {
                                 value={formData.postalCode}
                                 onChange={handleChange}
                                 data-testid="input-postalCode"
-                                className="h-12 bg-stone-50 border-black/12 focus:border-black/40 rounded-md text-black placeholder:text-black/25"
+                                className="h-12 bg-[#0F0F0F] border-white/12 focus:border-white/40 rounded-md text-white placeholder:text-white/25"
                                 placeholder="34000"
                               />
                             </div>
@@ -1021,10 +1021,10 @@ export default function Checkout() {
                                 value={formData.country}
                                 onChange={handleChange}
                                 data-testid="select-country"
-                                className="w-full h-12 bg-stone-50 border border-black/12 focus:border-black/40 focus:outline-none rounded-md px-4 text-black"
+                                className="w-full h-12 bg-[#0F0F0F] border border-white/12 focus:border-white/40 focus:outline-none rounded-md px-4 text-white"
                               >
                                 {COUNTRIES.map(country => (
-                                  <option key={country} value={country} className="bg-white">
+                                  <option key={country} value={country} className="bg-[#141414]">
                                     {country}
                                   </option>
                                 ))}
@@ -1050,13 +1050,13 @@ export default function Checkout() {
                               type="checkbox"
                               checked={createAccount}
                               onChange={(e) => setCreateAccount(e.target.checked)}
-                              className="mt-1 w-5 h-5 border-black/20 bg-white text-black focus:ring-black focus:ring-offset-0 rounded-md"
+                              className="mt-1 w-5 h-5 border-white/20 bg-[#141414] text-white focus:ring-black focus:ring-offset-0 rounded-md"
                               data-testid="checkbox-create-account"
                             />
                             <div className="flex-1">
                               <div className="flex items-center gap-2">
                                 <UserPlus className="w-4 h-4 text-blue-400" />
-                                <span className="font-medium text-black">Üye olmak ister misiniz?</span>
+                                <span className="font-medium text-white">Üye olmak ister misiniz?</span>
                               </div>
                               <p className="text-xs text-muted-foreground mt-1">
                                 Siparişlerinizi kolayca takip edin, adreslerinizi kaydedin ve özel kampanyalardan haberdar olun.
@@ -1083,7 +1083,7 @@ export default function Checkout() {
                                       onChange={(e) => setAccountPassword(e.target.value)}
                                       placeholder="En az 6 karakter"
                                       data-testid="input-account-password"
-                                      className="h-12 pl-12 bg-stone-50 border-black/12 focus:border-black/40 rounded-md text-black placeholder:text-black/25"
+                                      className="h-12 pl-12 bg-[#0F0F0F] border-white/12 focus:border-white/40 rounded-md text-white placeholder:text-white/25"
                                       minLength={6}
                                     />
                                   </div>
@@ -1102,7 +1102,7 @@ export default function Checkout() {
                           type="button" 
                           variant="outline"
                           onClick={() => setCurrentStep(1)}
-                          className="flex-1 h-12 border-black/15 hover:bg-black/4 text-black rounded-md"
+                          className="flex-1 h-12 border-white/15 hover:bg-white/4 text-white rounded-md"
                         >
                           Geri
                         </Button>
@@ -1127,11 +1127,11 @@ export default function Checkout() {
                       initial={{ opacity: 0, y: 20 }}
                       animate={{ opacity: 1, y: 0 }}
                       exit={{ opacity: 0, y: -20 }}
-                      className="bg-white border border-black/8 rounded-md p-4 sm:p-6 overflow-hidden"
+                      className="bg-[#141414] border border-white/8 rounded-md p-4 sm:p-6 overflow-hidden"
                     >
                       <div className="flex items-center gap-3 mb-4">
-                        <div className="w-10 h-10 bg-stone-100 flex items-center justify-center">
-                          <CreditCard className="w-5 h-5 text-black/50" />
+                        <div className="w-10 h-10 bg-[#151515] flex items-center justify-center">
+                          <CreditCard className="w-5 h-5 text-white/50" />
                         </div>
                         <h2 className="font-display text-xl tracking-wide">
                           ÖDEME YÖNTEMİ
@@ -1139,14 +1139,14 @@ export default function Checkout() {
                       </div>
 
                       {/* Payment method tabs */}
-                      <div className="grid grid-cols-2 gap-0 mb-6 border border-black/12">
+                      <div className="grid grid-cols-2 gap-0 mb-6 border border-white/12">
                         <button
                           type="button"
                           onClick={() => setPaymentMethod('card')}
                           className={`h-12 px-3 text-xs sm:text-sm font-bold tracking-wide transition-colors flex items-center justify-center gap-2 ${
                             paymentMethod === 'card'
                               ? 'bg-black text-white'
-                              : 'bg-white text-black/60 hover:bg-stone-50'
+                              : 'bg-[#141414] text-white/60 hover:bg-[#0F0F0F]'
                           }`}
                           data-testid="tab-payment-card"
                         >
@@ -1159,7 +1159,7 @@ export default function Checkout() {
                           className={`h-12 px-3 text-xs sm:text-sm font-bold tracking-wide transition-colors flex items-center justify-center gap-2 relative ${
                             paymentMethod === 'bank_transfer'
                               ? 'bg-black text-white'
-                              : 'bg-white text-black/60 hover:bg-stone-50'
+                              : 'bg-[#141414] text-white/60 hover:bg-[#0F0F0F]'
                           }`}
                           data-testid="tab-payment-bank-transfer"
                         >
@@ -1167,8 +1167,8 @@ export default function Checkout() {
                           HAVALE
                           <span className={`text-[10px] font-bold px-1.5 py-0.5 ${
                             paymentMethod === 'bank_transfer'
-                              ? 'bg-polen-orange text-black'
-                              : 'bg-polen-orange/15 text-polen-orange'
+                              ? 'bg-white text-black'
+                              : 'bg-white/12 text-white'
                           }`}>
                             -%10
                           </span>
@@ -1186,22 +1186,22 @@ export default function Checkout() {
 
                       {paymentMethod === 'bank_transfer' ? (
                         <div className="space-y-4" data-testid="bank-transfer-panel">
-                          <div className="bg-polen-orange/10 border border-polen-orange/30 p-4">
+                          <div className="bg-white/10 border border-white/30 p-4">
                             <div className="flex items-start gap-3">
-                              <div className="w-9 h-9 bg-polen-orange/20 flex items-center justify-center shrink-0">
+                              <div className="w-9 h-9 bg-white/15 flex items-center justify-center shrink-0">
                                 <span className="text-lg">🏦</span>
                               </div>
                               <div>
-                                <p className="text-sm font-bold text-black">Havale ile %10 indirim kazandınız!</p>
-                                <p className="text-xs text-black/65 mt-1 leading-snug">
+                                <p className="text-sm font-bold text-white">Havale ile %10 indirim kazandınız!</p>
+                                <p className="text-xs text-white/65 mt-1 leading-snug">
                                   Aşağıdaki banka bilgilerine ödemenizi yaptıktan sonra siparişiniz onaylanıp hazırlığa alınır.
                                 </p>
                               </div>
                             </div>
                           </div>
 
-                          <div className="border border-black/10 p-4 space-y-3">
-                            <h3 className="font-display text-sm tracking-wider text-black/85">BANKA BİLGİLERİ</h3>
+                          <div className="border border-white/10 p-4 space-y-3">
+                            <h3 className="font-display text-sm tracking-wider text-white/85">BANKA BİLGİLERİ</h3>
                             <div className="space-y-2 text-sm">
                               {[
                                 { key: 'bank' as const, label: 'Banka', value: BANK_TRANSFER_INFO.bankName, testId: 'bank-name' },
@@ -1209,10 +1209,10 @@ export default function Checkout() {
                                 { key: 'iban' as const, label: 'IBAN', value: BANK_TRANSFER_INFO.iban, testId: 'bank-iban', mono: true },
                               ].map(({ key, label, value, testId, mono }) => (
                                 <div key={key} className="flex items-center justify-between gap-2">
-                                  <span className="text-black/55 shrink-0">{label}</span>
+                                  <span className="text-white/55 shrink-0">{label}</span>
                                   <div className="flex items-center gap-2 min-w-0">
                                     <span
-                                      className={`text-black font-semibold text-right break-all ${mono ? 'font-mono text-[13px]' : 'font-medium'}`}
+                                      className={`text-white font-semibold text-right break-all ${mono ? 'font-mono text-[13px]' : 'font-medium'}`}
                                       data-testid={`text-${testId}`}
                                     >
                                       {value}
@@ -1220,12 +1220,12 @@ export default function Checkout() {
                                     <button
                                       type="button"
                                       onClick={() => copyBankField(key, value)}
-                                      className="p-1 text-black/45 hover:text-polen-orange hover:bg-black/[0.04] transition-colors rounded shrink-0"
+                                      className="p-1 text-white/45 hover:text-white hover:bg-white/[0.04] transition-colors rounded shrink-0"
                                       aria-label={`${label} kopyala`}
                                       data-testid={`button-copy-${testId}`}
                                     >
                                       {copiedField === key ? (
-                                        <Check className="w-3.5 h-3.5 text-polen-orange" strokeWidth={2.5} />
+                                        <Check className="w-3.5 h-3.5 text-white" strokeWidth={2.5} />
                                       ) : (
                                         <ClipboardCheck className="w-3.5 h-3.5" strokeWidth={2} />
                                       )}
@@ -1234,34 +1234,34 @@ export default function Checkout() {
                                 </div>
                               ))}
                               {copiedField && (
-                                <p className="text-[11px] text-polen-orange font-medium" data-testid="text-copied-feedback">
+                                <p className="text-[11px] text-white font-medium" data-testid="text-copied-feedback">
                                   Kopyalandı
                                 </p>
                               )}
                             </div>
                           </div>
 
-                          <div className="bg-stone-50 border border-black/8 p-4 space-y-2">
+                          <div className="bg-[#0F0F0F] border border-white/8 p-4 space-y-2">
                             <div className="flex justify-between text-sm">
-                              <span className="text-black/55">Sipariş Toplamı</span>
-                              <span className="text-black/70 line-through">{total.toLocaleString('tr-TR')} ₺</span>
+                              <span className="text-white/55">Sipariş Toplamı</span>
+                              <span className="text-white/70 line-through">{total.toLocaleString('tr-TR')} ₺</span>
                             </div>
                             <div className="flex justify-between text-sm">
-                              <span className="text-polen-orange font-medium">Havale İndirimi (%10)</span>
-                              <span className="text-polen-orange font-medium" data-testid="text-bank-discount">
+                              <span className="text-white font-medium">Havale İndirimi (%10)</span>
+                              <span className="text-white font-medium" data-testid="text-bank-discount">
                                 -{bankTransferDiscount.toLocaleString('tr-TR')} ₺
                               </span>
                             </div>
                             <div className="h-px bg-black/8" />
                             <div className="flex justify-between items-end">
-                              <span className="font-bold text-black">Ödenecek Tutar</span>
-                              <span className="font-bold text-2xl text-black" data-testid="text-bank-final-total">
+                              <span className="font-bold text-white">Ödenecek Tutar</span>
+                              <span className="font-bold text-2xl text-white" data-testid="text-bank-final-total">
                                 {finalTotal.toLocaleString('tr-TR')} ₺
                               </span>
                             </div>
                           </div>
 
-                          <p className="text-xs text-black/50 leading-relaxed">
+                          <p className="text-xs text-white/50 leading-relaxed">
                             Stoklar onaylanana kadar rezerve edilmez. Ödemeniz banka hesabımıza geçtikten sonra siparişiniz onaylanır ve hazırlığa alınır.
                           </p>
 
@@ -1270,7 +1270,7 @@ export default function Checkout() {
                               type="button"
                               variant="outline"
                               onClick={() => setCurrentStep(2)}
-                              className="flex-1 h-12 border-black/15 hover:bg-black/4 text-black rounded-md"
+                              className="flex-1 h-12 border-white/15 hover:bg-white/4 text-white rounded-md"
                               data-testid="button-bank-back"
                             >
                               Geri
@@ -1294,7 +1294,7 @@ export default function Checkout() {
                         </div>
                       ) : paymentPageUrl ? (
                         <div className="space-y-4">
-                          <div className="bg-white border border-black/8 rounded-md overflow-hidden">
+                          <div className="bg-[#141414] border border-white/8 rounded-md overflow-hidden">
                             <iframe
                               src={paymentPageUrl}
                               title="iyzico Güvenli Ödeme"
@@ -1306,7 +1306,7 @@ export default function Checkout() {
                           </div>
 
                           <div className="flex items-center justify-between gap-3 text-xs">
-                            <div className="flex items-center gap-2 text-black/60">
+                            <div className="flex items-center gap-2 text-white/60">
                               <Lock className="w-3.5 h-3.5" />
                               <span>256-bit SSL · iyzico güvencesiyle</span>
                             </div>
@@ -1314,7 +1314,7 @@ export default function Checkout() {
                               href={paymentPageUrl}
                               target="_blank"
                               rel="noopener noreferrer"
-                              className="text-black/70 hover:text-black underline underline-offset-2"
+                              className="text-white/70 hover:text-white underline underline-offset-2"
                               data-testid="link-iyzico-newtab"
                             >
                               Yeni sekmede aç →
@@ -1331,7 +1331,7 @@ export default function Checkout() {
                               setPaymentError(null);
                               setCurrentStep(2);
                             }}
-                            className="w-full h-12 border-black/15 hover:bg-black/4 text-black rounded-md"
+                            className="w-full h-12 border-white/15 hover:bg-white/4 text-white rounded-md"
                           >
                             Bilgilerimi Düzenle
                           </Button>
@@ -1340,7 +1340,7 @@ export default function Checkout() {
                         <div className="space-y-4">
                           <div
                             ref={checkoutFormRef}
-                            className="bg-white rounded-xl overflow-hidden"
+                            className="bg-[#141414] rounded-xl overflow-hidden"
                             style={{ minHeight: '500px' }}
                             data-testid="iyzico-checkout-form"
                           />
@@ -1367,14 +1367,14 @@ export default function Checkout() {
                               setPaymentError(null);
                               setCurrentStep(2);
                             }}
-                            className="w-full h-12 border-black/15 hover:bg-black/4 text-black rounded-md"
+                            className="w-full h-12 border-white/15 hover:bg-white/4 text-white rounded-md"
                           >
                             Bilgilerimi Düzenle
                           </Button>
                         </div>
                       ) : (
                         <div className="flex flex-col items-center justify-center py-12">
-                          <Loader2 className="w-8 h-8 animate-spin text-black/30 mb-4" />
+                          <Loader2 className="w-8 h-8 animate-spin text-white/30 mb-4" />
                           <p className="text-muted-foreground">Ödeme formu yükleniyor...</p>
                         </div>
                       )}
@@ -1389,14 +1389,14 @@ export default function Checkout() {
               <motion.div 
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
-                className="bg-stone-50 border border-black/8 p-4 sm:p-6 sticky top-24 overflow-hidden"
+                className="bg-[#0F0F0F] border border-white/8 p-4 sm:p-6 sticky top-24 overflow-hidden"
               >
                 
                 <h2 className="font-display text-lg tracking-wide mb-4 relative">
                   SİPARİŞ ÖZETİ
                 </h2>
 
-                <div className="space-y-3 pb-4 border-b border-black/8 relative max-h-48 overflow-y-auto">
+                <div className="space-y-3 pb-4 border-b border-white/8 relative max-h-48 overflow-y-auto">
                   {cartItemsWithProducts.map((item) => (
                     <div key={item.id} className="flex gap-3">
                       <div className="w-14 h-16 bg-stone-200 overflow-hidden shrink-0">
@@ -1420,7 +1420,7 @@ export default function Checkout() {
                 </div>
 
                 {/* Coupon Input Section */}
-                <div className="py-4 border-b border-black/8 relative">
+                <div className="py-4 border-b border-white/8 relative">
                   {appliedCoupon ? (
                     <div className="space-y-3">
                       <div className="flex items-center justify-between bg-neutral-500/10 border border-neutral-500/30 rounded-lg px-3 py-2">
@@ -1430,7 +1430,7 @@ export default function Checkout() {
                         </div>
                         <button
                           onClick={handleRemoveCoupon}
-                          className="text-muted-foreground hover:text-black transition-colors"
+                          className="text-muted-foreground hover:text-white transition-colors"
                           data-testid="button-remove-coupon"
                         >
                           <X className="w-4 h-4" />
@@ -1470,7 +1470,7 @@ export default function Checkout() {
                               setCouponError('');
                             }}
                             placeholder="Kupon kodu"
-                            className="pl-10 bg-stone-50 border-black/12 h-10 uppercase text-black placeholder:text-black/25 rounded-md"
+                            className="pl-10 bg-[#0F0F0F] border-white/12 h-10 uppercase text-white placeholder:text-white/25 rounded-md"
                             data-testid="input-coupon-code"
                           />
                         </div>
@@ -1478,7 +1478,7 @@ export default function Checkout() {
                           type="button"
                           onClick={handleApplyCoupon}
                           disabled={couponLoading || !couponCode.trim()}
-                          className="h-10 px-4 bg-white text-black hover:bg-white/90 font-bold"
+                          className="h-10 px-4 bg-[#141414] text-white hover:bg-[#141414]/90 font-bold"
                           data-testid="button-apply-coupon"
                         >
                           {couponLoading ? (
@@ -1545,7 +1545,7 @@ export default function Checkout() {
                     </div>
                   )}
                   {paymentMethod === 'bank_transfer' && bankTransferDiscount > 0 && (
-                    <div className="flex justify-between text-polen-orange">
+                    <div className="flex justify-between text-white">
                       <span className="flex items-center gap-1">
                         <span>🏦</span>
                         Havale İndirimi (%10)
@@ -1560,7 +1560,7 @@ export default function Checkout() {
                   </div>
                 </div>
 
-                <div className="space-y-3 pt-4 border-t border-black/8 relative">
+                <div className="space-y-3 pt-4 border-t border-white/8 relative">
                   <div className="flex items-center gap-3 text-xs text-muted-foreground">
                     <Shield className="w-4 h-4 shrink-0 text-neutral-400" />
                     <span>Güvenli Ödeme</span>

@@ -58,7 +58,7 @@ export default function ForgotPassword() {
         title="E-POSTA GÖNDERİLDİ"
         subtitle={
           <>
-            Eğer <strong className="text-black">{email}</strong> adresi sistemimizde kayıtlıysa, şifre sıfırlama
+            Eğer <strong className="text-white">{email}</strong> adresi sistemimizde kayıtlıysa, şifre sıfırlama
             bağlantısı içeren bir e-posta gönderdik.
           </>
         }
@@ -68,13 +68,13 @@ export default function ForgotPassword() {
         footerLinkTestId="link-login-bottom"
       >
         <div className="flex justify-center mb-6">
-          <div className="w-14 h-14 rounded-full bg-black flex items-center justify-center" data-testid="text-email-sent">
-            <CheckCircle2 className="w-7 h-7 text-white" strokeWidth={1.75} />
+          <div className="w-14 h-14 rounded-full bg-white flex items-center justify-center" data-testid="text-email-sent">
+            <CheckCircle2 className="w-7 h-7 text-black" strokeWidth={1.75} />
           </div>
         </div>
 
-        <div className="bg-[#F5F5F5] border border-black/8 rounded-lg p-4 mb-5 text-left">
-          <ul className="space-y-2 text-[13px] text-black/55">
+        <div className="bg-[#0F0F0F] border border-white/8 rounded-lg p-4 mb-5 text-left">
+          <ul className="space-y-2 text-[13px] text-white/55">
             <li>1. E-posta kutunuzu kontrol edin</li>
             <li>2. Spam/gereksiz klasörünü de kontrol etmeyi unutmayın</li>
             <li>3. E-postadaki bağlantıya tıklayarak yeni şifrenizi oluşturun</li>
@@ -83,7 +83,7 @@ export default function ForgotPassword() {
 
         <button
           onClick={() => setSubmitted(false)}
-          className="w-full text-center text-[13px] text-black/60 hover:text-black transition-colors underline underline-offset-4 decoration-black/20 hover:decoration-black/60"
+          className="w-full text-center text-[13px] text-white/60 hover:text-white transition-colors underline underline-offset-4 decoration-white/20 hover:decoration-white/60"
           data-testid="button-try-another-email"
         >
           Farklı bir e-posta adresi dene
@@ -130,7 +130,7 @@ export default function ForgotPassword() {
           )}
         </Button>
 
-        <p className="text-[11px] text-black/55 text-center leading-relaxed pt-1">
+        <p className="text-[11px] text-white/55 text-center leading-relaxed pt-1">
           Güvenliğiniz için şifre sıfırlama bağlantısı yalnızca <strong>15 dakika</strong> geçerlidir. Bağlantı süresi
           dolarsa tekrar talep edebilirsiniz.
         </p>

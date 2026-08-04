@@ -13,7 +13,7 @@ const highlights = [
 
 export default function CancellationPolicy() {
   return (
-    <div className="min-h-screen bg-stone-50">
+    <div className="min-h-screen bg-[#0A0A0A]">
       <SEO
         title="İptal ve İade Politikası - Polen Stone Doğal Taş & Mermer"
         description="Polen Stone Doğal Taş & Mermer ürün iade, değişim ve iptal koşulları."
@@ -21,27 +21,27 @@ export default function CancellationPolicy() {
       <Header />
 
       <main className="pt-6 pb-12">
-        <section className="px-4 sm:px-6 py-12 lg:py-16 bg-white border-b border-black/[0.06]">
+        <section className="px-4 sm:px-6 py-12 lg:py-16 bg-[#0F0F0F] border-b border-white/8">
           <div className="max-w-4xl mx-auto">
             <motion.nav
               initial={{ opacity: 0, y: -10 }}
               animate={{ opacity: 1, y: 0 }}
-              className="flex items-center gap-2 text-xs text-black/55 mb-8"
+              className="flex items-center gap-2 text-xs text-white/55 mb-8"
             >
-              <Link href="/" data-testid="link-home" className="hover:text-polen-orange transition-colors">Ana Sayfa</Link>
+              <Link href="/" data-testid="link-home" className="hover:text-white transition-colors">Ana Sayfa</Link>
               <ChevronRight className="w-3 h-3" />
-              <span className="text-black">İptal ve İade Politikası</span>
+              <span className="text-white">İptal ve İade Politikası</span>
             </motion.nav>
 
             <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}>
-              <span className="text-xs tracking-[0.3em] uppercase text-polen-orange mb-4 block font-semibold">
+              <span className="text-xs tracking-[0.3em] uppercase text-white mb-4 block font-semibold">
                 İade & Değişim
               </span>
-              <h1 className="font-display text-4xl sm:text-5xl lg:text-6xl tracking-wider mb-6 text-black">
+              <h1 className="font-display text-4xl sm:text-5xl lg:text-6xl tracking-wider mb-6 text-white">
                 İPTAL VE İADE<br />
-                <span className="text-black/45">POLİTİKASI</span>
+                <span className="text-white/45">POLİTİKASI</span>
               </h1>
-              <p className="text-lg text-black/65 max-w-2xl mb-10 leading-relaxed">
+              <p className="text-lg text-white/65 max-w-2xl mb-10 leading-relaxed">
                 Müşteri memnuniyeti önceliğimizdir. Kolay iade ve değişim süreçleriyle alışverişlerinizi
                 güvence altına alıyoruz.
               </p>
@@ -53,13 +53,13 @@ export default function CancellationPolicy() {
                     initial={{ opacity: 0, y: 20 }}
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ delay: index * 0.08 }}
-                    className="bg-stone-50 border border-black/[0.08] rounded-xl p-6 text-center hover:border-polen-orange/40 transition-colors"
+                    className="bg-[#141414] border border-white/8 rounded-xl p-6 text-center hover:border-white/40 transition-colors"
                   >
-                    <div className="w-14 h-14 bg-polen-orange/10 rounded-xl flex items-center justify-center mx-auto mb-4">
-                      <item.icon className="w-7 h-7 text-polen-orange" strokeWidth={1.75} />
+                    <div className="w-14 h-14 bg-white/10 rounded-xl flex items-center justify-center mx-auto mb-4">
+                      <item.icon className="w-7 h-7 text-white" strokeWidth={1.75} />
                     </div>
-                    <h3 className="font-semibold mb-1 text-black">{item.label}</h3>
-                    <p className="text-sm text-black/60">{item.desc}</p>
+                    <h3 className="font-semibold mb-1 text-white">{item.label}</h3>
+                    <p className="text-sm text-white/60">{item.desc}</p>
                   </motion.div>
                 ))}
               </div>
@@ -75,55 +75,55 @@ export default function CancellationPolicy() {
               viewport={{ once: true }}
               className="grid md:grid-cols-2 gap-4"
             >
-              <div className="bg-white border border-neutral-200 rounded-xl p-6 shadow-[0_2px_18px_-12px_rgba(0,0,0,0.06)]">
+              <div className="bg-[#141414] border border-white/8 rounded-xl p-6 shadow-[0_8px_30px_rgba(0,0,0,0.4)]">
                 <div className="flex items-center gap-3 mb-4">
-                  <div className="w-10 h-10 bg-neutral-50 rounded-lg flex items-center justify-center">
-                    <CheckCircle className="w-5 h-5 text-neutral-600" />
+                  <div className="w-10 h-10 bg-white/5 rounded-lg flex items-center justify-center">
+                    <CheckCircle className="w-5 h-5 text-white/60" />
                   </div>
-                  <h3 className="font-display text-lg tracking-wide text-black">İade Edilebilir</h3>
+                  <h3 className="font-display text-lg tracking-wide text-white">İade Edilebilir</h3>
                 </div>
-                <ul className="space-y-2 text-sm text-black/70">
+                <ul className="space-y-2 text-sm text-white/70">
                   <li className="flex items-start gap-2">
-                    <span className="text-neutral-600 mt-1">•</span>
+                    <span className="text-white/60 mt-1">•</span>
                     Kullanılmamış, orijinal ambalajında ürünler
                   </li>
                   <li className="flex items-start gap-2">
-                    <span className="text-neutral-600 mt-1">•</span>
+                    <span className="text-white/60 mt-1">•</span>
                     Etiketleri sökülmemiş ürünler
                   </li>
                   <li className="flex items-start gap-2">
-                    <span className="text-neutral-600 mt-1">•</span>
+                    <span className="text-white/60 mt-1">•</span>
                     Fatura ile birlikte gönderilen ürünler
                   </li>
                 </ul>
               </div>
 
-              <div className="bg-white border border-rose-200 rounded-xl p-6 shadow-[0_2px_18px_-12px_rgba(0,0,0,0.06)]">
+              <div className="bg-[#141414] border border-[#F04444]/40 rounded-xl p-6 shadow-[0_8px_30px_rgba(0,0,0,0.4)]">
                 <div className="flex items-center gap-3 mb-4">
-                  <div className="w-10 h-10 bg-rose-50 rounded-lg flex items-center justify-center">
-                    <XCircle className="w-5 h-5 text-rose-600" />
+                  <div className="w-10 h-10 bg-[#F04444]/10 rounded-lg flex items-center justify-center">
+                    <XCircle className="w-5 h-5 text-[#F04444]" />
                   </div>
-                  <h3 className="font-display text-lg tracking-wide text-black">İade Edilemez</h3>
+                  <h3 className="font-display text-lg tracking-wide text-white">İade Edilemez</h3>
                 </div>
-                <ul className="space-y-2 text-sm text-black/70">
+                <ul className="space-y-2 text-sm text-white/70">
                   <li className="flex items-start gap-2">
-                    <span className="text-rose-600 mt-1">•</span>
+                    <span className="text-[#F04444] mt-1">•</span>
                     Projeye özel ölçüde kesilmiş veya işlenmiş plaka, fayans ve tezgâh ürünleri
                   </li>
                   <li className="flex items-start gap-2">
-                    <span className="text-rose-600 mt-1">•</span>
+                    <span className="text-[#F04444] mt-1">•</span>
                     Yerine monte edilmiş, yapıştırılmış veya işlem görmüş doğal taşlar
                   </li>
                   <li className="flex items-start gap-2">
-                    <span className="text-rose-600 mt-1">•</span>
+                    <span className="text-[#F04444] mt-1">•</span>
                     Doğal taşın yapısından kaynaklanan ton, damar ve desen farklılıkları (kusur sayılmaz)
                   </li>
                 </ul>
               </div>
             </motion.div>
 
-            <div className="bg-white border border-black/[0.08] rounded-2xl p-6 sm:p-8 lg:p-10 shadow-[0_2px_24px_-12px_rgba(0,0,0,0.08)]">
-              <div className="prose prose-zinc max-w-none prose-headings:font-display prose-headings:tracking-wide prose-headings:text-black prose-h2:text-xl prose-h2:border-b prose-h2:border-black/10 prose-h2:pb-3 prose-h2:mb-4 prose-p:text-black/70 prose-li:text-black/70 prose-strong:text-black prose-a:text-polen-orange hover:prose-a:underline">
+            <div className="bg-[#141414] border border-white/8 rounded-2xl p-6 sm:p-8 lg:p-10 shadow-[0_8px_30px_rgba(0,0,0,0.4)]">
+              <div className="prose prose-invert max-w-none prose-headings:font-display prose-headings:tracking-wide prose-headings:text-white prose-h2:text-xl prose-h2:border-b prose-h2:border-white/8 prose-h2:pb-3 prose-h2:mb-4 prose-p:text-white/70 prose-li:text-white/70 prose-strong:text-white prose-a:text-white hover:prose-a:underline">
                 <h2>1) Genel İlkeler</h2>
                 <ul>
                   <li>İade/iptal işlemleri 6502 sayılı Kanun ve Mesafeli Satış Sözleşmeleri Yönetmeliği'ne uygun şekilde yürütülür.</li>

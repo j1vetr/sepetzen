@@ -84,7 +84,7 @@ export default function Login() {
             <button
               type="button"
               onClick={() => setShowPassword(!showPassword)}
-              className="absolute right-3.5 top-1/2 -translate-y-1/2 text-black/35 hover:text-black transition-colors"
+               className="absolute right-3.5 top-1/2 -translate-y-1/2 text-white/35 hover:text-white transition-colors"
               aria-label={showPassword ? 'Şifreyi gizle' : 'Şifreyi göster'}
             >
               {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
@@ -93,7 +93,7 @@ export default function Login() {
           <div className="text-right">
             <Link
               href="/sifremi-unuttum"
-              className="text-[12px] text-black/60 hover:text-black transition-colors underline underline-offset-4 decoration-black/15 hover:decoration-black/60"
+               className="text-[12px] text-white/60 hover:text-white transition-colors underline underline-offset-4 decoration-white/15 hover:decoration-white/60"
               data-testid="link-forgot-password"
             >
               Şifremi Unuttum

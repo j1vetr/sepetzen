@@ -279,16 +279,16 @@ function FeaturedProducts({ products }: { products: Product[] }) {
   return (
     <section
       ref={ref}
-      className="bg-[#F5F5F5] py-16 lg:py-24 px-5 lg:px-10"
+      className="bg-[#0A0A0A] py-16 lg:py-24 px-5 lg:px-10"
       data-testid="scene-featured"
     >
       <div className="max-w-[1320px] mx-auto">
         {/* Heading */}
         <div className="flex items-end justify-between mb-10 lg:mb-14">
           <div>
-            <p className="text-[10px] font-mono tracking-[0.30em] uppercase text-black/40 mb-2">Seçtiklerimiz</p>
+            <p className="text-[10px] font-mono tracking-[0.30em] uppercase text-white/50 mb-2">Seçtiklerimiz</p>
             <h2
-              className="font-black text-black leading-none"
+              className="font-black text-white leading-none"
               style={{ fontSize: 'clamp(28px, 4vw, 52px)', letterSpacing: '-0.03em' }}
             >
               Öne Çıkan Ürünler
@@ -297,7 +297,7 @@ function FeaturedProducts({ products }: { products: Product[] }) {
           <Link
             href="/magaza"
             data-testid="link-featured-all"
-            className="hidden sm:inline-flex items-center gap-2 text-[11px] tracking-[0.22em] uppercase font-semibold text-black/50 hover:text-[#141414] transition-colors"
+            className="hidden sm:inline-flex items-center gap-2 text-[11px] tracking-[0.22em] uppercase font-semibold text-white/50 hover:text-white transition-colors"
           >
             Tümünü Gör <ArrowUpRight className="w-3.5 h-3.5" />
           </Link>
@@ -319,7 +319,7 @@ function FeaturedProducts({ products }: { products: Product[] }) {
         </div>
 
         <div className="mt-10 text-center sm:hidden">
-          <Link href="/magaza" className="inline-flex items-center gap-2 text-[11px] tracking-[0.22em] uppercase font-semibold text-[#141414]">
+          <Link href="/magaza" className="inline-flex items-center gap-2 text-[11px] tracking-[0.22em] uppercase font-semibold text-white">
             Tüm Ürünlere Bak <ArrowUpRight className="w-3.5 h-3.5" />
           </Link>
         </div>

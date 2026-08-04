@@ -146,13 +146,13 @@ export function SearchOverlay({ isOpen, onClose }: SearchOverlayProps) {
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -24 }}
             transition={{ duration: 0.32, ease: [0.16, 1, 0.3, 1] }}
-            className="fixed top-0 left-0 right-0 z-[101] bg-white shadow-[0_24px_60px_-20px_rgba(0,0,0,0.25)] flex flex-col max-h-[92vh]"
+            className="fixed top-0 left-0 right-0 z-[101] bg-[#141414] shadow-[0_24px_60px_-20px_rgba(0,0,0,0.55)] flex flex-col max-h-[92vh]"
             data-testid="panel-search"
           >
             {/* Header satırı */}
-            <div className="border-b border-black/[0.08]">
+            <div className="border-b border-white/8">
               <div className="max-w-[1200px] mx-auto px-5 lg:px-8 py-5 lg:py-7 flex items-center gap-4">
-                <Search className="w-5 h-5 lg:w-6 lg:h-6 text-black/45 shrink-0" strokeWidth={1.6} />
+                <Search className="w-5 h-5 lg:w-6 lg:h-6 text-white/45 shrink-0" strokeWidth={1.6} />
                 <input
                   ref={inputRef}
                   type="text"
@@ -162,7 +162,7 @@ export function SearchOverlay({ isOpen, onClose }: SearchOverlayProps) {
                     if (e.key === 'Enter') submitSearch();
                   }}
                   placeholder="Av bıçağı, kamp çakısı, outdoor ekipmanı ara..."
-                  className="flex-1 bg-transparent outline-none border-none text-[16px] lg:text-[20px] font-light text-black placeholder:text-black/30 tracking-tight"
+                  className="flex-1 bg-transparent outline-none border-none text-[16px] lg:text-[20px] font-light text-white placeholder:text-white/30 tracking-tight"
                   data-testid="input-search"
                   autoComplete="off"
                   spellCheck={false}
@@ -174,7 +174,7 @@ export function SearchOverlay({ isOpen, onClose }: SearchOverlayProps) {
                       setDebouncedQuery('');
                       inputRef.current?.focus();
                     }}
-                    className="text-[10px] tracking-[0.2em] uppercase text-black/45 hover:text-polen-orange transition-colors px-2"
+                    className="text-[10px] tracking-[0.2em] uppercase text-white/45 hover:text-white transition-colors px-2"
                     data-testid="button-clear-search"
                   >
                     Temizle
@@ -182,11 +182,11 @@ export function SearchOverlay({ isOpen, onClose }: SearchOverlayProps) {
                 )}
                 <button
                   onClick={onClose}
-                  className="group flex items-center justify-center w-9 h-9 rounded-full border border-black/10 hover:border-polen-orange transition-colors shrink-0"
+                  className="group flex items-center justify-center w-9 h-9 rounded-full border border-white/12 hover:border-white transition-colors shrink-0"
                   data-testid="button-close-search"
                   aria-label="Kapat"
                 >
-                  <X className="w-4 h-4 text-black/55 group-hover:text-polen-orange transition-colors" strokeWidth={1.75} />
+                  <X className="w-4 h-4 text-white/55 group-hover:text-white transition-colors" strokeWidth={1.75} />
                 </button>
               </div>
             </div>
@@ -197,7 +197,7 @@ export function SearchOverlay({ isOpen, onClose }: SearchOverlayProps) {
                 {/* Hızlı kategori chip'leri */}
                 {visibleCategories.length > 0 && (
                   <div className="mb-8">
-                    <div className="text-[10px] tracking-[0.22em] uppercase text-black/40 font-mono mb-3">
+                    <div className="text-[10px] tracking-[0.22em] uppercase text-white/40 font-mono mb-3">
                       Hızlı Erişim
                     </div>
                     <div className="flex flex-wrap gap-2">
@@ -206,7 +206,7 @@ export function SearchOverlay({ isOpen, onClose }: SearchOverlayProps) {
                           key={c.id}
                           href={`/kategori/${c.slug}`}
                           onClick={onClose}
-                          className="inline-flex items-center px-3.5 py-2 text-[11px] tracking-[0.14em] uppercase text-black/75 border border-black/10 hover:border-polen-orange hover:text-polen-orange hover:bg-[hsl(var(--polen-cream))] transition-colors"
+                          className="inline-flex items-center px-3.5 py-2 text-[11px] tracking-[0.14em] uppercase text-white/75 border border-white/12 hover:border-white hover:text-white hover:bg-white/5 transition-colors"
                           data-testid={`link-search-cat-${c.slug}`}
                         >
                           {c.name}
@@ -218,7 +218,7 @@ export function SearchOverlay({ isOpen, onClose }: SearchOverlayProps) {
 
                 {/* Loading */}
                 {hasQuery && searching && (
-                  <div className="flex items-center justify-center py-16 text-black/40">
+                  <div className="flex items-center justify-center py-16 text-white/40">
                     <Loader2 className="w-5 h-5 animate-spin" />
                   </div>
                 )}
@@ -226,19 +226,19 @@ export function SearchOverlay({ isOpen, onClose }: SearchOverlayProps) {
                 {/* No results */}
                 {hasQuery && !searching && searchResults.length === 0 && (
                   <div className="text-center py-12 px-4">
-                    <div className="text-[11px] tracking-[0.2em] uppercase text-black/40 mb-2">
+                    <div className="text-[11px] tracking-[0.2em] uppercase text-white/40 mb-2">
                       Sonuç Bulunamadı
                     </div>
-                    <p className="text-[15px] text-black/70">
-                      "<span className="font-semibold text-black">{debouncedQuery}</span>" için ürün bulamadık.
+                    <p className="text-[15px] text-white/70">
+                      "<span className="font-semibold text-white">{debouncedQuery}</span>" için ürün bulamadık.
                     </p>
-                    <p className="text-[13px] text-black/45 mt-2">
+                    <p className="text-[13px] text-white/45 mt-2">
                       Farklı bir kelime deneyin ya da tüm koleksiyonu inceleyin.
                     </p>
                     <Link
                       href="/magaza"
                       onClick={onClose}
-                      className="inline-flex items-center gap-2 mt-5 px-5 py-2.5 text-[11px] tracking-[0.18em] uppercase font-semibold bg-black text-white hover:bg-polen-orange transition-colors"
+                      className="inline-flex items-center gap-2 mt-5 px-5 py-2.5 text-[11px] tracking-[0.18em] uppercase font-semibold bg-white text-black hover:bg-white/90 transition-colors"
                     >
                       Mağazaya Git <ArrowRight className="w-3.5 h-3.5" />
                     </Link>
@@ -249,7 +249,7 @@ export function SearchOverlay({ isOpen, onClose }: SearchOverlayProps) {
                 {!searching && displayedProducts.length > 0 && (
                   <div>
                     <div className="flex items-end justify-between mb-4">
-                      <div className="text-[10px] tracking-[0.22em] uppercase text-black/40 font-mono">
+                      <div className="text-[10px] tracking-[0.22em] uppercase text-white/40 font-mono">
                         {hasQuery
                           ? `${searchResults.length} Sonuç`
                           : 'Öne Çıkan Ürünler'}
@@ -257,7 +257,7 @@ export function SearchOverlay({ isOpen, onClose }: SearchOverlayProps) {
                       {hasQuery && searchResults.length > 0 && (
                         <button
                           onClick={submitSearch}
-                          className="text-[10px] tracking-[0.18em] uppercase font-semibold text-polen-orange hover:text-[hsl(var(--polen-orange-deep))] transition-colors inline-flex items-center gap-1"
+                          className="text-[10px] tracking-[0.18em] uppercase font-semibold text-white hover:text-white/70 transition-colors inline-flex items-center gap-1"
                         >
                           Tümünü Gör <ArrowRight className="w-3 h-3" />
                         </button>
@@ -278,7 +278,7 @@ export function SearchOverlay({ isOpen, onClose }: SearchOverlayProps) {
                             data-testid={`link-search-result-${product.id}`}
                             className="group block"
                           >
-                            <div className="relative aspect-[4/5] bg-[hsl(var(--polen-cream))] overflow-hidden mb-3">
+                            <div className="relative aspect-[4/5] bg-[#151515] overflow-hidden mb-3">
                               {product.images?.[0] ? (
                                 <img
                                   src={product.images[0]}
@@ -287,7 +287,7 @@ export function SearchOverlay({ isOpen, onClose }: SearchOverlayProps) {
                                   loading="lazy"
                                 />
                               ) : (
-                                <div className="absolute inset-0 flex items-center justify-center text-black/20">
+                                <div className="absolute inset-0 flex items-center justify-center text-white/20">
                                   <Search className="w-6 h-6" strokeWidth={1.25} />
                                 </div>
                               )}
@@ -301,7 +301,7 @@ export function SearchOverlay({ isOpen, onClose }: SearchOverlayProps) {
                                     </span>
                                   )}
                                   {product.discountBadge && (
-                                    <span className="text-[8.5px] tracking-[0.18em] uppercase font-bold bg-polen-orange text-white px-1.5 py-1">
+                                    <span className="text-[8.5px] tracking-[0.18em] uppercase font-bold bg-white text-black px-1.5 py-1">
                                       {product.discountBadge}
                                     </span>
                                   )}
@@ -310,13 +310,13 @@ export function SearchOverlay({ isOpen, onClose }: SearchOverlayProps) {
                             </div>
 
                             <h4
-                              className="text-[12.5px] lg:text-[13px] font-medium text-black leading-snug line-clamp-2 group-hover:text-polen-orange transition-colors"
+                              className="text-[12.5px] lg:text-[13px] font-medium text-white leading-snug line-clamp-2 group-hover:text-white transition-colors"
                               data-testid={`text-search-name-${product.id}`}
                             >
                               {product.name}
                             </h4>
                             <p
-                              className="mt-1 text-[13px] lg:text-[14px] font-semibold text-black tracking-tight"
+                              className="mt-1 text-[13px] lg:text-[14px] font-semibold text-white tracking-tight"
                               data-testid={`text-search-price-${product.id}`}
                             >
                               {formatPrice(product.basePrice)} ₺
@@ -330,7 +330,7 @@ export function SearchOverlay({ isOpen, onClose }: SearchOverlayProps) {
 
                 {/* Empty (no query, no featured) */}
                 {!hasQuery && featured.length === 0 && (
-                  <div className="text-center py-16 text-[13px] text-black/45">
+                  <div className="text-center py-16 text-[13px] text-white/45">
                     Aramaya başlamak için yukarıdaki kutuya yazın.
                   </div>
                 )}

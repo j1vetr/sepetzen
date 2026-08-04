@@ -24,24 +24,24 @@ export function AuthCrossLinkCTA({
     <Link
       href={href}
       data-testid={testId}
-      className="group block border-t-2 border-polen-orange bg-polen-cream/40 hover:bg-polen-cream transition-colors"
+      className="group block border-t-2 border-white bg-[#1A1A1A]/40 hover:bg-[#1A1A1A] transition-colors"
     >
       <div className={`flex items-center justify-between gap-6 ${containerClassName}`}>
         <div className="min-w-0">
-          <span className="block text-[10px] font-mono tracking-[0.32em] uppercase text-polen-orange tabular-nums mb-1.5">
+          <span className="block text-[10px] font-mono tracking-[0.32em] uppercase text-white tabular-nums mb-1.5">
             {index} / {eyebrow}
           </span>
-          <p className="font-display text-lg sm:text-2xl tracking-[0.01em] text-black leading-tight break-words">
+          <p className="font-display text-lg sm:text-2xl tracking-[0.01em] text-white leading-tight break-words">
             {headline}
           </p>
         </div>
         <div className="flex items-center gap-3 shrink-0">
-          <span className="hidden sm:inline text-[11px] tracking-[0.18em] uppercase font-medium text-black/65 group-hover:text-black transition-colors">
+          <span className="hidden sm:inline text-[11px] tracking-[0.18em] uppercase font-medium text-white/65 group-hover:text-white transition-colors">
             {ctaLabel}
           </span>
-          <span className="inline-flex items-center justify-center w-10 h-10 border-2 border-black/15 group-hover:border-polen-orange group-hover:bg-polen-orange transition-all">
+          <span className="inline-flex items-center justify-center w-10 h-10 border-2 border-white/20 group-hover:border-white group-hover:bg-white transition-all">
             <ArrowUpRight
-              className="w-4 h-4 text-black group-hover:text-white transition-all duration-300 group-hover:rotate-[-45deg]"
+              className="w-4 h-4 text-white group-hover:text-black transition-all duration-300 group-hover:rotate-[-45deg]"
               strokeWidth={2}
             />
           </span>
