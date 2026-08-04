@@ -136,12 +136,30 @@ class TrendyolAdapter implements MarketplaceAdapter, MarketplaceWriteAdapter {
     });
   }
 
+  /**
+   * V2 onaylı ürün listeleme sayfası. (Eski /products endpoint'i Product v2
+   * geçişi nedeniyle brownout/kapalı — UPGRADE_REQUIRED dönüyor.)
+   * Boş katalogda Trendyol 404 "product.not.found" döndürür; bunu boş sayfa
+   * olarak normalize ederiz (yeni satıcı hesabı = henüz onaylı ürün yok).
+   */
+  private async fetchApprovedPage(page: number, size = DEFAULT_PAGE_SIZE): Promise<TrendyolListResponse> {
+    try {
+      return await this.client.request<TrendyolListResponse>(
+        `/product/sellers/${encodeURIComponent(this.supplierId)}/products/approved` +
+          `?page=${page}&size=${size}`,
+      );
+    } catch (err) {
+      if (err instanceof MarketplaceError && err.statusCode === 404) {
+        return { page, size, totalElements: 0, totalPages: 0, content: [] };
+      }
+      throw err;
+    }
+  }
+
   async testConnection(): Promise<ConnectionTestResult> {
     try {
-      // Hafif bir endpoint: ilk sayfa, size=1
-      await this.client.request<TrendyolListResponse>(
-        `/suppliers/${encodeURIComponent(this.supplierId)}/products?page=0&size=1`,
-      );
+      // Hafif bir endpoint: ilk sayfa, size=1 (404 = boş katalog, yine başarı)
+      await this.fetchApprovedPage(0, 1);
       return { ok: true, message: "Trendyol bağlantısı başarılı." };
     } catch (err) {
       const msg = err instanceof Error ? err.message : String(err);
@@ -175,13 +193,9 @@ class TrendyolAdapter implements MarketplaceAdapter, MarketplaceWriteAdapter {
 
   async fetchProductsPage(cursor: PageCursor): Promise<ProductsPage> {
     const page = cursor == null ? 0 : Number(cursor);
-    // approved=true parametresi Trendyol gateway'inde sıkça 556 tetikliyor;
-    // tüm ürünleri çekip site tarafında p.approved/archived/rejected üzerinden
-    // isActive hesaplıyoruz (bkz. normalize()).
-    const url =
-      `/product/sellers/${encodeURIComponent(this.supplierId)}/products` +
-      `?page=${page}&size=${DEFAULT_PAGE_SIZE}`;
-    const resp = await this.client.request<TrendyolListResponse>(url);
+    // V2: yalnız onaylı ürünler listelenir (onaysız ürünler zaten satışta
+    // değil; ayrıca /products/unapproved farklı bir şema döndürüyor).
+    const resp = await this.fetchApprovedPage(page);
 
     const products = (resp.content ?? []).map((p) => normalize(p));
     const next = page + 1;
@@ -202,10 +216,7 @@ class TrendyolAdapter implements MarketplaceAdapter, MarketplaceWriteAdapter {
     const out: NormalizedStockPrice[] = [];
     let page = 0;
     while (true) {
-      const url =
-        `/product/sellers/${encodeURIComponent(this.supplierId)}/products` +
-        `?page=${page}&size=${DEFAULT_PAGE_SIZE}`;
-      const resp = await this.client.request<TrendyolListResponse>(url);
+      const resp = await this.fetchApprovedPage(page);
       for (const p of resp.content ?? []) {
         const id = String(p.contentId ?? p.barcode);
         if (!wanted.has(id)) continue;
@@ -249,10 +260,7 @@ class TrendyolAdapter implements MarketplaceAdapter, MarketplaceWriteAdapter {
     const wanted = String(externalId);
     let page = 0;
     while (true) {
-      const url =
-        `/product/sellers/${encodeURIComponent(this.supplierId)}/products` +
-        `?page=${page}&size=${DEFAULT_PAGE_SIZE}`;
-      const resp = await this.client.request<TrendyolListResponse>(url);
+      const resp = await this.fetchApprovedPage(page);
       for (const p of resp.content ?? []) {
         const id = String(p.contentId ?? p.barcode);
         if (id === wanted) return normalize(p);
@@ -378,8 +386,12 @@ class TrendyolAdapter implements MarketplaceAdapter, MarketplaceWriteAdapter {
         reasons: i.failureReasons ?? ["Bilinmeyen hata"],
       }));
     // Trendyol status alanı bazen boş; item statülerinden türet.
+    // DİKKAT: batch işlenmeye başlamadan items[] BOŞ döner (itemCount > 0
+    // iken) — bu durumda kesinlikle IN_PROGRESS'tir; boş listeyi "başarı"
+    // sayıp erken approved işaretlemeyelim (canlı testte yakalanan bug).
     const anyInProgress =
       (resp.status ?? "").toUpperCase() === "IN_PROGRESS" ||
+      (items.length === 0 && (resp.itemCount ?? 0) > 0) ||
       items.some((i) => {
         const s = (i.status ?? "").toUpperCase();
         return s !== "SUCCESS" && s !== "FAILED" && s !== "";

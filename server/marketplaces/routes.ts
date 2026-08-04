@@ -578,8 +578,9 @@ export function registerMarketplaceRoutes(
       attempts: 0,
       nextAttemptAt: new Date(),
     });
-    // Hemen işlemeyi dene (arka planda; sonuç poll ile netleşir)
-    void processPushQueue().catch(() => {});
+    // Hemen işlemeyi dene (arka planda; sonuç poll ile netleşir).
+    // marketplaceId geçilince yalnız bu pazaryerinin item'ları işlenir.
+    void processPushQueue(ctx.mp.id).catch(() => {});
     res.status(202).json({ ok: true, link });
   });
 
