@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 import { Link, useLocation } from 'wouter';
-import { ShoppingBag, Search, X, User, LogOut, ChevronDown, ArrowUpRight, Phone, Mail, Scissors, PawPrint, Tent, Shovel, Wrench, FlameKindling, Backpack, LayoutGrid, Target, Drill, HardHat, Flashlight, Compass, Map, Mountain, Flower, Bird, Fish, Rabbit, TreeDeciduous, TreePine, UtensilsCrossed, Dog, Cat, Layers, Zap, Waves } from 'lucide-react';
+import { ShoppingBag, Search, X, User, LogOut, ChevronDown, ArrowUpRight, Phone, Mail, Scissors, PawPrint, Tent, Shovel, Wrench, FlameKindling, Backpack, LayoutGrid, Target, Drill, HardHat, Flashlight, Compass, Map, Mountain, Flower, Bird, Fish, Rabbit, TreeDeciduous, TreePine, UtensilsCrossed, Dog, Cat, Layers, Zap, Waves, PackageSearch, CircleHelp } from 'lucide-react';
 
 const PocketKnifeIcon = ({ className, strokeWidth = 1.75 }: { className?: string; strokeWidth?: number }) => (
   <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={strokeWidth} strokeLinecap="round" strokeLinejoin="round" className={className}>
@@ -136,7 +136,7 @@ export function Header() {
   const [sidebarProductIdx, setSidebarProductIdx] = useState(0);
   const [sidebarProductKey, setSidebarProductKey] = useState(0);
   const closeTimerRef = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
-  const { totalItems } = useCart();
+  const { totalItems, subtotal } = useCart();
   const siteIdentity = useSiteIdentity();
   const { user, logout } = useAuth();
   const { scrollY } = useScroll();
@@ -198,7 +198,7 @@ export function Header() {
   };
 
   const navLinkCls = (active: boolean) =>
-    `relative inline-flex items-center gap-1.5 whitespace-nowrap text-[9.5px] xl:text-[10px] font-medium tracking-[0.06em] xl:tracking-[0.10em] uppercase transition-colors nav-link-hover ${
+    `relative inline-flex items-center gap-1.5 whitespace-nowrap text-[10.5px] 2xl:text-[11.5px] font-medium tracking-[0.05em] 2xl:tracking-[0.08em] uppercase transition-colors nav-link-hover ${
       active ? 'text-white' : 'text-white/70 hover:text-white'
     }`;
 
@@ -238,9 +238,41 @@ export function Header() {
 
   return (
     <>
-      {/* ── Announcement Bar ── */}
+      {/* ── Top utility strip (desktop) ── */}
+      <div className="hidden lg:block bg-black text-white border-b border-white/8" data-testid="utility-strip">
+        <div className="max-w-[1400px] mx-auto px-8 h-10 flex items-center justify-between">
+          <div
+            className="flex-1 min-w-0 overflow-hidden mr-8"
+            style={{ maskImage: 'linear-gradient(to right, transparent, black 24px, black calc(100% - 24px), transparent)', WebkitMaskImage: 'linear-gradient(to right, transparent, black 24px, black calc(100% - 24px), transparent)' }}
+            data-testid="utility-marquee"
+          >
+            <div className="marquee-track motion-reduce:animate-none text-[11px] tracking-[0.04em] font-medium" style={{ animationDuration: '28s' }}>
+              {[0, 1].map((copy) => (
+                <div key={copy} className="flex shrink-0 items-center" aria-hidden={copy === 1}>
+                  {siteIdentity.announcements.map((msg) => (
+                    <span key={msg} className="flex items-center whitespace-nowrap">
+                      <span className="px-5 text-white/70">{msg}</span>
+                      <span className="text-white/30">✦</span>
+                    </span>
+                  ))}
+                </div>
+              ))}
+            </div>
+          </div>
+          <div className="flex items-center gap-6">
+            <Link href="/siparis-takip" className="flex items-center gap-1.5 text-[10.5px] font-medium text-white/60 hover:text-white transition-colors whitespace-nowrap" data-testid="link-utility-order-tracking">
+              <PackageSearch className="w-[13px] h-[13px]" strokeWidth={1.75} /> Sipariş Takibi
+            </Link>
+            <Link href="/sayfa/iletisim" className="flex items-center gap-1.5 text-[10.5px] font-medium text-white/60 hover:text-white transition-colors whitespace-nowrap" data-testid="link-utility-help">
+              <CircleHelp className="w-[13px] h-[13px]" strokeWidth={1.75} /> Yardım & Destek
+            </Link>
+          </div>
+        </div>
+      </div>
+
+      {/* ── Announcement Bar (mobile) ── */}
       <div
-        className="bg-gradient-to-r from-black via-zinc-950 to-black text-white py-2 text-[11px] tracking-[0.04em] font-medium overflow-hidden"
+        className="lg:hidden bg-gradient-to-r from-black via-zinc-950 to-black text-white py-2 text-[11px] tracking-[0.04em] font-medium overflow-hidden"
         data-testid="announcement-bar"
       >
         <div className="marquee-track motion-reduce:animate-none" style={{ animationDuration: '28s' }} aria-hidden={false}>
@@ -260,21 +292,28 @@ export function Header() {
       {/* ── Brand bar (desktop): E-Posta · Logo · Telefon ── */}
       <div className="hidden lg:block bg-[#0A0A0A] border-b border-white/8">
         <div className="max-w-[1400px] mx-auto px-8 py-4 grid grid-cols-3 items-center gap-6">
-          {/* Sol: E-Posta */}
-          <a
-            href={`mailto:${siteIdentity.email}`}
-            data-testid="link-header-email"
-            aria-label="E-posta gönder"
-            className="justify-self-start group flex items-center gap-3 text-white"
-          >
-            <span className="w-11 h-11 rounded-full border border-white/12 group-hover:border-white/35 flex items-center justify-center shrink-0 transition-colors">
-              <Mail className="w-[17px] h-[17px] text-white/70 group-hover:text-white transition-colors" strokeWidth={1.75} />
-            </span>
-            <span className="flex flex-col leading-tight whitespace-nowrap">
-              <span className="text-[9px] tracking-[0.22em] uppercase text-white/45 font-mono">E-Posta</span>
-              <span className="text-[13px] font-semibold text-white tracking-wide group-hover:text-white/90 transition-colors" data-testid="text-header-email">{siteIdentity.email}</span>
-            </span>
-          </a>
+          {/* Sol: E-Posta + Telefon */}
+          <div className="justify-self-start flex items-center gap-6">
+            <a
+              href={`mailto:${siteIdentity.email}`}
+              data-testid="link-header-email"
+              aria-label="E-posta gönder"
+              className="group flex items-center gap-2.5 text-white"
+            >
+              <Mail className="w-[15px] h-[15px] text-white/50 group-hover:text-white transition-colors shrink-0" strokeWidth={1.75} />
+              <span className="text-[12.5px] font-medium text-white/75 group-hover:text-white transition-colors whitespace-nowrap" data-testid="text-header-email">{siteIdentity.email}</span>
+            </a>
+            <span className="w-px h-4 bg-white/12" />
+            <a
+              href={`tel:${siteIdentity.phoneHref}`}
+              data-testid="link-header-phone"
+              aria-label="Telefonla ara"
+              className="group flex items-center gap-2.5 text-white"
+            >
+              <Phone className="w-[15px] h-[15px] text-white/50 group-hover:text-white transition-colors shrink-0" strokeWidth={1.75} />
+              <span className="text-[12.5px] font-medium text-white/75 group-hover:text-white transition-colors whitespace-nowrap" data-testid="text-header-phone">{siteIdentity.phone}</span>
+            </a>
+          </div>
 
           {/* Orta: Logo */}
           <Link href="/" onClick={scrollToTop} data-testid="link-logo" className="justify-self-center block">
@@ -286,21 +325,68 @@ export function Header() {
             />
           </Link>
 
-          {/* Sağ: Telefon */}
-          <a
-            href={`tel:${siteIdentity.phoneHref}`}
-            data-testid="link-header-phone"
-            aria-label="Telefonla ara"
-            className="justify-self-end group flex items-center gap-3 text-white"
-          >
-            <span className="w-11 h-11 rounded-full border border-white/12 group-hover:border-white/35 flex items-center justify-center shrink-0 transition-colors">
-              <Phone className="w-[17px] h-[17px] text-white/70 group-hover:text-white transition-colors" strokeWidth={1.75} />
-            </span>
-            <span className="flex flex-col leading-tight whitespace-nowrap">
-              <span className="text-[9px] tracking-[0.22em] uppercase text-white/45 font-mono">Bize Ulaşın</span>
-              <span className="text-[13px] font-semibold text-white tracking-wide group-hover:text-white/90 transition-colors" data-testid="text-header-phone">{siteIdentity.phone}</span>
-            </span>
-          </a>
+          {/* Sağ: Hesabım + Sepetim */}
+          <div className="justify-self-end flex items-center gap-5">
+            {user ? (
+              <DropdownMenu modal={false}>
+                <DropdownMenuTrigger asChild>
+                  <button className="group flex items-center gap-3 text-left" data-testid="button-account" aria-label="Hesabım">
+                    <span className="w-10 h-10 rounded-full border border-white/12 group-hover:border-white/35 flex items-center justify-center shrink-0 transition-colors">
+                      <User className="w-[16px] h-[16px] text-white/70 group-hover:text-white transition-colors" strokeWidth={1.75} />
+                    </span>
+                    <span className="flex flex-col leading-tight whitespace-nowrap">
+                      <span className="text-[12px] font-semibold text-white">Hesabım</span>
+                      <span className="text-[10.5px] text-white/45 group-hover:text-white/70 transition-colors">{user.firstName || 'Profilim'}</span>
+                    </span>
+                  </button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end" className="bg-[#141414] border border-white/8 shadow-[0_8px_30px_rgba(0,0,0,0.4)] rounded-md min-w-[180px] z-[9999]">
+                  <DropdownMenuItem disabled className="text-[10px] tracking-widest text-white/30 uppercase">{user.firstName || user.email}</DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => navigate('/hesabim')} className="text-[11px] tracking-wider uppercase text-white/75 hover:bg-white/5 hover:text-white cursor-pointer py-2.5">
+                    <User className="w-4 h-4 mr-2" />Hesabım
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => { logout(); navigate('/'); }} className="text-[11px] tracking-wider uppercase text-white/75 hover:bg-white/5 hover:text-white cursor-pointer py-2.5">
+                    <LogOut className="w-4 h-4 mr-2" />Çıkış Yap
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
+            ) : (
+              <Link href="/giris" className="group flex items-center gap-3" data-testid="button-account-guest" aria-label="Giriş Yap">
+                <span className="w-10 h-10 rounded-full border border-white/12 group-hover:border-white/35 flex items-center justify-center shrink-0 transition-colors">
+                  <User className="w-[16px] h-[16px] text-white/70 group-hover:text-white transition-colors" strokeWidth={1.75} />
+                </span>
+                <span className="flex flex-col leading-tight whitespace-nowrap">
+                  <span className="text-[12px] font-semibold text-white">Hesabım</span>
+                  <span className="text-[10.5px] text-white/45 group-hover:text-white/70 transition-colors">Giriş Yap</span>
+                </span>
+              </Link>
+            )}
+
+            <Link href="/sepet" className="group flex items-center gap-3" data-testid="button-cart" aria-label="Sepet">
+              <span className="relative w-10 h-10 rounded-full border border-white/12 group-hover:border-white/35 flex items-center justify-center shrink-0 transition-colors">
+                <ShoppingBag className="w-[16px] h-[16px] text-white/70 group-hover:text-white transition-colors" strokeWidth={1.75} />
+                <AnimatePresence>
+                  {totalItems > 0 && (
+                    <motion.span
+                      key="badge-brand"
+                      initial={{ scale: 0, opacity: 0 }}
+                      animate={{ scale: 1, opacity: 1 }}
+                      exit={{ scale: 0, opacity: 0 }}
+                      className="absolute -top-1 -right-1 min-w-[17px] h-[17px] px-1 bg-white text-black text-[9.5px] font-bold flex items-center justify-center rounded-full leading-none"
+                    >
+                      {totalItems > 9 ? '9+' : totalItems}
+                    </motion.span>
+                  )}
+                </AnimatePresence>
+              </span>
+              <span className="flex flex-col leading-tight whitespace-nowrap">
+                <span className="text-[12px] font-semibold text-white">Sepetim</span>
+                <span className="text-[10.5px] text-white/45 group-hover:text-white/70 transition-colors" data-testid="text-cart-summary">
+                  {totalItems} ürün · {subtotal.toLocaleString('tr-TR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} ₺
+                </span>
+              </span>
+            </Link>
+          </div>
         </div>
       </div>
 
@@ -371,10 +457,10 @@ export function Header() {
           </div>
 
           {/* ── Desktop layout ── */}
-          <div className="hidden lg:grid grid-cols-[1fr_auto_1fr] items-center gap-10 xl:gap-16">
+          <div className="hidden lg:grid grid-cols-[auto_1fr_auto] items-center gap-4 2xl:gap-8">
 
-            {/* Sol: scroll edilince beyaz kompakt logo görünür */}
-            <div className="justify-self-start flex items-center min-w-0 h-[44px]">
+            {/* Sol: Tüm Kategoriler + (scroll edilince kompakt logo) */}
+            <div className="justify-self-start flex items-center gap-4 min-w-0 h-[44px]">
               <AnimatePresence>
                 {scrolled && (
                   <motion.div
@@ -395,10 +481,58 @@ export function Header() {
                   </motion.div>
                 )}
               </AnimatePresence>
+
+              <DropdownMenu modal={false}>
+                <DropdownMenuTrigger asChild>
+                  <button
+                    className="flex items-center gap-2 bg-white/[0.07] hover:bg-white/[0.12] border border-white/10 hover:border-white/25 transition-colors px-3 2xl:px-4 py-2.5 text-[10px] tracking-[0.10em] 2xl:tracking-[0.14em] uppercase font-bold text-white whitespace-nowrap"
+                    data-testid="button-all-categories"
+                  >
+                    <LayoutGrid className="w-3.5 h-3.5" strokeWidth={1.75} />
+                    Tüm Kategoriler
+                    <ChevronDown className="w-3 h-3 text-white/50" />
+                  </button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent
+                  align="start"
+                  sideOffset={12}
+                  className="bg-[#141414] border border-white/8 shadow-[0_8px_30px_rgba(0,0,0,0.4)] rounded-md p-3 z-[9999]"
+                  style={{ minWidth: visibleCategories.length > 6 ? 480 : 240 }}
+                >
+                  {visibleCategories.length === 0 ? (
+                    <DropdownMenuItem
+                      onClick={() => navigate('/magaza')}
+                      className="text-[11px] tracking-wider uppercase text-white/75 hover:bg-white/5 cursor-pointer py-2.5"
+                    >
+                      Tüm Ürünler
+                    </DropdownMenuItem>
+                  ) : (
+                    <div
+                      className="grid gap-x-2 gap-y-0.5"
+                      style={{ gridTemplateColumns: visibleCategories.length > 6 ? 'repeat(2, minmax(0, 1fr))' : '1fr' }}
+                    >
+                      {visibleCategories.map((c) => {
+                        const Icon = getMenuIcon(c.name);
+                        return (
+                          <DropdownMenuItem
+                            key={c.id}
+                            onClick={() => navigate(`/kategori/${c.slug}`)}
+                            className="text-[11px] tracking-[0.12em] uppercase text-white/75 hover:bg-white/5 hover:text-white cursor-pointer py-2.5 px-3 rounded-md transition-colors gap-2.5"
+                            data-testid={`link-allcat-${c.slug}`}
+                          >
+                            <Icon className="w-3.5 h-3.5 text-white/40" />
+                            {c.name}
+                          </DropdownMenuItem>
+                        );
+                      })}
+                    </div>
+                  )}
+                </DropdownMenuContent>
+              </DropdownMenu>
             </div>
 
             {/* Orta: Desktop nav */}
-            <nav className="justify-self-center flex items-center gap-3 xl:gap-5 min-w-0">
+            <nav className="justify-self-center self-center h-[44px] flex items-center justify-center gap-2 2xl:gap-4 min-w-0 max-w-full overflow-hidden">
               {useMenuTree ? (
                 menuRoots.map((root) => {
                   const children = (root.children || []).filter(c => c.isActive);
@@ -493,89 +627,52 @@ export function Header() {
 
             </nav>
 
-            {/* Right: Icons */}
+            {/* Right: Search input + (scrolled: quick icons) */}
             <div className="justify-self-end flex items-center gap-2 xl:gap-3 shrink-0">
-              <motion.button
-                whileTap={{ scale: 0.9 }}
+              <button
                 onClick={() => setSearchOpen(true)}
-                className="p-3 transition-colors text-white/65 hover:text-white"
+                className="group flex items-center justify-between gap-3 w-[150px] 2xl:w-[260px] bg-white/[0.06] hover:bg-white/[0.10] border border-white/10 hover:border-white/25 transition-colors px-4 py-2.5 cursor-text"
                 data-testid="button-search"
                 aria-label="Ara"
               >
-                <Search className="w-[22px] h-[22px]" strokeWidth={1.75} />
-              </motion.button>
+                <span className="text-[11px] text-white/40 group-hover:text-white/60 transition-colors truncate">Ürün, kategori veya marka ara...</span>
+                <Search className="w-[15px] h-[15px] text-white/45 group-hover:text-white transition-colors shrink-0" strokeWidth={1.75} />
+              </button>
 
-              {user ? (
-                <DropdownMenu modal={false}>
-                  <DropdownMenuTrigger asChild>
-                    <motion.button whileTap={{ scale: 0.9 }} className="p-3 transition-colors flex items-center gap-2 text-white/65 hover:text-white" data-testid="button-account" aria-label="Hesabım">
+              <AnimatePresence>
+                {scrolled && (
+                  <motion.div
+                    key="scrolled-icons"
+                    initial={{ opacity: 0, x: 10 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    exit={{ opacity: 0, x: 10 }}
+                    transition={{ duration: 0.3, ease: [0.33, 1, 0.68, 1] }}
+                    className="flex items-center gap-1"
+                  >
+                    <Link
+                      href={user ? '/hesabim' : '/giris'}
+                      className="p-2.5 inline-flex transition-colors text-white/65 hover:text-white active:scale-90"
+                      data-testid="button-account-compact"
+                      aria-label="Hesabım"
+                    >
                       <User className="w-[18px] h-[18px]" strokeWidth={1.75} />
-                      <span className="text-[11px] tracking-[0.18em] uppercase font-medium hidden xl:inline">Hesabım</span>
-                    </motion.button>
-                  </DropdownMenuTrigger>
-                  <DropdownMenuContent align="end" className="bg-[#141414] border border-white/8 shadow-[0_8px_30px_rgba(0,0,0,0.4)] rounded-md min-w-[180px] z-[9999]">
-                    <DropdownMenuItem disabled className="text-[10px] tracking-widest text-white/30 uppercase">{user.firstName || user.email}</DropdownMenuItem>
-                    <DropdownMenuItem onClick={() => navigate('/hesabim')} className="text-[11px] tracking-wider uppercase text-white/75 hover:bg-white/5 hover:text-white cursor-pointer py-2.5">
-                      <User className="w-4 h-4 mr-2" />Hesabım
-                    </DropdownMenuItem>
-                    <DropdownMenuItem onClick={() => { logout(); navigate('/'); }} className="text-[11px] tracking-wider uppercase text-white/75 hover:bg-white/5 hover:text-white cursor-pointer py-2.5">
-                      <LogOut className="w-4 h-4 mr-2" />Çıkış Yap
-                    </DropdownMenuItem>
-                  </DropdownMenuContent>
-                </DropdownMenu>
-              ) : (
-                <DropdownMenu modal={false}>
-                  <DropdownMenuTrigger asChild>
-                    <motion.button
-                      whileTap={{ scale: 0.9 }}
-                      className="p-3 transition-colors flex items-center gap-1.5 text-white/65 hover:text-white"
-                      data-testid="button-account-guest"
-                      aria-label="Giriş Yap"
+                    </Link>
+                    <Link
+                      href="/sepet"
+                      className="p-2.5 inline-flex transition-colors relative text-white/65 hover:text-white active:scale-90"
+                      data-testid="button-cart-compact"
+                      aria-label="Sepet"
                     >
-                      <User className="w-[22px] h-[22px]" strokeWidth={1.75} />
-                    </motion.button>
-                  </DropdownMenuTrigger>
-                  <DropdownMenuContent align="end" sideOffset={6} className="bg-[#141414] border border-white/12 shadow-[0_8px_30px_rgba(0,0,0,0.4)] rounded-md min-w-[190px] p-0 overflow-hidden z-[9999]">
-                    <DropdownMenuItem
-                      onClick={() => navigate('/giris')}
-                      className="text-[11px] tracking-[0.14em] uppercase text-white/75 hover:bg-white/5 hover:text-white cursor-pointer py-3.5 px-4 gap-2.5 rounded-md"
-                      data-testid="link-header-giris"
-                    >
-                      <User className="w-4 h-4 shrink-0 text-white/40" strokeWidth={1.75} />
-                      Giriş Yap
-                    </DropdownMenuItem>
-                    <div className="p-2 pt-1 border-t border-white/8">
-                      <button
-                        type="button"
-                        onClick={() => navigate('/kayit')}
-                         className="w-full py-2.5 text-[11px] tracking-[0.14em] uppercase font-bold bg-white text-black hover:bg-white/90 transition-colors cursor-pointer text-center"
-                        data-testid="link-header-kayit"
-                      >
-                        Kayıt Ol
-                      </button>
-                    </div>
-                  </DropdownMenuContent>
-                </DropdownMenu>
-              )}
-
-              <Link href="/sepet">
-                <motion.button whileTap={{ scale: 0.9 }} className="p-3 transition-colors relative text-white/65 hover:text-white" data-testid="button-cart" aria-label="Sepet">
-                  <ShoppingBag className="w-[22px] h-[22px]" strokeWidth={1.75} />
-                  <AnimatePresence>
-                    {totalItems > 0 && (
-                      <motion.span
-                        key="badge"
-                        initial={{ scale: 0, opacity: 0 }}
-                        animate={{ scale: 1, opacity: 1 }}
-                        exit={{ scale: 0, opacity: 0 }}
-                        className="absolute top-1.5 right-1.5 min-w-[18px] h-[18px] px-1 bg-white text-black text-[10px] font-bold flex items-center justify-center rounded-full leading-none"
-                      >
-                        {totalItems > 9 ? '9+' : totalItems}
-                      </motion.span>
-                    )}
-                  </AnimatePresence>
-                </motion.button>
-              </Link>
+                      <ShoppingBag className="w-[18px] h-[18px]" strokeWidth={1.75} />
+                      {totalItems > 0 && (
+                        <span className="absolute top-0.5 right-0.5 min-w-[16px] h-[16px] px-1 bg-white text-black text-[9px] font-bold flex items-center justify-center rounded-full leading-none">
+                          {totalItems > 9 ? '9+' : totalItems}
+                        </span>
+                      )}
+                    </Link>
+                  </motion.div>
+                )}
+              </AnimatePresence>
             </div>
           </div>
         </div>

@@ -1,5 +1,5 @@
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, type ComponentType } from 'react';
 import { Settings, Mail, Loader2, CheckCircle2, XCircle, Send, Server, CreditCard, Copy, AlertTriangle, Wrench, MessageCircle, KeyRound, ShieldCheck, Truck, MapPin, Megaphone, Globe } from 'lucide-react';
 import { BANK_TRANSFER_INFO } from '@shared/bankInfo';
 import type { SiteIdentity, SocialLink, MobileNavItem } from '@shared/siteIdentity';
@@ -441,7 +441,18 @@ function SiteIdentitySection() {
   );
 }
 
+type SettingsSection = 'genel' | 'odeme' | 'kargo' | 'bildirim' | 'guvenlik';
+
+const SETTINGS_SECTIONS: { key: SettingsSection; label: string; Icon: ComponentType<{ className?: string }> }[] = [
+  { key: 'genel', label: 'Genel', Icon: Settings },
+  { key: 'odeme', label: 'Ödeme', Icon: CreditCard },
+  { key: 'kargo', label: 'Kargo', Icon: Truck },
+  { key: 'bildirim', label: 'Bildirimler', Icon: Mail },
+  { key: 'guvenlik', label: 'Giriş & Güvenlik', Icon: ShieldCheck },
+];
+
 export default function SettingsPanel() {
+  const [section, setSection] = useState<SettingsSection>('genel');
   const [settings, setSettings] = useState<Record<string, string>>({
     smtp_host: '',
     smtp_port: '587',
@@ -774,7 +785,26 @@ export default function SettingsPanel() {
     <div className="space-y-6">
       <div>
         <h2 className="text-2xl font-bold text-neutral-900">Ayarlar</h2>
-        <p className="text-neutral-500">E-posta ve sistem ayarlarını yönetin</p>
+        <p className="text-neutral-500">Site, ödeme, kargo, bildirim ve güvenlik ayarlarını yönetin</p>
+      </div>
+
+      <div className="flex flex-wrap gap-1.5 border-b border-neutral-200 pb-px -mb-2" data-testid="settings-tabs">
+        {SETTINGS_SECTIONS.map(({ key, label, Icon }) => (
+          <button
+            key={key}
+            type="button"
+            onClick={() => setSection(key)}
+            data-testid={`tab-settings-${key}`}
+            className={`flex items-center gap-2 px-4 py-2.5 text-sm font-medium rounded-t-lg border border-b-0 transition-colors ${
+              section === key
+                ? 'bg-white border-neutral-200 text-neutral-900 shadow-sm relative -mb-px'
+                : 'bg-transparent border-transparent text-neutral-500 hover:text-neutral-900 hover:bg-neutral-100'
+            }`}
+          >
+            <Icon className="w-4 h-4" />
+            {label}
+          </button>
+        ))}
       </div>
 
       {message && (
@@ -786,8 +816,9 @@ export default function SettingsPanel() {
         </div>
       )}
 
-      <SiteIdentitySection />
+      {section === 'genel' && <SiteIdentitySection />}
 
+      {section === 'bildirim' && (<>
       <div className="bg-white border border-neutral-200 rounded-xl p-6">
         <div className="flex items-center gap-3 mb-6">
           <div className="p-2 bg-neutral-50 rounded-lg">
@@ -896,7 +927,9 @@ export default function SettingsPanel() {
           </div>
         </div>
       </div>
+      </>)}
 
+      {section === 'genel' && (
       <div className="bg-white border border-neutral-200 rounded-xl p-6" data-testid="card-maintenance-settings">
         <div className="flex items-center gap-3 mb-6">
           <div className="p-2 bg-neutral-50 rounded-lg">
@@ -964,7 +997,9 @@ export default function SettingsPanel() {
           </div>
         )}
       </div>
+      )}
 
+      {section === 'odeme' && (
       <div className="bg-white border border-neutral-200 rounded-xl p-6" data-testid="card-iyzico-settings">
         <div className="flex items-center gap-3 mb-6">
           <div className="p-2 bg-neutral-50 rounded-lg">
@@ -1120,10 +1155,13 @@ export default function SettingsPanel() {
         )}
       </div>
 
+      )}
+
       {/* Google OAuth Section */}
-      <GoogleOAuthSection />
+      {section === 'guvenlik' && <GoogleOAuthSection />}
 
       {/* Aras Kargo Section */}
+      {section === 'kargo' && (
       <div className="bg-white border border-neutral-200 rounded-xl p-6" data-testid="card-aras-kargo-settings">
         <div className="flex items-center gap-3 mb-6">
           <div className="p-2 bg-orange-50 rounded-lg">
@@ -1221,7 +1259,9 @@ export default function SettingsPanel() {
           Değişiklikler ana ayarlar kaydedildiğinde (aşağıdaki "Ayarları Kaydet" butonu) uygulanır.
         </p>
       </div>
+      )}
 
+      {section === 'bildirim' && (<>
       <div className="bg-white border border-neutral-200 rounded-xl p-6">
         <div className="flex items-center gap-3 mb-6">
           <div className="p-2 bg-neutral-50 rounded-lg">
@@ -1418,7 +1458,9 @@ export default function SettingsPanel() {
           </div>
         </div>
       </div>
+      </>)}
 
+      {section === 'guvenlik' && (<>
       <div className="bg-white border border-neutral-200 rounded-xl p-6" data-testid="card-turnstile">
         <div className="flex items-center gap-3 mb-6">
           <div className="p-2 bg-orange-50 rounded-lg">
@@ -1573,7 +1615,9 @@ export default function SettingsPanel() {
           </div>
         </div>
       </div>
+      </>)}
 
+      {(section === 'bildirim' || section === 'kargo' || section === 'guvenlik') && (
       <div className="flex justify-end">
         <button
           onClick={handleSave}
@@ -1585,6 +1629,7 @@ export default function SettingsPanel() {
           Ayarları Kaydet
         </button>
       </div>
+      )}
     </div>
   );
 }

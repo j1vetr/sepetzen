@@ -270,6 +270,8 @@ function FeaturedProducts({ products }: { products: Product[] }) {
 
   if (!items.length) return null;
 
+  const promoImage = items[0]?.images?.[0] || '/uploads/products/header_ithal-caki-1.png';
+
   return (
     <section
       ref={ref}
@@ -277,45 +279,74 @@ function FeaturedProducts({ products }: { products: Product[] }) {
       data-testid="scene-featured"
     >
       <div className="max-w-[1320px] mx-auto">
-        {/* Heading */}
-        <div className="flex items-end justify-between mb-10 lg:mb-14">
-          <div>
-            <p className="text-[10px] font-mono tracking-[0.30em] uppercase text-white/50 mb-2">Seçtiklerimiz</p>
-            <h2
-              className="font-black text-white leading-none"
-              style={{ fontSize: 'clamp(28px, 4vw, 52px)', letterSpacing: '-0.03em' }}
-            >
-              Öne Çıkan Ürünler
-            </h2>
-          </div>
-          <Link
-            href="/magaza"
-            data-testid="link-featured-all"
-            className="hidden sm:inline-flex items-center gap-2 text-[11px] tracking-[0.22em] uppercase font-semibold text-white/50 hover:text-white transition-colors"
+        <div className="grid grid-cols-1 lg:grid-cols-[380px_1fr] xl:grid-cols-[420px_1fr] gap-5 lg:gap-7 items-stretch">
+
+          {/* ── Sol: Promo banner ── */}
+          <motion.div
+            initial={{ opacity: 0, y: 24 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true, amount: 0.1 }}
+            transition={{ duration: 0.55, ease: [0.16, 1, 0.3, 1] }}
+            className="relative overflow-hidden bg-zinc-900 min-h-[320px] lg:min-h-0"
+            data-testid="promo-banner"
           >
-            Tümünü Gör <ArrowUpRight className="w-3.5 h-3.5" />
-          </Link>
-        </div>
+            <img
+              src={promoImage}
+              alt="Premium Bıçak Koleksiyonu"
+              loading="lazy"
+              decoding="async"
+              className="absolute inset-0 w-full h-full object-cover opacity-55"
+            />
+            <div className="absolute inset-0 bg-gradient-to-t from-black/85 via-black/35 to-black/20" />
+            <div className="relative z-10 flex flex-col justify-end h-full p-7 lg:p-9">
+              <p className="text-[10px] font-mono tracking-[0.30em] uppercase text-white/55 mb-3">Yeni Sezon</p>
+              <h3
+                className="font-black text-white leading-[1.02] mb-3"
+                style={{ fontSize: 'clamp(26px, 3vw, 38px)', letterSpacing: '-0.02em' }}
+              >
+                Premium Bıçak Koleksiyonu
+              </h3>
+              <p className="text-[13px] text-white/60 leading-relaxed mb-6">En kaliteli malzemeler, üstün işçilik</p>
+              <Link href="/magaza">
+                <span className="inline-flex items-center gap-2.5 bg-white text-black hover:bg-white/90 transition-colors px-6 py-3.5 text-[10.5px] tracking-[0.20em] uppercase font-bold cursor-pointer" data-testid="link-promo-cta">
+                  Alışverişe Başla <ArrowUpRight className="w-3.5 h-3.5" />
+                </span>
+              </Link>
+            </div>
+          </motion.div>
 
-        {/* Grid */}
-        <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-4 gap-4 lg:gap-6">
-          {items.map((p, i) => (
-            <motion.div
-              key={p.id}
-              initial={{ opacity: 0, y: 24 }}
-              whileInView={{ opacity: 1, y: 0 }}
-              viewport={{ once: true, amount: 0.05 }}
-              transition={{ duration: 0.5, delay: i * 0.06, ease: [0.16, 1, 0.3, 1] }}
-            >
-              <ProductCard product={p} />
-            </motion.div>
-          ))}
-        </div>
+          {/* ── Sağ: Çok Satan Ürünler ── */}
+          <div className="min-w-0">
+            <div className="flex items-end justify-between mb-6 lg:mb-8">
+              <h2
+                className="font-black text-white leading-none"
+                style={{ fontSize: 'clamp(22px, 3vw, 32px)', letterSpacing: '-0.02em' }}
+              >
+                Çok Satan Ürünler
+              </h2>
+              <Link
+                href="/magaza"
+                data-testid="link-featured-all"
+                className="inline-flex items-center gap-2 text-[11px] tracking-[0.18em] uppercase font-semibold text-white/40 hover:text-white transition-colors"
+              >
+                Tümünü Gör <ArrowUpRight className="w-3.5 h-3.5" />
+              </Link>
+            </div>
 
-        <div className="mt-10 text-center sm:hidden">
-          <Link href="/magaza" className="inline-flex items-center gap-2 text-[11px] tracking-[0.22em] uppercase font-semibold text-white">
-            Tüm Ürünlere Bak <ArrowUpRight className="w-3.5 h-3.5" />
-          </Link>
+            <div className="grid grid-cols-2 xl:grid-cols-4 gap-3 lg:gap-4">
+              {items.slice(0, 4).map((p, i) => (
+                <motion.div
+                  key={p.id}
+                  initial={{ opacity: 0, y: 24 }}
+                  whileInView={{ opacity: 1, y: 0 }}
+                  viewport={{ once: true, amount: 0.05 }}
+                  transition={{ duration: 0.5, delay: i * 0.06, ease: [0.16, 1, 0.3, 1] }}
+                >
+                  <ProductCard product={p} />
+                </motion.div>
+              ))}
+            </div>
+          </div>
         </div>
       </div>
     </section>
@@ -369,82 +400,95 @@ const CATS = [
   },
 ];
 
-function CategoriesSection() {
-  const ref = useRef<HTMLElement>(null);
-  const inView = useInView(ref, { once: true, amount: 0.15 });
+interface HomeCategory {
+  id: string;
+  name: string;
+  slug: string;
+  displayOrder: number;
+  image?: string | null;
+}
+
+function PopularCategories({ products }: { products: Product[] }) {
+  const { data: cats = [] } = useQuery<HomeCategory[]>({
+    queryKey: ['categories'],
+    queryFn: async () => {
+      const res = await fetch('/api/categories');
+      if (!res.ok) return [];
+      return res.json();
+    },
+    staleTime: 60_000,
+  });
+
+  const visible = cats
+    .filter(c => (c.displayOrder ?? 0) < 100)
+    .sort((a, b) => (a.displayOrder ?? 0) - (b.displayOrder ?? 0))
+    .slice(0, 7);
+
+  const fallbackImage = (slug: string) =>
+    CATS.find(c => c.slug === slug)?.image ?? null;
+
+  const countFor = (id: string) =>
+    products.filter(p => (p as any).categoryIds?.includes(id) || p.categoryId === id).length;
+
+  if (!visible.length) return null;
 
   return (
-    <section
-      ref={ref}
-      className="bg-[#000000] py-16 lg:py-24 px-5 lg:px-10"
-      data-testid="scene-categories"
-    >
+    <section className="bg-[#0A0A0A] py-14 lg:py-20 px-5 lg:px-10" data-testid="scene-popular-categories">
       <div className="max-w-[1320px] mx-auto">
-        <div className="flex items-end justify-between mb-10 lg:mb-14">
-          <div>
-            <p className="text-[10px] font-mono tracking-[0.30em] uppercase text-white/35 mb-2">Koleksiyon</p>
-            <h2
-              className="font-black text-white leading-none"
-              style={{ fontSize: 'clamp(28px, 4vw, 52px)', letterSpacing: '-0.03em' }}
-            >
-              Kategoriler
-            </h2>
-          </div>
+        <div className="flex items-end justify-between mb-8 lg:mb-10">
+          <h2
+            className="font-black text-white leading-none"
+            style={{ fontSize: 'clamp(22px, 3vw, 32px)', letterSpacing: '-0.02em' }}
+          >
+            Popüler Kategoriler
+          </h2>
           <Link
             href="/magaza"
-            className="hidden sm:inline-flex items-center gap-2 text-[11px] tracking-[0.22em] uppercase font-semibold text-white/35 hover:text-white transition-colors"
+            className="inline-flex items-center gap-2 text-[11px] tracking-[0.18em] uppercase font-semibold text-white/40 hover:text-white transition-colors"
+            data-testid="link-popular-cats-all"
           >
-            Tümü <ArrowUpRight className="w-3.5 h-3.5" />
+            Tüm Kategoriler <ArrowUpRight className="w-3.5 h-3.5" />
           </Link>
         </div>
 
-        {/* Grid: 3+3 on desktop, 2 cols mobile */}
-        <div className="grid grid-cols-2 lg:grid-cols-3 gap-3 lg:gap-4">
-          {CATS.map((cat, i) => (
-            <motion.div
-              key={cat.slug}
-              initial={{ opacity: 0, scale: 0.97 }}
-              whileInView={{ opacity: 1, scale: 1 }}
-              viewport={{ once: true, amount: 0.05 }}
-              transition={{ duration: 0.5, delay: i * 0.07, ease: [0.16, 1, 0.3, 1] }}
-              className={i === 0 ? 'lg:col-span-2 lg:row-span-2' : ''}
-            >
-              <Link
-                href={`/kategori/${cat.slug}`}
-                data-testid={`link-cat-${cat.slug}`}
-                className="group relative flex overflow-hidden bg-zinc-900 block"
-                style={{
-                  height: i === 0 ? undefined : undefined,
-                  aspectRatio: i === 0 ? '16/10' : '4/3',
-                }}
+        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-7 gap-3">
+          {visible.map((cat, i) => {
+            const img = cat.image || fallbackImage(cat.slug);
+            const count = countFor(cat.id);
+            return (
+              <motion.div
+                key={cat.id}
+                initial={{ opacity: 0, y: 16 }}
+                whileInView={{ opacity: 1, y: 0 }}
+                viewport={{ once: true, amount: 0.1 }}
+                transition={{ duration: 0.4, delay: i * 0.05, ease: [0.16, 1, 0.3, 1] }}
               >
-                {/* Image */}
-                <img
-                  src={cat.image}
-                  alt={cat.name}
-                  className="absolute inset-0 w-full h-full object-cover transition-transform duration-700 ease-out group-hover:scale-105 opacity-65 group-hover:opacity-80"
-                  loading="lazy"
-                  decoding="async"
-                />
-                {/* Gradient */}
-                <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent" />
-
-                {/* Content */}
-                <div className="relative z-10 mt-auto p-4 lg:p-6 w-full">
-                  <p className="text-[9px] lg:text-[10px] tracking-[0.24em] uppercase font-mono mb-1.5"
-                    style={{ color: cat.accent }}>
-                    {cat.desc}
-                  </p>
-                  <h3 className={`font-black text-white leading-none tracking-tight ${i === 0 ? 'text-[22px] lg:text-[32px]' : 'text-[16px] lg:text-[20px]'}`}>
-                    {cat.name}
-                  </h3>
-                  <span className="mt-2 lg:mt-3 inline-flex items-center gap-1.5 text-[10px] tracking-[0.18em] uppercase text-white/40 group-hover:text-white/80 transition-colors">
-                    Keşfet <ArrowUpRight className="w-3 h-3" />
-                  </span>
-                </div>
-              </Link>
-            </motion.div>
-          ))}
+                <Link
+                  href={`/kategori/${cat.slug}`}
+                  data-testid={`link-popcat-${cat.slug}`}
+                  className="group flex flex-col items-center text-center bg-[#111111] hover:bg-[#161616] border border-white/[0.07] hover:border-white/20 transition-colors px-3 pt-5 pb-4 h-full"
+                >
+                  <div className="w-full aspect-square max-w-[110px] mb-3 overflow-hidden flex items-center justify-center">
+                    {img ? (
+                      <img
+                        src={img}
+                        alt={cat.name}
+                        loading="lazy"
+                        decoding="async"
+                        className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+                      />
+                    ) : (
+                      <div className="w-full h-full bg-white/[0.05]" />
+                    )}
+                  </div>
+                  <p className="text-[12.5px] font-semibold text-white leading-tight mb-1 line-clamp-2">{cat.name}</p>
+                  {count > 0 && (
+                    <p className="text-[10.5px] text-white/40">{count} ürün</p>
+                  )}
+                </Link>
+              </motion.div>
+            );
+          })}
         </div>
       </div>
     </section>
@@ -782,7 +826,7 @@ export default function Home() {
   const sections: Record<string, React.ReactNode> = {
     videos: <VideoSection key="videos" content={content} />,
     featured: <FeaturedProducts key="featured" products={products} />,
-    categories: <CategoriesSection key="categories" />,
+    categories: <PopularCategories key="categories" products={products} />,
     newArrivals: <NewArrivals key="newArrivals" products={products} />,
     trust: <TrustStrip key="trust" items={content.trustItems} />,
   };
