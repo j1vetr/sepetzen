@@ -475,13 +475,14 @@ export function Header() {
                       <img
                         src="/uploads/branding/sepetzen-logo-white.png"
                         alt="Sepetzen"
-                        className="h-10 w-auto object-contain"
+                        className="h-12 w-auto object-contain"
                       />
                     </Link>
                   </motion.div>
                 )}
               </AnimatePresence>
 
+              {!scrolled && (
               <DropdownMenu modal={false}>
                 <DropdownMenuTrigger asChild>
                   <button
@@ -529,6 +530,7 @@ export function Header() {
                   )}
                 </DropdownMenuContent>
               </DropdownMenu>
+              )}
             </div>
 
             {/* Orta: Desktop nav */}
