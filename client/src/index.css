@@ -317,7 +317,7 @@ html.lenis {
 
 /* Hero section height — fills viewport minus header on each breakpoint */
 .hero-section {
-  height: calc(100svh - 60px);
+  height: calc(100svh - 100px);
   min-height: 480px;
 }
 @media (min-width: 1024px) {

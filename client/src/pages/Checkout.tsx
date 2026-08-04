@@ -557,7 +557,7 @@ export default function Checkout() {
       <div className="min-h-screen bg-background overflow-x-hidden">
         <SEO title="Ödeme" description="Sepetzen güvenli ödeme sayfası." url="/odeme" noIndex />
         <Header />
-        <main className="pt-20 lg:pt-8 pb-12 px-4 sm:px-6">
+        <main className="pt-8 pb-12 px-4 sm:px-6">
           <motion.div 
             initial={{ opacity: 0, scale: 0.95 }}
             animate={{ opacity: 1, scale: 1 }}
@@ -633,7 +633,7 @@ export default function Checkout() {
     return (
       <div className="min-h-screen bg-background overflow-x-hidden w-full">
         <Header />
-        <main className="pt-20 lg:pt-8 pb-12 px-4 sm:px-6 w-full box-border">
+        <main className="pt-8 pb-12 px-4 sm:px-6 w-full box-border">
           <motion.div 
             initial={{ opacity: 0, scale: 0.95 }}
             animate={{ opacity: 1, scale: 1 }}
@@ -664,7 +664,7 @@ export default function Checkout() {
     <div className="min-h-screen bg-background overflow-x-hidden w-full">
       <Header />
       
-      <main className="pt-20 lg:pt-8 pb-12 px-4 sm:px-6 w-full box-border overflow-hidden">
+      <main className="pt-8 pb-12 px-4 sm:px-6 w-full box-border overflow-hidden">
         <div className="max-w-5xl mx-auto w-full overflow-hidden">
           <motion.div
             initial={{ opacity: 0, y: 12 }}

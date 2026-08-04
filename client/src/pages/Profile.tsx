@@ -337,7 +337,7 @@ export default function Profile() {
       <div className="min-h-screen bg-white">
         <SEO title="Hesabım" description="Sepetzen hesap bilgileriniz, siparişleriniz ve adresleriniz." url="/hesabim" noIndex />
         <Header />
-        <main className="pt-20 lg:pt-8 flex items-center justify-center">
+        <main className="pt-8 flex items-center justify-center">
           <Loader2 className="w-8 h-8 animate-spin text-black/30" />
         </main>
       </div>
@@ -360,7 +360,7 @@ export default function Profile() {
     <div className="min-h-screen bg-white">
       <Header />
       
-      <main className="pt-20 lg:pt-8 pb-12 px-4 sm:px-6">
+      <main className="pt-8 pb-12 px-4 sm:px-6">
         <div className="max-w-7xl mx-auto">
           <motion.div
             initial={{ opacity: 0, y: 20 }}

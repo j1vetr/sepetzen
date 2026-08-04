@@ -21,7 +21,7 @@ export default function KVKK() {
       />
       <Header />
 
-      <main className="pt-20 lg:pt-6 pb-12">
+      <main className="pt-6 pb-12">
         <section className="px-4 sm:px-6 py-12 lg:py-16 bg-white border-b border-black/[0.06]">
           <div className="max-w-4xl mx-auto">
             <motion.nav

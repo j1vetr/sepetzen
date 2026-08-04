@@ -149,7 +149,7 @@ export default function Category() {
     return (
       <div className="min-h-screen bg-white">
         <Header />
-        <main className="pt-20 lg:pt-8 pb-12 px-6">
+        <main className="pt-8 pb-12 px-6">
           <div className="max-w-[1400px] mx-auto text-center">
             <h1 className="font-display text-5xl mb-4 text-black">Kategori Bulunamadı</h1>
             <Link href="/">
@@ -397,7 +397,13 @@ export default function Category() {
           {isLoading ? (
             <div className="grid grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 lg:gap-6">
               {Array.from({ length: 8 }).map((_, i) => (
-                <div key={i} className="aspect-[3/4] bg-stone-100 animate-pulse" />
+                <div key={i} className="animate-pulse">
+                  <div className="aspect-[3/4] bg-stone-100" />
+                  <div className="mt-3 space-y-2">
+                    <div className="h-3.5 bg-stone-100 w-4/5" />
+                    <div className="h-3.5 bg-stone-100 w-1/3" />
+                  </div>
+                </div>
               ))}
             </div>
           ) : filteredProducts.length === 0 ? (

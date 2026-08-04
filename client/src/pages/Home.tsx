@@ -609,7 +609,12 @@ function VideoSection() {
     <section className="bg-[#000000] py-16 lg:py-24 px-5 lg:px-10" data-testid="scene-videos">
       <div className="max-w-[1320px] mx-auto">
         {/* Başlık */}
-        <div className="mb-10 lg:mb-14 flex flex-col sm:flex-row sm:items-end sm:justify-between gap-6">
+        <motion.div
+          initial={{ opacity: 0, y: 24 }}
+          whileInView={{ opacity: 1, y: 0 }}
+          viewport={{ once: true, margin: '-80px' }}
+          transition={{ duration: 0.5, ease: [0.33, 1, 0.68, 1] }}
+          className="mb-10 lg:mb-14 flex flex-col sm:flex-row sm:items-end sm:justify-between gap-6">
           <div>
             <p className="text-[10px] font-mono tracking-[0.30em] uppercase text-[#FAFAFA] mb-2">
               Türkiye Geneli Hızlı Kargo
@@ -630,12 +635,19 @@ function VideoSection() {
           >
             Ürünleri İncele <ArrowUpRight className="w-3.5 h-3.5" />
           </Link>
-        </div>
+        </motion.div>
 
         {/* Video kartları */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-5 lg:gap-7">
           {videos.map((v, i) => (
-            <div key={v.src} className="group relative overflow-hidden" data-testid={`video-card-${i}`}>
+            <motion.div
+              key={v.src}
+              initial={{ opacity: 0, y: 28 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              viewport={{ once: true, margin: '-60px' }}
+              transition={{ duration: 0.55, delay: i * 0.1, ease: [0.33, 1, 0.68, 1] }}
+              className="group relative overflow-hidden"
+              data-testid={`video-card-${i}`}>
               <div className="relative aspect-video overflow-hidden bg-zinc-950">
                 <LazyVideo
                   src={v.src}
@@ -657,7 +669,7 @@ function VideoSection() {
                   </p>
                 </div>
               </div>
-            </div>
+            </motion.div>
           ))}
         </div>
       </div>
@@ -692,8 +704,12 @@ function TrustStrip() {
           {items.map((item, i) => {
             const Icon = item.icon;
             return (
-              <div
+              <motion.div
                 key={item.title}
+                initial={{ opacity: 0, y: 16 }}
+                whileInView={{ opacity: 1, y: 0 }}
+                viewport={{ once: true, margin: '-40px' }}
+                transition={{ duration: 0.45, delay: i * 0.08, ease: [0.33, 1, 0.68, 1] }}
                 className={[
                   'flex items-center gap-4 py-7 lg:py-10',
                   i < items.length - 1 ? 'border-b sm:border-b-0 sm:border-r border-white/[0.07]' : '',
@@ -712,7 +728,7 @@ function TrustStrip() {
                     {item.desc}
                   </p>
                 </div>
-              </div>
+              </motion.div>
             );
           })}
         </div>

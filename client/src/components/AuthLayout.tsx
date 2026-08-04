@@ -37,7 +37,7 @@ export function AuthLayout({
       <SEO title={seoTitle} description={seoDescription} url={seoUrl} noIndex />
       <Header />
 
-      <main className="flex items-start justify-center px-5 pb-12 pt-[104px] lg:pt-16" style={{ minHeight: 'calc(100svh - 60px)' }}>
+      <main className="flex items-start justify-center px-5 pb-12 pt-10 lg:pt-16" style={{ minHeight: 'calc(100svh - 100px)' }}>
         <motion.div
           initial={{ opacity: 0, y: 14 }}
           animate={{ opacity: 1, y: 0 }}

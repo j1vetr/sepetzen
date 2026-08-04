@@ -202,7 +202,7 @@ export default function Store() {
       <Header />
 
       {/* Compact page header */}
-      <div className="bg-white border-b border-black/8 pt-20 lg:pt-4 pb-3 px-6">
+      <div className="bg-white border-b border-black/8 pt-4 pb-3 px-6">
         <div className="max-w-[1400px] mx-auto">
           <nav
             className="flex items-center gap-1.5 text-[11px] tracking-wide text-black/45 mb-2"

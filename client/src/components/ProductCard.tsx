@@ -138,10 +138,10 @@ export const ProductCard = memo(function ProductCard({ product }: ProductCardPro
               <button
                 data-testid={`button-quick-view-${product.id}`}
                 onClick={handleQuickView}
-                className="w-full bg-black text-white py-3 text-[11px] font-semibold tracking-[0.2em] uppercase flex items-center justify-center gap-2 hover:bg-zinc-900 transition-colors"
+                className="w-full bg-black/55 backdrop-blur-md border-t border-white/15 text-white py-3 text-[11px] font-semibold tracking-[0.2em] uppercase flex items-center justify-center gap-2 hover:bg-black/70 transition-colors"
               >
                 Hızlı Bakış
-                <ArrowRight className="w-3 h-3" />
+                <ArrowRight className="w-3 h-3 transition-transform duration-300 group-hover:translate-x-0.5" />
               </button>
             </motion.div>
           </div>

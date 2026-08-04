@@ -292,16 +292,12 @@ export function Header() {
       </div>
 
       {/* ── Main header (nav bar) — desktop'ta sticky, mobile'da fixed ── */}
-      <motion.header
-        initial={false}
-        animate={{ height: scrolled ? 64 : 72 }}
-        transition={{ duration: 0.35, ease: [0.33, 1, 0.68, 1] }}
-        className={`fixed lg:sticky top-0 left-0 right-0 z-40 flex items-center lg:!h-auto overflow-visible transition-all duration-300 ${
+      <header
+        className={`sticky top-0 left-0 right-0 z-40 flex items-center h-16 lg:h-auto overflow-visible transition-all duration-300 ${
           scrolled
-            ? 'bg-white lg:surface-glass-dark border-b border-black/8 lg:border-white/10 lg:shadow-[0_4px_24px_-8px_rgba(0,0,0,0.45)]'
+            ? 'bg-white lg:surface-glass-dark border-b border-black/8 lg:border-white/10 shadow-[0_4px_20px_-10px_rgba(0,0,0,0.25)] lg:shadow-[0_4px_24px_-8px_rgba(0,0,0,0.45)]'
             : 'bg-white border-b border-black/8'
         }`}
-        style={{ willChange: 'height' }}
       >
         <div className="w-full max-w-[1400px] mx-auto px-4 lg:px-8 lg:py-3">
           {/* ── Mobile layout ── */}
@@ -734,7 +730,7 @@ export function Header() {
           </motion.div>
         )}
       </AnimatePresence>
-      </motion.header>
+      </header>
 
       {/* ── Mobile editorial menu ── */}
       <AnimatePresence>
