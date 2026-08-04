@@ -1,0 +1,161 @@
+root@162-55-4-35:/var/www/yurdancrp# cd /var/www/sepetzen
+root@162-55-4-35:/var/www/sepetzen# sepetup
+sepetup: command not found
+root@162-55-4-35:/var/www/sepetzen# git pull origin main
+remote: Enumerating objects: 503, done.
+remote: Counting objects: 100% (503/503), done.
+remote: Compressing objects: 100% (100/100), done.
+remote: Total 413 (delta 327), reused 389 (delta 303), pack-reused 0 (from 0)
+Receiving objects: 100% (413/413), 416.42 KiB | 19.83 MiB/s, done.
+Resolving deltas: 100% (327/327), completed with 78 local objects.
+From https://github.com/j1vetr/sepetzen
+ * branch            main       -> FETCH_HEAD
+   60ca730..e8252fa  main       -> origin/main
+Updating 60ca730..e8252fa
+Fast-forward
+ .agents/memory/MEMORY.md                                                   |    5 +
+ .agents/memory/marketplace-push-outbox.md                                  |   15 +++
+ .agents/memory/monochrome-rebrand.md                                       |   13 +++
+ attached_assets/payment_logos/axess.png                                    |  Bin 0 -> 36553 bytes
+ attached_assets/payment_logos/mastercard.svg                               |   39 +++++++
+ attached_assets/payment_logos/paraf.png                                    |  Bin 0 -> 10192 bytes
+ attached_assets/payment_logos/troy.png                                     |  Bin 0 -> 167850 bytes
+ attached_assets/payment_logos/troy_Dosya_Troy_logo_png.png                 |  Bin 0 -> 4091 bytes
+ attached_assets/payment_logos/troy_Dosya_Troy_logo_sloganli_png.png        |  Bin 0 -> 45526 bytes
+ attached_assets/payment_logos/troy_Dosya_Troy_wordmark_italic_2019_png.png |  Bin 0 -> 22008 bytes
+ attached_assets/payment_logos/visa.svg                                     |    1 +
+ client/index.html                                                          |    8 +-
+ client/public/uploads/branding/payments/axess.png                          |  Bin 0 -> 36553 bytes
+ client/public/uploads/branding/payments/mastercard.svg                     |   39 +++++++
+ client/public/uploads/branding/payments/paraf.png                          |  Bin 0 -> 10192 bytes
+ client/public/uploads/branding/payments/troy.png                           |  Bin 0 -> 4091 bytes
+ client/public/uploads/branding/payments/visa.svg                           |    1 +
+ client/src/components/AuthCrossLinkCTA.tsx                                 |   12 +-
+ client/src/components/AuthLayout.tsx                                       |  128 ++++++++++++++++++++++
+ client/src/components/CartSuccessModal.tsx                                 |   14 +--
+ client/src/components/Footer.tsx                                           |  168 +++++++++++++++-------------
+ client/src/components/Header.tsx                                           |  240 ++++++++++++++++++++--------------------
+ client/src/components/MobileBottomNav.tsx                                  |   93 ++++++++--------
+ client/src/components/ProductCard.tsx                                      |   26 ++---
+ client/src/components/QuickViewModal.tsx                                   |   38 +++----
+ client/src/components/SEO.tsx                                              |   11 +-
+ client/src/components/SearchOverlay.tsx                                    |   48 ++++----
+ client/src/components/ShippingCountdown.tsx                                |   10 +-
+ client/src/components/ui/calendar.tsx                                      |    6 +-
+ client/src/components/ui/input-group.tsx                                   |    4 +-
+ client/src/hooks/useProducts.ts                                            |   29 +++++
+ client/src/hooks/useSiteIdentity.ts                                        |   15 +++
+ client/src/index.css                                                       |  166 +++++++++++++++++++++-------
+ client/src/lib/sanitizeHtml.ts                                             |   38 +++++++
+ client/src/pages/About.tsx                                                 |  114 +++++++++----------
+ client/src/pages/AdminDashboard.tsx                                        |    6 +
+ client/src/pages/AdminLogin.tsx                                            |   14 +--
+ client/src/pages/AdminOrderDetail.tsx                                      |    6 +-
+ client/src/pages/CancellationPolicy.tsx                                    |   66 +++++------
+ client/src/pages/Cart.tsx                                                  |  152 +++++++++++++-------------
+ client/src/pages/Category.tsx                                              |   91 ++++++++++------
+ client/src/pages/Checkout.tsx                                              |  216 ++++++++++++++++++------------------
+ client/src/pages/DeliveryTerms.tsx                                         |   34 +++---
+ client/src/pages/DistanceSalesAgreement.tsx                                |   32 +++---
+ client/src/pages/ForgotPassword.tsx                                        |  259 +++++++++++++++----------------------------
+ client/src/pages/Home.tsx                                                  |  235 +++++++++++++++++++--------------------
+ client/src/pages/KVKK.tsx                                                  |   32 +++---
+ client/src/pages/Login.tsx                                                 |  185 ++++++++++++-------------------
+ client/src/pages/OrderTracking.tsx                                         |  172 ++++++++++++++---------------
+ client/src/pages/PaymentFail.tsx                                           |   44 ++++----
+ client/src/pages/PaymentSuccess.tsx                                        |   98 ++++++++---------
+ client/src/pages/ProductDetail.tsx                                         |  722 +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++-------------------------------------------------
+ client/src/pages/Profile.tsx                                               |  324 +++++++++++++++++++++++++++---------------------------
+ client/src/pages/Register.tsx                                              |  372 +++++++++++++++++++++++++++-----------------------------------
+ client/src/pages/ResetPassword.tsx                                         |  346 +++++++++++++++++++++-------------------------------------
+ client/src/pages/StaticPage.tsx                                            |   26 ++---
+ client/src/pages/Store.tsx                                                 |  104 +++++++++---------
+ client/src/pages/admin/AnalyticsTab.tsx                                    |   37 ++++++-
+ client/src/pages/admin/CouponsTab.tsx                                      |   16 +--
+ client/src/pages/admin/DashboardTab.tsx                                    |    2 +-
+ client/src/pages/admin/DatabaseTab.tsx                                     |   51 ++++-----
+ client/src/pages/admin/HomepageTab.tsx                                     |  399 +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+ client/src/pages/admin/InventoryTab.tsx                                    |   58 +++++++++-
+ client/src/pages/admin/MarketplaceOrdersTab.tsx                            |  386 ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+ client/src/pages/admin/MarketplacePushDialogs.tsx                          | 1118 ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+ client/src/pages/admin/MarketplacesTab.tsx                                 |  219 ++++++++++++++++++++++++++++++++-----
+ client/src/pages/admin/OrdersTab.tsx                                       |    2 +-
+ client/src/pages/admin/ProductsTab.tsx                                     |    3 +-
+ client/src/pages/admin/ReviewsTab.tsx                                      |    4 +-
+ client/src/pages/admin/SettingsTab.tsx                                     |  293 +++++++++++++++++++++++++++++++++++++++++++++++--
+ client/src/pages/admin/UsersTab.tsx                                        |  206 ++++++++++++++++++++++-------------
+ client/src/pages/admin/WholesaleTab.tsx                                    |  108 +++++++++++++++++-
+ client/src/pages/admin/_layout/AdminLayout.tsx                             |   15 ++-
+ client/src/pages/admin/_shared/sidebarConfig.ts                            |   58 +++++++---
+ client/src/pages/admin/_shared/types.ts                                    |    7 ++
+ client/src/pages/admin/_ui/AdminUI.tsx                                     |    4 +-
+ client/src/pages/admin/modals/CategoryModal.tsx                            |   85 +++++++++++++++
+ client/src/pages/admin/modals/ProductModal.tsx                             |   55 +++++++++-
+ client/src/pages/admin/modals/UserDetailModal.tsx                          |    2 +-
+ client/src/pages/not-found.tsx                                             |    4 +-
+ scripts/2026-08-04-clean-legacy-product-descriptions.sql                   |   51 +++++++++
+ server/marketplaces/orders/engine.ts                                       |  212 ++++++++++++++++++++++++++++++++++++
+ server/marketplaces/push/engine.ts                                         |  303 +++++++++++++++++++++++++++++++++++++++++++++++++++
+ server/marketplaces/routes.ts                                              |  487 ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++-
+ server/marketplaces/sync/engine.ts                                         |   47 ++++++++
+ server/marketplaces/trendyol/adapter.ts                                    |  275 ++++++++++++++++++++++++++++++++++++++++++----
+ server/marketplaces/types.ts                                               |  129 ++++++++++++++++++++++
+ server/routes.ts                                                           |  129 +++++++++++++++++++++-
+ server/scheduler.ts                                                        |   24 ++++
+ server/storage.ts                                                          |  309 +++++++++++++++++++++++++++++++++++++++++++++++++++-
+ shared/homepage.ts                                                         |  186 +++++++++++++++++++++++++++++++
+ shared/schema.ts                                                           |  136 +++++++++++++++++++++++
+ shared/siteIdentity.ts                                                     |   97 +++++++++++++++++
+ 93 files changed, 7866 insertions(+), 2468 deletions(-)
+ create mode 100644 .agents/memory/MEMORY.md
+ create mode 100644 .agents/memory/marketplace-push-outbox.md
+ create mode 100644 .agents/memory/monochrome-rebrand.md
+ create mode 100644 attached_assets/payment_logos/axess.png
+ create mode 100644 attached_assets/payment_logos/mastercard.svg
+ create mode 100644 attached_assets/payment_logos/paraf.png
+ create mode 100644 attached_assets/payment_logos/troy.png
+ create mode 100644 attached_assets/payment_logos/troy_Dosya_Troy_logo_png.png
+ create mode 100644 attached_assets/payment_logos/troy_Dosya_Troy_logo_sloganli_png.png
+ create mode 100644 attached_assets/payment_logos/troy_Dosya_Troy_wordmark_italic_2019_png.png
+ create mode 100644 attached_assets/payment_logos/visa.svg
+ create mode 100644 client/public/uploads/branding/payments/axess.png
+ create mode 100644 client/public/uploads/branding/payments/mastercard.svg
+ create mode 100644 client/public/uploads/branding/payments/paraf.png
+ create mode 100644 client/public/uploads/branding/payments/troy.png
+ create mode 100644 client/public/uploads/branding/payments/visa.svg
+ create mode 100644 client/src/components/AuthLayout.tsx
+ create mode 100644 client/src/hooks/useSiteIdentity.ts
+ create mode 100644 client/src/lib/sanitizeHtml.ts
+ create mode 100644 client/src/pages/admin/HomepageTab.tsx
+ create mode 100644 client/src/pages/admin/MarketplaceOrdersTab.tsx
+ create mode 100644 client/src/pages/admin/MarketplacePushDialogs.tsx
+ create mode 100644 scripts/2026-08-04-clean-legacy-product-descriptions.sql
+ create mode 100644 server/marketplaces/orders/engine.ts
+ create mode 100644 server/marketplaces/push/engine.ts
+ create mode 100644 shared/homepage.ts
+ create mode 100644 shared/siteIdentity.ts
+root@162-55-4-35:/var/www/sepetzen# npm install
+
+added 5 packages, and audited 507 packages in 2s
+
+56 packages are looking for funding
+  run `npm fund` for details
+
+14 vulnerabilities (1 low, 8 moderate, 5 high)
+
+To address issues that do not require attention, run:
+  npm audit fix
+
+To address all issues (including breaking changes), run:
+  npm audit fix --force
+
+Run `npm audit` for details.
+root@162-55-4-35:/var/www/sepetzen# npm run db:push
+
+> rest-express@1.0.0 db:push
+> drizzle-kit push
+
+No config path provided, using default 'drizzle.config.ts'
+Reading config file '/var/www/sepetzen/drizzle.config.ts'
+DATABASE_URL, ensure the database is provisioned
+root@162-55-4-35:/var/www/sepetzen# 
