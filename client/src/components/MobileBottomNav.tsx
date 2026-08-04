@@ -1,50 +1,45 @@
 import { Link, useLocation } from 'wouter';
-import { Home, ShoppingBag, ShoppingCart, User } from 'lucide-react';
+import { Home, ShoppingBag, ShoppingCart, User, Heart, Search, Phone, LayoutGrid } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useCart } from '@/hooks/useCart';
+import { useSiteIdentity } from '@/hooks/useSiteIdentity';
+import type { MobileNavItem } from '@shared/siteIdentity';
 
-interface NavTab {
-  href: string;
-  label: string;
-  icon: React.ElementType;
-  testId: string;
-  matchFn?: (loc: string) => boolean;
+const ICONS: Record<MobileNavItem['icon'], React.ElementType> = {
+  home: Home,
+  store: ShoppingBag,
+  cart: ShoppingCart,
+  user: User,
+  heart: Heart,
+  search: Search,
+  phone: Phone,
+  grid: LayoutGrid,
+};
+
+function matchLocation(href: string, loc: string): boolean {
+  switch (href) {
+    case '/':
+      return loc === '/';
+    case '/magaza':
+      return loc.startsWith('/magaza') || loc.startsWith('/kategori') || loc.startsWith('/urun');
+    case '/sepet':
+      return loc === '/sepet';
+    case '/hesabim':
+      return loc.startsWith('/hesabim') || loc.startsWith('/giris') || loc.startsWith('/kayit');
+    default:
+      return loc === href || loc.startsWith(href + '/');
+  }
 }
-
-const tabs: NavTab[] = [
-  {
-    href: '/',
-    label: 'Ana Sayfa',
-    icon: Home,
-    testId: 'bottom-nav-home',
-    matchFn: (loc) => loc === '/',
-  },
-  {
-    href: '/magaza',
-    label: 'Mağaza',
-    icon: ShoppingBag,
-    testId: 'bottom-nav-magaza',
-    matchFn: (loc) => loc.startsWith('/magaza') || loc.startsWith('/kategori') || loc.startsWith('/urun'),
-  },
-  {
-    href: '/sepet',
-    label: 'Sepet',
-    icon: ShoppingCart,
-    testId: 'bottom-nav-sepet',
-    matchFn: (loc) => loc === '/sepet',
-  },
-  {
-    href: '/hesabim',
-    label: 'Hesabım',
-    icon: User,
-    testId: 'bottom-nav-hesabim',
-    matchFn: (loc) => loc.startsWith('/hesabim') || loc.startsWith('/giris') || loc.startsWith('/kayit'),
-  },
-];
 
 export function MobileBottomNav() {
   const [location] = useLocation();
   const { totalItems } = useCart();
+  const { mobileNavItems } = useSiteIdentity();
+
+  const tabs = mobileNavItems.map((item) => ({
+    ...item,
+    testId: `bottom-nav-${item.href === '/' ? 'home' : item.href.replace(/^\//, '').split('/')[0]}`,
+  }));
 
   if (location.startsWith('/toov-admin')) return null;
 
@@ -58,10 +53,16 @@ export function MobileBottomNav() {
       }}
       data-testid="mobile-bottom-nav"
     >
-      <div className="grid grid-cols-4" style={{ height: 'var(--mobile-nav-bar-h, 58px)' }}>
+      <div
+        className="grid"
+        style={{
+          height: 'var(--mobile-nav-bar-h, 58px)',
+          gridTemplateColumns: `repeat(${tabs.length}, minmax(0, 1fr))`,
+        }}
+      >
         {tabs.map((tab) => {
-          const isActive = tab.matchFn ? tab.matchFn(location) : location === tab.href;
-          const Icon = tab.icon;
+          const isActive = matchLocation(tab.href, location);
+          const Icon = ICONS[tab.icon] ?? Home;
 
           return (
             <Link

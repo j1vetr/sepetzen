@@ -58,6 +58,7 @@ import {
 } from "./menu-grouping";
 import { menuItems as menuItemsTable } from "@shared/schema";
 import { HOMEPAGE_CONTENT_KEY, homepageContentSchema, resolveHomepageContent } from "@shared/homepage";
+import { SITE_IDENTITY_KEY, siteIdentitySchema, mergeSiteIdentity } from "@shared/siteIdentity";
 import { and, gte, lte } from "drizzle-orm";
 import {
   generateAccessToken,
@@ -5373,6 +5374,46 @@ window.addEventListener('load', function() {
       res.json({ success: true });
     } catch (error) {
       res.status(500).json({ error: "Failed to save homepage content" });
+    }
+  });
+
+  // Public site identity (announcements, contact info, footer/nav content)
+  app.get("/api/site-identity", async (_req, res) => {
+    try {
+      const raw = await storage.getSiteSetting(SITE_IDENTITY_KEY);
+      let parsed: unknown = null;
+      if (raw) {
+        try { parsed = JSON.parse(raw); } catch { parsed = null; }
+      }
+      res.json(mergeSiteIdentity(parsed));
+    } catch (error) {
+      res.status(500).json({ error: "Failed to fetch site identity" });
+    }
+  });
+
+  app.get("/api/admin/site-identity", requireAdmin, async (_req, res) => {
+    try {
+      const raw = await storage.getSiteSetting(SITE_IDENTITY_KEY);
+      let parsed: unknown = null;
+      if (raw) {
+        try { parsed = JSON.parse(raw); } catch { parsed = null; }
+      }
+      res.json(mergeSiteIdentity(parsed));
+    } catch (error) {
+      res.status(500).json({ error: "Failed to fetch site identity" });
+    }
+  });
+
+  app.post("/api/admin/site-identity", requireAdmin, async (req, res) => {
+    try {
+      const parsed = siteIdentitySchema.safeParse(req.body);
+      if (!parsed.success) {
+        return res.status(400).json({ error: "Geçersiz site kimliği verisi", details: parsed.error.flatten() });
+      }
+      await storage.setSiteSetting(SITE_IDENTITY_KEY, JSON.stringify(parsed.data));
+      res.json({ success: true });
+    } catch (error) {
+      res.status(500).json({ error: "Failed to save site identity" });
     }
   });
 

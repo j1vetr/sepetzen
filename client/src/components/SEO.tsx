@@ -1,4 +1,5 @@
 import { useEffect } from 'react';
+import { useSiteIdentity } from '@/hooks/useSiteIdentity';
 
 interface SEOProps {
   title?: string;
@@ -35,6 +36,7 @@ export function SEO({
   product,
   breadcrumbs
 }: SEOProps) {
+  const identity = useSiteIdentity();
   const fullTitle = title ? `${title} | ${SITE_NAME}` : DEFAULT_TITLE;
   const fullUrl = url ? `${BASE_URL}${url}` : (typeof window !== 'undefined' ? window.location.href : '');
   const imageUrl = image ? (image.startsWith('http') ? image : `${BASE_URL}${image}`) : `${BASE_URL}/opengraph.jpg`;
@@ -83,12 +85,11 @@ export function SEO({
       name: 'Sepetzen',
       url: BASE_URL,
       logo: `${BASE_URL}/logo.png`,
-      sameAs: [
-        'https://instagram.com/sepetzen',
-      ],
+      sameAs: identity.socialLinks.map((s) => s.url),
       contactPoint: {
         '@type': 'ContactPoint',
-        email: 'sepetzen@gmail.com',
+        email: identity.email,
+        telephone: identity.phoneHref,
         contactType: 'customer service'
       }
     });
@@ -169,7 +170,7 @@ export function SEO({
       const managedCanonical = document.querySelector('link[rel="canonical"][data-managed="seo"]');
       if (managedCanonical) managedCanonical.remove();
     };
-  }, [fullTitle, description, fullUrl, type, imageUrl, noIndex, product, breadcrumbs]);
+  }, [fullTitle, description, fullUrl, type, imageUrl, noIndex, product, breadcrumbs, identity]);
 
   return null;
 }

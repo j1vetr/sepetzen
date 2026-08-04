@@ -23,6 +23,7 @@ import { motion, AnimatePresence, useScroll, useMotionValueEvent, type Variants 
 import { useQuery } from '@tanstack/react-query';
 import { useCart } from '@/hooks/useCart';
 import { useAuth } from '@/hooks/useAuth';
+import { useSiteIdentity } from '@/hooks/useSiteIdentity';
 import { SearchOverlay } from '@/components/SearchOverlay';
 import {
   DropdownMenu,
@@ -136,6 +137,7 @@ export function Header() {
   const [sidebarProductKey, setSidebarProductKey] = useState(0);
   const closeTimerRef = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
   const { totalItems } = useCart();
+  const siteIdentity = useSiteIdentity();
   const { user, logout } = useAuth();
   const { scrollY } = useScroll();
 
@@ -244,14 +246,7 @@ export function Header() {
         <div className="marquee-track motion-reduce:animate-none" style={{ animationDuration: '28s' }} aria-hidden={false}>
           {[0, 1].map((copy) => (
             <div key={copy} className="flex shrink-0 items-center" aria-hidden={copy === 1}>
-              {[
-                '1500 TL ve Üzeri Ücretsiz Kargo!',
-                'İlk Siparişinize Sepette %10 İndirim!',
-                "Havale/EFT'de %3 İndirim",
-                '14 Gün İçinde Kolay İade',
-                'Aynı Gün Kargoda',
-                'SSL ile Güvenli Ödeme',
-              ].map((msg) => (
+              {siteIdentity.announcements.map((msg) => (
                 <span key={msg} className="flex items-center whitespace-nowrap">
                   <span className="px-5">{msg}</span>
                   <span className="text-white/30">✦</span>
@@ -267,7 +262,7 @@ export function Header() {
         <div className="max-w-[1400px] mx-auto px-8 py-4 grid grid-cols-3 items-center gap-6">
           {/* Sol: E-Posta */}
           <a
-            href="mailto:sepetzen@gmail.com"
+            href={`mailto:${siteIdentity.email}`}
             data-testid="link-header-email"
             aria-label="E-posta gönder"
             className="justify-self-start group flex items-center gap-3 text-white"
@@ -277,7 +272,7 @@ export function Header() {
             </span>
             <span className="flex flex-col leading-tight whitespace-nowrap">
               <span className="text-[9px] tracking-[0.22em] uppercase text-white/45 font-mono">E-Posta</span>
-              <span className="text-[13px] font-semibold text-white tracking-wide group-hover:text-white/90 transition-colors" data-testid="text-header-email">sepetzen@gmail.com</span>
+              <span className="text-[13px] font-semibold text-white tracking-wide group-hover:text-white/90 transition-colors" data-testid="text-header-email">{siteIdentity.email}</span>
             </span>
           </a>
 
@@ -293,7 +288,7 @@ export function Header() {
 
           {/* Sağ: Telefon */}
           <a
-            href="tel:+905366301138"
+            href={`tel:${siteIdentity.phoneHref}`}
             data-testid="link-header-phone"
             aria-label="Telefonla ara"
             className="justify-self-end group flex items-center gap-3 text-white"
@@ -303,7 +298,7 @@ export function Header() {
             </span>
             <span className="flex flex-col leading-tight whitespace-nowrap">
               <span className="text-[9px] tracking-[0.22em] uppercase text-white/45 font-mono">Bize Ulaşın</span>
-              <span className="text-[13px] font-semibold text-white tracking-wide group-hover:text-white/90 transition-colors" data-testid="text-header-phone">0536 630 11 38</span>
+              <span className="text-[13px] font-semibold text-white tracking-wide group-hover:text-white/90 transition-colors" data-testid="text-header-phone">{siteIdentity.phone}</span>
             </span>
           </a>
         </div>

@@ -1,24 +1,33 @@
 import { Link } from 'wouter';
-import { Instagram, MapPin, Phone, Mail, Youtube } from 'lucide-react';
+import { Instagram, MapPin, Phone, Mail, Youtube, Facebook, Twitter, Music2, Link2 } from 'lucide-react';
+import { useSiteIdentity } from '@/hooks/useSiteIdentity';
+import type { SocialLink } from '@shared/siteIdentity';
 
-const kurumsalLinks = [
-  { href: '/sayfa/hakkimizda',               label: 'Hakkımızda' },
-  { href: '/sayfa/mesafeli-satis-sozlesmesi', label: 'Mesafeli Satış Sözleşmesi' },
-  { href: '/sayfa/on-bilgilendirme-formu',   label: 'Ön Bilgilendirme Formu' },
-  { href: '/sayfa/uyelik-sozlesmesi',         label: 'Üyelik Sözleşmesi' },
-  { href: '/sayfa/kvkk-aydinlatma-metni',    label: 'KVKK Aydınlatma Metni' },
-  { href: '/sayfa/gizlilik-guvenlik',        label: 'Gizlilik & Güvenlik' },
-  { href: '/sayfa/cerez-politikasi',         label: 'Çerez Politikası' },
-];
-
-const yardimLinks = [
-  { href: '/sayfa/kargo-sureci',            label: 'Kargo Süreci' },
-  { href: '/sayfa/iade-sureci',             label: 'İade Süreci' },
-  { href: '/sayfa/iptal-ve-iade-sartlari', label: 'İptal & İade Şartları' },
-  { href: '/sayfa/iletisim',                label: 'İletişim' },
-];
+function SocialIcon({ platform }: { platform: SocialLink['platform'] }) {
+  switch (platform) {
+    case 'instagram':
+      return <Instagram className="w-4 h-4" strokeWidth={1.75} />;
+    case 'youtube':
+      return <Youtube className="w-4 h-4" strokeWidth={1.75} />;
+    case 'facebook':
+      return <Facebook className="w-4 h-4" strokeWidth={1.75} />;
+    case 'twitter':
+      return <Twitter className="w-4 h-4" strokeWidth={1.75} />;
+    case 'tiktok':
+      return <Music2 className="w-4 h-4" strokeWidth={1.75} />;
+    case 'etsy':
+      return (
+        <svg viewBox="0 0 24 24" className="w-4 h-4" fill="currentColor" aria-hidden>
+          <path d="M9.764 21.053c-.52 0-.952-.024-1.297-.073L4.95 21l.024-.423c.097-1.684.146-3.463.146-5.289V8.689c0-1.826-.049-3.605-.146-5.289L4.95 3l3.517.02c.344-.05.776-.073 1.297-.073h7.483c1.201 0 2.14.038 2.816.111l.544.056-.288 2.56-.532-.023a47.76 47.76 0 0 0-1.648-.059H10.15a46.98 46.98 0 0 0-1.056.024v4.22c.337.01.714.017 1.13.017h4.068c.612 0 1.234-.02 1.868-.059l.541-.035-.23 2.546-.524-.02a38.99 38.99 0 0 0-1.655-.07H10.24c-.416 0-.794.007-1.13.017v4.367c.008.29.018.533.03.73.26.018.619.028 1.074.028h7.689c.548 0 1.128-.02 1.74-.059l.536-.033-.287 2.559-.533.058a32.7 32.7 0 0 1-2.84.11H9.764z" />
+        </svg>
+      );
+    default:
+      return <Link2 className="w-4 h-4" strokeWidth={1.75} />;
+  }
+}
 
 export function Footer() {
+  const identity = useSiteIdentity();
   return (
     <footer
       className="relative bg-[#0F0F0F] text-white overflow-hidden"
@@ -51,44 +60,21 @@ export function Footer() {
             </p>
 
             <div className="flex items-center gap-3 flex-wrap">
-              <a
-                href="https://www.instagram.com/sepetzen"
-                target="_blank"
-                rel="noopener noreferrer"
-                className="inline-flex items-center gap-2 text-white/75 hover:text-[#FAFAFA] transition-colors group"
-                data-testid="link-instagram-footer"
-              >
-                <span className="w-9 h-9 rounded-full border border-white/15 group-hover:border-[#FAFAFA] flex items-center justify-center transition-colors">
-                  <Instagram className="w-4 h-4" strokeWidth={1.75} />
-                </span>
-                <span className="text-[12px]">@sepetzen</span>
-              </a>
-              <a
-                href="https://www.youtube.com/@sepetzen"
-                target="_blank"
-                rel="noopener noreferrer"
-                className="inline-flex items-center gap-2 text-white/75 hover:text-[#FAFAFA] transition-colors group"
-                data-testid="link-youtube-footer"
-              >
-                <span className="w-9 h-9 rounded-full border border-white/15 group-hover:border-[#FAFAFA] flex items-center justify-center transition-colors">
-                  <Youtube className="w-4 h-4" strokeWidth={1.75} />
-                </span>
-                <span className="text-[12px]">@sepetzen</span>
-              </a>
-              <a
-                href="https://www.etsy.com/shop/Sepetzen"
-                target="_blank"
-                rel="noopener noreferrer"
-                className="inline-flex items-center gap-2 text-white/75 hover:text-[#FAFAFA] transition-colors group"
-                data-testid="link-etsy-footer"
-              >
-                <span className="w-9 h-9 rounded-full border border-white/15 group-hover:border-[#FAFAFA] flex items-center justify-center transition-colors">
-                  <svg viewBox="0 0 24 24" className="w-4 h-4" fill="currentColor" aria-hidden>
-                    <path d="M9.764 21.053c-.52 0-.952-.024-1.297-.073L4.95 21l.024-.423c.097-1.684.146-3.463.146-5.289V8.689c0-1.826-.049-3.605-.146-5.289L4.95 3l3.517.02c.344-.05.776-.073 1.297-.073h7.483c1.201 0 2.14.038 2.816.111l.544.056-.288 2.56-.532-.023a47.76 47.76 0 0 0-1.648-.059H10.15a46.98 46.98 0 0 0-1.056.024v4.22c.337.01.714.017 1.13.017h4.068c.612 0 1.234-.02 1.868-.059l.541-.035-.23 2.546-.524-.02a38.99 38.99 0 0 0-1.655-.07H10.24c-.416 0-.794.007-1.13.017v4.367c.008.29.018.533.03.73.26.018.619.028 1.074.028h7.689c.548 0 1.128-.02 1.74-.059l.536-.033-.287 2.559-.533.058a32.7 32.7 0 0 1-2.84.11H9.764z" />
-                  </svg>
-                </span>
-                <span className="text-[12px]">Etsy</span>
-              </a>
+              {identity.socialLinks.map((social, i) => (
+                <a
+                  key={`${social.platform}-${i}`}
+                  href={social.url}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-flex items-center gap-2 text-white/75 hover:text-[#FAFAFA] transition-colors group"
+                  data-testid={`link-${social.platform}-footer`}
+                >
+                  <span className="w-9 h-9 rounded-full border border-white/15 group-hover:border-[#FAFAFA] flex items-center justify-center transition-colors">
+                    <SocialIcon platform={social.platform} />
+                  </span>
+                  <span className="text-[12px]">{social.label}</span>
+                </a>
+              ))}
             </div>
           </div>
 
@@ -98,7 +84,7 @@ export function Footer() {
               Kurumsal
             </h4>
             <ul className="space-y-3 text-[14px] text-white/70">
-              {kurumsalLinks.map((link) => (
+              {identity.kurumsalLinks.map((link) => (
                 <li key={link.href}>
                   <Link
                     href={link.href}
@@ -119,7 +105,7 @@ export function Footer() {
               Yardım
             </h4>
             <ul className="space-y-3 text-[14px] text-white/70">
-              {yardimLinks.map((link) => (
+              {identity.yardimLinks.map((link) => (
                 <li key={link.href}>
                   <Link
                     href={link.href}
@@ -143,29 +129,32 @@ export function Footer() {
               <li className="flex items-start gap-3">
                 <MapPin className="w-4 h-4 text-[#FAFAFA] shrink-0 mt-0.5" strokeWidth={1.75} />
                 <span data-testid="text-footer-address" className="leading-[1.65]">
-                  Ahmet Uğur Durmaz<br />
-                  Karaçalı Mah. Nergiz Sk. No.8/A<br />
-                  Dalaman / Muğla
+                  {identity.addressLines.map((line, i) => (
+                    <span key={i}>
+                      {line}
+                      {i < identity.addressLines.length - 1 && <br />}
+                    </span>
+                  ))}
                 </span>
               </li>
               <li className="flex items-center gap-3">
                 <Phone className="w-4 h-4 text-[#FAFAFA] shrink-0" strokeWidth={1.75} />
                 <a
-                  href="tel:+905366301138"
+                  href={`tel:${identity.phoneHref}`}
                   className="hover:text-[#FAFAFA] transition-colors"
                   data-testid="link-footer-phone"
                 >
-                  0536 630 11 38
+                  {identity.phone}
                 </a>
               </li>
               <li className="flex items-center gap-3">
                 <Mail className="w-4 h-4 text-[#FAFAFA] shrink-0" strokeWidth={1.75} />
                 <a
-                  href="mailto:sepetzen@gmail.com"
+                  href={`mailto:${identity.email}`}
                   className="hover:text-[#FAFAFA] transition-colors"
                   data-testid="link-footer-email"
                 >
-                  sepetzen@gmail.com
+                  {identity.email}
                 </a>
               </li>
             </ul>
@@ -176,7 +165,7 @@ export function Footer() {
         {/* ── Güven Rozetleri ── */}
         <div className="mt-10 lg:mt-14 pt-6 border-t border-white/[0.08] flex flex-col sm:flex-row items-center justify-between gap-6">
           <p className="text-[12px] text-white/40" data-testid="text-footer-copyright">
-            Sepetzen® - Her Hakkı Saklıdır. © 2024-2026
+            {identity.copyright}
           </p>
 
           <div className="flex items-center gap-5 flex-wrap justify-center">

@@ -1,7 +1,8 @@
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useState, useEffect } from 'react';
-import { Settings, Mail, Loader2, CheckCircle2, XCircle, Send, Server, CreditCard, Copy, AlertTriangle, Wrench, MessageCircle, KeyRound, ShieldCheck, Truck, MapPin } from 'lucide-react';
+import { Settings, Mail, Loader2, CheckCircle2, XCircle, Send, Server, CreditCard, Copy, AlertTriangle, Wrench, MessageCircle, KeyRound, ShieldCheck, Truck, MapPin, Megaphone } from 'lucide-react';
 import { BANK_TRANSFER_INFO } from '@shared/bankInfo';
+import type { SiteIdentity, SocialLink, MobileNavItem } from '@shared/siteIdentity';
 
 type WhatsAppEvent =
   | 'order_received_customer'
@@ -166,6 +167,276 @@ function ArasSenderAddressPicker({ value, onChange }: { value: string; onChange:
           ))}
         </div>
       )}
+    </div>
+  );
+}
+
+// ── Site Identity (announcements, contact, footer, mobile nav) ────────────
+function SiteIdentitySection() {
+  const queryClient = useQueryClient();
+  const [identity, setIdentity] = useState<SiteIdentity | null>(null);
+  const [saving, setSaving] = useState(false);
+  const [msg, setMsg] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
+
+  const { data } = useQuery<SiteIdentity>({ queryKey: ['/api/admin/site-identity'] });
+
+  useEffect(() => {
+    if (data && !identity) setIdentity(data);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [data]);
+
+  if (!identity) {
+    return (
+      <div className="bg-white border border-neutral-200 rounded-xl p-6 flex items-center gap-3 text-neutral-500 text-sm">
+        <Loader2 className="w-4 h-4 animate-spin" /> Site kimliği yükleniyor…
+      </div>
+    );
+  }
+
+  const set = (patch: Partial<SiteIdentity>) => setIdentity((prev) => (prev ? { ...prev, ...patch } : prev));
+
+  const updateListItem = <K extends 'socialLinks' | 'kurumsalLinks' | 'yardimLinks' | 'mobileNavItems'>(
+    key: K, idx: number, patch: Partial<SiteIdentity[K][number]>,
+  ) => {
+    const list = [...identity[key]] as any[];
+    list[idx] = { ...list[idx], ...patch };
+    set({ [key]: list } as any);
+  };
+
+  const removeListItem = (key: 'socialLinks' | 'kurumsalLinks' | 'yardimLinks' | 'mobileNavItems', idx: number) => {
+    set({ [key]: identity[key].filter((_, i) => i !== idx) } as any);
+  };
+
+  const handleSave = async () => {
+    // Client-side sanity checks matching server validation
+    const cleaned: SiteIdentity = {
+      ...identity,
+      announcements: identity.announcements.map((a) => a.trim()).filter(Boolean),
+      addressLines: identity.addressLines.map((a) => a.trim()).filter(Boolean),
+      socialLinks: identity.socialLinks.filter((s) => s.url.trim() && s.label.trim()),
+      kurumsalLinks: identity.kurumsalLinks.filter((l) => l.href.trim() && l.label.trim()),
+      yardimLinks: identity.yardimLinks.filter((l) => l.href.trim() && l.label.trim()),
+      mobileNavItems: identity.mobileNavItems.filter((l) => l.href.trim() && l.label.trim()),
+    };
+    if (!cleaned.announcements.length) { setMsg({ type: 'error', text: 'En az bir duyuru mesajı gerekli' }); return; }
+    if (!cleaned.phone.trim() || !cleaned.email.trim()) { setMsg({ type: 'error', text: 'Telefon ve e-posta zorunludur' }); return; }
+    if (!cleaned.addressLines.length) { setMsg({ type: 'error', text: 'En az bir adres satırı gerekli' }); return; }
+    if (cleaned.mobileNavItems.length < 1 || cleaned.mobileNavItems.length > 5) { setMsg({ type: 'error', text: 'Mobil alt menü 1-5 öğe içermeli' }); return; }
+    setSaving(true);
+    setMsg(null);
+    try {
+      const res = await fetch('/api/admin/site-identity', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(cleaned),
+        credentials: 'include',
+      });
+      if (res.ok) {
+        setIdentity(cleaned);
+        setMsg({ type: 'success', text: 'Site kimliği kaydedildi. Değişiklikler sitede aktif.' });
+        queryClient.invalidateQueries({ queryKey: ['/api/site-identity'] });
+        queryClient.invalidateQueries({ queryKey: ['/api/admin/site-identity'] });
+      } else {
+        const data = await res.json().catch(() => ({}));
+        setMsg({ type: 'error', text: data.error || 'Kaydedilemedi' });
+      }
+    } catch {
+      setMsg({ type: 'error', text: 'Bir hata oluştu' });
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const inputCls = 'w-full px-3 py-2 bg-neutral-50 border border-neutral-200 rounded-lg text-neutral-900 text-sm';
+  const smallBtnCls = 'text-[11px] font-semibold text-neutral-500 hover:text-red-600 transition-colors shrink-0';
+  const addBtnCls = 'text-[12px] font-semibold text-neutral-700 border border-neutral-200 rounded-lg px-3 py-1.5 hover:bg-neutral-50 transition-colors';
+  const groupTitleCls = 'text-[12px] font-semibold tracking-wide uppercase text-neutral-500 mb-2';
+
+  const ICON_OPTIONS: { value: MobileNavItem['icon']; label: string }[] = [
+    { value: 'home', label: 'Ev' },
+    { value: 'store', label: 'Mağaza' },
+    { value: 'cart', label: 'Sepet' },
+    { value: 'user', label: 'Kullanıcı' },
+    { value: 'heart', label: 'Kalp' },
+    { value: 'search', label: 'Arama' },
+    { value: 'phone', label: 'Telefon' },
+    { value: 'grid', label: 'Izgara' },
+  ];
+
+  const PLATFORM_OPTIONS: { value: SocialLink['platform']; label: string }[] = [
+    { value: 'instagram', label: 'Instagram' },
+    { value: 'youtube', label: 'YouTube' },
+    { value: 'etsy', label: 'Etsy' },
+    { value: 'facebook', label: 'Facebook' },
+    { value: 'twitter', label: 'Twitter/X' },
+    { value: 'tiktok', label: 'TikTok' },
+    { value: 'other', label: 'Diğer' },
+  ];
+
+  return (
+    <div className="bg-white border border-neutral-200 rounded-xl p-6" data-testid="section-site-identity">
+      <div className="flex items-center gap-3 mb-6">
+        <div className="p-2 bg-neutral-50 rounded-lg">
+          <Megaphone className="w-5 h-5 text-neutral-900" />
+        </div>
+        <div>
+          <h3 className="text-lg font-semibold text-neutral-900">Site Kimliği & İletişim</h3>
+          <p className="text-sm text-neutral-500">Duyuru bandı, telefon, e-posta, adres, sosyal medya, footer linkleri ve mobil alt menü</p>
+        </div>
+      </div>
+
+      {msg && (
+        <div className={`flex items-center gap-2 p-3 rounded-lg mb-4 text-sm ${
+          msg.type === 'success' ? 'bg-emerald-50 border border-emerald-200 text-emerald-700' : 'bg-red-50 border border-red-200 text-red-700'
+        }`} data-testid="text-site-identity-message">
+          {msg.type === 'success' ? <CheckCircle2 className="w-4 h-4" /> : <XCircle className="w-4 h-4" />}
+          {msg.text}
+        </div>
+      )}
+
+      <div className="space-y-6">
+        {/* Announcements */}
+        <div>
+          <h4 className={groupTitleCls}>Duyuru Bandı Mesajları</h4>
+          <div className="space-y-2">
+            {identity.announcements.map((a, i) => (
+              <div key={i} className="flex items-center gap-2">
+                <input
+                  type="text"
+                  value={a}
+                  onChange={(e) => {
+                    const list = [...identity.announcements];
+                    list[i] = e.target.value;
+                    set({ announcements: list });
+                  }}
+                  className={inputCls}
+                  data-testid={`input-announcement-${i}`}
+                />
+                <button type="button" onClick={() => set({ announcements: identity.announcements.filter((_, j) => j !== i) })} className={smallBtnCls} data-testid={`button-remove-announcement-${i}`}>Sil</button>
+              </div>
+            ))}
+          </div>
+          <button type="button" onClick={() => set({ announcements: [...identity.announcements, ''] })} className={`${addBtnCls} mt-2`} data-testid="button-add-announcement">+ Mesaj Ekle</button>
+        </div>
+
+        {/* Contact */}
+        <div className="grid md:grid-cols-2 gap-4">
+          <div>
+            <label className="block text-sm font-medium text-neutral-500 mb-2">Telefon (görünen)</label>
+            <input type="text" value={identity.phone} onChange={(e) => set({ phone: e.target.value })} className={inputCls} data-testid="input-identity-phone" />
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-neutral-500 mb-2">Telefon (arama linki, örn. +905XXXXXXXXX)</label>
+            <input type="text" value={identity.phoneHref} onChange={(e) => set({ phoneHref: e.target.value })} className={inputCls} data-testid="input-identity-phone-href" />
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-neutral-500 mb-2">E-posta</label>
+            <input type="email" value={identity.email} onChange={(e) => set({ email: e.target.value })} className={inputCls} data-testid="input-identity-email" />
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-neutral-500 mb-2">Telif Metni (footer)</label>
+            <input type="text" value={identity.copyright} onChange={(e) => set({ copyright: e.target.value })} className={inputCls} data-testid="input-identity-copyright" />
+          </div>
+        </div>
+
+        {/* Address */}
+        <div>
+          <h4 className={groupTitleCls}>Adres (satır satır)</h4>
+          <div className="space-y-2">
+            {identity.addressLines.map((line, i) => (
+              <div key={i} className="flex items-center gap-2">
+                <input
+                  type="text"
+                  value={line}
+                  onChange={(e) => {
+                    const list = [...identity.addressLines];
+                    list[i] = e.target.value;
+                    set({ addressLines: list });
+                  }}
+                  className={inputCls}
+                  data-testid={`input-address-line-${i}`}
+                />
+                <button type="button" onClick={() => set({ addressLines: identity.addressLines.filter((_, j) => j !== i) })} className={smallBtnCls} data-testid={`button-remove-address-line-${i}`}>Sil</button>
+              </div>
+            ))}
+          </div>
+          <button type="button" onClick={() => set({ addressLines: [...identity.addressLines, ''] })} className={`${addBtnCls} mt-2`} data-testid="button-add-address-line">+ Satır Ekle</button>
+        </div>
+
+        {/* Social links */}
+        <div>
+          <h4 className={groupTitleCls}>Sosyal Medya Linkleri</h4>
+          <div className="space-y-2">
+            {identity.socialLinks.map((s, i) => (
+              <div key={i} className="flex flex-col md:flex-row gap-2">
+                <select value={s.platform} onChange={(e) => updateListItem('socialLinks', i, { platform: e.target.value as SocialLink['platform'] })} className={`${inputCls} md:w-36`} data-testid={`select-social-platform-${i}`}>
+                  {PLATFORM_OPTIONS.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
+                </select>
+                <input type="text" value={s.url} onChange={(e) => updateListItem('socialLinks', i, { url: e.target.value })} placeholder="https://..." className={inputCls} data-testid={`input-social-url-${i}`} />
+                <div className="flex items-center gap-2">
+                  <input type="text" value={s.label} onChange={(e) => updateListItem('socialLinks', i, { label: e.target.value })} placeholder="Görünen ad" className={`${inputCls} md:w-40`} data-testid={`input-social-label-${i}`} />
+                  <button type="button" onClick={() => removeListItem('socialLinks', i)} className={smallBtnCls} data-testid={`button-remove-social-${i}`}>Sil</button>
+                </div>
+              </div>
+            ))}
+          </div>
+          <button type="button" onClick={() => set({ socialLinks: [...identity.socialLinks, { platform: 'other', url: '', label: '' }] })} className={`${addBtnCls} mt-2`} data-testid="button-add-social">+ Sosyal Medya Ekle</button>
+        </div>
+
+        {/* Footer link groups */}
+        {([['kurumsalLinks', 'Footer: Kurumsal Linkler'], ['yardimLinks', 'Footer: Yardım Linkleri']] as const).map(([key, title]) => (
+          <div key={key}>
+            <h4 className={groupTitleCls}>{title}</h4>
+            <div className="space-y-2">
+              {identity[key].map((l, i) => (
+                <div key={i} className="flex flex-col md:flex-row gap-2">
+                  <input type="text" value={l.label} onChange={(e) => updateListItem(key, i, { label: e.target.value })} placeholder="Etiket" className={inputCls} data-testid={`input-${key}-label-${i}`} />
+                  <div className="flex items-center gap-2 md:w-[55%]">
+                    <input type="text" value={l.href} onChange={(e) => updateListItem(key, i, { href: e.target.value })} placeholder="/sayfa/..." className={inputCls} data-testid={`input-${key}-href-${i}`} />
+                    <button type="button" onClick={() => removeListItem(key, i)} className={smallBtnCls} data-testid={`button-remove-${key}-${i}`}>Sil</button>
+                  </div>
+                </div>
+              ))}
+            </div>
+            <button type="button" onClick={() => set({ [key]: [...identity[key], { href: '', label: '' }] } as any)} className={`${addBtnCls} mt-2`} data-testid={`button-add-${key}`}>+ Link Ekle</button>
+          </div>
+        ))}
+
+        {/* Mobile bottom nav */}
+        <div>
+          <h4 className={groupTitleCls}>Mobil Alt Menü (1-5 öğe)</h4>
+          <div className="space-y-2">
+            {identity.mobileNavItems.map((item, i) => (
+              <div key={i} className="flex flex-col md:flex-row gap-2">
+                <input type="text" value={item.label} onChange={(e) => updateListItem('mobileNavItems', i, { label: e.target.value })} placeholder="Etiket" className={inputCls} data-testid={`input-mobilenav-label-${i}`} />
+                <input type="text" value={item.href} onChange={(e) => updateListItem('mobileNavItems', i, { href: e.target.value })} placeholder="/yol" className={`${inputCls} md:w-40`} data-testid={`input-mobilenav-href-${i}`} />
+                <div className="flex items-center gap-2">
+                  <select value={item.icon} onChange={(e) => updateListItem('mobileNavItems', i, { icon: e.target.value as MobileNavItem['icon'] })} className={`${inputCls} md:w-32`} data-testid={`select-mobilenav-icon-${i}`}>
+                    {ICON_OPTIONS.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
+                  </select>
+                  <button type="button" onClick={() => removeListItem('mobileNavItems', i)} className={smallBtnCls} data-testid={`button-remove-mobilenav-${i}`}>Sil</button>
+                </div>
+              </div>
+            ))}
+          </div>
+          {identity.mobileNavItems.length < 5 && (
+            <button type="button" onClick={() => set({ mobileNavItems: [...identity.mobileNavItems, { href: '', label: '', icon: 'grid' }] })} className={`${addBtnCls} mt-2`} data-testid="button-add-mobilenav">+ Öğe Ekle</button>
+          )}
+        </div>
+
+        <div className="pt-2 border-t border-neutral-100">
+          <button
+            type="button"
+            onClick={handleSave}
+            disabled={saving}
+            className="inline-flex items-center gap-2 px-5 py-2.5 bg-neutral-900 text-white rounded-lg text-sm font-semibold hover:bg-neutral-800 disabled:opacity-50 transition-colors"
+            data-testid="button-save-site-identity"
+          >
+            {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : <CheckCircle2 className="w-4 h-4" />}
+            {saving ? 'Kaydediliyor…' : 'Site Kimliğini Kaydet'}
+          </button>
+        </div>
+      </div>
     </div>
   );
 }
@@ -514,6 +785,8 @@ export default function SettingsPanel() {
           {message.text}
         </div>
       )}
+
+      <SiteIdentitySection />
 
       <div className="bg-white border border-neutral-200 rounded-xl p-6">
         <div className="flex items-center gap-3 mb-6">
