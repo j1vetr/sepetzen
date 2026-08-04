@@ -17,6 +17,7 @@ import {
   CheckCircle2, UserPlus, Tag, X, Instagram
 } from 'lucide-react';
 import { COUNTRIES } from '@/lib/countries';
+import { GoogleAuthButton } from '@/components/AuthLayout';
 import { BANK_TRANSFER_INFO } from '@shared/bankInfo';
 
 interface Product {
@@ -68,6 +69,7 @@ export default function Checkout() {
   
   // Payment method tab (card | bank_transfer)
   const [paymentMethod, setPaymentMethod] = useState<'card' | 'bank_transfer'>('card');
+  const [mobileSummaryOpen, setMobileSummaryOpen] = useState(false);
   const [copiedField, setCopiedField] = useState<string | null>(null);
 
   const copyBankField = async (key: 'bank' | 'holder' | 'iban', value: string) => {
@@ -552,72 +554,237 @@ export default function Checkout() {
     // This function is kept for form compatibility but shouldn't be called directly
   };
 
+
+  // ─────────────────────────────────────────────────────────────
+  // Görünüm: sıfırdan, mobil öncelikli monokrom tasarım
+  // ─────────────────────────────────────────────────────────────
+
+  const inputCls =
+    'h-12 w-full bg-[#0F0F0F] border-white/12 focus:border-white/40 focus-visible:ring-0 focus-visible:ring-offset-0 rounded-lg text-white placeholder:text-white/25 text-[14px]';
+
+  const summaryRows = (
+    <div className="space-y-2 text-[13px]">
+      <div className="flex justify-between gap-3">
+        <span className="text-white/50">Ara Toplam</span>
+        <span className="text-white tabular-nums" data-testid="text-subtotal">{subtotal.toLocaleString('tr-TR')} ₺</span>
+      </div>
+      {discount > 0 && (
+        <div className="flex justify-between gap-3">
+          <span className="text-white/50 flex items-center gap-1.5 min-w-0">
+            <Tag className="w-3 h-3 shrink-0" />
+            <span className="truncate">İndirim ({appliedCoupon?.code})</span>
+          </span>
+          <span className="text-white tabular-nums" data-testid="text-discount">-{discount.toLocaleString('tr-TR')} ₺</span>
+        </div>
+      )}
+      <div className="flex justify-between gap-3">
+        <span className="text-white/50">Kargo</span>
+        <span className="text-white tabular-nums" data-testid="text-shipping">
+          {shippingCost === 0 ? 'ÜCRETSİZ' : `${shippingCost.toLocaleString('tr-TR')} ₺`}
+        </span>
+      </div>
+      {bankTransferDiscount > 0 && (
+        <div className="flex justify-between gap-3">
+          <span className="text-white/50">Havale İndirimi (%10)</span>
+          <span className="text-white tabular-nums" data-testid="text-bank-transfer-discount">-{bankTransferDiscount.toLocaleString('tr-TR')} ₺</span>
+        </div>
+      )}
+      <div className="h-px bg-white/10 my-1" />
+      <div className="flex justify-between items-end gap-3 pt-0.5">
+        <span className="text-white font-bold text-[14px]">Toplam</span>
+        <span className="text-white font-bold text-[19px] leading-none tabular-nums" data-testid="text-total">
+          {finalTotal.toLocaleString('tr-TR')} ₺
+        </span>
+      </div>
+    </div>
+  );
+
+  const couponBox = appliedCoupon ? (
+    <div className="space-y-2">
+      <div className="flex items-center justify-between gap-2 bg-white/8 border border-white/20 rounded-lg px-3 py-2.5">
+        <div className="flex items-center gap-2 min-w-0">
+          <Tag className="w-4 h-4 text-white/70 shrink-0" />
+          <span className="text-[13px] font-semibold text-white truncate">{appliedCoupon.code}</span>
+        </div>
+        <button
+          type="button"
+          onClick={handleRemoveCoupon}
+          className="text-white/45 hover:text-white transition-colors shrink-0"
+          data-testid="button-remove-coupon"
+          aria-label="Kuponu kaldır"
+        >
+          <X className="w-4 h-4" />
+        </button>
+      </div>
+      {appliedCoupon.freeShipping && (
+        <p className="flex items-center gap-1.5 text-[11.5px] text-white/60">
+          <Truck className="w-3.5 h-3.5" /> Ücretsiz kargo kuponu uygulandı
+        </p>
+      )}
+      {appliedCoupon.isInfluencerCode && appliedCoupon.influencerInstagram && (
+        <p className="flex items-center gap-1.5 text-[11.5px] text-white/60">
+          <Instagram className="w-3.5 h-3.5" />
+          <a
+            href={`https://instagram.com/${appliedCoupon.influencerInstagram.replace('@', '')}`}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="text-white hover:underline underline-offset-2"
+            data-testid="link-influencer-instagram"
+          >
+            {appliedCoupon.influencerInstagram}
+          </a>
+          koduyla alışveriş yapıyorsunuz
+        </p>
+      )}
+    </div>
+  ) : (
+    <div className="space-y-2">
+      <div className="flex gap-2">
+        <div className="relative flex-1 min-w-0">
+          <Tag className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-white/35" />
+          <Input
+            value={couponCode}
+            onChange={(e) => {
+              setCouponCode(e.target.value.toUpperCase());
+              setCouponError('');
+            }}
+            placeholder="Kupon kodu"
+            className="h-11 pl-9 bg-[#0F0F0F] border-white/12 focus:border-white/40 focus-visible:ring-0 focus-visible:ring-offset-0 uppercase text-white placeholder:text-white/25 rounded-lg text-[13px]"
+            data-testid="input-coupon-code"
+          />
+        </div>
+        <Button
+          type="button"
+          onClick={handleApplyCoupon}
+          disabled={couponLoading || !couponCode.trim()}
+          className="h-11 px-4 bg-white text-black hover:bg-white/90 font-bold rounded-lg text-[12px] shrink-0"
+          data-testid="button-apply-coupon"
+        >
+          {couponLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : 'Uygula'}
+        </Button>
+      </div>
+      {couponError && (
+        <p className="text-[11.5px] text-red-400 flex items-center gap-1">
+          <AlertCircle className="w-3 h-3 shrink-0" />
+          {couponError}
+        </p>
+      )}
+    </div>
+  );
+
+  const itemsList = (compact: boolean) => (
+    <div className="space-y-3">
+      {cartItemsWithProducts.map((item) => (
+        <div key={item.id} className="flex gap-3 items-center min-w-0">
+          <div className={`${compact ? 'w-11 h-12' : 'w-14 h-16'} bg-white/8 rounded-md overflow-hidden shrink-0`}>
+            {item.product?.images?.[0] && (
+              <img src={item.product.images[0]} alt={item.product.name} className="w-full h-full object-cover" />
+            )}
+          </div>
+          <div className="flex-1 min-w-0">
+            <p className="text-[12.5px] font-medium text-white truncate">{item.product?.name || 'Ürün'}</p>
+            <p className="text-[11px] text-white/45 mt-0.5">Adet {item.quantity}</p>
+          </div>
+          <p className="text-[13px] font-bold text-white tabular-nums shrink-0">
+            {(parseFloat(item.product?.basePrice || '0') * item.quantity).toLocaleString('tr-TR')} ₺
+          </p>
+        </div>
+      ))}
+    </div>
+  );
+
+  const trustRow = (
+    <div className="grid grid-cols-3 gap-2 text-center">
+      {[
+        { icon: Shield, label: 'Güvenli Ödeme' },
+        { icon: Truck, label: 'Hızlı Kargo' },
+        { icon: RotateCcw, label: '14 Gün İade' },
+      ].map(({ icon: Icon, label }) => (
+        <div key={label} className="flex flex-col items-center gap-1.5 py-3 bg-[#111111] border border-white/8 rounded-lg min-w-0">
+          <Icon className="w-4 h-4 text-white/50" strokeWidth={1.75} />
+          <span className="text-[10px] text-white/55 leading-tight px-1">{label}</span>
+        </div>
+      ))}
+    </div>
+  );
+
+  const stepBack = (to: number, extraCls = '') => (
+    <Button
+      type="button"
+      variant="outline"
+      onClick={() => setCurrentStep(to)}
+      className={`h-12 border-white/15 bg-transparent hover:bg-white/5 text-white rounded-lg ${extraCls}`}
+      data-testid={`button-back-step${to + 1}`}
+    >
+      Geri
+    </Button>
+  );
+
   if (orderComplete) {
     return (
       <div className="min-h-screen bg-[#0A0A0A] overflow-x-hidden">
         <SEO title="Ödeme" description="Sepetzen güvenli ödeme sayfası." url="/odeme" noIndex />
         <Header />
-        <main className="pt-8 pb-12 px-4 sm:px-6">
-          <motion.div 
-            initial={{ opacity: 0, scale: 0.95 }}
+        <main className="pt-10 pb-16 px-4 sm:px-6">
+          <motion.div
+            initial={{ opacity: 0, scale: 0.96 }}
             animate={{ opacity: 1, scale: 1 }}
-            className="max-w-lg mx-auto text-center"
+            className="max-w-md mx-auto text-center"
           >
             <motion.div
               initial={{ scale: 0 }}
               animate={{ scale: 1 }}
-              transition={{ delay: 0.2, type: 'spring', stiffness: 200 }}
-              className="w-24 h-24 mx-auto mb-6 rounded-full bg-gradient-to-br from-neutral-500 to-neutral-600 flex items-center justify-center"
+              transition={{ delay: 0.15, type: 'spring', stiffness: 200 }}
+              className="w-20 h-20 mx-auto mb-6 rounded-full bg-white flex items-center justify-center"
             >
-              <CheckCircle2 className="w-12 h-12 text-white" />
+              <Check className="w-10 h-10 text-black" strokeWidth={2.5} />
             </motion.div>
-            <h1 className="font-display text-3xl tracking-wider mb-4" data-testid="text-order-success">
-              SİPARİŞİNİZ ALINDI!
+            <h1 className="font-display text-3xl sm:text-4xl tracking-wider text-white mb-3" data-testid="text-order-success">
+              SİPARİŞİNİZ ALINDI
             </h1>
-            <p className="text-muted-foreground mb-2">
-              Siparişiniz başarıyla oluşturuldu.
-            </p>
-            <p className="text-lg font-mono font-bold text-white mb-8">
-              Sipariş No: #{orderNumber}
-            </p>
-            
-            <div className="bg-[#0F0F0F] border border-white/8 p-6 mb-8 text-left">
-              <h3 className="font-semibold text-white mb-4">Sipariş Detayları</h3>
-              <div className="space-y-2 text-sm">
-                <div className="flex justify-between">
-                  <span className="text-muted-foreground">E-posta</span>
-                  <span>{formData.customerEmail}</span>
+            <p className="text-white/55 text-sm mb-1.5">Siparişiniz başarıyla oluşturuldu.</p>
+            <p className="text-base font-mono font-bold text-white mb-8">Sipariş No #{orderNumber}</p>
+
+            <div className="bg-[#111111] border border-white/10 rounded-xl p-5 mb-6 text-left">
+              <h3 className="font-display text-sm tracking-[0.12em] text-white/80 mb-4">SİPARİŞ DETAYLARI</h3>
+              <div className="space-y-2.5 text-[13px]">
+                <div className="flex justify-between gap-3">
+                  <span className="text-white/50">E-posta</span>
+                  <span className="text-white truncate">{formData.customerEmail}</span>
                 </div>
-                <div className="flex justify-between">
-                  <span className="text-muted-foreground">Teslimat Adresi</span>
-                  <span className="text-right">{formData.district}, {formData.city}</span>
+                <div className="flex justify-between gap-3">
+                  <span className="text-white/50">Teslimat</span>
+                  <span className="text-white text-right">{formData.district}, {formData.city}</span>
                 </div>
-                <div className="flex justify-between">
-                  <span className="text-muted-foreground">Ödeme Yöntemi</span>
-                  <span>Kredi Kartı</span>
+                <div className="flex justify-between gap-3">
+                  <span className="text-white/50">Ödeme</span>
+                  <span className="text-white">Kredi Kartı</span>
                 </div>
-                <div className="h-px bg-black/8 my-3" />
-                <div className="flex justify-between font-semibold">
+                <div className="h-px bg-white/10 my-2" />
+                <div className="flex justify-between font-bold text-white">
                   <span>Toplam</span>
-                  <span>{(savedOrderTotal || total).toLocaleString('tr-TR')} ₺</span>
+                  <span className="tabular-nums">{(savedOrderTotal || total).toLocaleString('tr-TR')} ₺</span>
                 </div>
               </div>
             </div>
 
-            <p className="text-sm text-muted-foreground mb-6">
-              Sipariş onayı <strong>{formData.customerEmail}</strong> adresine gönderilecektir.
+            <p className="text-[12.5px] text-white/50 mb-6">
+              Sipariş onayı <strong className="text-white/80">{formData.customerEmail}</strong> adresine gönderilecektir.
             </p>
-            
+
             <div className="flex flex-col sm:flex-row gap-3">
-              {user ? (
+              {user && (
                 <Link href="/hesabim" className="flex-1">
-                  <Button className="w-full h-12 bg-black hover:bg-white/85 text-white font-bold tracking-wide rounded-md">
+                  <Button className="w-full h-12 bg-white text-black hover:bg-white/90 font-bold tracking-wide rounded-lg">
                     SİPARİŞLERİM
                   </Button>
                 </Link>
-              ) : null}
+              )}
               <Link href="/" className="flex-1">
-                <Button className="w-full h-12 btn-glass text-white font-bold tracking-wide group">
+                <Button
+                  variant="outline"
+                  className="w-full h-12 border-white/15 bg-transparent hover:bg-white/5 text-white font-bold tracking-wide rounded-lg group"
+                >
                   ALIŞVERİŞE DEVAM ET
                   <ArrowRight className="w-4 h-4 ml-2 transition-transform group-hover:translate-x-1" />
                 </Button>
@@ -631,25 +798,22 @@ export default function Checkout() {
 
   if (items.length === 0) {
     return (
-      <div className="min-h-screen bg-[#0A0A0A] overflow-x-hidden w-full">
+      <div className="min-h-screen bg-[#0A0A0A] overflow-x-hidden">
+        <SEO title="Ödeme" description="Sepetzen güvenli ödeme sayfası." url="/odeme" noIndex />
         <Header />
-        <main className="pt-8 pb-12 px-4 sm:px-6 w-full box-border">
-          <motion.div 
-            initial={{ opacity: 0, scale: 0.95 }}
+        <main className="pt-12 pb-16 px-4 sm:px-6">
+          <motion.div
+            initial={{ opacity: 0, scale: 0.96 }}
             animate={{ opacity: 1, scale: 1 }}
-            className="max-w-md mx-auto text-center"
+            className="max-w-sm mx-auto text-center"
           >
-            <div className="w-20 h-20 mx-auto mb-6 bg-[#151515] flex items-center justify-center">
-              <ShoppingBag className="w-8 h-8 text-muted-foreground" />
+            <div className="w-20 h-20 mx-auto mb-6 bg-[#141414] border border-white/10 rounded-full flex items-center justify-center">
+              <ShoppingBag className="w-8 h-8 text-white/40" />
             </div>
-            <h1 className="font-display text-3xl tracking-wider mb-4">
-              SEPETİNİZ BOŞ
-            </h1>
-            <p className="text-muted-foreground mb-8">
-              Ödeme yapabilmek için önce sepetinize ürün eklemelisiniz.
-            </p>
+            <h1 className="font-display text-3xl tracking-wider text-white mb-3">SEPETİNİZ BOŞ</h1>
+            <p className="text-white/55 text-sm mb-8">Ödeme yapabilmek için önce sepetinize ürün eklemelisiniz.</p>
             <Link href="/">
-              <Button className="h-12 px-8 bg-[#141414] text-white hover:bg-[#141414]/90 font-bold tracking-wide group">
+              <Button className="h-12 px-8 bg-white text-black hover:bg-white/90 font-bold tracking-wide rounded-lg group">
                 ALIŞVERİŞE BAŞLA
                 <ArrowRight className="w-4 h-4 ml-2 transition-transform group-hover:translate-x-1" />
               </Button>
@@ -661,112 +825,131 @@ export default function Checkout() {
   }
 
   return (
-    <div className="min-h-screen bg-[#0A0A0A] overflow-x-hidden w-full">
+    <div className="min-h-screen bg-[#0A0A0A] overflow-x-hidden">
+      <SEO title="Ödeme" description="Sepetzen güvenli ödeme sayfası." url="/odeme" noIndex />
       <Header />
-      
-      <main className="pt-8 pb-32 lg:pb-12 px-4 sm:px-6 w-full box-border overflow-hidden">
-        <div className="max-w-5xl mx-auto w-full overflow-hidden">
-          <motion.div
-            initial={{ opacity: 0, y: 12 }}
-            animate={{ opacity: 1, y: 0 }}
-            className="text-center mb-6"
-          >
-            <h1 className="font-display text-3xl sm:text-4xl tracking-wider mb-5" data-testid="text-page-title">
+
+      <main className="pt-6 lg:pt-10 pb-36 lg:pb-16">
+        <div className="max-w-[1080px] mx-auto px-4 sm:px-6 min-w-0">
+
+          {/* ── Başlık ── */}
+          <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="text-center mb-5">
+            <p className="flex items-center justify-center gap-1.5 text-[10px] font-mono tracking-[0.3em] uppercase text-white/40 mb-2">
+              <Lock className="w-3 h-3" /> Güvenli Ödeme
+            </p>
+            <h1 className="font-display text-[32px] sm:text-4xl leading-none tracking-wider text-white" data-testid="text-page-title">
               ÖDEME
             </h1>
-            
-            <div className="max-w-md mx-auto px-2 flex items-start justify-between gap-1 sm:gap-2">
-              {steps.map((step, index) => {
-                const isLast = index === steps.length - 1;
+          </motion.div>
+
+          {/* ── Adım çubuğu ── */}
+          <div className="max-w-md mx-auto mb-5">
+            <div className="grid grid-cols-3 gap-2.5">
+              {steps.map((step) => {
                 const isActive = currentStep === step.id;
                 const isDone = currentStep > step.id;
                 const isLocked = step.id > currentStep + 1;
                 return (
-                  <div key={step.id} className={`flex items-start ${isLast ? 'shrink-0' : 'flex-1'} gap-1 sm:gap-3`}>
-                    <button
-                      type="button"
-                      onClick={() => goToStep(step.id)}
-                      disabled={isLocked}
-                      className={`flex flex-col items-center gap-2 shrink-0 transition-all ${
-                        isLocked ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer group'
+                  <button
+                    key={step.id}
+                    type="button"
+                    onClick={() => goToStep(step.id)}
+                    disabled={isLocked}
+                    aria-current={isActive ? 'step' : undefined}
+                    className={`min-w-0 text-left transition-opacity ${isLocked ? 'cursor-not-allowed' : 'cursor-pointer'}`}
+                    data-testid={`step-${step.id}`}
+                  >
+                    <div className={`h-[3px] rounded-full mb-2 transition-colors ${isActive || isDone ? 'bg-white' : 'bg-white/15'}`} />
+                    <p className="flex items-center gap-1 text-[9px] font-mono tracking-[0.18em] text-white/35 mb-0.5">
+                      {isDone ? <Check className="w-3 h-3 text-white/70" strokeWidth={2.5} /> : <>0{step.id}</>}
+                    </p>
+                    <p
+                      className={`text-[11px] sm:text-[12px] font-bold uppercase tracking-[0.08em] truncate ${
+                        isActive ? 'text-white' : isDone ? 'text-white/70' : 'text-white/35'
                       }`}
-                      data-testid={`step-${step.id}`}
                     >
-                      <div
-                        className={`w-10 h-10 sm:w-11 sm:h-11 rounded-full flex items-center justify-center border transition-all ${
-                          isActive
-                            ? 'bg-white text-black border-white'
-                            : isDone
-                              ? 'bg-neutral-500 text-white border-neutral-500'
-                              : 'bg-[#141414] text-white/40 border-white/15 group-hover:border-white/40'
-                        }`}
-                      >
-                        {isDone ? (
-                          <Check className="w-4 h-4 sm:w-5 sm:h-5" strokeWidth={2.25} />
-                        ) : (
-                          <step.icon className="w-4 h-4 sm:w-5 sm:h-5" strokeWidth={1.75} />
-                        )}
-                      </div>
-                      <span
-                        className={`text-[10px] sm:text-xs font-medium whitespace-nowrap transition-colors ${
-                          isActive ? 'text-white' : isDone ? 'text-white/70' : 'text-white/45'
-                        }`}
-                      >
-                        {step.title}
-                      </span>
-                    </button>
-                    {!isLast && (
-                      <div
-                        className={`flex-1 h-px mt-5 transition-colors ${
-                          isDone ? 'bg-neutral-500' : 'bg-black/15'
-                        }`}
-                      />
-                    )}
-                  </div>
+                      {step.title}
+                    </p>
+                  </button>
                 );
               })}
             </div>
-          </motion.div>
+          </div>
 
-          <div className="grid lg:grid-cols-3 gap-6 lg:gap-8 overflow-hidden">
-            <div className="lg:col-span-2 min-w-0 overflow-hidden">
-              <form onSubmit={handleSubmit} className="space-y-6 w-full">
+          {/* ── Mobil sipariş özeti ── */}
+          <div className="lg:hidden mb-4 bg-[#111111] border border-white/10 rounded-xl overflow-hidden">
+            <button
+              type="button"
+              onClick={() => setMobileSummaryOpen((o) => !o)}
+              aria-expanded={mobileSummaryOpen}
+              className="w-full flex items-center justify-between gap-3 px-4 py-3.5"
+              data-testid="button-mobile-summary-toggle"
+            >
+              <span className="flex items-center gap-2.5 min-w-0">
+                <ShoppingBag className="w-4 h-4 text-white/50 shrink-0" />
+                <span className="text-[13px] text-white/70 truncate">
+                  Sipariş Özeti ({items.reduce((n, i) => n + i.quantity, 0)} ürün)
+                </span>
+                <ChevronRight
+                  className={`w-4 h-4 text-white/40 shrink-0 transition-transform ${mobileSummaryOpen ? 'rotate-90' : ''}`}
+                />
+              </span>
+              <span className="text-[15px] font-bold text-white tabular-nums shrink-0" data-testid="text-mobile-summary-total">
+                {finalTotal.toLocaleString('tr-TR')} ₺
+              </span>
+            </button>
+            <AnimatePresence initial={false}>
+              {mobileSummaryOpen && (
+                <motion.div
+                  initial={{ height: 0, opacity: 0 }}
+                  animate={{ height: 'auto', opacity: 1 }}
+                  exit={{ height: 0, opacity: 0 }}
+                  transition={{ duration: 0.25, ease: 'easeOut' }}
+                  className="overflow-hidden"
+                >
+                  <div className="px-4 pb-4 pt-3 border-t border-white/8 space-y-4">
+                    {itemsList(true)}
+                    {couponBox}
+                    {summaryRows}
+                  </div>
+                </motion.div>
+              )}
+            </AnimatePresence>
+          </div>
+
+          <div className="lg:grid lg:grid-cols-[1fr_350px] lg:gap-8 lg:items-start">
+
+            {/* ── Sol: adım kartları ── */}
+            <div className="min-w-0">
+              <form onSubmit={handleSubmit}>
                 <AnimatePresence mode="wait">
+
+                  {/* ── ADIM 1 · İletişim ── */}
                   {currentStep === 1 && (
                     <motion.div
                       key="step1"
-                      initial={{ opacity: 0, y: 20 }}
+                      initial={{ opacity: 0, y: 14 }}
                       animate={{ opacity: 1, y: 0 }}
-                      exit={{ opacity: 0, y: -20 }}
-                      className="bg-[#141414] border border-white/8 rounded-md p-4 sm:p-6 overflow-hidden"
+                      exit={{ opacity: 0, y: -14 }}
+                      className="bg-[#111111] border border-white/10 rounded-xl p-4 sm:p-6"
                     >
-                      <div className="flex items-center gap-3 mb-6">
-                        <div className="w-10 h-10 bg-[#151515] flex items-center justify-center">
-                          <User className="w-5 h-5 text-white/50" />
-                        </div>
-                        <div>
-                          <h2 className="font-display text-xl tracking-wide">
-                            İLETİŞİM BİLGİLERİ
-                          </h2>
-                          {!user && (
-                            <p className="text-xs text-muted-foreground mt-0.5">
-                              Hesap oluşturmadan devam edebilirsiniz
-                            </p>
-                          )}
-                        </div>
+                      <div className="mb-5">
+                        <h2 className="font-display text-[22px] leading-none tracking-wide text-white">İLETİŞİM BİLGİLERİ</h2>
+                        {!user && (
+                          <p className="text-[12px] text-white/45 mt-1.5">Hesap oluşturmadan misafir olarak devam edebilirsiniz.</p>
+                        )}
                       </div>
 
                       {!user && (
-                        <div className="mb-6 p-4 bg-[#0F0F0F] border border-white/8 rounded-lg">
-                          <div className="flex items-start gap-3">
-                            <UserPlus className="w-5 h-5 text-white/40 shrink-0 mt-0.5" />
-                            <div className="flex-1">
-                              <p className="text-sm font-medium text-white/70">Zaten üye misiniz?</p>
-                              <p className="text-xs text-white/40 mt-1">
-                                <Link href="/giris" className="text-white font-semibold hover:underline underline-offset-2">Giriş yapın</Link> ve bilgilerinizi otomatik doldurun.
-                              </p>
-                            </div>
-                          </div>
+                        <div className="mb-6">
+                          <GoogleAuthButton label="Google ile Devam Et" testId="button-google-checkout" />
+                          <p className="text-[12px] text-white/45 text-center -mt-1">
+                            Zaten üye misiniz?{' '}
+                            <Link href="/giris" className="text-white font-semibold hover:underline underline-offset-2">
+                              Giriş yapın
+                            </Link>{' '}
+                            ve bilgileriniz otomatik dolsun.
+                          </p>
                         </div>
                       )}
 
@@ -774,35 +957,37 @@ export default function Checkout() {
                         <div className="mb-4 p-3 bg-red-500/10 border border-red-500/20 rounded-lg">
                           <div className="flex items-start gap-2">
                             <AlertCircle className="w-4 h-4 text-red-400 shrink-0 mt-0.5" />
-                            <div className="text-sm text-red-400">
-                              {stepErrors[1].map((err, i) => <p key={i}>{err}</p>)}
+                            <div className="text-[13px] text-red-400">
+                              {stepErrors[1].map((err, i) => (
+                                <p key={i}>{err}</p>
+                              ))}
                             </div>
                           </div>
                         </div>
                       )}
-                      
+
                       <div className="space-y-4">
-                        <div className="space-y-2">
-                          <Label htmlFor="customerName" className="text-sm font-medium">Ad Soyad *</Label>
+                        <div className="space-y-1.5">
+                          <Label htmlFor="customerName" className="text-[12px] font-medium text-white/70">Ad Soyad *</Label>
                           <div className="relative">
-                            <User className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                            <User className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-white/30" />
                             <Input
                               id="customerName"
                               name="customerName"
                               value={formData.customerName}
                               onChange={handleChange}
                               data-testid="input-customerName"
-                              className="h-12 pl-11 bg-[#0F0F0F] border-white/12 focus:border-white/40 rounded-md text-white placeholder:text-white/25"
+                              className={`${inputCls} pl-10`}
                               placeholder="Adınız Soyadınız"
                             />
                           </div>
                         </div>
 
                         <div className="grid sm:grid-cols-2 gap-4">
-                          <div className="space-y-2">
-                            <Label htmlFor="customerEmail" className="text-sm font-medium">E-posta *</Label>
+                          <div className="space-y-1.5">
+                            <Label htmlFor="customerEmail" className="text-[12px] font-medium text-white/70">E-posta *</Label>
                             <div className="relative">
-                              <Mail className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                              <Mail className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-white/30" />
                               <Input
                                 id="customerEmail"
                                 name="customerEmail"
@@ -810,15 +995,15 @@ export default function Checkout() {
                                 value={formData.customerEmail}
                                 onChange={handleChange}
                                 data-testid="input-customerEmail"
-                                className="h-12 pl-11 bg-[#0F0F0F] border-white/12 focus:border-white/40 rounded-md text-white placeholder:text-white/25"
+                                className={`${inputCls} pl-10`}
                                 placeholder="ornek@email.com"
                               />
                             </div>
                           </div>
-                          <div className="space-y-2">
-                            <Label htmlFor="customerPhone" className="text-sm font-medium">Telefon *</Label>
+                          <div className="space-y-1.5">
+                            <Label htmlFor="customerPhone" className="text-[12px] font-medium text-white/70">Telefon *</Label>
                             <div className="relative">
-                              <Phone className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                              <Phone className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-white/30" />
                               <Input
                                 id="customerPhone"
                                 name="customerPhone"
@@ -826,7 +1011,7 @@ export default function Checkout() {
                                 value={formData.customerPhone}
                                 onChange={handleChange}
                                 data-testid="input-customerPhone"
-                                className="h-12 pl-11 bg-[#0F0F0F] border-white/12 focus:border-white/40 rounded-md text-white placeholder:text-white/25"
+                                className={`${inputCls} pl-10`}
                                 placeholder="05XX XXX XX XX"
                               />
                             </div>
@@ -834,85 +1019,77 @@ export default function Checkout() {
                         </div>
                       </div>
 
-                      <motion.div whileHover={{ scale: 1.01 }} whileTap={{ scale: 0.99 }} className="mt-6 hidden lg:block">
-                        <Button 
-                          type="button" 
+                      <div className="mt-6 hidden lg:block">
+                        <Button
+                          type="button"
                           onClick={handleNextStep}
-                          className="w-full h-12 bg-[#141414] text-white hover:bg-[#141414]/90 font-bold tracking-wide group rounded-lg"
+                          className="w-full h-12 bg-white text-black hover:bg-white/90 font-bold tracking-[0.1em] text-[13px] rounded-lg group"
                           data-testid="button-next-step1"
                         >
                           DEVAM ET
                           <ArrowRight className="w-4 h-4 ml-2 transition-transform group-hover:translate-x-1" />
                         </Button>
-                      </motion.div>
+                      </div>
                     </motion.div>
                   )}
 
+                  {/* ── ADIM 2 · Teslimat ── */}
                   {currentStep === 2 && (
                     <motion.div
                       key="step2"
-                      initial={{ opacity: 0, y: 20 }}
+                      initial={{ opacity: 0, y: 14 }}
                       animate={{ opacity: 1, y: 0 }}
-                      exit={{ opacity: 0, y: -20 }}
-                      className="bg-[#141414] border border-white/8 rounded-md p-4 sm:p-6 overflow-hidden"
+                      exit={{ opacity: 0, y: -14 }}
+                      className="bg-[#111111] border border-white/10 rounded-xl p-4 sm:p-6"
                     >
-                      <div className="flex items-center gap-3 mb-6">
-                        <div className="w-10 h-10 bg-[#151515] flex items-center justify-center">
-                          <MapPin className="w-5 h-5 text-white/50" />
-                        </div>
-                        <h2 className="font-display text-xl tracking-wide">
-                          TESLİMAT ADRESİ
-                        </h2>
+                      <div className="mb-5">
+                        <h2 className="font-display text-[22px] leading-none tracking-wide text-white">TESLİMAT ADRESİ</h2>
+                        <p className="text-[12px] text-white/45 mt-1.5">Siparişiniz bu adrese gönderilecek.</p>
                       </div>
 
                       {stepErrors[2] && (
                         <div className="mb-4 p-3 bg-red-500/10 border border-red-500/20 rounded-lg">
                           <div className="flex items-start gap-2">
                             <AlertCircle className="w-4 h-4 text-red-400 shrink-0 mt-0.5" />
-                            <div className="text-sm text-red-400">
-                              {stepErrors[2].map((err, i) => <p key={i}>{err}</p>)}
+                            <div className="text-[13px] text-red-400">
+                              {stepErrors[2].map((err, i) => (
+                                <p key={i}>{err}</p>
+                              ))}
                             </div>
                           </div>
                         </div>
                       )}
 
-                      {/* Saved Addresses Section */}
                       {user && savedAddresses.length > 0 && !showNewAddressForm && (
                         <div className="space-y-3 mb-6">
-                          <Label className="text-sm font-medium text-muted-foreground">Kayıtlı Adreslerim</Label>
+                          <Label className="text-[12px] font-medium text-white/50">Kayıtlı Adreslerim</Label>
                           <div className="space-y-2">
                             {savedAddresses.map((addr) => (
                               <button
                                 key={addr.id}
                                 type="button"
                                 onClick={() => handleSelectAddress(addr)}
-                                className={`w-full text-left p-4 border transition-all ${
-                                  selectedAddressId === addr.id 
-                                    ? 'border-white bg-[#0F0F0F]' 
-                                    : 'border-white/10 hover:border-white/25 bg-[#141414]'
+                                className={`w-full text-left p-4 rounded-lg border transition-all ${
+                                  selectedAddressId === addr.id
+                                    ? 'border-white bg-white/5'
+                                    : 'border-white/10 hover:border-white/25 bg-[#0F0F0F]'
                                 }`}
                                 data-testid={`address-option-${addr.id}`}
                               >
-                                <div className="flex items-start justify-between gap-3">
+                                <div className="flex items-start justify-between gap-3 min-w-0">
                                   <div className="flex-1 min-w-0">
                                     <div className="flex items-center gap-2 mb-1">
-                                      <span className="font-medium">{addr.title}</span>
+                                      <span className="text-[13.5px] font-semibold text-white truncate">{addr.title}</span>
                                       {addr.isDefault && (
-                                        <span className="text-xs bg-[#141414]/10 px-2 py-0.5 rounded">Varsayılan</span>
+                                        <span className="text-[10px] bg-white/10 text-white/70 px-2 py-0.5 rounded shrink-0">Varsayılan</span>
                                       )}
                                     </div>
-                                    <p className="text-sm text-muted-foreground truncate">
-                                      {addr.firstName} {addr.lastName}
-                                    </p>
-                                    <p className="text-sm text-muted-foreground truncate">
-                                      {addr.address}
-                                    </p>
-                                    <p className="text-sm text-muted-foreground">
-                                      {addr.district}, {addr.city}
-                                    </p>
+                                    <p className="text-[12.5px] text-white/50 truncate">{addr.firstName} {addr.lastName}</p>
+                                    <p className="text-[12.5px] text-white/50 truncate">{addr.address}</p>
+                                    <p className="text-[12.5px] text-white/50">{addr.district}, {addr.city}</p>
                                   </div>
                                   {selectedAddressId === addr.id && (
-                                    <CheckCircle2 className="w-5 h-5 text-neutral-400 shrink-0" />
+                                    <CheckCircle2 className="w-5 h-5 text-white shrink-0" />
                                   )}
                                 </div>
                               </button>
@@ -923,7 +1100,7 @@ export default function Checkout() {
                             onClick={() => {
                               setShowNewAddressForm(true);
                               setSelectedAddressId(null);
-                              setFormData(prev => ({
+                              setFormData((prev) => ({
                                 ...prev,
                                 address: '',
                                 city: '',
@@ -932,7 +1109,7 @@ export default function Checkout() {
                                 country: 'Türkiye',
                               }));
                             }}
-                            className="flex items-center gap-2 text-sm text-muted-foreground hover:text-white transition-colors"
+                            className="flex items-center gap-2 text-[13px] text-white/55 hover:text-white transition-colors"
                             data-testid="button-new-address"
                           >
                             <UserPlus className="w-4 h-4" />
@@ -941,7 +1118,6 @@ export default function Checkout() {
                         </div>
                       )}
 
-                      {/* Manual Address Form - show when no saved addresses or when adding new */}
                       {(!user || savedAddresses.length === 0 || showNewAddressForm) && (
                         <div className="space-y-4">
                           {showNewAddressForm && (
@@ -950,18 +1126,19 @@ export default function Checkout() {
                               onClick={() => {
                                 setShowNewAddressForm(false);
                                 if (savedAddresses.length > 0) {
-                                  const defaultAddr = savedAddresses.find(a => a.isDefault) || savedAddresses[0];
+                                  const defaultAddr = savedAddresses.find((a) => a.isDefault) || savedAddresses[0];
                                   if (defaultAddr) handleSelectAddress(defaultAddr);
                                 }
                               }}
-                              className="flex items-center gap-2 text-sm text-muted-foreground hover:text-white transition-colors mb-4"
+                              className="flex items-center gap-2 text-[13px] text-white/55 hover:text-white transition-colors"
                             >
                               <ArrowRight className="w-4 h-4 rotate-180" />
                               Kayıtlı Adreslerime Dön
                             </button>
                           )}
-                          <div className="space-y-2">
-                            <Label htmlFor="address" className="text-sm font-medium">Adres *</Label>
+
+                          <div className="space-y-1.5">
+                            <Label htmlFor="address" className="text-[12px] font-medium text-white/70">Adres *</Label>
                             <Input
                               id="address"
                               name="address"
@@ -969,61 +1146,61 @@ export default function Checkout() {
                               onChange={handleChange}
                               placeholder="Sokak, Mahalle, Bina No, Daire No"
                               data-testid="input-address"
-                              className="h-12 bg-[#0F0F0F] border-white/12 focus:border-white/40 rounded-md text-white placeholder:text-white/25"
+                              className={inputCls}
                             />
                           </div>
 
-                          <div className="grid sm:grid-cols-2 gap-4">
-                            <div className="space-y-2">
-                              <Label htmlFor="city" className="text-sm font-medium">İl *</Label>
+                          <div className="grid grid-cols-2 gap-3 sm:gap-4">
+                            <div className="space-y-1.5 min-w-0">
+                              <Label htmlFor="city" className="text-[12px] font-medium text-white/70">İl *</Label>
                               <Input
                                 id="city"
                                 name="city"
                                 value={formData.city}
                                 onChange={handleChange}
                                 data-testid="input-city"
-                                className="h-12 bg-[#0F0F0F] border-white/12 focus:border-white/40 rounded-md text-white placeholder:text-white/25"
+                                className={inputCls}
                                 placeholder="İstanbul"
                               />
                             </div>
-                            <div className="space-y-2">
-                              <Label htmlFor="district" className="text-sm font-medium">İlçe *</Label>
+                            <div className="space-y-1.5 min-w-0">
+                              <Label htmlFor="district" className="text-[12px] font-medium text-white/70">İlçe *</Label>
                               <Input
                                 id="district"
                                 name="district"
                                 value={formData.district}
                                 onChange={handleChange}
                                 data-testid="input-district"
-                                className="h-12 bg-[#0F0F0F] border-white/12 focus:border-white/40 rounded-md text-white placeholder:text-white/25"
+                                className={inputCls}
                                 placeholder="Kadıköy"
                               />
                             </div>
                           </div>
 
-                          <div className="grid sm:grid-cols-2 gap-4">
-                            <div className="space-y-2">
-                              <Label htmlFor="postalCode" className="text-sm font-medium">Posta Kodu</Label>
+                          <div className="grid grid-cols-2 gap-3 sm:gap-4">
+                            <div className="space-y-1.5 min-w-0">
+                              <Label htmlFor="postalCode" className="text-[12px] font-medium text-white/70">Posta Kodu</Label>
                               <Input
                                 id="postalCode"
                                 name="postalCode"
                                 value={formData.postalCode}
                                 onChange={handleChange}
                                 data-testid="input-postalCode"
-                                className="h-12 bg-[#0F0F0F] border-white/12 focus:border-white/40 rounded-md text-white placeholder:text-white/25"
+                                className={inputCls}
                                 placeholder="34000"
                               />
                             </div>
-                            <div className="space-y-2">
-                              <Label htmlFor="country" className="text-sm font-medium">Ülke *</Label>
+                            <div className="space-y-1.5 min-w-0">
+                              <Label htmlFor="country" className="text-[12px] font-medium text-white/70">Ülke *</Label>
                               <select
                                 id="country"
                                 name="country"
                                 value={formData.country}
                                 onChange={handleChange}
                                 data-testid="select-country"
-                                className="w-full h-12 bg-[#0F0F0F] border border-white/12 focus:border-white/40 focus:outline-none rounded-md px-4 text-white"
+                                className="w-full h-12 bg-[#0F0F0F] border border-white/12 focus:border-white/40 focus:outline-none rounded-lg px-3 text-white text-[14px]"
                               >
-                                {COUNTRIES.map(country => (
+                                {COUNTRIES.map((country) => (
                                   <option key={country} value={country} className="bg-[#141414]">
                                     {country}
                                   </option>
@@ -1031,51 +1208,51 @@ export default function Checkout() {
                               </select>
                             </div>
                           </div>
-                          
+
                           {formData.country !== 'Türkiye' && (
-                            <div className="p-3 bg-amber-500/10 border border-amber-500/30 rounded-lg">
-                              <p className="text-sm text-amber-200">
-                                <strong>Uluslararası Kargo:</strong> {isIraq ? 'Irak siparişlerinde sabit 5.700 TL' : 'Türkiye dışı siparişlerde sabit 2.500 TL'} kargo ücreti uygulanır.
+                            <div className="p-3 bg-white/5 border border-white/15 rounded-lg">
+                              <p className="text-[12.5px] text-white/70">
+                                <strong className="text-white">Uluslararası Kargo:</strong>{' '}
+                                {isIraq ? 'Irak siparişlerinde sabit 5.700 TL' : 'Türkiye dışı siparişlerde sabit 2.500 TL'} kargo ücreti uygulanır.
                               </p>
                             </div>
                           )}
                         </div>
                       )}
 
-                      {/* Account Creation Option - Only for guest users */}
                       {!user && (
-                        <div className="mt-6 p-4 bg-gradient-to-br from-blue-500/10 to-purple-500/10 border border-blue-500/20 rounded-xl">
+                        <div className="mt-6 p-4 bg-[#0F0F0F] border border-white/12 rounded-xl">
                           <label className="flex items-start gap-3 cursor-pointer">
                             <input
                               type="checkbox"
                               checked={createAccount}
                               onChange={(e) => setCreateAccount(e.target.checked)}
-                              className="mt-1 w-5 h-5 border-white/20 bg-[#141414] text-white focus:ring-black focus:ring-offset-0 rounded-md"
+                              className="mt-0.5 w-5 h-5 border-white/20 bg-[#141414] rounded-md accent-white"
                               data-testid="checkbox-create-account"
                             />
-                            <div className="flex-1">
+                            <div className="flex-1 min-w-0">
                               <div className="flex items-center gap-2">
-                                <UserPlus className="w-4 h-4 text-blue-400" />
-                                <span className="font-medium text-white">Üye olmak ister misiniz?</span>
+                                <UserPlus className="w-4 h-4 text-white/60 shrink-0" />
+                                <span className="text-[13.5px] font-semibold text-white">Üye olmak ister misiniz?</span>
                               </div>
-                              <p className="text-xs text-muted-foreground mt-1">
-                                Siparişlerinizi kolayca takip edin, adreslerinizi kaydedin ve özel kampanyalardan haberdar olun.
+                              <p className="text-[11.5px] text-white/45 mt-1 leading-relaxed">
+                                Siparişlerinizi kolayca takip edin, adreslerinizi kaydedin ve kampanyalardan haberdar olun.
                               </p>
                             </div>
                           </label>
-                          
+
                           <AnimatePresence>
                             {createAccount && (
                               <motion.div
                                 initial={{ opacity: 0, height: 0 }}
                                 animate={{ opacity: 1, height: 'auto' }}
                                 exit={{ opacity: 0, height: 0 }}
-                                className="mt-4 overflow-hidden"
+                                className="overflow-hidden"
                               >
-                                <div className="space-y-2">
-                                  <Label htmlFor="accountPassword" className="text-sm font-medium">Şifre Belirleyin *</Label>
+                                <div className="space-y-1.5 mt-4">
+                                  <Label htmlFor="accountPassword" className="text-[12px] font-medium text-white/70">Şifre Belirleyin *</Label>
                                   <div className="relative">
-                                    <Lock className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                                    <Lock className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-white/30" />
                                     <Input
                                       id="accountPassword"
                                       type="password"
@@ -1083,13 +1260,11 @@ export default function Checkout() {
                                       onChange={(e) => setAccountPassword(e.target.value)}
                                       placeholder="En az 6 karakter"
                                       data-testid="input-account-password"
-                                      className="h-12 pl-12 bg-[#0F0F0F] border-white/12 focus:border-white/40 rounded-md text-white placeholder:text-white/25"
+                                      className={`${inputCls} pl-10`}
                                       minLength={6}
                                     />
                                   </div>
-                                  <p className="text-xs text-muted-foreground">
-                                    Sipariş tamamlandığında hesabınız otomatik oluşturulacak.
-                                  </p>
+                                  <p className="text-[11.5px] text-white/45">Sipariş tamamlandığında hesabınız otomatik oluşturulacak.</p>
                                 </div>
                               </motion.div>
                             )}
@@ -1098,79 +1273,61 @@ export default function Checkout() {
                       )}
 
                       <div className="flex gap-3 mt-6">
-                        <Button 
-                          type="button" 
-                          variant="outline"
-                          onClick={() => setCurrentStep(1)}
-                          className="flex-1 h-12 border-white/15 hover:bg-white/4 text-white rounded-md"
+                        {stepBack(1, 'flex-1')}
+                        <Button
+                          type="button"
+                          onClick={handleNextStep}
+                          className="hidden lg:flex flex-1 h-12 bg-white text-black hover:bg-white/90 font-bold tracking-[0.1em] text-[13px] rounded-lg group"
+                          data-testid="button-next-step2"
                         >
-                          Geri
+                          DEVAM ET
+                          <ArrowRight className="w-4 h-4 ml-2 transition-transform group-hover:translate-x-1" />
                         </Button>
-                        <motion.div whileHover={{ scale: 1.01 }} whileTap={{ scale: 0.99 }} className="flex-1 hidden lg:block">
-                          <Button 
-                            type="button" 
-                            onClick={handleNextStep}
-                            className="w-full h-12 btn-glass text-white font-bold tracking-wide group"
-                            data-testid="button-next-step2"
-                          >
-                            DEVAM ET
-                            <ArrowRight className="w-4 h-4 ml-2 transition-transform group-hover:translate-x-1" />
-                          </Button>
-                        </motion.div>
                       </div>
                     </motion.div>
                   )}
 
+                  {/* ── ADIM 3 · Ödeme ── */}
                   {currentStep === 3 && (
                     <motion.div
                       key="step3"
-                      initial={{ opacity: 0, y: 20 }}
+                      initial={{ opacity: 0, y: 14 }}
                       animate={{ opacity: 1, y: 0 }}
-                      exit={{ opacity: 0, y: -20 }}
-                      className="bg-[#141414] border border-white/8 rounded-md p-4 sm:p-6 overflow-hidden"
+                      exit={{ opacity: 0, y: -14 }}
+                      className="bg-[#111111] border border-white/10 rounded-xl p-4 sm:p-6"
                     >
-                      <div className="flex items-center gap-3 mb-4">
-                        <div className="w-10 h-10 bg-[#151515] flex items-center justify-center">
-                          <CreditCard className="w-5 h-5 text-white/50" />
-                        </div>
-                        <h2 className="font-display text-xl tracking-wide">
-                          ÖDEME YÖNTEMİ
-                        </h2>
+                      <div className="mb-5">
+                        <h2 className="font-display text-[22px] leading-none tracking-wide text-white">ÖDEME YÖNTEMİ</h2>
+                        <p className="text-[12px] text-white/45 mt-1.5">Size uygun ödeme yöntemini seçin.</p>
                       </div>
 
-                      {/* Payment method tabs */}
-                      <div className="grid grid-cols-2 gap-0 mb-6 border border-white/12">
+                      <div className="grid grid-cols-2 mb-6 border border-white/15 rounded-lg overflow-hidden">
                         <button
                           type="button"
                           onClick={() => setPaymentMethod('card')}
-                          className={`h-12 px-3 text-xs sm:text-sm font-bold tracking-wide transition-colors flex items-center justify-center gap-2 ${
-                            paymentMethod === 'card'
-                              ? 'bg-black text-white'
-                              : 'bg-[#141414] text-white/60 hover:bg-[#0F0F0F]'
+                          className={`h-12 px-2 text-[11.5px] sm:text-[13px] font-bold tracking-wide transition-colors flex items-center justify-center gap-1.5 sm:gap-2 min-w-0 ${
+                            paymentMethod === 'card' ? 'bg-white text-black' : 'bg-[#141414] text-white/60 hover:bg-[#1A1A1A]'
                           }`}
                           data-testid="tab-payment-card"
                         >
-                          <CreditCard className="w-4 h-4" />
-                          KREDİ KARTI
+                          <CreditCard className="w-4 h-4 shrink-0" />
+                          <span className="truncate">KREDİ KARTI</span>
                         </button>
                         <button
                           type="button"
                           onClick={() => setPaymentMethod('bank_transfer')}
-                          className={`h-12 px-3 text-xs sm:text-sm font-bold tracking-wide transition-colors flex items-center justify-center gap-2 relative ${
-                            paymentMethod === 'bank_transfer'
-                              ? 'bg-black text-white'
-                              : 'bg-[#141414] text-white/60 hover:bg-[#0F0F0F]'
+                          className={`h-12 px-2 text-[11.5px] sm:text-[13px] font-bold tracking-wide transition-colors flex items-center justify-center gap-1.5 sm:gap-2 min-w-0 ${
+                            paymentMethod === 'bank_transfer' ? 'bg-white text-black' : 'bg-[#141414] text-white/60 hover:bg-[#1A1A1A]'
                           }`}
                           data-testid="tab-payment-bank-transfer"
                         >
-                          <span className="text-base">🏦</span>
-                          HAVALE
-                          <span className={`text-[10px] font-bold px-1.5 py-0.5 ${
-                            paymentMethod === 'bank_transfer'
-                              ? 'bg-white text-black'
-                              : 'bg-white/12 text-white'
-                          }`}>
-                            -%10
+                          <span className="truncate">HAVALE</span>
+                          <span
+                            className={`text-[10px] font-bold px-1.5 py-0.5 rounded shrink-0 ${
+                              paymentMethod === 'bank_transfer' ? 'bg-black text-white' : 'bg-white/12 text-white'
+                            }`}
+                          >
+                            %10
                           </span>
                         </button>
                       </div>
@@ -1179,40 +1336,33 @@ export default function Checkout() {
                         <div className="mb-4 p-3 bg-red-500/10 border border-red-500/20 rounded-lg">
                           <div className="flex items-start gap-2">
                             <AlertCircle className="w-4 h-4 text-red-400 shrink-0 mt-0.5" />
-                            <div className="text-sm text-red-400">{paymentError}</div>
+                            <div className="text-[13px] text-red-400">{paymentError}</div>
                           </div>
                         </div>
                       )}
 
                       {paymentMethod === 'bank_transfer' ? (
                         <div className="space-y-4" data-testid="bank-transfer-panel">
-                          <div className="bg-white/10 border border-white/30 p-4">
-                            <div className="flex items-start gap-3">
-                              <div className="w-9 h-9 bg-white/15 flex items-center justify-center shrink-0">
-                                <span className="text-lg">🏦</span>
-                              </div>
-                              <div>
-                                <p className="text-sm font-bold text-white">Havale ile %10 indirim kazandınız!</p>
-                                <p className="text-xs text-white/65 mt-1 leading-snug">
-                                  Aşağıdaki banka bilgilerine ödemenizi yaptıktan sonra siparişiniz onaylanıp hazırlığa alınır.
-                                </p>
-                              </div>
-                            </div>
+                          <div className="bg-white/5 border border-white/15 rounded-lg p-4">
+                            <p className="text-[13.5px] font-bold text-white">Havale ile %10 indirim kazandınız</p>
+                            <p className="text-[12px] text-white/55 mt-1 leading-relaxed">
+                              Aşağıdaki banka bilgilerine ödemenizi yaptıktan sonra siparişiniz onaylanıp hazırlığa alınır.
+                            </p>
                           </div>
 
-                          <div className="border border-white/10 p-4 space-y-3">
-                            <h3 className="font-display text-sm tracking-wider text-white/85">BANKA BİLGİLERİ</h3>
-                            <div className="space-y-2 text-sm">
+                          <div className="border border-white/10 rounded-lg p-4 space-y-3">
+                            <h3 className="font-display text-[13px] tracking-[0.14em] text-white/80">BANKA BİLGİLERİ</h3>
+                            <div className="space-y-2.5">
                               {[
                                 { key: 'bank' as const, label: 'Banka', value: BANK_TRANSFER_INFO.bankName, testId: 'bank-name' },
                                 { key: 'holder' as const, label: 'Hesap Sahibi', value: BANK_TRANSFER_INFO.accountHolder, testId: 'bank-holder' },
                                 { key: 'iban' as const, label: 'IBAN', value: BANK_TRANSFER_INFO.iban, testId: 'bank-iban', mono: true },
                               ].map(({ key, label, value, testId, mono }) => (
-                                <div key={key} className="flex items-center justify-between gap-2">
-                                  <span className="text-white/55 shrink-0">{label}</span>
-                                  <div className="flex items-center gap-2 min-w-0">
+                                <div key={key} className="min-w-0">
+                                  <p className="text-[11px] text-white/45 mb-0.5">{label}</p>
+                                  <div className="flex items-center justify-between gap-2 min-w-0">
                                     <span
-                                      className={`text-white font-semibold text-right break-all ${mono ? 'font-mono text-[13px]' : 'font-medium'}`}
+                                      className={`text-white font-semibold break-all text-[13px] ${mono ? 'font-mono' : ''}`}
                                       data-testid={`text-${testId}`}
                                     >
                                       {value}
@@ -1220,14 +1370,14 @@ export default function Checkout() {
                                     <button
                                       type="button"
                                       onClick={() => copyBankField(key, value)}
-                                      className="p-1 text-white/45 hover:text-white hover:bg-white/[0.04] transition-colors rounded shrink-0"
+                                      className="p-1.5 text-white/45 hover:text-white hover:bg-white/5 transition-colors rounded shrink-0"
                                       aria-label={`${label} kopyala`}
                                       data-testid={`button-copy-${testId}`}
                                     >
                                       {copiedField === key ? (
-                                        <Check className="w-3.5 h-3.5 text-white" strokeWidth={2.5} />
+                                        <Check className="w-4 h-4 text-white" strokeWidth={2.5} />
                                       ) : (
-                                        <ClipboardCheck className="w-3.5 h-3.5" strokeWidth={2} />
+                                        <ClipboardCheck className="w-4 h-4" strokeWidth={2} />
                                       )}
                                     </button>
                                   </div>
@@ -1241,83 +1391,81 @@ export default function Checkout() {
                             </div>
                           </div>
 
-                          <div className="bg-[#0F0F0F] border border-white/8 p-4 space-y-2">
-                            <div className="flex justify-between text-sm">
-                              <span className="text-white/55">Sipariş Toplamı</span>
-                              <span className="text-white/70 line-through">{total.toLocaleString('tr-TR')} ₺</span>
+                          <div className="bg-[#0F0F0F] border border-white/8 rounded-lg p-4 space-y-2">
+                            <div className="flex justify-between text-[13px]">
+                              <span className="text-white/50">Sipariş Toplamı</span>
+                              <span className="text-white/60 line-through tabular-nums">{total.toLocaleString('tr-TR')} ₺</span>
                             </div>
-                            <div className="flex justify-between text-sm">
-                              <span className="text-white font-medium">Havale İndirimi (%10)</span>
-                              <span className="text-white font-medium" data-testid="text-bank-discount">
+                            <div className="flex justify-between text-[13px]">
+                              <span className="text-white">Havale İndirimi (%10)</span>
+                              <span className="text-white tabular-nums" data-testid="text-bank-discount">
                                 -{bankTransferDiscount.toLocaleString('tr-TR')} ₺
                               </span>
                             </div>
-                            <div className="h-px bg-black/8" />
+                            <div className="h-px bg-white/10" />
                             <div className="flex justify-between items-end">
-                              <span className="font-bold text-white">Ödenecek Tutar</span>
-                              <span className="font-bold text-2xl text-white" data-testid="text-bank-final-total">
+                              <span className="font-bold text-white text-[14px]">Ödenecek Tutar</span>
+                              <span className="font-bold text-[22px] leading-none text-white tabular-nums" data-testid="text-bank-final-total">
                                 {finalTotal.toLocaleString('tr-TR')} ₺
                               </span>
                             </div>
                           </div>
 
-                          <p className="text-xs text-white/50 leading-relaxed">
-                            Stoklar onaylanana kadar rezerve edilmez. Ödemeniz banka hesabımıza geçtikten sonra siparişiniz onaylanır ve hazırlığa alınır.
+                          <p className="text-[11.5px] text-white/45 leading-relaxed">
+                            Ödemeniz banka hesabımıza geçtikten sonra siparişiniz onaylanır ve hazırlığa alınır.
                           </p>
 
-                          <div className="flex gap-3 pt-2">
+                          <div className="flex gap-3 pt-1">
                             <Button
                               type="button"
                               variant="outline"
                               onClick={() => setCurrentStep(2)}
-                              className="flex-1 h-12 border-white/15 hover:bg-white/4 text-white rounded-md"
+                              className="flex-1 h-12 border-white/15 bg-transparent hover:bg-white/5 text-white rounded-lg"
                               data-testid="button-bank-back"
                             >
                               Geri
                             </Button>
-                            <motion.div whileHover={{ scale: 1.01 }} whileTap={{ scale: 0.99 }} className="flex-[2]">
-                              <Button
-                                type="button"
-                                onClick={handleBankTransferSubmit}
-                                disabled={bankTransferLoading}
-                                className="w-full h-12 btn-glass text-white font-bold tracking-wider"
-                                data-testid="button-bank-confirm"
-                              >
-                                {bankTransferLoading ? (
-                                  <Loader2 className="w-4 h-4 animate-spin" />
-                                ) : (
-                                  <>SİPARİŞİ ONAYLA · {finalTotal.toLocaleString('tr-TR')} ₺</>
-                                )}
-                              </Button>
-                            </motion.div>
+                            <Button
+                              type="button"
+                              onClick={handleBankTransferSubmit}
+                              disabled={bankTransferLoading}
+                              className="hidden lg:flex flex-[2] h-12 bg-white text-black hover:bg-white/90 font-bold tracking-wide rounded-lg"
+                              data-testid="button-bank-confirm"
+                            >
+                              {bankTransferLoading ? (
+                                <Loader2 className="w-4 h-4 animate-spin" />
+                              ) : (
+                                <>SİPARİŞİ ONAYLA ({finalTotal.toLocaleString('tr-TR')} ₺)</>
+                              )}
+                            </Button>
                           </div>
                         </div>
                       ) : paymentPageUrl ? (
                         <div className="space-y-4">
-                          <div className="bg-[#141414] border border-white/8 rounded-md overflow-hidden">
+                          <div className="bg-white rounded-lg overflow-hidden">
                             <iframe
                               src={paymentPageUrl}
                               title="iyzico Güvenli Ödeme"
-                              className="w-full"
-                              style={{ minHeight: '720px', border: 0 }}
+                              className="w-full block"
+                              style={{ minHeight: '680px', border: 0 }}
                               allow="payment *"
                               data-testid="iyzico-payment-iframe"
                             />
                           </div>
 
-                          <div className="flex items-center justify-between gap-3 text-xs">
-                            <div className="flex items-center gap-2 text-white/60">
-                              <Lock className="w-3.5 h-3.5" />
-                              <span>256-bit SSL · iyzico güvencesiyle</span>
+                          <div className="flex items-center justify-between gap-3 text-[11.5px]">
+                            <div className="flex items-center gap-1.5 text-white/55 min-w-0">
+                              <Lock className="w-3.5 h-3.5 shrink-0" />
+                              <span className="truncate">256-bit SSL, iyzico güvencesiyle</span>
                             </div>
                             <a
                               href={paymentPageUrl}
                               target="_blank"
                               rel="noopener noreferrer"
-                              className="text-white/70 hover:text-white underline underline-offset-2"
+                              className="text-white/70 hover:text-white underline underline-offset-2 shrink-0"
                               data-testid="link-iyzico-newtab"
                             >
-                              Yeni sekmede aç →
+                              Yeni sekmede aç
                             </a>
                           </div>
 
@@ -1331,7 +1479,7 @@ export default function Checkout() {
                               setPaymentError(null);
                               setCurrentStep(2);
                             }}
-                            className="w-full h-12 border-white/15 hover:bg-white/4 text-white rounded-md"
+                            className="w-full h-12 border-white/15 bg-transparent hover:bg-white/5 text-white rounded-lg"
                           >
                             Bilgilerimi Düzenle
                           </Button>
@@ -1340,25 +1488,18 @@ export default function Checkout() {
                         <div className="space-y-4">
                           <div
                             ref={checkoutFormRef}
-                            className="bg-[#141414] rounded-xl overflow-hidden"
+                            className="bg-white rounded-lg overflow-hidden"
                             style={{ minHeight: '500px' }}
                             data-testid="iyzico-checkout-form"
                           />
-                          
-                          <div className="p-4 bg-neutral-500/10 border border-neutral-500/20 rounded-xl">
-                            <div className="flex items-start gap-3">
-                              <Lock className="w-5 h-5 text-neutral-400 shrink-0 mt-0.5" />
-                              <div>
-                                <p className="text-sm font-medium text-neutral-400">256-bit SSL Güvenlik</p>
-                                <p className="text-xs text-muted-foreground mt-1">
-                                  Kart bilgileriniz iyzico güvencesiyle şifrelenmektedir.
-                                </p>
-                              </div>
-                            </div>
+
+                          <div className="flex items-center gap-2 text-[11.5px] text-white/55">
+                            <Lock className="w-3.5 h-3.5 shrink-0" />
+                            <span>Kart bilgileriniz 256-bit SSL ile iyzico güvencesinde şifrelenir.</span>
                           </div>
 
-                          <Button 
-                            type="button" 
+                          <Button
+                            type="button"
                             variant="outline"
                             onClick={() => {
                               setCheckoutFormContent(null);
@@ -1367,240 +1508,124 @@ export default function Checkout() {
                               setPaymentError(null);
                               setCurrentStep(2);
                             }}
-                            className="w-full h-12 border-white/15 hover:bg-white/4 text-white rounded-md"
+                            className="w-full h-12 border-white/15 bg-transparent hover:bg-white/5 text-white rounded-lg"
                           >
                             Bilgilerimi Düzenle
                           </Button>
                         </div>
                       ) : (
-                        <div className="flex flex-col items-center justify-center py-12">
+                        <div className="flex flex-col items-center justify-center py-14">
                           <Loader2 className="w-8 h-8 animate-spin text-white/30 mb-4" />
-                          <p className="text-muted-foreground">Ödeme formu yükleniyor...</p>
+                          <p className="text-white/50 text-sm">Ödeme formu yükleniyor...</p>
                         </div>
                       )}
                     </motion.div>
                   )}
-
                 </AnimatePresence>
               </form>
+
+              {/* Güven satırı (mobil) */}
+              <div className="mt-4 lg:hidden">{trustRow}</div>
             </div>
 
-            <div className="lg:col-span-1">
-              <motion.div 
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                className="bg-[#0F0F0F] border border-white/8 p-4 sm:p-6 sticky top-24 overflow-hidden"
-              >
-                
-                <h2 className="font-display text-lg tracking-wide mb-4 relative">
-                  SİPARİŞ ÖZETİ
-                </h2>
+            {/* ── Sağ: sipariş özeti (masaüstü) ── */}
+            <aside className="hidden lg:block sticky top-24 min-w-0">
+              <div className="bg-[#111111] border border-white/10 rounded-xl p-5">
+                <h2 className="font-display text-[17px] tracking-[0.1em] text-white mb-4">SİPARİŞ ÖZETİ</h2>
 
-                <div className="space-y-3 pb-4 border-b border-white/8 relative max-h-48 overflow-y-auto">
-                  {cartItemsWithProducts.map((item) => (
-                    <div key={item.id} className="flex gap-3">
-                      <div className="w-14 h-16 bg-stone-200 overflow-hidden shrink-0">
-                        {item.product?.images?.[0] && (
-                          <img 
-                            src={item.product.images[0]} 
-                            alt={item.product.name}
-                            className="w-full h-full object-cover"
-                          />
-                        )}
-                      </div>
-                      <div className="flex-1 min-w-0">
-                        <p className="text-xs font-medium truncate">{item.product?.name || 'Ürün'}</p>
-                        <p className="text-xs text-muted-foreground mt-0.5">Adet: {item.quantity}</p>
-                        <p className="text-sm font-bold mt-1">
-                          {(parseFloat(item.product?.basePrice || '0') * item.quantity).toLocaleString('tr-TR')} ₺
-                        </p>
-                      </div>
+                <div className="pb-4 border-b border-white/8 max-h-56 overflow-y-auto pr-1">{itemsList(false)}</div>
+
+                <div className="py-4 border-b border-white/8">{couponBox}</div>
+
+                <div className="py-4">{summaryRows}</div>
+
+                {shippingCost > 0 && remainingForFreeShipping > 0 && (
+                  <div className="mb-4 p-3 bg-white/5 border border-white/12 rounded-lg">
+                    <p className="text-[12px] text-white/70 mb-2">
+                      <span className="font-bold text-white">{remainingForFreeShipping.toLocaleString('tr-TR')} TL</span> daha ekleyin, kargo ücretsiz olsun.
+                    </p>
+                    <div className="h-1.5 bg-white/10 rounded-full overflow-hidden">
+                      <motion.div
+                        initial={{ width: 0 }}
+                        animate={{ width: `${shippingProgress}%` }}
+                        transition={{ duration: 0.8, ease: 'easeOut' }}
+                        className="h-full bg-white rounded-full"
+                      />
+                    </div>
+                  </div>
+                )}
+                {shippingCost === 0 && isDomestic && (
+                  <div className="mb-4 p-3 bg-white/5 border border-white/12 rounded-lg flex items-center gap-2">
+                    <Truck className="w-4 h-4 text-white/70 shrink-0" />
+                    <p className="text-[12px] text-white/70 font-medium">Ücretsiz kargo kazandınız</p>
+                  </div>
+                )}
+
+                <div className="space-y-2.5 pt-4 border-t border-white/8">
+                  {[
+                    { icon: Shield, label: 'Güvenli Ödeme' },
+                    { icon: Truck, label: 'Hızlı Teslimat (1 İş Günü)' },
+                    { icon: RotateCcw, label: '14 Gün Ücretsiz İade' },
+                  ].map(({ icon: Icon, label }) => (
+                    <div key={label} className="flex items-center gap-2.5 text-[12px] text-white/50">
+                      <Icon className="w-4 h-4 shrink-0" strokeWidth={1.75} />
+                      <span>{label}</span>
                     </div>
                   ))}
                 </div>
-
-                {/* Coupon Input Section */}
-                <div className="py-4 border-b border-white/8 relative">
-                  {appliedCoupon ? (
-                    <div className="space-y-3">
-                      <div className="flex items-center justify-between bg-neutral-500/10 border border-neutral-500/30 rounded-lg px-3 py-2">
-                        <div className="flex items-center gap-2">
-                          <Tag className="w-4 h-4 text-neutral-400" />
-                          <span className="text-sm font-medium text-neutral-400">{appliedCoupon.code}</span>
-                        </div>
-                        <button
-                          onClick={handleRemoveCoupon}
-                          className="text-muted-foreground hover:text-white transition-colors"
-                          data-testid="button-remove-coupon"
-                        >
-                          <X className="w-4 h-4" />
-                        </button>
-                      </div>
-                      {appliedCoupon.freeShipping && (
-                        <div className="flex items-center gap-2 text-xs text-neutral-400">
-                          <Truck className="w-4 h-4" />
-                          <span>Ücretsiz kargo kuponu uygulandı</span>
-                        </div>
-                      )}
-                      {appliedCoupon.isInfluencerCode && appliedCoupon.influencerInstagram && (
-                        <div className="flex items-center gap-2 text-xs text-pink-400">
-                          <Instagram className="w-4 h-4" />
-                          <a 
-                            href={`https://instagram.com/${appliedCoupon.influencerInstagram.replace('@', '')}`}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="hover:underline"
-                            data-testid="link-influencer-instagram"
-                          >
-                            {appliedCoupon.influencerInstagram}
-                          </a>
-                          <span className="text-muted-foreground">influencer koduyla alışveriş yapıyorsunuz</span>
-                        </div>
-                      )}
-                    </div>
-                  ) : (
-                    <div className="space-y-2">
-                      <div className="flex gap-2">
-                        <div className="relative flex-1">
-                          <Tag className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-                          <Input
-                            value={couponCode}
-                            onChange={(e) => {
-                              setCouponCode(e.target.value.toUpperCase());
-                              setCouponError('');
-                            }}
-                            placeholder="Kupon kodu"
-                            className="pl-10 bg-[#0F0F0F] border-white/12 h-10 uppercase text-white placeholder:text-white/25 rounded-md"
-                            data-testid="input-coupon-code"
-                          />
-                        </div>
-                        <Button
-                          type="button"
-                          onClick={handleApplyCoupon}
-                          disabled={couponLoading || !couponCode.trim()}
-                          className="h-10 px-4 bg-[#141414] text-white hover:bg-[#141414]/90 font-bold"
-                          data-testid="button-apply-coupon"
-                        >
-                          {couponLoading ? (
-                            <Loader2 className="w-4 h-4 animate-spin" />
-                          ) : (
-                            'Uygula'
-                          )}
-                        </Button>
-                      </div>
-                      {couponError && (
-                        <p className="text-xs text-red-400 flex items-center gap-1">
-                          <AlertCircle className="w-3 h-3" />
-                          {couponError}
-                        </p>
-                      )}
-                    </div>
-                  )}
-                </div>
-
-                <div className="space-y-3 text-sm py-4 relative">
-                  <div className="flex justify-between">
-                    <span className="text-muted-foreground">Ara Toplam</span>
-                    <span data-testid="text-subtotal">{subtotal.toLocaleString('tr-TR')} ₺</span>
-                  </div>
-                  {discount > 0 && (
-                    <div className="flex justify-between text-neutral-400">
-                      <span className="flex items-center gap-1">
-                        <Tag className="w-3 h-3" />
-                        İndirim ({appliedCoupon?.code})
-                      </span>
-                      <span data-testid="text-discount">-{discount.toLocaleString('tr-TR')} ₺</span>
-                    </div>
-                  )}
-                  <div className="flex justify-between">
-                    <span className="text-muted-foreground">Kargo</span>
-                    <span data-testid="text-shipping" className={shippingCost === 0 ? 'text-neutral-400 font-medium' : ''}>
-                      {shippingCost === 0 ? 'ÜCRETSİZ' : `${shippingCost.toFixed(2)} ₺`}
-                    </span>
-                  </div>
-                  {shippingCost > 0 && remainingForFreeShipping > 0 && (
-                    <div className="mt-3 p-3 bg-gradient-to-r from-amber-500/10 to-orange-500/10 border border-amber-500/20 rounded-lg">
-                      <div className="flex items-center gap-2 mb-2">
-                        <Truck className="w-4 h-4 text-amber-400" />
-                        <p className="text-xs">
-                          <span className="font-bold text-amber-400">{remainingForFreeShipping.toFixed(0)} TL</span> daha harcayın, kargo ücretsiz!
-                        </p>
-                      </div>
-                      <div className="h-2 bg-black/30 rounded-full overflow-hidden">
-                        <motion.div 
-                          initial={{ width: 0 }}
-                          animate={{ width: `${shippingProgress}%` }}
-                          transition={{ duration: 0.8, ease: 'easeOut' }}
-                          className="h-full bg-gradient-to-r from-amber-400 to-orange-500 rounded-full"
-                        />
-                      </div>
-                    </div>
-                  )}
-                  {shippingCost === 0 && (
-                    <div className="mt-2 p-3 bg-gradient-to-r from-neutral-500/10 to-neutral-500/10 border border-neutral-500/20 rounded-lg">
-                      <div className="flex items-center gap-2">
-                        <Truck className="w-4 h-4 text-neutral-400" />
-                        <p className="text-xs text-neutral-400 font-medium">Ücretsiz kargo kazandınız!</p>
-                      </div>
-                    </div>
-                  )}
-                  {paymentMethod === 'bank_transfer' && bankTransferDiscount > 0 && (
-                    <div className="flex justify-between text-white">
-                      <span className="flex items-center gap-1">
-                        <span>🏦</span>
-                        Havale İndirimi (%10)
-                      </span>
-                      <span data-testid="text-bank-transfer-discount">-{bankTransferDiscount.toLocaleString('tr-TR')} ₺</span>
-                    </div>
-                  )}
-                  <div className="h-px bg-black/8" />
-                  <div className="flex justify-between text-base">
-                    <span className="font-bold">Toplam</span>
-                    <span className="font-bold text-xl" data-testid="text-total">{finalTotal.toLocaleString('tr-TR')} ₺</span>
-                  </div>
-                </div>
-
-                <div className="space-y-3 pt-4 border-t border-white/8 relative">
-                  <div className="flex items-center gap-3 text-xs text-muted-foreground">
-                    <Shield className="w-4 h-4 shrink-0 text-neutral-400" />
-                    <span>Güvenli Ödeme</span>
-                  </div>
-                  <div className="flex items-center gap-3 text-xs text-muted-foreground">
-                    <Truck className="w-4 h-4 shrink-0" />
-                    <span>Hızlı Teslimat (1 İş Günü)</span>
-                  </div>
-                  <div className="flex items-center gap-3 text-xs text-muted-foreground">
-                    <RotateCcw className="w-4 h-4 shrink-0" />
-                    <span>14 Gün Ücretsiz İade</span>
-                  </div>
-                </div>
-              </motion.div>
-            </div>
+              </div>
+            </aside>
           </div>
         </div>
       </main>
 
-      {/* ── Mobile sticky CTA (adım 1-2) ─────────── */}
+      {/* ── Mobil sabit buton (adım 1 ve 2) ── */}
       {(currentStep === 1 || currentStep === 2) && (
         <div
-          className="fixed left-0 right-0 lg:hidden bg-[#141414] border-t border-white/8 shadow-[0_-8px_30px_rgba(0,0,0,0.4)] z-[90]"
+          className="fixed left-0 right-0 lg:hidden bg-[#111111]/98 backdrop-blur border-t border-white/10 shadow-[0_-8px_30px_rgba(0,0,0,0.5)] z-[90]"
           style={{ bottom: 'var(--mobile-nav-total, 58px)' }}
         >
           <div className="px-4 py-3 flex items-center gap-3">
             <div className="flex-1 min-w-0">
-              <p className="text-[11px] text-white/50 mb-0.5">Toplam</p>
-              <p className="text-lg font-bold text-white leading-none tabular-nums">
+              <p className="text-[10.5px] text-white/45 mb-0.5">Toplam</p>
+              <p className="text-[17px] font-bold text-white leading-none tabular-nums">
                 {finalTotal.toLocaleString('tr-TR')} ₺
               </p>
             </div>
             <button
               type="button"
               onClick={handleNextStep}
-              className="flex-[1.4] h-12 btn-glass text-white font-bold tracking-wide rounded-lg flex items-center justify-center gap-2"
+              className="flex-[1.5] h-12 bg-white text-black font-bold tracking-[0.08em] text-[13px] rounded-lg flex items-center justify-center gap-2 active:scale-[0.99] transition-transform"
               data-testid="button-next-mobile"
             >
               DEVAM ET
               <ArrowRight className="w-4 h-4" />
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* ── Mobil sabit buton (adım 3, havale) ── */}
+      {currentStep === 3 && paymentMethod === 'bank_transfer' && (
+        <div
+          className="fixed left-0 right-0 lg:hidden bg-[#111111]/98 backdrop-blur border-t border-white/10 shadow-[0_-8px_30px_rgba(0,0,0,0.5)] z-[90]"
+          style={{ bottom: 'var(--mobile-nav-total, 58px)' }}
+        >
+          <div className="px-4 py-3 flex items-center gap-3">
+            <div className="flex-1 min-w-0">
+              <p className="text-[10.5px] text-white/45 mb-0.5">Ödenecek (%10 indirimli)</p>
+              <p className="text-[17px] font-bold text-white leading-none tabular-nums">
+                {finalTotal.toLocaleString('tr-TR')} ₺
+              </p>
+            </div>
+            <button
+              type="button"
+              onClick={handleBankTransferSubmit}
+              disabled={bankTransferLoading}
+              className="flex-[1.6] h-12 bg-white text-black font-bold tracking-[0.06em] text-[12.5px] rounded-lg flex items-center justify-center gap-2 disabled:opacity-60 active:scale-[0.99] transition-transform"
+              data-testid="button-bank-confirm-mobile"
+            >
+              {bankTransferLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : 'SİPARİŞİ ONAYLA'}
             </button>
           </div>
         </div>
