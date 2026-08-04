@@ -203,7 +203,7 @@ export default function WholesaleTab({
   };
 
   if (productsLoading) {
-    return <LoadingState message="Ürünler yükleniyor..." />;
+    return <LoadingState label="Ürünler yükleniyor..." />;
   }
 
   const categoryName =
@@ -409,7 +409,7 @@ export default function WholesaleTab({
       )}
 
       <Card className="overflow-hidden">
-        <div className="overflow-x-auto">
+        <div className="hidden md:block overflow-x-auto">
           <table className="w-full text-[13px]">
             <thead>
               <tr className="border-b border-neutral-200 bg-neutral-50">
@@ -531,6 +531,108 @@ export default function WholesaleTab({
               )}
             </tbody>
           </table>
+        </div>
+
+        <div className="md:hidden divide-y divide-neutral-100">
+          {filteredProducts.map((product, idx) => {
+            const base = parseFloat(product.basePrice);
+            const { rate: effectiveRate, source } = getEffectiveDiscount(product);
+            const discounted = effectiveRate > 0 ? base * (1 - effectiveRate / 100) : base;
+            const catNames = (product.categoryIds?.length
+              ? product.categoryIds
+              : product.categoryId
+              ? [product.categoryId]
+              : []
+            )
+              .map((id) => categories.find((c) => c.id === id)?.name)
+              .filter(Boolean)
+              .join(', ');
+
+            return (
+              <div
+                key={product.id}
+                className="p-4"
+                data-testid={`card-wholesale-product-${product.id}`}
+              >
+                <div className="flex items-start gap-3">
+                  {product.images?.[0] ? (
+                    <img
+                      src={product.images[0]}
+                      alt={product.name}
+                      className="w-12 h-12 object-cover rounded-md border border-neutral-200 bg-neutral-50 shrink-0"
+                    />
+                  ) : (
+                    <div className="w-12 h-12 rounded-md border border-neutral-200 bg-neutral-50 flex items-center justify-center shrink-0">
+                      <ImageIcon className="w-4 h-4 text-neutral-300" />
+                    </div>
+                  )}
+                  <div className="min-w-0 flex-1">
+                    <p className="text-[14px] font-medium text-neutral-900 truncate">
+                      {product.name}
+                    </p>
+                    {product.sku && (
+                      <p className="text-[11px] text-neutral-400 mt-0.5">SKU: {product.sku}</p>
+                    )}
+                    {catNames && (
+                      <p className="text-[11px] text-neutral-500 mt-0.5 truncate">{catNames}</p>
+                    )}
+                  </div>
+                  <span className="text-[11px] text-neutral-400 shrink-0">#{idx + 1}</span>
+                </div>
+
+                <div className="mt-3 flex items-center justify-between gap-2">
+                  <span className="text-[12px] text-neutral-500">Liste Fiyatı</span>
+                  <span
+                    className={
+                      effectiveRate > 0
+                        ? 'text-[13px] line-through text-neutral-400'
+                        : 'text-[14px] font-medium text-neutral-900'
+                    }
+                  >
+                    {formatPrice(base)} ₺
+                  </span>
+                </div>
+
+                {hasAnyDiscount && effectiveRate > 0 && (
+                  <div className="mt-1 flex items-center justify-between gap-2">
+                    <span className="text-[12px] text-neutral-500">İndirimli</span>
+                    <div className="flex items-center gap-2">
+                      {source !== 'none' && (
+                        <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-medium ${sourceColor[source]}`}>
+                          %{effectiveRate} {sourceLabel[source]}
+                        </span>
+                      )}
+                      <span className="text-[14px] font-semibold text-neutral-900">
+                        {formatPrice(discounted)} ₺
+                      </span>
+                    </div>
+                  </div>
+                )}
+
+                <div className="mt-3 flex items-center justify-between gap-2">
+                  <label className="text-[12px] text-neutral-500 inline-flex items-center gap-1">
+                    <Tag className="w-3 h-3" />
+                    Özel indirim %
+                  </label>
+                  <input
+                    type="number"
+                    min={0}
+                    max={99}
+                    value={productRates[product.id] || ''}
+                    onChange={(e) => handleProductRate(product.id, parseInt(e.target.value) || 0)}
+                    placeholder="-"
+                    className="w-20 h-9 px-2 border border-neutral-200 rounded text-[13px] text-center focus:outline-none focus:ring-1 focus:ring-violet-400 focus:border-transparent"
+                    data-testid={`card-input-product-rate-${product.id}`}
+                  />
+                </div>
+              </div>
+            );
+          })}
+          {filteredProducts.length === 0 && (
+            <div className="px-4 py-12 text-center text-neutral-400">
+              Gösterilecek ürün bulunamadı.
+            </div>
+          )}
         </div>
       </Card>
     </div>

@@ -31,6 +31,7 @@ import {
   VALID_TABS,
   SIDEBAR_CATEGORIES,
   ALL_SIDEBAR_ITEMS,
+  TAB_DESCRIPTIONS,
   getStatusLabel,
 } from './admin/_shared/sidebarConfig';
 import { useAdminDashboardData } from './admin/_shared/useAdminDashboardData';
@@ -138,6 +139,7 @@ export default function AdminDashboard() {
         pendingOrdersCount={pendingOrdersCount}
         pendingReviewsCount={pendingReviewsCount}
         pageTitle={pageTitle}
+        pageDescription={TAB_DESCRIPTIONS[activeTab]}
       >
         {activeTab === 'dashboard' && (
           <DashboardTab

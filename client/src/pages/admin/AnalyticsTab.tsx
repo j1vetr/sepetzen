@@ -186,7 +186,7 @@ export default function AnalyticsPanel() {
                 </div>
               ))}
             </div>
-            <div className="flex items-center gap-6 mt-4 pt-4 border-t border-neutral-200">
+            <div className="flex flex-wrap items-center gap-x-6 gap-y-3 mt-4 pt-4 border-t border-neutral-200">
               <div>
                 <p className="text-xs text-neutral-500">Toplam Gelir</p>
                 <p className="text-sm font-semibold text-neutral-900">{fmtPrice(salesData.revenue.reduce((a: number, b: number) => a + b, 0))}</p>
@@ -333,7 +333,8 @@ export default function AnalyticsPanel() {
             </div>
             <Globe className="w-4 h-4 text-neutral-500" />
           </div>
-          <div className="overflow-x-auto">
+          {/* Masaüstü tablo */}
+          <div className="hidden md:block">
             <table className="w-full">
               <thead>
                 <tr className="border-b border-neutral-200">
@@ -370,6 +371,34 @@ export default function AnalyticsPanel() {
                 })}
               </tbody>
             </table>
+          </div>
+
+          {/* Mobil kart listesi */}
+          <div className="md:hidden divide-y divide-neutral-200/60">
+            {countryBreakdown.map((row: AnalyticsCountryRow) => {
+              const totalRevenue = countryBreakdown.reduce((s: number, r: AnalyticsCountryRow) => s + r.revenue, 0);
+              const share = totalRevenue > 0 ? (row.revenue / totalRevenue) * 100 : 0;
+              return (
+                <div key={row.country} className="px-4 py-4">
+                  <div className="flex items-center justify-between gap-3">
+                    <div className="flex items-center gap-2 min-w-0">
+                      <Globe className="w-4 h-4 text-neutral-500 flex-shrink-0" />
+                      <span className="text-sm font-medium text-neutral-900 truncate">{row.country}</span>
+                    </div>
+                    <span className="text-sm font-semibold text-neutral-900 flex-shrink-0">{fmtPrice(row.revenue)}</span>
+                  </div>
+                  <div className="flex items-center justify-between gap-3 mt-2">
+                    <span className="text-xs text-neutral-500">{row.count} sipariş</span>
+                    <div className="flex items-center gap-2">
+                      <div className="w-20 bg-neutral-50 rounded-full h-1">
+                        <div className="bg-zinc-400 h-1 rounded-full" style={{ width: `${share}%` }} />
+                      </div>
+                      <span className="text-xs text-neutral-500 w-8 text-right">{share.toFixed(0)}%</span>
+                    </div>
+                  </div>
+                </div>
+              );
+            })}
           </div>
         </div>
       )}

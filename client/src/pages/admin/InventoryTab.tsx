@@ -131,7 +131,7 @@ export default function InventoryPanel() {
           <div className="flex-1">
             <h3 className="text-lg font-semibold text-neutral-900 mb-3 md:mb-0">Stok Yönetimi</h3>
           </div>
-          <div className="flex items-center gap-3">
+          <div className="flex flex-wrap items-center gap-3">
             <button
               onClick={async () => {
                 try {
@@ -167,7 +167,7 @@ export default function InventoryPanel() {
               <RefreshCw className="w-4 h-4" />
               Yenile
             </button>
-            <div className="relative">
+            <div className="relative flex-1 min-w-[180px] md:flex-none">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-neutral-500" />
               <input
                 type="text"
@@ -177,7 +177,7 @@ export default function InventoryPanel() {
                   setSearchQuery(e.target.value);
                   setCurrentPage(1);
                 }}
-                className="pl-10 pr-4 py-2 bg-neutral-50 border border-neutral-200 rounded-lg text-sm text-neutral-900 placeholder:text-neutral-500 focus:outline-none focus:ring-2 focus:ring-white/20 w-64"
+                className="pl-10 pr-4 py-2 bg-neutral-50 border border-neutral-200 rounded-lg text-sm text-neutral-900 placeholder:text-neutral-500 focus:outline-none focus:ring-2 focus:ring-white/20 w-full md:w-64"
                 data-testid="input-inventory-search"
               />
             </div>
@@ -216,7 +216,7 @@ export default function InventoryPanel() {
 
           return filteredVariants.length > 0 ? (
             <>
-              <div className="overflow-x-auto">
+              <div className="hidden md:block overflow-x-auto">
                 <table className="w-full">
                   <thead className="bg-neutral-100">
                     <tr>
@@ -263,6 +263,54 @@ export default function InventoryPanel() {
                     })}
                   </tbody>
                 </table>
+              </div>
+
+              <div className="md:hidden divide-y divide-neutral-200">
+                {paginatedVariants.map((v: ProductVariant) => {
+                  const pendingChange = selectedVariants.find(sv => sv.id === v.id);
+                  const currentStock = pendingChange?.stock ?? v.stock;
+                  return (
+                    <div
+                      key={v.id}
+                      className={`p-4 ${pendingChange ? 'bg-blue-500/5' : ''}`}
+                      data-testid={`card-inventory-variant-${v.id}`}
+                    >
+                      <div className="flex items-start gap-3">
+                        <div className="w-12 h-12 rounded-lg overflow-hidden bg-neutral-100 shrink-0">
+                          {v.product?.images?.[0] && (
+                            <img src={v.product.images[0]} alt="" className="w-full h-full object-cover" />
+                          )}
+                        </div>
+                        <div className="min-w-0 flex-1">
+                          <p className="text-sm font-medium text-neutral-900 truncate">
+                            {v.product?.name || 'Bilinmeyen'}
+                          </p>
+                          <p className="text-xs text-neutral-500 mt-1">
+                            {v.size || '-'}
+                            {v.color ? ` · ${v.color}` : ''}
+                          </p>
+                          <p className="text-xs text-neutral-500 mt-0.5">
+                            {v.product?.basePrice || v.price} TL
+                          </p>
+                        </div>
+                      </div>
+                      <div className="mt-3 flex items-center justify-between gap-3">
+                        <label className="text-xs font-medium text-neutral-500">Stok</label>
+                        <input
+                          type="number"
+                          value={currentStock}
+                          onChange={(e) => handleStockChange(v.id, parseInt(e.target.value) || 0)}
+                          className={`w-24 h-9 px-3 rounded-lg text-sm ${
+                            currentStock <= lowStockThreshold
+                              ? 'bg-yellow-500/20 border-yellow-500/50 text-yellow-400'
+                              : 'bg-neutral-50 border-neutral-200 text-neutral-900'
+                          } border`}
+                          data-testid={`card-input-stock-${v.id}`}
+                        />
+                      </div>
+                    </div>
+                  );
+                })}
               </div>
               {totalPages > 1 && (
                 <div className="p-4 border-t border-neutral-200 flex items-center justify-between">

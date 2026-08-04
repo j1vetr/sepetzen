@@ -143,8 +143,8 @@ export default function DatabasePanel() {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <div>
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+        <div className="min-w-0">
           <h2 className="text-xl font-semibold text-neutral-900">Veritabanı Yönetimi</h2>
           <p className="text-sm text-neutral-500 mt-1">
             Sipariş, sepet ve ciro verilerini sıfırlayın. Kullanıcılar, ürünler ve stoklar korunur.
@@ -152,7 +152,7 @@ export default function DatabasePanel() {
         </div>
         <button
           onClick={() => refetch()}
-          className="flex items-center gap-2 px-4 py-2 bg-neutral-50 text-neutral-900 rounded-lg hover:bg-neutral-200 transition-colors"
+          className="flex items-center justify-center gap-2 min-h-9 px-4 py-2 bg-neutral-50 text-neutral-900 rounded-lg hover:bg-neutral-200 transition-colors sm:shrink-0"
         >
           <RotateCcw className="w-4 h-4" />
           Yenile
@@ -192,25 +192,26 @@ export default function DatabasePanel() {
 
       <div className="grid gap-4">
         {tables.map((table) => (
-          <div key={table.id} className="bg-white border border-neutral-200 rounded-xl p-6 flex items-center justify-between">
-            <div className="flex items-center gap-4">
-              <div className="w-12 h-12 bg-neutral-50 rounded-lg flex items-center justify-center">
+          <div key={table.id} data-testid={`card-table-${table.id}`} className="bg-white border border-neutral-200 rounded-xl p-4 sm:p-6 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+            <div className="flex items-center gap-4 min-w-0">
+              <div className="w-12 h-12 bg-neutral-50 rounded-lg flex items-center justify-center flex-shrink-0">
                 <table.icon className="w-6 h-6 text-neutral-500" />
               </div>
-              <div>
+              <div className="min-w-0">
                 <h4 className="font-medium text-neutral-900">{table.name}</h4>
                 <p className="text-sm text-neutral-500">{table.description}</p>
               </div>
             </div>
-            <div className="flex items-center gap-4">
-              <div className="text-right">
+            <div className="flex items-center justify-between gap-4 sm:justify-end">
+              <div className="text-left sm:text-right">
                 <span className="text-2xl font-bold text-neutral-900">{table.count.toLocaleString('tr-TR')}</span>
                 <p className="text-xs text-neutral-500">kayıt</p>
               </div>
               <button
                 onClick={() => handleClearTable(table.id)}
                 disabled={clearingTable !== null || table.count === 0}
-                className="flex items-center gap-2 px-4 py-2 bg-red-500/10 border border-red-500/30 text-red-400 rounded-lg hover:bg-red-500/20 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                className="flex items-center justify-center gap-2 min-h-9 px-4 py-2 bg-red-500/10 border border-red-500/30 text-red-400 rounded-lg hover:bg-red-500/20 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                data-testid={`button-clear-${table.id}`}
               >
                 {clearingTable === table.id ? (
                   <Loader2 className="w-4 h-4 animate-spin" />
@@ -225,15 +226,15 @@ export default function DatabasePanel() {
       </div>
 
       {/* Tüm Ürünler ve Fotoğrafları */}
-      <div className="bg-red-500/5 border border-red-500/20 rounded-xl p-6" data-testid="card-products-clear">
-        <div className="flex items-center justify-between gap-4">
-          <div className="flex items-center gap-4">
-            <div className="w-12 h-12 bg-red-500/10 rounded-lg flex items-center justify-center">
+      <div className="bg-red-500/5 border border-red-500/20 rounded-xl p-4 sm:p-6" data-testid="card-products-clear">
+        <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+          <div className="flex items-center gap-4 min-w-0">
+            <div className="w-12 h-12 bg-red-500/10 rounded-lg flex items-center justify-center flex-shrink-0">
               <ImageIcon className="w-6 h-6 text-red-400" />
             </div>
-            <div>
+            <div className="min-w-0">
               <h3 className="text-lg font-medium text-red-400 flex items-center gap-2">
-                <AlertTriangle className="w-5 h-5" />
+                <AlertTriangle className="w-5 h-5 flex-shrink-0" />
                 Tüm Ürünler ve Fotoğrafları
               </h3>
               <p className="text-sm text-neutral-500 mt-1">
@@ -241,8 +242,8 @@ export default function DatabasePanel() {
               </p>
             </div>
           </div>
-          <div className="flex items-center gap-4 shrink-0">
-            <div className="text-right">
+          <div className="flex items-center justify-between gap-4 sm:justify-end sm:shrink-0">
+            <div className="text-left sm:text-right">
               <span className="text-2xl font-bold text-neutral-900" data-testid="text-products-count">
                 {(dbStats?.products || 0).toLocaleString('tr-TR')}
               </span>
@@ -251,7 +252,7 @@ export default function DatabasePanel() {
             <button
               onClick={() => setShowProductsModal(true)}
               disabled={clearingTable !== null || (dbStats?.products || 0) === 0}
-              className="px-6 py-3 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors font-medium disabled:opacity-50 disabled:cursor-not-allowed"
+              className="min-h-9 px-6 py-3 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors font-medium disabled:opacity-50 disabled:cursor-not-allowed"
               data-testid="button-clear-products"
             >
               Tüm Ürünleri Sil
@@ -260,11 +261,11 @@ export default function DatabasePanel() {
         </div>
       </div>
 
-      <div className="bg-red-500/5 border border-red-500/20 rounded-xl p-6">
-        <div className="flex items-center justify-between">
-          <div>
+      <div className="bg-red-500/5 border border-red-500/20 rounded-xl p-4 sm:p-6">
+        <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+          <div className="min-w-0">
             <h3 className="text-lg font-medium text-red-400 flex items-center gap-2">
-              <AlertTriangle className="w-5 h-5" />
+              <AlertTriangle className="w-5 h-5 flex-shrink-0" />
               Tüm Satış Verilerini Sil
             </h3>
             <p className="text-sm text-neutral-500 mt-1">
@@ -273,7 +274,7 @@ export default function DatabasePanel() {
           </div>
           <button
             onClick={() => setShowClearAllModal(true)}
-            className="px-6 py-3 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors font-medium"
+            className="min-h-9 px-6 py-3 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors font-medium sm:shrink-0"
           >
             Tümünü Sil
           </button>

@@ -23,6 +23,7 @@ interface AdminLayoutProps {
   pendingOrdersCount: number;
   pendingReviewsCount?: number;
   pageTitle: string;
+  pageDescription?: string;
   children: ReactNode;
 }
 
@@ -35,6 +36,7 @@ export default function AdminLayout({
   pendingOrdersCount,
   pendingReviewsCount = 0,
   pageTitle,
+  pageDescription,
   children,
 }: AdminLayoutProps) {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
@@ -155,9 +157,16 @@ export default function AdminLayout({
             >
               <Menu className="w-5 h-5 text-neutral-700" />
             </button>
-            <h2 className="text-[14px] font-semibold text-neutral-900 truncate">
-              {pageTitle}
-            </h2>
+            <div className="min-w-0">
+              <h2 className="text-[14px] font-semibold text-neutral-900 truncate">
+                {pageTitle}
+              </h2>
+              {pageDescription && (
+                <p className="text-[11px] text-neutral-500 truncate hidden sm:block">
+                  {pageDescription}
+                </p>
+              )}
+            </div>
           </div>
           <a
             href="/"

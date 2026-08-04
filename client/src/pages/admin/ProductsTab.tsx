@@ -773,7 +773,8 @@ export default function ProductsTab({
                         type="checkbox"
                         checked={isSelected}
                         onChange={() => toggleSelected(product.id)}
-                        className="mt-1 w-3.5 h-3.5 accent-neutral-900"
+                        className="mt-1 w-4 h-4 accent-neutral-900"
+                        data-testid={`card-checkbox-product-${product.id}`}
                         aria-label={`${product.name} seç`}
                       />
                     )}

@@ -468,6 +468,7 @@ function MarketplaceCard({
 }) {
   const qc = useQueryClient();
   const { toast } = useToast();
+  const [showActions, setShowActions] = useState(false);
 
   const syncMutation = useMutation({
     mutationFn: async ({ id, mode }: { id: string; mode: 'delta' | 'full' }) => {
@@ -699,47 +700,91 @@ function MarketplaceCard({
           Hızlı (Stok/Fiyat)
         </SecondaryButton>
         <SecondaryButton
-          onClick={() => testConnectionMutation.mutate(mp.id)}
-          disabled={testConnectionMutation.isPending}
-          data-testid={`button-test-connection-${mp.id}`}
+          onClick={() => onLinks()}
+          data-testid={`button-product-links-${mp.id}`}
         >
-          {testConnectionMutation.isPending ? (
-            <Loader2 className="w-3.5 h-3.5 animate-spin" />
-          ) : (
-            <Link2 className="w-3.5 h-3.5" />
-          )}
-          Bağlantıyı Test Et
-        </SecondaryButton>
-        <div className="flex-1" />
-        <GhostButton onClick={onHistory} data-testid={`button-history-${mp.id}`}>
-          <History className="w-3.5 h-3.5" />
-          Geçmiş
-        </GhostButton>
-        <GhostButton onClick={onMappings} data-testid={`button-mappings-${mp.id}`}>
-          <Tags className="w-3.5 h-3.5" />
-          Kategori Eşleme
-        </GhostButton>
-        <GhostButton onClick={onLinks} data-testid={`button-product-links-${mp.id}`}>
           <Link2 className="w-3.5 h-3.5" />
           Ürün Gönderimi
-        </GhostButton>
-        <GhostButton onClick={onQueue} data-testid={`button-push-queue-${mp.id}`}>
-          <Zap className="w-3.5 h-3.5" />
-          Gönderim Kuyruğu
-        </GhostButton>
+        </SecondaryButton>
+        <div className="flex-1" />
         <GhostButton
-          onClick={() => refreshCategoryCacheMutation.mutate(mp.id)}
-          disabled={refreshCategoryCacheMutation.isPending || isRunning}
-          data-testid={`button-refresh-category-cache-${mp.id}`}
+          onClick={() => setShowActions(true)}
+          data-testid={`button-more-actions-${mp.id}`}
         >
-          {refreshCategoryCacheMutation.isPending ? (
-            <Loader2 className="w-3.5 h-3.5 animate-spin" />
-          ) : (
-            <RefreshCcw className="w-3.5 h-3.5" />
-          )}
-          Kategori cache'ini yenile
+          Diğer İşlemler
         </GhostButton>
       </div>
+
+      {/* Diğer işlemler — az kullanılan işler tek pencerede */}
+      {showActions && (
+        <AdminModal
+          open={showActions}
+          onClose={() => setShowActions(false)}
+          title={`${mp.name} İşlemleri`}
+          size="sm"
+        >
+          <div className="divide-y divide-neutral-100 -mx-2" data-testid={`dialog-actions-${mp.id}`}>
+            <ActionRow
+              icon={<Zap className="w-4 h-4" />}
+              label="Gönderim Kuyruğu"
+              description="Trendyol'a giden stok ve fiyat güncellemelerinin durumu"
+              onClick={() => {
+                setShowActions(false);
+                onQueue();
+              }}
+              testId={`button-push-queue-${mp.id}`}
+            />
+            <ActionRow
+              icon={<Tags className="w-4 h-4" />}
+              label="Kategori Eşleme"
+              description="Trendyol kategorilerini site kategorilerinizle eşleştirin"
+              onClick={() => {
+                setShowActions(false);
+                onMappings();
+              }}
+              testId={`button-mappings-${mp.id}`}
+            />
+            <ActionRow
+              icon={<History className="w-4 h-4" />}
+              label="Senkron Geçmişi"
+              description="Geçmiş senkron çalışmaları ve hatalar"
+              onClick={() => {
+                setShowActions(false);
+                onHistory();
+              }}
+              testId={`button-history-${mp.id}`}
+            />
+            <ActionRow
+              icon={
+                testConnectionMutation.isPending ? (
+                  <Loader2 className="w-4 h-4 animate-spin" />
+                ) : (
+                  <Link2 className="w-4 h-4" />
+                )
+              }
+              label="Bağlantıyı Test Et"
+              description="API bilgilerinizin çalıştığını kontrol edin"
+              onClick={() => testConnectionMutation.mutate(mp.id)}
+              disabled={testConnectionMutation.isPending}
+              testId={`button-test-connection-${mp.id}`}
+            />
+            <ActionRow
+              icon={
+                refreshCategoryCacheMutation.isPending ? (
+                  <Loader2 className="w-4 h-4 animate-spin" />
+                ) : (
+                  <RefreshCcw className="w-4 h-4" />
+                )
+              }
+              label="Kategori Listesini Yenile"
+              description="Trendyol kategori ağacı bir sonraki tam senkronda yeniden indirilir"
+              onClick={() => refreshCategoryCacheMutation.mutate(mp.id)}
+              disabled={refreshCategoryCacheMutation.isPending || isRunning}
+              testId={`button-refresh-category-cache-${mp.id}`}
+            />
+          </div>
+        </AdminModal>
+      )}
 
       {/* Credentials footer */}
       {Object.keys(mp.maskedCredentials).length > 0 && (
@@ -1027,6 +1072,38 @@ function ErrorSummaryPanel({
         </div>
       </div>
     </InlineAlert>
+  );
+}
+
+function ActionRow({
+  icon,
+  label,
+  description,
+  onClick,
+  disabled,
+  testId,
+}: {
+  icon: React.ReactNode;
+  label: string;
+  description: string;
+  onClick: () => void;
+  disabled?: boolean;
+  testId: string;
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      disabled={disabled}
+      data-testid={testId}
+      className="w-full flex items-start gap-3 px-2 py-3 text-left hover:bg-neutral-50 disabled:opacity-50 disabled:cursor-not-allowed rounded-md transition-colors"
+    >
+      <span className="mt-0.5 text-neutral-500 shrink-0">{icon}</span>
+      <span className="min-w-0">
+        <span className="block text-[13px] font-medium text-neutral-900">{label}</span>
+        <span className="block text-[11px] text-neutral-500">{description}</span>
+      </span>
+    </button>
   );
 }
 
@@ -1371,7 +1448,54 @@ function SyncHistoryDialog({
           description="Tam veya hızlı bir senkron başlatarak ilk çalışmayı oluşturun."
         />
       ) : (
-        <div className="overflow-x-auto -mx-1">
+        <>
+        {/* Mobil kart listesi */}
+        <div className="md:hidden space-y-2">
+          {runs.map((r) => {
+            const tone = RUN_STATUS_TONE[r.status];
+            return (
+              <div
+                key={r.id}
+                className="border border-neutral-200 rounded-lg p-3 space-y-2"
+                data-testid={`card-run-${r.id}`}
+              >
+                <div className="flex items-center justify-between gap-2">
+                  <span className="text-[12px] text-neutral-700">{formatDate(r.startedAt)}</span>
+                  <StatusBadge tone={tone.tone}>{tone.label}</StatusBadge>
+                </div>
+                <div className="flex flex-wrap gap-x-4 gap-y-1 text-[11px] text-neutral-500">
+                  <span>Süre {formatDuration(r.startedAt, r.completedAt)}</span>
+                  <span className="capitalize">Mod {r.mode}</span>
+                  <span>Eklenen {r.stats?.productsAdded ?? 0}</span>
+                  <span>Güncellenen {r.stats?.productsUpdated ?? 0}</span>
+                  <span>Gizlenen {r.stats?.productsDeactivated ?? 0}</span>
+                  <span className={(r.errors?.length ?? 0) > 0 ? 'text-red-700' : ''}>
+                    Hata {r.errors?.length ?? 0}
+                  </span>
+                </div>
+                {(r.errors?.length ?? 0) > 0 && (
+                  <details>
+                    <summary className="cursor-pointer text-[11px] text-red-700 select-none">
+                      Hata özetlerini göster ({r.errors.length})
+                    </summary>
+                    <ul className="mt-1 space-y-1 text-[11px] text-red-800/90 font-mono">
+                      {r.errors.slice(0, 5).map((e, i) => (
+                        <li key={i} className="pl-2 border-l-2 border-red-300">
+                          <span className="text-red-600/70">{e.context}:</span> {e.message}
+                        </li>
+                      ))}
+                      {r.errors.length > 5 && (
+                        <li className="text-red-600/70">…ve {r.errors.length - 5} daha</li>
+                      )}
+                    </ul>
+                  </details>
+                )}
+              </div>
+            );
+          })}
+        </div>
+        {/* Masaüstü tablo */}
+        <div className="hidden md:block overflow-x-auto -mx-1">
           <table className="w-full text-[12px]">
             <thead>
               <tr className="text-left text-neutral-500 border-b border-neutral-200 bg-neutral-50/50">
@@ -1494,6 +1618,7 @@ function SyncHistoryDialog({
             </tbody>
           </table>
         </div>
+        </>
       )}
     </AdminModal>
   );
