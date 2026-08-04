@@ -1985,9 +1985,9 @@ export class DbStorage implements IStorage {
     }
   }
 
-  // ==========================================================================
+  // --------------------------------------------------------------------------
   // Marketplaces (Trendyol / N11 / Hepsiburada ...)
-  // ==========================================================================
+  // --------------------------------------------------------------------------
 
   async getMarketplaces(): Promise<Marketplace[]> {
     return db.select().from(marketplaces).orderBy(asc(marketplaces.name));

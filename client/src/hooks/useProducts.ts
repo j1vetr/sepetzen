@@ -2,20 +2,35 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 
 export interface Product {
   id: string;
+
   name: string;
+
   slug: string;
+
   description?: string;
+
   sku?: string;
+
   categoryId?: string;
+
   basePrice: string;
+
   images: string[];
+
   availableSizes: string[];
+
   availableColors: { name: string; hex: string | null }[];
+
   isActive: boolean;
+
   isFeatured: boolean;
+
   isNew: boolean;
+
   discountBadge?: string | null;
+
   brand?: string | null;
+
   specs?: {
     urunCinsi?: string;
     tamUzunluk?: string;
@@ -24,9 +39,13 @@ export interface Product {
     agirlik?: string;
     celikCinsi?: string;
     sapCinsi?: string;
+
   } | null;
+
   createdAt: string;
+
   updatedAt: string;
+
   variants?: ProductVariant[];
 }
 
