@@ -1,0 +1,43 @@
+~/workspace$ git push origin main
+Enumerating objects: 8, done.
+Counting objects: 100% (8/8), done.
+Delta compression using up to 4 threads
+Compressing objects: 100% (5/5), done.
+Writing objects: 100% (5/5), 32.62 KiB | 16.31 MiB/s, done.
+Total 5 (delta 2), reused 0 (delta 0), pack-reused 0 (from 0)
+remote: Resolving deltas: 100% (2/2), completed with 2 local objects.
+remote: error: GH013: Repository rule violations found for refs/heads/main.
+remote: 
+remote: - GITHUB PUSH PROTECTION
+remote:   —————————————————————————————————————————
+remote:     Resolve the following violations before pushing again
+remote: 
+remote:     - Push cannot contain secrets
+remote: 
+remote:     
+remote:      (?) Learn how to resolve a blocked push
+remote:      https://docs.github.com/code-security/secret-scanning/working-with-secret-scanning-and-push-protection/working-with-push-protection-from-the-command-line#resolving-a-blocked-push
+remote:     
+remote:     
+remote:       —— Google OAuth Client ID ————————————————————————————
+remote:        locations:
+remote:          - commit: 27e693e01ea28fb7881e2d3141b1d2f48eae4479
+remote:            path: sepetzen_dump.sql:1189
+remote:     
+remote:        (?) To push, remove secret from commit(s) or follow this URL to allow the secret.
+remote:        https://github.com/j1vetr/sepetzen/security/secret-scanning/unblock-secret/3HSRtyGbVkxNYX7KjXVsodmBlz2
+remote:     
+remote:     
+remote:       —— Google OAuth Client Secret ————————————————————————
+remote:        locations:
+remote:          - commit: 27e693e01ea28fb7881e2d3141b1d2f48eae4479
+remote:            path: sepetzen_dump.sql:1190
+remote:     
+remote:        (?) To push, remove secret from commit(s) or follow this URL to allow the secret.
+remote:        https://github.com/j1vetr/sepetzen/security/secret-scanning/unblock-secret/3HSRtuztWMzMDNmqfeQehAOZhyj
+remote:     
+remote: 
+remote: 
+To https://github.com/j1vetr/sepetzen
+ ! [remote rejected] main -> main (push declined due to repository rule violations)
+error: failed to push some refs to 'https://github.com/j1vetr/sepetzen'
