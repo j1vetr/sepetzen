@@ -16,10 +16,11 @@ import {
   Phone,
   Clock,
 } from 'lucide-react';
-import { BANK_TRANSFER_INFO } from '@shared/bankInfo';
+import { useBankTransferInfo } from '@/hooks/useBankTransferInfo';
 import { SEO } from '@/components/SEO';
 
 export default function PaymentSuccess() {
+  const bankInfo = useBankTransferInfo();
   const [orderNumber, setOrderNumber] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -85,7 +86,7 @@ export default function PaymentSuccess() {
 
   const copyIban = async () => {
     try {
-      await navigator.clipboard.writeText(BANK_TRANSFER_INFO.iban);
+      await navigator.clipboard.writeText(bankInfo.iban);
       setCopiedIban(true);
       setTimeout(() => setCopiedIban(false), 1800);
     } catch {}
@@ -255,17 +256,17 @@ export default function PaymentSuccess() {
               <div className="space-y-2.5 text-sm">
                 <div className="flex justify-between gap-3">
                    <span className="text-white/50">Banka</span>
-                   <span className="font-semibold text-white">{BANK_TRANSFER_INFO.bankName}</span>
+                   <span className="font-semibold text-white">{bankInfo.bankName}</span>
                 </div>
                 <div className="flex justify-between gap-3">
                    <span className="text-white/50">Hesap Sahibi</span>
-                   <span className="font-semibold text-white">{BANK_TRANSFER_INFO.accountHolder}</span>
+                   <span className="font-semibold text-white">{bankInfo.accountHolder}</span>
                 </div>
                 <div className="flex flex-col gap-1.5">
                    <span className="text-white/50 text-xs">IBAN</span>
                    <div className="flex items-center gap-2 bg-white/5 border border-white/12 rounded px-3 py-2.5">
                      <span className="font-mono text-[13px] sm:text-sm font-bold text-white flex-1 break-all" data-testid="text-iban">
-                      {BANK_TRANSFER_INFO.iban}
+                      {bankInfo.iban}
                     </span>
                     <button
                       onClick={copyIban}

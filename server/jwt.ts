@@ -165,7 +165,7 @@ export function setAuthCookies(
   const cookieOptions = {
     httpOnly: true,
     secure: isProduction,
-    sameSite: isProduction ? 'strict' as const : 'lax' as const,
+    sameSite: 'lax' as const,
     path: '/',
   };
 
@@ -196,7 +196,7 @@ export function setCartTokenCookie(res: any, cartToken: string, isProduction: bo
   res.cookie('cart_token', cartToken, {
     httpOnly: true,
     secure: isProduction,
-    sameSite: isProduction ? 'strict' as const : 'lax' as const,
+    sameSite: 'lax' as const,
     path: '/',
     maxAge: CART_TOKEN_EXPIRY_DAYS * 24 * 60 * 60 * 1000,
   });

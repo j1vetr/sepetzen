@@ -1,6 +1,6 @@
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useState, useEffect, type ComponentType } from 'react';
-import { Settings, Mail, Loader2, CheckCircle2, XCircle, Send, Server, CreditCard, Copy, AlertTriangle, Wrench, MessageCircle, KeyRound, ShieldCheck, Truck, MapPin, Megaphone, Globe } from 'lucide-react';
+import { Settings, Mail, Loader2, CheckCircle2, XCircle, Send, Server, CreditCard, Copy, AlertTriangle, Wrench, MessageCircle, KeyRound, ShieldCheck, Truck, MapPin, Megaphone, Globe, Banknote } from 'lucide-react';
 import { BANK_TRANSFER_INFO } from '@shared/bankInfo';
 import type { SiteIdentity, SocialLink, MobileNavItem } from '@shared/siteIdentity';
 
@@ -715,6 +715,84 @@ export default function SettingsPanel() {
     }
   };
 
+  // ── Havale ayarları ─────────────────────────────────────────────
+  const [bankSaving, setBankSaving] = useState(false);
+  const [bankForm, setBankForm] = useState<{ bankName: string; accountHolder: string; iban: string; discountPercent: string } | null>(null);
+
+  const { data: bankConfig, refetch: refetchBank } = useQuery<{
+    enabled: boolean;
+    bankName: string;
+    accountHolder: string;
+    iban: string;
+    discountPercent: number;
+  }>({
+    queryKey: ['/api/admin/bank-transfer/config'],
+  });
+
+  const bankFormValues = bankForm ?? (bankConfig ? {
+    bankName: bankConfig.bankName,
+    accountHolder: bankConfig.accountHolder,
+    iban: bankConfig.iban,
+    discountPercent: String(bankConfig.discountPercent),
+  } : { bankName: '', accountHolder: '', iban: '', discountPercent: '10' });
+
+  const handleBankSave = async () => {
+    const pct = Number(bankFormValues.discountPercent);
+    if (!bankFormValues.bankName.trim() || !bankFormValues.accountHolder.trim() || !bankFormValues.iban.trim()) {
+      setMessage({ type: 'error', text: 'Banka adı, hesap sahibi ve IBAN zorunludur.' });
+      return;
+    }
+    if (!Number.isFinite(pct) || pct < 0 || pct > 50) {
+      setMessage({ type: 'error', text: 'İndirim oranı 0 ile 50 arasında olmalıdır.' });
+      return;
+    }
+    setBankSaving(true);
+    setMessage(null);
+    try {
+      const res = await fetch('/api/admin/bank-transfer/config', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          bankName: bankFormValues.bankName.trim(),
+          accountHolder: bankFormValues.accountHolder.trim(),
+          iban: bankFormValues.iban.trim().toUpperCase(),
+          discountPercent: pct,
+        }),
+        credentials: 'include',
+      });
+      if (res.ok) {
+        await refetchBank();
+        setBankForm(null);
+        setMessage({ type: 'success', text: 'Havale ayarları kaydedildi. Ödeme sayfası, e-posta ve sipariş takip sayfaları yeni bilgileri kullanacak.' });
+      } else {
+        const data = await res.json();
+        setMessage({ type: 'error', text: data.error || 'Havale ayarları kaydedilemedi' });
+      }
+    } catch {
+      setMessage({ type: 'error', text: 'Havale ayarları kaydedilemedi' });
+    } finally {
+      setBankSaving(false);
+    }
+  };
+
+  const handleBankToggle = async (enabled: boolean) => {
+    try {
+      const res = await fetch('/api/admin/bank-transfer/config', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ enabled }),
+        credentials: 'include',
+      });
+      if (res.ok) {
+        await refetchBank();
+      } else {
+        setMessage({ type: 'error', text: 'Havale durumu güncellenemedi' });
+      }
+    } catch {
+      setMessage({ type: 'error', text: 'Havale durumu güncellenemedi' });
+    }
+  };
+
   const { data: savedSettings, isLoading } = useQuery<Record<string, string>>({
     queryKey: ['/api/admin/settings'],
   });
@@ -1404,7 +1482,111 @@ export default function SettingsPanel() {
                 data-testid="checkbox-method-paytr"
               />
             </label>
-            <p className="text-xs text-neutral-500">Havale her zaman aktiftir. Bir sağlayıcıyı kapatırsanız müşteriler o sekmeyi görmez.</p>
+            <p className="text-xs text-neutral-500">Havale açma kapama ve banka bilgileri aşağıdaki Havale kartından yönetilir. Bir sağlayıcıyı kapatırsanız müşteriler o sekmeyi görmez.</p>
+          </div>
+        )}
+      </div>
+      )}
+
+      {/* Havale (Banka Transferi) Ayarları */}
+      {section === 'odeme' && (
+      <div className="bg-white border border-neutral-200 rounded-xl p-6" data-testid="card-bank-transfer-settings">
+        <div className="flex items-center gap-3 mb-6">
+          <div className="p-2 bg-neutral-50 rounded-lg">
+            <Banknote className="w-5 h-5 text-neutral-900" />
+          </div>
+          <div className="flex-1">
+            <h3 className="text-lg font-semibold text-neutral-900">Havale ile Ödeme</h3>
+            <p className="text-sm text-neutral-500">Banka bilgileri ve havale indirimi buradan yönetilir. Ödeme sayfası, e-postalar ve sipariş takibi bu bilgileri kullanır.</p>
+          </div>
+          {bankConfig && (
+            <label className="flex items-center gap-2 cursor-pointer shrink-0">
+              <input
+                type="checkbox"
+                checked={bankConfig.enabled}
+                onChange={(e) => handleBankToggle(e.target.checked)}
+                className="w-5 h-5 rounded"
+                data-testid="checkbox-bank-transfer-enabled"
+              />
+              <span className="text-sm font-medium text-neutral-900">Etkin</span>
+            </label>
+          )}
+        </div>
+
+        {!bankConfig ? (
+          <div className="flex items-center gap-2 text-sm text-neutral-500">
+            <Loader2 className="w-4 h-4 animate-spin" /> Yükleniyor...
+          </div>
+        ) : (
+          <div className="space-y-5">
+            {!bankConfig.enabled && (
+              <div className="p-3 rounded-lg bg-amber-50 border border-amber-200 text-amber-800 text-xs">
+                Havale şu anda kapalı. Müşteriler ödeme sayfasında HAVALE sekmesini görmez.
+              </div>
+            )}
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <label className="block text-sm font-medium text-neutral-700 mb-2">Banka Adı</label>
+                <input
+                  type="text"
+                  value={bankFormValues.bankName}
+                  onChange={(e) => setBankForm({ ...bankFormValues, bankName: e.target.value })}
+                  placeholder="Ziraat Bankası"
+                  data-testid="input-bank-name"
+                  className="w-full px-4 py-3 bg-neutral-50 border border-neutral-200 rounded-lg text-neutral-900 text-sm focus:outline-none focus:border-neutral-900 transition-colors"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-neutral-700 mb-2">Hesap Sahibi</label>
+                <input
+                  type="text"
+                  value={bankFormValues.accountHolder}
+                  onChange={(e) => setBankForm({ ...bankFormValues, accountHolder: e.target.value })}
+                  placeholder="Ad Soyad"
+                  data-testid="input-bank-account-holder"
+                  className="w-full px-4 py-3 bg-neutral-50 border border-neutral-200 rounded-lg text-neutral-900 text-sm focus:outline-none focus:border-neutral-900 transition-colors"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-neutral-700 mb-2">IBAN</label>
+                <input
+                  type="text"
+                  value={bankFormValues.iban}
+                  onChange={(e) => setBankForm({ ...bankFormValues, iban: e.target.value })}
+                  placeholder="TR00 0000 0000 0000 0000 0000 00"
+                  data-testid="input-bank-iban"
+                  className="w-full px-4 py-3 bg-neutral-50 border border-neutral-200 rounded-lg text-neutral-900 text-sm font-mono focus:outline-none focus:border-neutral-900 transition-colors"
+                />
+                <p className="text-xs text-neutral-500 mt-1.5">TR ile başlamalıdır. Müşterilere ödeme sayfasında ve e-postalarda gösterilir.</p>
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-neutral-700 mb-2">Havale İndirimi (%)</label>
+                <input
+                  type="number"
+                  min={0}
+                  max={50}
+                  value={bankFormValues.discountPercent}
+                  onChange={(e) => setBankForm({ ...bankFormValues, discountPercent: e.target.value })}
+                  data-testid="input-bank-discount"
+                  className="w-full px-4 py-3 bg-neutral-50 border border-neutral-200 rounded-lg text-neutral-900 text-sm focus:outline-none focus:border-neutral-900 transition-colors"
+                />
+                <p className="text-xs text-neutral-500 mt-1.5">Havale seçen müşteriye uygulanan indirim. 0 yazarsanız indirim uygulanmaz.</p>
+              </div>
+            </div>
+
+            <div className="flex justify-end">
+              <button
+                type="button"
+                onClick={handleBankSave}
+                disabled={bankSaving}
+                data-testid="button-bank-save"
+                className="flex items-center gap-2 px-5 py-2.5 bg-neutral-900 text-white rounded-lg hover:bg-neutral-800 transition-colors text-sm font-medium disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                {bankSaving ? <Loader2 className="w-4 h-4 animate-spin" /> : <CheckCircle2 className="w-4 h-4" />}
+                Havale Ayarlarını Kaydet
+              </button>
+            </div>
           </div>
         )}
       </div>

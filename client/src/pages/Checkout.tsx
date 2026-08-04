@@ -120,18 +120,43 @@ export default function Checkout() {
       const res = await fetch('/api/payment/methods');
       return res.json();
     },
-    staleTime: 60_000,
+    refetchOnMount: 'always',
   });
 
-  // Varsayılan sekme: iyzico kapalıysa PayTR, o da kapalıysa havale
+  // Havale bilgileri ve indirim oranı (admin panelden yönetilir)
+  const { data: bankInfo = {
+    enabled: true,
+    bankName: BANK_TRANSFER_INFO.bankName,
+    accountHolder: BANK_TRANSFER_INFO.accountHolder,
+    iban: BANK_TRANSFER_INFO.iban,
+    discountPercent: 10,
+  } } = useQuery<{
+    enabled: boolean;
+    bankName: string;
+    accountHolder: string;
+    iban: string;
+    discountPercent: number;
+  }>({
+    queryKey: ['bank-transfer-info'],
+    queryFn: async () => {
+      const res = await fetch('/api/payment/bank-transfer/info');
+      return res.json();
+    },
+    refetchOnMount: 'always',
+  });
+
+  // Varsayılan sekme: kapalı bir sekmede kalınmasın
   useEffect(() => {
+    const firstAvailable = payMethods.iyzico ? 'card' : payMethods.paytr ? 'card_paytr' : 'bank_transfer';
     if (paymentMethod === 'card' && !payMethods.iyzico) {
       setPaymentMethod(payMethods.paytr ? 'card_paytr' : 'bank_transfer');
     } else if (paymentMethod === 'card_paytr' && !payMethods.paytr) {
       setPaymentMethod(payMethods.iyzico ? 'card' : 'bank_transfer');
+    } else if (paymentMethod === 'bank_transfer' && !payMethods.bankTransfer) {
+      setPaymentMethod(firstAvailable);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [payMethods.iyzico, payMethods.paytr]);
+  }, [payMethods.iyzico, payMethods.paytr, payMethods.bankTransfer]);
 
   const { data: products = [] } = useQuery<Product[]>({
     queryKey: ['products'],
@@ -248,9 +273,8 @@ export default function Checkout() {
   
   const discount = calculateDiscount();
   const total = subtotal - discount + shippingCost;
-  const BANK_TRANSFER_DISCOUNT_RATE = 0.10;
   const bankTransferDiscount = paymentMethod === 'bank_transfer'
-    ? Math.round(total * BANK_TRANSFER_DISCOUNT_RATE * 100) / 100
+    ? Math.round(total * (bankInfo.discountPercent / 100) * 100) / 100
     : 0;
   const finalTotal = total - bankTransferDiscount;
 
@@ -625,7 +649,7 @@ export default function Checkout() {
       </div>
       {bankTransferDiscount > 0 && (
         <div className="flex justify-between gap-3">
-          <span className="text-white/50">Havale İndirimi (%10)</span>
+          <span className="text-white/50">Havale İndirimi (%{bankInfo.discountPercent})</span>
           <span className="text-white tabular-nums" data-testid="text-bank-transfer-discount">-{bankTransferDiscount.toLocaleString('tr-TR')} ₺</span>
         </div>
       )}
@@ -1343,7 +1367,11 @@ export default function Checkout() {
 
                       <div
                         className={`grid mb-6 border border-white/15 rounded-lg overflow-hidden ${
-                          payMethods.iyzico && payMethods.paytr ? 'grid-cols-3' : 'grid-cols-2'
+                          [payMethods.iyzico, payMethods.paytr, payMethods.bankTransfer].filter(Boolean).length === 3
+                            ? 'grid-cols-3'
+                            : [payMethods.iyzico, payMethods.paytr, payMethods.bankTransfer].filter(Boolean).length === 2
+                              ? 'grid-cols-2'
+                              : 'grid-cols-1'
                         }`}
                       >
                         {payMethods.iyzico && (
@@ -1372,6 +1400,7 @@ export default function Checkout() {
                           <span className="truncate">{payMethods.iyzico ? 'PAYTR' : 'KREDİ KARTI'}</span>
                         </button>
                         )}
+                        {payMethods.bankTransfer && (
                         <button
                           type="button"
                           onClick={() => setPaymentMethod('bank_transfer')}
@@ -1381,14 +1410,17 @@ export default function Checkout() {
                           data-testid="tab-payment-bank-transfer"
                         >
                           <span className="truncate">HAVALE</span>
+                          {bankInfo.discountPercent > 0 && (
                           <span
                             className={`text-[10px] font-bold px-1.5 py-0.5 rounded shrink-0 ${
                               paymentMethod === 'bank_transfer' ? 'bg-black text-white' : 'bg-white/12 text-white'
                             }`}
                           >
-                            %10
+                            %{bankInfo.discountPercent}
                           </span>
+                          )}
                         </button>
+                        )}
                       </div>
 
                       {paymentError && (
@@ -1403,7 +1435,7 @@ export default function Checkout() {
                       {paymentMethod === 'bank_transfer' ? (
                         <div className="space-y-4" data-testid="bank-transfer-panel">
                           <div className="bg-white/5 border border-white/15 rounded-lg p-4">
-                            <p className="text-[13.5px] font-bold text-white">Havale ile %10 indirim kazandınız</p>
+                            <p className="text-[13.5px] font-bold text-white">Havale ile %{bankInfo.discountPercent} indirim kazandınız</p>
                             <p className="text-[12px] text-white/55 mt-1 leading-relaxed">
                               Aşağıdaki banka bilgilerine ödemenizi yaptıktan sonra siparişiniz onaylanıp hazırlığa alınır.
                             </p>
@@ -1413,9 +1445,9 @@ export default function Checkout() {
                             <h3 className="font-display text-[13px] tracking-[0.14em] text-white/80">BANKA BİLGİLERİ</h3>
                             <div className="space-y-2.5">
                               {[
-                                { key: 'bank' as const, label: 'Banka', value: BANK_TRANSFER_INFO.bankName, testId: 'bank-name' },
-                                { key: 'holder' as const, label: 'Hesap Sahibi', value: BANK_TRANSFER_INFO.accountHolder, testId: 'bank-holder' },
-                                { key: 'iban' as const, label: 'IBAN', value: BANK_TRANSFER_INFO.iban, testId: 'bank-iban', mono: true },
+                                { key: 'bank' as const, label: 'Banka', value: bankInfo.bankName, testId: 'bank-name' },
+                                { key: 'holder' as const, label: 'Hesap Sahibi', value: bankInfo.accountHolder, testId: 'bank-holder' },
+                                { key: 'iban' as const, label: 'IBAN', value: bankInfo.iban, testId: 'bank-iban', mono: true },
                               ].map(({ key, label, value, testId, mono }) => (
                                 <div key={key} className="min-w-0">
                                   <p className="text-[11px] text-white/45 mb-0.5">{label}</p>
@@ -1456,7 +1488,7 @@ export default function Checkout() {
                               <span className="text-white/60 line-through tabular-nums">{total.toLocaleString('tr-TR')} ₺</span>
                             </div>
                             <div className="flex justify-between text-[13px]">
-                              <span className="text-white">Havale İndirimi (%10)</span>
+                              <span className="text-white">Havale İndirimi (%{bankInfo.discountPercent})</span>
                               <span className="text-white tabular-nums" data-testid="text-bank-discount">
                                 -{bankTransferDiscount.toLocaleString('tr-TR')} ₺
                               </span>
@@ -1726,7 +1758,7 @@ export default function Checkout() {
         >
           <div className="px-4 py-3 flex items-center gap-3">
             <div className="flex-1 min-w-0">
-              <p className="text-[10.5px] text-white/45 mb-0.5">Ödenecek (%10 indirimli)</p>
+              <p className="text-[10.5px] text-white/45 mb-0.5">Ödenecek (%{bankInfo.discountPercent} indirimli)</p>
               <p className="text-[17px] font-bold text-white leading-none tabular-nums">
                 {finalTotal.toLocaleString('tr-TR')} ₺
               </p>

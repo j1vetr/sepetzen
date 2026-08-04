@@ -2,6 +2,22 @@ import nodemailer from 'nodemailer';
 import { storage } from './storage';
 import type { Order, OrderItem, User } from '@shared/schema';
 import { BANK_TRANSFER_INFO } from '@shared/bankInfo';
+
+// Havale banka bilgileri site_settings'ten okunur, boşsa koddaki varsayılan kullanılır.
+async function getBankInfoForEmail(): Promise<{ bankName: string; accountHolder: string; iban: string; discountPercent: number }> {
+  try {
+    const { getBankTransferConfig } = await import('./bankTransfer');
+    const cfg = await getBankTransferConfig();
+    return {
+      bankName: cfg.bankName,
+      accountHolder: cfg.accountHolder,
+      iban: cfg.iban,
+      discountPercent: Math.round(cfg.discountRate * 100),
+    };
+  } catch {
+    return { ...BANK_TRANSFER_INFO, discountPercent: 10 };
+  }
+}
 import { formatTRDateTime } from '@shared/dateFormat';
 
 interface SmtpConfig {
@@ -488,7 +504,14 @@ function shippingNotificationTemplate(order: Order): string {
   `, { preheader: `#${order.orderNumber} kargoda - takip: ${order.trackingNumber || 'yakında'}`, title: 'Kargoya Verildi' });
 }
 
-function bankTransferPendingTemplate(order: Order, items: OrderItemForEmail[], siteUrl: string = CONTACT.siteUrl): string {
+interface BankInfoForEmail {
+  bankName: string;
+  accountHolder: string;
+  iban: string;
+  discountPercent: number;
+}
+
+function bankTransferPendingTemplate(order: Order, items: OrderItemForEmail[], siteUrl: string = CONTACT.siteUrl, bank: BankInfoForEmail = { ...BANK_TRANSFER_INFO, discountPercent: 10 }): string {
   const itemRows = items.map(item => {
     const img = item.productImage;
     const thumbCell = img
@@ -513,7 +536,7 @@ function bankTransferPendingTemplate(order: Order, items: OrderItemForEmail[], s
 
   return wrapTemplate(`
     ${H1('Havalenizi bekliyoruz.')}
-    ${Lede(`Teşekkürler ${escapeHtml(order.customerName)} - siparişiniz oluşturuldu. Aşağıdaki ${BANK_TRANSFER_INFO.bankName} hesabımıza ödemenizi gönderdiğinizde sipariş hazırlığa alınacak.`)}
+    ${Lede(`Teşekkürler ${escapeHtml(order.customerName)} - siparişiniz oluşturuldu. Aşağıdaki ${escapeHtml(bank.bankName)} hesabımıza ödemenizi gönderdiğinizde sipariş hazırlığa alınacak.`)}
 
     ${infoCard(`
       <table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%">
@@ -533,7 +556,7 @@ function bankTransferPendingTemplate(order: Order, items: OrderItemForEmail[], s
     <table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%" style="background-color:${BRAND.primary};margin:18px 0;">
       <tr>
         <td align="center" style="padding:18px 24px;font-family:Helvetica,Arial,sans-serif;color:${BRAND.ink};font-size:14px;font-weight:600;line-height:1.5;">
-          🏦 <strong>Havale ile %10 indirim uygulandı.</strong><br/>
+          🏦 <strong>Havale ile %${bank.discountPercent} indirim uygulandı.</strong><br/>
           <span style="font-size:13px;font-weight:500;">Ödenecek tutar: <strong>${escapeHtml(order.total)}&nbsp;₺</strong></span>
         </td>
       </tr>
@@ -544,15 +567,15 @@ function bankTransferPendingTemplate(order: Order, items: OrderItemForEmail[], s
       <table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%">
         <tr>
           <td style="padding:6px 0;font-size:12px;color:${BRAND.muted};letter-spacing:1.2px;text-transform:uppercase;font-weight:600;width:38%;">Banka</td>
-          <td style="padding:6px 0;font-size:14px;color:${BRAND.ink};font-weight:700;">${BANK_TRANSFER_INFO.bankName}</td>
+          <td style="padding:6px 0;font-size:14px;color:${BRAND.ink};font-weight:700;">${escapeHtml(bank.bankName)}</td>
         </tr>
         <tr>
           <td style="padding:6px 0;font-size:12px;color:${BRAND.muted};letter-spacing:1.2px;text-transform:uppercase;font-weight:600;">Ad Soyad</td>
-          <td style="padding:6px 0;font-size:14px;color:${BRAND.ink};font-weight:700;">${BANK_TRANSFER_INFO.accountHolder}</td>
+          <td style="padding:6px 0;font-size:14px;color:${BRAND.ink};font-weight:700;">${escapeHtml(bank.accountHolder)}</td>
         </tr>
         <tr>
           <td style="padding:6px 0;font-size:12px;color:${BRAND.muted};letter-spacing:1.2px;text-transform:uppercase;font-weight:600;">IBAN</td>
-          <td style="padding:6px 0;font-size:14px;color:${BRAND.ink};font-weight:700;font-family:'Courier New',monospace;letter-spacing:0.5px;">${BANK_TRANSFER_INFO.iban}</td>
+          <td style="padding:6px 0;font-size:14px;color:${BRAND.ink};font-weight:700;font-family:'Courier New',monospace;letter-spacing:0.5px;">${escapeHtml(bank.iban)}</td>
         </tr>
         <tr>
           <td style="padding:6px 0;font-size:12px;color:${BRAND.muted};letter-spacing:1.2px;text-transform:uppercase;font-weight:600;">Tutar</td>
@@ -1155,7 +1178,7 @@ export async function sendBankTransferPendingEmail(order: Order, items: OrderIte
       from: `"Sepetzen" <${fromEmail}>`,
       to: order.customerEmail,
       subject: `Havalenizi Bekliyoruz - #${order.orderNumber}`,
-      html: bankTransferPendingTemplate(order, enrichedItems),
+      html: bankTransferPendingTemplate(order, enrichedItems, CONTACT.siteUrl, await getBankInfoForEmail()),
     });
 
     console.log(`[Email] Bank transfer pending email sent to ${order.customerEmail}`);

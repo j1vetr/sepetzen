@@ -43,7 +43,7 @@ import {
   sendTestWhatsApp,
   sendReviewPendingToAdmin,
 } from "./whatsappService";
-import { BANK_TRANSFER_DISCOUNT_RATE } from "./bankTransfer";
+import { getBankTransferConfig } from "./bankTransfer";
 import {
   createCheckoutFormInitialize,
   retrieveCheckoutForm,
@@ -1027,9 +1027,11 @@ export async function registerRoutes(
     res.clearCookie('google_oauth_state', { path: '/' });
 
     if (error || !code) {
+      console.error('[Google OAuth] Access denied or missing code:', { error, hasCode: Boolean(code) });
       return res.redirect('/?google_error=access_denied');
     }
     if (!state || state !== storedState) {
+      console.error('[Google OAuth] State mismatch:', { hasState: Boolean(state), hasCookie: Boolean(storedState) });
       return res.redirect('/?google_error=state_mismatch');
     }
 
@@ -1098,9 +1100,10 @@ export async function registerRoutes(
       const isProduction = process.env.NODE_ENV === 'production';
       setAuthCookies(res, accessToken, refreshToken, isProduction);
 
-      res.redirect('/');
+      console.log('[Google OAuth] Login success for', user.email);
+      res.redirect('/?google_login=success');
     } catch (err) {
-      console.error('[Google OAuth] Callback error:', err);
+      console.error('[Google OAuth] Callback error:', err instanceof Error ? err.stack || err.message : err);
       res.redirect('/?google_error=server_error');
     }
   });
@@ -2707,6 +2710,10 @@ Bu ürün için 4 bölümlü HTML açıklama üret. Teknik Özellikler bölümü
   // standart sipariş onay e-posta + WhatsApp tetiklenir.
   app.post("/api/payment/bank-transfer", async (req: Request, res) => {
     try {
+      const bankConfig = await getBankTransferConfig();
+      if (!bankConfig.enabled) {
+        return res.status(400).json({ error: "Havale ile ödeme şu anda kapalı" });
+      }
       const cartToken = getOrCreateCartToken(req, res);
       const payload = await getAuthPayload(req, res);
       const userId = payload?.type === 'user' ? payload.userId ?? null : null;
@@ -2808,9 +2815,9 @@ Bu ürün için 4 bölümlü HTML açıklama üret. Teknik Özellikler bölümü
         : isIraq ? IRAQ_SHIPPING_COST : INTERNATIONAL_SHIPPING_COST;
       if (couponFreeShipping) shippingCost = 0;
 
-      // Bank transfer 10% discount applies to (subtotal - couponDiscount + shippingCost)
+      // Havale indirimi (subtotal - couponDiscount + shippingCost) üzerinden, oran admin ayarından gelir
       const baseAfterCoupon = Math.max(0, serverSubtotal - couponDiscount) + shippingCost;
-      const bankTransferDiscount = Math.round(baseAfterCoupon * BANK_TRANSFER_DISCOUNT_RATE * 100) / 100;
+      const bankTransferDiscount = Math.round(baseAfterCoupon * bankConfig.discountRate * 100) / 100;
       const totalDiscount = couponDiscount + bankTransferDiscount;
       const serverTotal = Math.max(0, serverSubtotal - totalDiscount + shippingCost);
 
@@ -3214,16 +3221,17 @@ Bu ürün için 4 bölümlü HTML açıklama üret. Teknik Özellikler bölümü
   // ── Aktif ödeme yöntemleri (storefront için public) ────────────────────
   app.get("/api/payment/methods", async (_req, res) => {
     try {
-      const [iyzicoConfigured, paytrConfigured, iyzicoToggle, paytrToggle] = await Promise.all([
+      const [iyzicoConfigured, paytrConfigured, iyzicoToggle, paytrToggle, bankConfig] = await Promise.all([
         isIyzicoConfigured(),
         isPaytrConfigured(),
         storage.getSiteSetting('payment_iyzico_enabled'),
         storage.getSiteSetting('payment_paytr_enabled'),
+        getBankTransferConfig(),
       ]);
       res.json({
         iyzico: iyzicoConfigured && iyzicoToggle !== '0',
         paytr: paytrConfigured && paytrToggle !== '0',
-        bankTransfer: true,
+        bankTransfer: bankConfig.enabled,
       });
     } catch (error) {
       console.error('[payment methods] error:', error);
@@ -3319,6 +3327,72 @@ Bu ürün için 4 bölümlü HTML açıklama üret. Teknik Özellikler bölümü
     } catch (error) {
       console.error('[iyzico credentials] error:', error);
       res.status(500).json({ error: 'iyzico anahtarları kaydedilemedi' });
+    }
+  });
+
+  // ── Havale bilgileri (storefront için public) ──────────────────────────
+  app.get("/api/payment/bank-transfer/info", async (_req, res) => {
+    try {
+      const cfg = await getBankTransferConfig();
+      res.json({
+        enabled: cfg.enabled,
+        bankName: cfg.bankName,
+        accountHolder: cfg.accountHolder,
+        iban: cfg.iban,
+        discountPercent: Math.round(cfg.discountRate * 100),
+      });
+    } catch (error) {
+      console.error('[bank transfer info] error:', error);
+      res.status(500).json({ error: 'Havale bilgileri alınamadı' });
+    }
+  });
+
+  // ── Havale admin ayarları ───────────────────────────────────────────────
+  app.get("/api/admin/bank-transfer/config", requireAdmin, async (_req, res) => {
+    try {
+      const cfg = await getBankTransferConfig();
+      res.json({
+        enabled: cfg.enabled,
+        bankName: cfg.bankName,
+        accountHolder: cfg.accountHolder,
+        iban: cfg.iban,
+        discountPercent: Math.round(cfg.discountRate * 100),
+      });
+    } catch (error) {
+      res.status(500).json({ error: 'Havale ayarları alınamadı' });
+    }
+  });
+
+  app.post("/api/admin/bank-transfer/config", requireAdmin, async (req, res) => {
+    try {
+      const { enabled, bankName, accountHolder, iban, discountPercent } = req.body || {};
+      if (typeof enabled === 'boolean') {
+        await storage.setSiteSetting('bank_transfer_enabled', enabled ? '1' : '0');
+      }
+      if (typeof bankName === 'string' && bankName.trim()) {
+        await storage.setSiteSetting('bank_transfer_bank_name', bankName.trim());
+      }
+      if (typeof accountHolder === 'string' && accountHolder.trim()) {
+        await storage.setSiteSetting('bank_transfer_account_holder', accountHolder.trim());
+      }
+      if (typeof iban === 'string' && iban.trim()) {
+        const cleaned = iban.trim().toUpperCase();
+        if (!/^TR[0-9 ]{24,32}$/.test(cleaned)) {
+          return res.status(400).json({ error: 'IBAN TR ile başlamalı ve geçerli formatta olmalı' });
+        }
+        await storage.setSiteSetting('bank_transfer_iban', cleaned);
+      }
+      if (discountPercent !== undefined) {
+        const pct = Number(discountPercent);
+        if (!Number.isFinite(pct) || pct < 0 || pct > 50) {
+          return res.status(400).json({ error: 'İndirim oranı 0 ile 50 arasında olmalı' });
+        }
+        await storage.setSiteSetting('bank_transfer_discount_rate', String(pct));
+      }
+      res.json({ success: true });
+    } catch (error) {
+      console.error('[bank transfer config] error:', error);
+      res.status(500).json({ error: 'Havale ayarları kaydedilemedi' });
     }
   });
 

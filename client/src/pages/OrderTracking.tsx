@@ -7,7 +7,7 @@ import { Input } from '@/components/ui/input';
 import { motion } from 'framer-motion';
 import { useAuth } from '@/hooks/useAuth';
 import { SEO } from '@/components/SEO';
-import { BANK_TRANSFER_INFO } from '@shared/bankInfo';
+import { useBankTransferInfo } from '@/hooks/useBankTransferInfo';
 import { formatTRDate, formatTRDateTime } from '@shared/dateFormat';
 import {
   Search,
@@ -154,6 +154,7 @@ const steps: Array<{
 ];
 
 export default function OrderTracking() {
+  const bankInfo = useBankTransferInfo();
   const { user, isLoading: authLoading } = useAuth();
   const [orderNumber, setOrderNumber] = useState('');
   const [email, setEmail] = useState('');
@@ -483,16 +484,16 @@ export default function OrderTracking() {
                   <div className="bg-[#141414] border border-white/8 p-4 space-y-2 text-sm">
                     <div className="flex justify-between gap-3">
                       <span className="text-white/55">Banka</span>
-                      <span className="font-semibold text-white">{BANK_TRANSFER_INFO.bankName}</span>
+                      <span className="font-semibold text-white">{bankInfo.bankName}</span>
                     </div>
                     <div className="flex justify-between gap-3">
                       <span className="text-white/55">Hesap Sahibi</span>
-                      <span className="font-semibold text-white">{BANK_TRANSFER_INFO.accountHolder}</span>
+                      <span className="font-semibold text-white">{bankInfo.accountHolder}</span>
                     </div>
                     <div className="flex flex-col gap-1 pt-1">
                       <span className="text-white/55 text-xs">IBAN</span>
                       <span className="font-mono text-[13px] sm:text-sm font-bold text-white break-all" data-testid="text-bank-iban">
-                        {BANK_TRANSFER_INFO.iban}
+                        {bankInfo.iban}
                       </span>
                     </div>
                   </div>

@@ -11,6 +11,7 @@ import { Loader2 } from "lucide-react";
 import { ScrollToTop } from "@/components/ScrollToTop";
 import { SmoothScroll } from "@/components/SmoothScroll";
 import { MobileBottomNav } from "@/components/MobileBottomNav";
+import { GoogleAuthNotice } from "@/components/GoogleAuthNotice";
 
 const Home = lazy(() => import("@/pages/Home"));
 const Category = lazy(() => import("@/pages/Category"));
@@ -96,6 +97,7 @@ function App() {
             <TooltipProvider>
               <div className="relative w-full mobile-nav-spacer">
                 <SmoothScroll />
+                <GoogleAuthNotice />
                 <Toaster />
                 <Router />
                 <MobileBottomNav />
