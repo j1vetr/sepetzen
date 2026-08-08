@@ -4598,55 +4598,30 @@ Bu ürün için 4 bölümlü HTML açıklama üret. Teknik Özellikler bölümü
         return res.status(404).json({ error: "Ürün bulunamadı" });
       }
 
+      // Tek ürün için de aynı güvenli model: yalnızca eksik varyantlar oluşturulur,
+      // HİÇBİR varyant silinmez. Fazla adaylar yalnızca raporlanır (bkz. fix-variants).
       const productVariants = await storage.getProductVariants(product.id);
       const definedSizes = (product.availableSizes as string[]) || [];
       const colors = (product.availableColors as Array<{name: string, hex: string}>) || [];
       const baseSku = product.sku || '';
 
       let createdCount = 0;
-      let deletedCount = 0;
+      const extraVariants = definedSizes.length > 0
+        ? productVariants
+            .filter(v => v.size && !definedSizes.includes(v.size))
+            .map(v => ({ variantId: v.id, productName: product.name, size: v.size, color: v.color, stock: v.stock, sku: v.sku }))
+        : [];
 
-      // If no sizes defined, delete all variants
-      if (definedSizes.length === 0) {
-        for (const variant of productVariants) {
-          await storage.deleteProductVariant(variant.id);
-          deletedCount++;
-        }
-      } else {
-        // Delete variants with sizes not in defined sizes
-        for (const variant of productVariants) {
-          if (variant.size && !definedSizes.includes(variant.size)) {
-            await storage.deleteProductVariant(variant.id);
-            deletedCount++;
-          }
-        }
-
-        // Create missing variants for defined sizes
-        for (const size of definedSizes) {
-          if (colors.length > 0) {
-            for (const color of colors) {
-              const exists = productVariants.some(v => v.size === size && v.color === color.name);
-              if (!exists) {
-                const variantSku = baseSku ? `${baseSku}-${size}` : null;
-                await storage.createProductVariant({
-                  productId: product.id,
-                  size: size,
-                  color: color.name,
-                  sku: variantSku,
-                  stock: 0,
-                  price: product.basePrice,
-                });
-                createdCount++;
-              }
-            }
-          } else {
-            const exists = productVariants.some(v => v.size === size);
+      for (const size of definedSizes) {
+        if (colors.length > 0) {
+          for (const color of colors) {
+            const exists = productVariants.some(v => v.size === size && v.color === color.name);
             if (!exists) {
               const variantSku = baseSku ? `${baseSku}-${size}` : null;
               await storage.createProductVariant({
                 productId: product.id,
                 size: size,
-                color: null,
+                color: color.name,
                 sku: variantSku,
                 stock: 0,
                 price: product.basePrice,
@@ -4654,37 +4629,70 @@ Bu ürün için 4 bölümlü HTML açıklama üret. Teknik Özellikler bölümü
               createdCount++;
             }
           }
+        } else {
+          const exists = productVariants.some(v => v.size === size);
+          if (!exists) {
+            const variantSku = baseSku ? `${baseSku}-${size}` : null;
+            await storage.createProductVariant({
+              productId: product.id,
+              size: size,
+              color: null,
+              sku: variantSku,
+              stock: 0,
+              price: product.basePrice,
+            });
+            createdCount++;
+          }
         }
       }
 
-      let message = '';
-      if (createdCount > 0 && deletedCount > 0) {
-        message = `${createdCount} varyant oluşturuldu, ${deletedCount} varyant silindi`;
-      } else if (createdCount > 0) {
-        message = `${createdCount} varyant oluşturuldu`;
-      } else if (deletedCount > 0) {
-        message = `${deletedCount} varyant silindi`;
-      } else {
-        message = 'Varyantlar zaten senkronize';
+      let message = createdCount > 0
+        ? `${createdCount} eksik varyant oluşturuldu`
+        : 'Eksik varyant yok';
+      if (extraVariants.length > 0) {
+        message += `. ${extraVariants.length} fazla varyant adayı var (silinmedi)`;
       }
 
-      res.json({ success: true, createdCount, deletedCount, message });
+      res.json({ success: true, createdCount, deletedCount: 0, extraVariants, message });
     } catch (error) {
       console.error('Sync variants error:', error);
       res.status(500).json({ error: "Varyant senkronizasyonu başarısız" });
     }
   });
 
-  // Fix missing variants - syncs variants with product's defined sizes
+  // Fazla (tanımdan çıkarılmış) varyant adaylarını hesaplar. SİLMEZ, sadece raporlar.
+  // "Beden tanımı olmayan ürünün varyantları" kasıtlı olarak aday sayılmaz:
+  // tek varyantlı ürünlerde stok bu varyantta durur, silinirse ürün vitrinden kaybolur.
+  const computeExtraVariants = (
+    product: { id: string; name: string; availableSizes: unknown },
+    variantsOfProduct: Array<{ id: string; size: string | null; color: string | null; stock: number; sku: string | null }>,
+  ) => {
+    const definedSizes = (product.availableSizes as string[]) || [];
+    if (definedSizes.length === 0) return [];
+    return variantsOfProduct
+      .filter(v => v.size && !definedSizes.includes(v.size))
+      .map(v => ({
+        variantId: v.id,
+        productName: product.name,
+        size: v.size,
+        color: v.color,
+        stock: v.stock,
+        sku: v.sku,
+      }));
+  };
+
+  // Eksik varyantları kontrol et: eksikleri oluşturur, HİÇBİR varyantı silmez.
+  // Tanımdan çıkarılmış bedenlerin varyantlarını yalnızca aday listesi olarak döner;
+  // silme, admin onayıyla ayrı uca (/delete-extra-variants) yapılır.
   app.post("/api/admin/inventory/fix-variants", requireAdmin, async (req, res) => {
     try {
-      const products = await storage.getProducts();
+      // Tüm ürünler (aktif/pasif, stoklu/stoksuz) — vitrinin stok filtreli sorgusu DEĞİL.
+      const products = await storage.getAllProducts();
       const allVariants = await storage.getAllVariantsWithProducts();
-      
+
       let createdCount = 0;
-      let deletedCount = 0;
-      const createdVariants: { productName: string; size: string; sku: string | null }[] = [];
-      const deletedVariants: { productName: string; size: string | null }[] = [];
+      const createdVariants: { productName: string; size: string; color: string | null; sku: string | null }[] = [];
+      const extraVariants: { variantId: string; productName: string; size: string | null; color: string | null; stock: number; sku: string | null }[] = [];
 
       for (const product of products) {
         const productVariants = allVariants.filter(v => v.productId === product.id);
@@ -4692,26 +4700,9 @@ Bu ürün için 4 bölümlü HTML açıklama üret. Teknik Özellikler bölümü
         const colors = (product.availableColors as Array<{name: string, hex: string}>) || [];
         const baseSku = product.sku || '';
 
-        // If no sizes defined, delete all variants for this product
-        if (definedSizes.length === 0) {
-          for (const variant of productVariants) {
-            await storage.deleteProductVariant(variant.id);
-            deletedCount++;
-            deletedVariants.push({ productName: product.name, size: variant.size });
-          }
-          continue;
-        }
+        extraVariants.push(...computeExtraVariants(product, productVariants));
 
-        // Delete variants with sizes not in defined sizes
-        for (const variant of productVariants) {
-          if (variant.size && !definedSizes.includes(variant.size)) {
-            await storage.deleteProductVariant(variant.id);
-            deletedCount++;
-            deletedVariants.push({ productName: product.name, size: variant.size });
-          }
-        }
-
-        // Create missing variants for defined sizes
+        // Eksik varyantları oluştur (yalnızca ekleme yapılır)
         for (const size of definedSizes) {
           if (colors.length > 0) {
             for (const color of colors) {
@@ -4727,7 +4718,7 @@ Bu ürün için 4 bölümlü HTML açıklama üret. Teknik Özellikler bölümü
                   price: product.basePrice,
                 });
                 createdCount++;
-                createdVariants.push({ productName: product.name, size, sku: variantSku });
+                createdVariants.push({ productName: product.name, size, color: color.name, sku: variantSku });
               }
             }
           } else {
@@ -4743,34 +4734,100 @@ Bu ürün için 4 bölümlü HTML açıklama üret. Teknik Özellikler bölümü
                 price: product.basePrice,
               });
               createdCount++;
-              createdVariants.push({ productName: product.name, size, sku: variantSku });
+              createdVariants.push({ productName: product.name, size, color: null, sku: variantSku });
             }
           }
         }
       }
 
       let message = '';
-      if (createdCount > 0 && deletedCount > 0) {
-        message = `${createdCount} varyant oluşturuldu, ${deletedCount} varyant silindi`;
-      } else if (createdCount > 0) {
+      if (createdCount > 0) {
         message = `${createdCount} eksik varyant oluşturuldu`;
-      } else if (deletedCount > 0) {
-        message = `${deletedCount} fazla varyant silindi`;
       } else {
-        message = 'Tüm varyantlar senkronize, değişiklik yok';
+        message = 'Eksik varyant bulunamadı';
+      }
+      if (extraVariants.length > 0) {
+        message += `. ${extraVariants.length} fazla varyant adayı bulundu (silinmedi, onayınızı bekliyor)`;
       }
 
       res.json({
         success: true,
+        scannedCount: products.length,
         createdCount,
-        deletedCount,
         createdVariants,
-        deletedVariants,
+        extraVariants,
         message,
       });
     } catch (error) {
       console.error('Fix variants error:', error);
       res.status(500).json({ error: "Failed to fix missing variants" });
+    }
+  });
+
+  // Fazla varyantları SADECE admin onayıyla siler. Gönderilen ID'ler sunucuda
+  // yeniden doğrulanır: yalnızca hâlâ "tanımdan çıkarılmış bedene ait" olan
+  // varyantlar silinir, diğerleri atlanır (yarış/eski rapor koruması).
+  app.post("/api/admin/inventory/delete-extra-variants", requireAdmin, async (req, res) => {
+    try {
+      const { variantIds } = req.body as { variantIds?: string[] };
+      if (!Array.isArray(variantIds) || variantIds.length === 0) {
+        return res.status(400).json({ error: "Silinecek varyant seçilmedi" });
+      }
+      if (variantIds.some(id => typeof id !== 'string')) {
+        return res.status(400).json({ error: "Geçersiz varyant listesi" });
+      }
+
+      // İstemcinin stoklu silme niyeti: yalnızca stoklu varyant uyarısı onaylandığında true gelir.
+      // false iken, dialog açıkken sonradan stok kazanan varyantlar da korunur.
+      const allowStocked = (req.body as { allowStocked?: boolean }).allowStocked === true;
+
+      // Atomik koşullu silme: doğrulama ve silme TEK SQL ifadesinde yapılır.
+      // Yalnızca hâlâ "tanımdan çıkarılmış bedene ait" olan (ve izin yoksa stoksuz)
+      // varyantlar silinir; aradaki değişiklikler (beden geri eklendi, stok geldi)
+      // otomatik olarak silmeyi engeller. TOCTOU penceresi yoktur.
+      const deletedIds: string[] = [];
+      const deletedVariants: { productName: string; size: string | null; stock: number }[] = [];
+
+      for (const id of variantIds) {
+        const result = await db.execute(sql`
+          DELETE FROM product_variants v
+          USING products p
+          WHERE v.id = ${id}
+            AND p.id = v.product_id
+            AND v.size IS NOT NULL
+            AND jsonb_array_length(COALESCE(p.available_sizes, '[]'::jsonb)) > 0
+            AND NOT (COALESCE(p.available_sizes, '[]'::jsonb) @> to_jsonb(v.size))
+            AND (${allowStocked} OR v.stock = 0)
+          RETURNING v.id AS id, v.size AS size, v.stock AS stock, p.name AS product_name
+        `);
+        const rows = result.rows as Array<{ id: string; size: string | null; stock: number; product_name: string }>;
+        if (rows.length > 0) {
+          deletedIds.push(rows[0].id);
+          deletedVariants.push({ productName: rows[0].product_name, size: rows[0].size, stock: rows[0].stock });
+        }
+      }
+
+      const skippedIds = variantIds.filter(id => !deletedIds.includes(id));
+
+      let message = deletedIds.length > 0
+        ? `${deletedIds.length} fazla varyant silindi`
+        : 'Hiçbir varyant silinmedi';
+      if (skippedIds.length > 0) {
+        message += `. ${skippedIds.length} varyant atlandı (artık fazla değil veya bu sırada stok kazandı)`;
+      }
+
+      res.json({
+        success: true,
+        deletedCount: deletedIds.length,
+        deletedIds,
+        skippedIds,
+        deletedVariants,
+        skippedCount: skippedIds.length,
+        message,
+      });
+    } catch (error) {
+      console.error('Delete extra variants error:', error);
+      res.status(500).json({ error: "Fazla varyantlar silinemedi" });
     }
   });
 

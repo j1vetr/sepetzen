@@ -32,6 +32,23 @@ import {
   StatusBadge,
 } from './_ui/AdminUI';
 
+interface SyncExtraVariant {
+  variantId: string;
+  productName: string;
+  size: string | null;
+  color: string | null;
+  stock: number;
+  sku: string | null;
+}
+
+interface SyncResult {
+  scannedCount: number;
+  createdCount: number;
+  createdVariants: { productName: string; size: string; color: string | null; sku: string | null }[];
+  extraVariants: SyncExtraVariant[];
+  message: string;
+}
+
 interface ProductsTabProps {
   products: Product[];
   categories: Category[];
@@ -275,6 +292,9 @@ export default function ProductsTab({
   const [selectionMode, setSelectionMode] = useState<boolean>(false);
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [isSyncing, setIsSyncing] = useState(false);
+  const [syncResult, setSyncResult] = useState<SyncResult | null>(null);
+  const [selectedExtraIds, setSelectedExtraIds] = useState<Set<string>>(new Set());
+  const [isDeletingExtras, setIsDeletingExtras] = useState(false);
 
   const filteredProducts = useMemo(() => {
     const q = searchQuery.trim().toLowerCase();
@@ -366,15 +386,78 @@ export default function ProductsTab({
       });
       const data = await res.json();
       if (data.success) {
-        alert(data.message);
+        setSyncResult(data);
+        // Varsayılan olarak yalnızca stoksuz adaylar seçili gelir; stoklu
+        // varyantların silinmesi adminin bilinçli seçimini gerektirir.
+        setSelectedExtraIds(new Set(
+          (data.extraVariants as SyncExtraVariant[])
+            .filter(v => v.stock === 0)
+            .map(v => v.variantId)
+        ));
         queryClient.invalidateQueries({ queryKey: ['admin-inventory'] });
       } else {
         alert('Hata: ' + (data.error || 'Bilinmeyen hata'));
       }
     } catch {
-      alert('Senkronizasyon başarısız');
+      alert('Kontrol başarısız, lütfen tekrar deneyin');
     } finally {
       setIsSyncing(false);
+    }
+  };
+
+  const toggleExtraSelected = (variantId: string) => {
+    setSelectedExtraIds(prev => {
+      const next = new Set(prev);
+      if (next.has(variantId)) next.delete(variantId);
+      else next.add(variantId);
+      return next;
+    });
+  };
+
+  const handleDeleteExtras = async () => {
+    if (!syncResult || selectedExtraIds.size === 0) return;
+    const selected = syncResult.extraVariants.filter(v => selectedExtraIds.has(v.variantId));
+    const stockedCount = selected.filter(v => v.stock > 0).length;
+    const confirmText = stockedCount > 0
+      ? `DİKKAT: Seçilenlerin ${stockedCount} tanesinde stok var. Stoklu varyant silinirse o stok kaybolur ve ürün vitrinden kaybolabilir.\n\n${selected.length} varyantı silmek istediğinize emin misiniz?`
+      : `${selected.length} stoksuz fazla varyant silinecek. Onaylıyor musunuz?`;
+    if (!window.confirm(confirmText)) return;
+
+    setIsDeletingExtras(true);
+    try {
+      const res = await fetch('/api/admin/inventory/delete-extra-variants', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          variantIds: Array.from(selectedExtraIds),
+          // Stoklu silme niyeti yalnızca stoklu uyarısı onaylandığında iletilir.
+          allowStocked: stockedCount > 0,
+        }),
+        credentials: 'include',
+      });
+      const data = await res.json();
+      if (data.success) {
+        // Yalnızca sunucunun GERÇEKTEN sildiği varyantlar listeden düşer.
+        // Atlananlar (artık fazla olmayanlar) listede kalır, mesajda açıklanır.
+        const deletedIdSet = new Set<string>((data.deletedIds as string[]) || []);
+        setSyncResult(prev => prev ? {
+          ...prev,
+          message: data.message,
+          extraVariants: prev.extraVariants.filter(v => !deletedIdSet.has(v.variantId)),
+        } : prev);
+        setSelectedExtraIds(prev => {
+          const next = new Set(prev);
+          deletedIdSet.forEach(id => next.delete(id));
+          return next;
+        });
+        queryClient.invalidateQueries({ queryKey: ['admin-inventory'] });
+      } else {
+        alert('Hata: ' + (data.error || 'Silme başarısız'));
+      }
+    } catch {
+      alert('Silme başarısız, lütfen tekrar deneyin');
+    } finally {
+      setIsDeletingExtras(false);
     }
   };
 
@@ -423,10 +506,11 @@ export default function ProductsTab({
               onClick={handleSyncVariants}
               disabled={isSyncing}
               data-testid="button-sync-all-variants"
+              title="Tanımlı beden ve renklere göre eksik varyantları oluşturur. Hiçbir varyantı silmez."
             >
               <RefreshCw className={`w-3.5 h-3.5 ${isSyncing ? 'animate-spin' : ''}`} />
-              <span className="hidden sm:inline">Bedenleri Senkronize Et</span>
-              <span className="sm:hidden">Senkronize</span>
+              <span className="hidden sm:inline">Eksik Varyantları Kontrol Et</span>
+              <span className="sm:hidden">Varyant Kontrol</span>
             </SecondaryButton>
             <PrimaryButton
               onClick={() => {
@@ -864,6 +948,122 @@ export default function ProductsTab({
             </div>
           </div>
         </>
+      )}
+
+      {syncResult && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+          <div
+            className="absolute inset-0 bg-black/40"
+            onClick={() => !isDeletingExtras && setSyncResult(null)}
+          />
+          <div
+            className="relative bg-white rounded-xl shadow-xl border border-neutral-200 w-full max-w-2xl max-h-[85vh] flex flex-col"
+            data-testid="dialog-sync-result"
+          >
+            <div className="flex items-start justify-between gap-3 p-5 border-b border-neutral-100">
+              <div>
+                <h3 className="text-[15px] font-semibold text-neutral-900">Varyant Kontrol Sonucu</h3>
+                <p className="text-[12.5px] text-neutral-500 mt-0.5" data-testid="text-sync-message">{syncResult.message}</p>
+              </div>
+              <IconButton
+                onClick={() => setSyncResult(null)}
+                disabled={isDeletingExtras}
+                aria-label="Kapat"
+                data-testid="button-close-sync-dialog"
+              >
+                <X className="w-4 h-4" />
+              </IconButton>
+            </div>
+
+            <div className="p-5 overflow-y-auto space-y-5">
+              <div className="grid grid-cols-2 gap-3">
+                <div className="rounded-lg border border-neutral-200 bg-neutral-50 p-3">
+                  <p className="text-[11px] text-neutral-500">Taranan ürün</p>
+                  <p className="text-[18px] font-semibold text-neutral-900 tabular-nums" data-testid="text-scanned-count">{syncResult.scannedCount}</p>
+                </div>
+                <div className="rounded-lg border border-neutral-200 bg-neutral-50 p-3">
+                  <p className="text-[11px] text-neutral-500">Oluşturulan eksik varyant</p>
+                  <p className="text-[18px] font-semibold text-neutral-900 tabular-nums" data-testid="text-created-count">{syncResult.createdCount}</p>
+                </div>
+              </div>
+
+              {syncResult.createdVariants.length > 0 && (
+                <div>
+                  <p className="text-[12.5px] font-semibold text-neutral-800 mb-2">Oluşturulanlar (stok 0 ile başlar)</p>
+                  <div className="rounded-lg border border-neutral-200 divide-y divide-neutral-100 max-h-44 overflow-y-auto">
+                    {syncResult.createdVariants.map((v, i) => (
+                      <div key={i} className="flex items-center justify-between gap-2 px-3 py-2 text-[12.5px]">
+                        <span className="text-neutral-800 truncate">{v.productName}</span>
+                        <span className="text-neutral-500 shrink-0">{v.size}{v.color ? ` / ${v.color}` : ''}</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {syncResult.extraVariants.length > 0 ? (
+                <div>
+                  <p className="text-[12.5px] font-semibold text-neutral-800 mb-1">
+                    Fazla varyant adayları ({syncResult.extraVariants.length})
+                  </p>
+                  <p className="text-[12px] text-neutral-500 mb-2">
+                    Bu varyantların bedenleri ürün tanımından çıkarılmış. Hiçbiri silinmedi.
+                    Silmek istediklerinizi işaretleyip aşağıdaki butonla onaylayın.
+                    Stoklu olanlar varsayılan olarak işaretli değildir, silinirse stokları kaybolur.
+                  </p>
+                  <div className="rounded-lg border border-neutral-200 divide-y divide-neutral-100 max-h-56 overflow-y-auto">
+                    {syncResult.extraVariants.map((v) => (
+                      <label
+                        key={v.variantId}
+                        className="flex items-center gap-3 px-3 py-2 text-[12.5px] cursor-pointer hover:bg-neutral-50"
+                        data-testid={`row-extra-variant-${v.variantId}`}
+                      >
+                        <input
+                          type="checkbox"
+                          checked={selectedExtraIds.has(v.variantId)}
+                          onChange={() => toggleExtraSelected(v.variantId)}
+                          className="w-4 h-4 rounded shrink-0"
+                          data-testid={`checkbox-extra-${v.variantId}`}
+                        />
+                        <span className="text-neutral-800 truncate flex-1">{v.productName}</span>
+                        <span className="text-neutral-500 shrink-0">{v.size || '-'}{v.color ? ` / ${v.color}` : ''}</span>
+                        {v.stock > 0 ? (
+                          <span className="shrink-0 text-[11px] font-semibold text-amber-700 bg-amber-50 border border-amber-200 rounded px-1.5 py-0.5">
+                            Stok: {v.stock}
+                          </span>
+                        ) : (
+                          <span className="shrink-0 text-[11px] text-neutral-400">Stok yok</span>
+                        )}
+                      </label>
+                    ))}
+                  </div>
+                </div>
+              ) : (
+                <p className="text-[12.5px] text-neutral-500">Fazla varyant adayı yok, her şey tanımlarla uyumlu.</p>
+              )}
+            </div>
+
+            <div className="flex items-center justify-end gap-2 p-4 border-t border-neutral-100">
+              <SecondaryButton
+                onClick={() => setSyncResult(null)}
+                disabled={isDeletingExtras}
+                data-testid="button-sync-dialog-done"
+              >
+                Kapat
+              </SecondaryButton>
+              {syncResult.extraVariants.length > 0 && (
+                <PrimaryButton
+                  onClick={handleDeleteExtras}
+                  disabled={isDeletingExtras || selectedExtraIds.size === 0}
+                  data-testid="button-delete-extra-variants"
+                >
+                  <Trash2 className="w-3.5 h-3.5" />
+                  {isDeletingExtras ? 'Siliniyor...' : `Seçilenleri Sil (${selectedExtraIds.size})`}
+                </PrimaryButton>
+              )}
+            </div>
+          </div>
+        </div>
       )}
     </div>
   );
