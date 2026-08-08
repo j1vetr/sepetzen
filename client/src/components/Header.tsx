@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 import { Link, useLocation } from 'wouter';
-import { ShoppingBag, Search, X, User, LogOut, ChevronDown, ArrowUpRight, Phone, Mail, Scissors, PawPrint, Tent, Shovel, Wrench, FlameKindling, Backpack, LayoutGrid, Target, Drill, HardHat, Flashlight, Compass, Map, Mountain, Flower, Bird, Fish, Rabbit, TreeDeciduous, TreePine, UtensilsCrossed, Dog, Cat, Layers, Zap, Waves, PackageSearch, CircleHelp } from 'lucide-react';
+import { ShoppingBag, Search, X, User, LogOut, ChevronDown, ArrowUpRight, Scissors, PawPrint, Tent, Shovel, Wrench, FlameKindling, Backpack, LayoutGrid, Target, Drill, HardHat, Flashlight, Compass, Map, Mountain, Flower, Bird, Fish, Rabbit, TreeDeciduous, TreePine, UtensilsCrossed, Dog, Cat, Layers, Zap, Waves, PackageSearch, CircleHelp } from 'lucide-react';
 
 const PocketKnifeIcon = ({ className, strokeWidth = 1.75 }: { className?: string; strokeWidth?: number }) => (
   <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={strokeWidth} strokeLinecap="round" strokeLinejoin="round" className={className}>
@@ -134,6 +134,7 @@ export function Header() {
   const [mobileSubOpen, setMobileSubOpen] = useState<Record<string, boolean>>({});
   const [megaMenuId, setMegaMenuId] = useState<string | null>(null);
   const [sidebarProductIdx, setSidebarProductIdx] = useState(0);
+  const [allCatsExpanded, setAllCatsExpanded] = useState(false);
   const [sidebarProductKey, setSidebarProductKey] = useState(0);
   const closeTimerRef = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
   const { totalItems, subtotal } = useCart();
@@ -185,6 +186,11 @@ export function Header() {
   const visibleCategories = categoriesData
     .filter(c => (c.displayOrder ?? 0) < 100)
     .sort((a, b) => (a.displayOrder ?? 0) - (b.displayOrder ?? 0));
+
+  // "Tüm Kategoriler" açılır menüsü: ilk açılışta en fazla 8 kategori, "Tümünü Gör" ile tamamı
+  const ALL_CATS_PREVIEW = 8;
+  const hasMoreAllCats = !allCatsExpanded && visibleCategories.length > ALL_CATS_PREVIEW;
+  const shownAllCats = hasMoreAllCats ? visibleCategories.slice(0, ALL_CATS_PREVIEW) : visibleCategories;
 
   const menuRoots = [...menuTree]
     .filter(m => m.isActive && !m.parentId)
@@ -289,41 +295,31 @@ export function Header() {
         </div>
       </div>
 
-      {/* ── Brand bar (desktop): E-Posta · Logo · Telefon ── */}
+      {/* ── Brand bar (desktop): Logo · Arama · Hesap/Sepet ── */}
       <div className="hidden lg:block bg-[#0A0A0A] border-b border-white/8">
-        <div className="max-w-[1400px] mx-auto px-8 py-4 grid grid-cols-3 items-center gap-6">
-          {/* Sol: E-Posta + Telefon */}
-          <div className="justify-self-start flex items-center gap-6">
-            <a
-              href={`mailto:${siteIdentity.email}`}
-              data-testid="link-header-email"
-              aria-label="E-posta gönder"
-              className="group flex items-center gap-2.5 text-white"
-            >
-              <Mail className="w-[15px] h-[15px] text-white/50 group-hover:text-white transition-colors shrink-0" strokeWidth={1.75} />
-              <span className="text-[12.5px] font-medium text-white/75 group-hover:text-white transition-colors whitespace-nowrap" data-testid="text-header-email">{siteIdentity.email}</span>
-            </a>
-            <span className="w-px h-4 bg-white/12" />
-            <a
-              href={`tel:${siteIdentity.phoneHref}`}
-              data-testid="link-header-phone"
-              aria-label="Telefonla ara"
-              className="group flex items-center gap-2.5 text-white"
-            >
-              <Phone className="w-[15px] h-[15px] text-white/50 group-hover:text-white transition-colors shrink-0" strokeWidth={1.75} />
-              <span className="text-[12.5px] font-medium text-white/75 group-hover:text-white transition-colors whitespace-nowrap" data-testid="text-header-phone">{siteIdentity.phone}</span>
-            </a>
-          </div>
-
-          {/* Orta: Logo */}
-          <Link href="/" onClick={scrollToTop} data-testid="link-logo" className="justify-self-center block">
+        <div className="max-w-[1400px] mx-auto px-8 py-4 grid grid-cols-[auto_1fr_auto] items-center gap-8">
+          {/* Sol: Logo */}
+          <Link href="/" onClick={scrollToTop} data-testid="link-logo" className="justify-self-start block">
             <img
               src="/uploads/branding/sepetzen-logo-white.png"
               alt="Sepetzen – Kamp, Outdoor, Bıçak ve Bağ Bahçe"
               data-testid="img-logo"
-              className="h-20 w-auto object-contain mx-auto"
+              className="h-20 w-auto object-contain"
             />
           </Link>
+
+          {/* Orta: Arama */}
+          <div className="justify-self-center w-full max-w-[560px]">
+            <button
+              onClick={() => setSearchOpen(true)}
+              className="group flex items-center justify-between gap-3 w-full bg-white/[0.06] hover:bg-white/[0.10] border border-white/10 hover:border-white/25 transition-colors px-5 py-3 cursor-text"
+              data-testid="button-search"
+              aria-label="Ara"
+            >
+              <span className="text-[12px] text-white/40 group-hover:text-white/60 transition-colors truncate">Ürün, kategori veya marka ara...</span>
+              <Search className="w-[16px] h-[16px] text-white/45 group-hover:text-white transition-colors shrink-0" strokeWidth={1.75} />
+            </button>
+          </div>
 
           {/* Sağ: Hesabım + Sepetim */}
           <div className="justify-self-end flex items-center gap-5">
@@ -340,7 +336,7 @@ export function Header() {
                     </span>
                   </button>
                 </DropdownMenuTrigger>
-                <DropdownMenuContent align="end" className="bg-[#141414] border border-white/8 shadow-[0_8px_30px_rgba(0,0,0,0.4)] rounded-md min-w-[180px] z-[9999]">
+                <DropdownMenuContent align="end" className="surface-glass-dark border border-white/10 shadow-[0_8px_30px_rgba(0,0,0,0.5)] rounded-md min-w-[180px] z-[9999]">
                   <DropdownMenuItem disabled className="text-[10px] tracking-widest text-white/30 uppercase">{user.firstName || user.email}</DropdownMenuItem>
                   <DropdownMenuItem onClick={() => navigate('/hesabim')} className="text-[11px] tracking-wider uppercase text-white/75 hover:bg-white/5 hover:text-white cursor-pointer py-2.5">
                     <User className="w-4 h-4 mr-2" />Hesabım
@@ -491,7 +487,7 @@ export function Header() {
               </AnimatePresence>
 
               {!scrolled && (
-              <DropdownMenu modal={false}>
+              <DropdownMenu modal={false} onOpenChange={(open) => { if (!open) setAllCatsExpanded(false); }}>
                 <DropdownMenuTrigger asChild>
                   <button
                     className="flex items-center gap-2 bg-white/[0.07] hover:bg-white/[0.12] border border-white/10 hover:border-white/25 transition-colors px-3 2xl:px-4 py-2.5 text-[10px] tracking-[0.10em] 2xl:tracking-[0.14em] uppercase font-bold text-white whitespace-nowrap"
@@ -505,8 +501,8 @@ export function Header() {
                 <DropdownMenuContent
                   align="start"
                   sideOffset={12}
-                  className="bg-[#141414] border border-white/8 shadow-[0_8px_30px_rgba(0,0,0,0.4)] rounded-md p-3 z-[9999]"
-                  style={{ minWidth: visibleCategories.length > 6 ? 480 : 240 }}
+                  className="surface-glass-dark border border-white/10 shadow-[0_8px_30px_rgba(0,0,0,0.5)] rounded-md p-3 z-[9999]"
+                  style={{ minWidth: shownAllCats.length > 6 ? 480 : 240 }}
                 >
                   {visibleCategories.length === 0 ? (
                     <DropdownMenuItem
@@ -516,13 +512,14 @@ export function Header() {
                       Tüm Ürünler
                     </DropdownMenuItem>
                   ) : (
+                    <>
                     <div
                       className="grid gap-x-6"
-                      style={{ gridTemplateColumns: visibleCategories.length > 6 ? 'repeat(2, minmax(0, 1fr))' : '1fr' }}
+                      style={{ gridTemplateColumns: shownAllCats.length > 6 ? 'repeat(2, minmax(0, 1fr))' : '1fr' }}
                     >
-                      {visibleCategories.map((c, i) => {
-                        const cols = visibleCategories.length > 6 ? 2 : 1;
-                        const isLastRow = i >= visibleCategories.length - cols;
+                      {shownAllCats.map((c, i) => {
+                        const cols = shownAllCats.length > 6 ? 2 : 1;
+                        const isLastRow = i >= shownAllCats.length - cols;
                         return (
                           <DropdownMenuItem
                             key={c.id}
@@ -535,6 +532,17 @@ export function Header() {
                         );
                       })}
                     </div>
+                    {hasMoreAllCats && (
+                      <DropdownMenuItem
+                        onSelect={(e) => { e.preventDefault(); setAllCatsExpanded(true); }}
+                        className="mt-2 text-[10.5px] tracking-[0.14em] uppercase font-bold text-white bg-white/[0.06] hover:bg-white/[0.12] cursor-pointer py-3 px-3 justify-center rounded-md transition-colors"
+                        data-testid="button-allcat-show-all"
+                      >
+                        Tümünü Gör ({visibleCategories.length})
+                        <ChevronDown className="w-3 h-3 ml-1.5 text-white/60" />
+                      </DropdownMenuItem>
+                    )}
+                    </>
                   )}
                 </DropdownMenuContent>
               </DropdownMenu>
@@ -545,7 +553,7 @@ export function Header() {
             <nav className="justify-self-center self-center h-[44px] flex items-center justify-center gap-2 2xl:gap-4 min-w-0 max-w-full overflow-hidden">
               {useMenuTree ? (
                 <>
-                {menuRoots.slice(0, 5).map((root) => {
+                {menuRoots.slice(0, 7).map((root) => {
                   const children = (root.children || []).filter(c => c.isActive);
                   const isActiveMega = megaMenuId === root.id;
 
@@ -591,7 +599,7 @@ export function Header() {
                     </Link>
                   );
                 })}
-                {menuRoots.length > 5 && (
+                {menuRoots.length > 7 && (
                   <DropdownMenu modal={false}>
                     <DropdownMenuTrigger asChild>
                       <button className={navLinkCls(false)} data-testid="button-nav-more">
@@ -602,9 +610,9 @@ export function Header() {
                     <DropdownMenuContent
                       align="end"
                       sideOffset={12}
-                      className="bg-[#141414] border border-white/8 shadow-[0_8px_30px_rgba(0,0,0,0.4)] rounded-md p-2 min-w-[220px] z-[9999]"
+                      className="surface-glass-dark border border-white/10 shadow-[0_8px_30px_rgba(0,0,0,0.5)] rounded-md p-2 min-w-[220px] z-[9999]"
                     >
-                      {menuRoots.slice(5).map((root) => {
+                      {menuRoots.slice(7).map((root) => {
                         const children = (root.children || []).filter(c => c.isActive);
                         if (root.type === 'submenu' && children.length > 0) {
                           return (
@@ -652,7 +660,7 @@ export function Header() {
                   <DropdownMenuContent
                     align="start"
                     sideOffset={20}
-                    className="bg-[#141414] border border-white/8 shadow-[0_8px_30px_rgba(0,0,0,0.4)] rounded-md p-5"
+                    className="surface-glass-dark border border-white/10 shadow-[0_8px_30px_rgba(0,0,0,0.5)] rounded-md p-5"
                     style={{ minWidth: visibleCategories.length > 6 ? 520 : 240 }}
                   >
                     {visibleCategories.length === 0 ? (
@@ -685,18 +693,8 @@ export function Header() {
 
             </nav>
 
-            {/* Right: Search input + (scrolled: quick icons) */}
-            <div className="justify-self-end flex items-center gap-2 xl:gap-3 shrink-0">
-              <button
-                onClick={() => setSearchOpen(true)}
-                className="group flex items-center justify-between gap-3 w-[150px] 2xl:w-[260px] bg-white/[0.06] hover:bg-white/[0.10] border border-white/10 hover:border-white/25 transition-colors px-4 py-2.5 cursor-text"
-                data-testid="button-search"
-                aria-label="Ara"
-              >
-                <span className="text-[11px] text-white/40 group-hover:text-white/60 transition-colors truncate">Ürün, kategori veya marka ara...</span>
-                <Search className="w-[15px] h-[15px] text-white/45 group-hover:text-white transition-colors shrink-0" strokeWidth={1.75} />
-              </button>
-
+            {/* Right: scrolled durumunda kompakt arama + hızlı ikonlar */}
+            <div className="justify-self-end flex items-center gap-2 xl:gap-3 shrink-0 min-h-[44px]">
               <AnimatePresence>
                 {scrolled && (
                   <motion.div
@@ -707,6 +705,14 @@ export function Header() {
                     transition={{ duration: 0.3, ease: [0.33, 1, 0.68, 1] }}
                     className="flex items-center gap-1"
                   >
+                    <button
+                      onClick={() => setSearchOpen(true)}
+                      className="p-2.5 inline-flex transition-colors text-white/65 hover:text-white active:scale-90"
+                      data-testid="button-search-compact"
+                      aria-label="Ara"
+                    >
+                      <Search className="w-[18px] h-[18px]" strokeWidth={1.75} />
+                    </button>
                     <Link
                       href={user ? '/hesabim' : '/giris'}
                       className="p-2.5 inline-flex transition-colors text-white/65 hover:text-white active:scale-90"
@@ -743,7 +749,7 @@ export function Header() {
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -6 }}
             transition={{ duration: 0.26, ease: [0.16, 1, 0.3, 1] }}
-            className="absolute top-full left-0 right-0 bg-[#141414] shadow-[0_40px_80px_-16px_rgba(0,0,0,0.55)] z-50 overflow-hidden"
+            className="absolute top-full left-0 right-0 surface-glass-dark border-b border-white/10 shadow-[0_40px_80px_-16px_rgba(0,0,0,0.55)] z-50 overflow-hidden"
             onMouseEnter={cancelClose}
             onMouseLeave={closeMega}
             data-testid={`mega-panel-${megaMenuId}`}
@@ -751,7 +757,7 @@ export function Header() {
             <div className="max-w-[1400px] mx-auto flex min-h-[340px]">
 
               {/* ── LEFT: Dark green hero sidebar ── */}
-              <div className="w-64 xl:w-[288px] shrink-0 bg-[#1F1F1F] flex flex-col relative overflow-hidden">
+              <div className="w-64 xl:w-[288px] shrink-0 bg-white/[0.05] flex flex-col relative overflow-hidden">
                 <div
                   className="absolute inset-0 opacity-[0.06] pointer-events-none"
                   style={{ backgroundImage: 'radial-gradient(circle, #fff 1px, transparent 1px)', backgroundSize: '20px 20px' }}

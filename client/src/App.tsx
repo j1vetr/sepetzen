@@ -1,4 +1,4 @@
-import { Switch, Route, Redirect } from "wouter";
+import { Switch, Route, Redirect, useLocation } from "wouter";
 import { queryClient } from "./lib/queryClient";
 import { QueryClientProvider } from "@tanstack/react-query";
 import { Toaster } from "@/components/ui/toaster";
@@ -6,7 +6,7 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { AuthProvider } from "@/components/AuthProvider";
 import { CartProvider } from "@/components/CartProvider";
 import { CartModalProvider } from "@/hooks/useCartModal";
-import { lazy, Suspense, memo } from "react";
+import { lazy, Suspense, memo, useEffect } from "react";
 import { Loader2 } from "lucide-react";
 import { ScrollToTop } from "@/components/ScrollToTop";
 import { SmoothScroll } from "@/components/SmoothScroll";
@@ -40,14 +40,27 @@ const PaymentFail = lazy(() => import("@/pages/PaymentFail"));
 const OrderTracking = lazy(() => import("@/pages/OrderTracking"));
 
 function PageLoader() {
+  // Vitrin koyu temalı; rota geçişlerinde beyaz ekran görünmesin.
+  // Admin tarafı açık temada kalır.
+  const [location] = useLocation();
+  const isAdmin = location.startsWith('/toov-admin');
   return (
-    <div className="min-h-screen flex items-center justify-center bg-background">
-      <Loader2 className="w-8 h-8 animate-spin text-muted-foreground" />
+    <div className={`min-h-screen flex items-center justify-center ${isAdmin ? 'bg-background' : 'bg-[#0A0A0A]'}`}>
+      <Loader2 className={`w-8 h-8 animate-spin ${isAdmin ? 'text-muted-foreground' : 'text-white/40'}`} />
     </div>
   );
 }
 
 function Router() {
+  const [location] = useLocation();
+
+  // Gövde arka planı vitrinde koyu kalsın (lazy chunk yüklenirken bile),
+  // admin panel açık temasını korusun.
+  useEffect(() => {
+    const isAdmin = location.startsWith('/toov-admin');
+    document.body.style.backgroundColor = isAdmin ? '' : '#0A0A0A';
+  }, [location]);
+
   return (
     <>
       <ScrollToTop />
