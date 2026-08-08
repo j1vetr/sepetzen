@@ -1,0 +1,50 @@
+Admin Panelde Eksik Varyantları Kontrol Et butonuna basınca sitede ürünler yok oluyor, bu butonun amacı nedir kontrol et düzelt.
+
+Yasal Sayfaları düzenleyebileceğimiz sayfa düzenleme alanı gerekli.
+Blog kısmı gelmeli ve admin panelden yönetilebilir olmalı sorunsuzca.
+Site ayarları kısmı olmalı, mesela logo, favicon vs gibi düzenleme alanı olmalı.
+Tüm Kategorilerin üstüne gelince hepsi açılıyor ya orada 6 - 8 tane gözüksün devamını görmek isteyen tümünü göre bas gibi bir şey olsun öyle hepsi gözüksün.
+
+masaüstü menüde logoyu sola çekelim. Numara ve mail adresini soldan kaldıralım. Sağdaki search alanını ortaya çekelim. Menüye en azından biraz daha kategori ekleuyebilriim. Ve tam istediğim gibi oluyor.
+
+Mega menülerin açılan sekmelerin arka planlarını cam blur yapalım.
+
+Ürün sayfalar arası geçerken kategoriler de sayfalarda vs geçiş esnasında beyaz ekran çıkıp gidiyor onu kaldırabilir miyiz?
+
+Bu ürün açıklama kısmı aşağı kadar açık olmasina gerek yok. Kısmi açık olsun. Detaylari gormek isteyen altindan ok tusuna basip acma kapamalı yapalım. Alttaki diğer ürünler gözüksün yani.
+
+
+Ürün Detay Sayfasında ki ürün fotoğrafı ve galeri kısmı için tasarım dilini iletiyorum aynısını yaparsın ilettiğim şekilde : 
+
+DESKTOP
+Aspect 3:4 portrait. zinc-900 background. rounded-xl.
+Vertical thumbnail rail on the left (5 visible, scrolls if more).
+Thumbnails: selected → 2px solid white ring with dark offset, others 50% opacity.
+Main image: cursor-zoom-in, hover scales to 2x and tracks mouse position.
+Click → fullscreen black lightbox.
+Animated rotating dashed white SVG border around the main image frame.
+Discount badge overlaid top-left (red, bold black text).
+
+MOBILE
+Thumbnail rail disappears.
+Main image becomes a swipeable horizontal carousel (Embla, loop enabled).
+Same 3:4 aspect, zinc-900, rounded-xl.
+Thumbnails move below the image, centered, horizontal row.
+If more than 5 images: small pagination dots appear under thumbnails
+(selected dot wider and white, others white/30).
+Tap image → fullscreen lightbox (swipe to navigate, no arrows).
+
+LIGHTBOX (both)
+Pure black fullscreen overlay.
+Desktop: left/right chevron arrows, image max 90vw/90vh object-contain.
+Mobile: full-screen swipe carousel, arrows hidden.
+Bottom pagination dots. Click outside image → close.
+
+
+
+Günlük, Aylık, Yıllık Satışları Analiz edecek admin panelde bir alan gerekli detaylıca profesyonelce yap.
+
+Google Merchant XML entegrasyonu olması gerekli, admin panelde bunun ayar kısmı olmalı xml çıktısı linki vs neyse artık ne yapılabiliyorsa.
+
+
+Kargo Entegrasyonu tarafında admin panelden ayar kısmı olmalı ve tam entegrasyon olmalı, Geliver, ShipEntegra, Aras Kargo bu 3 firma seçilebilir olmalı. E-Ticaret sistemine entegre edilmeli.
