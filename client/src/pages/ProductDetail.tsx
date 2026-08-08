@@ -28,6 +28,7 @@ import useEmblaCarousel from 'embla-carousel-react';
 import {
   ChevronRight,
   ChevronLeft,
+  ChevronDown,
   Heart,
   Truck,
   RotateCcw,
@@ -436,6 +437,7 @@ function ProductTabs({
 }) {
   const reduceMotion = useReducedMotion();
   const [active, setActive] = useState<'desc' | 'installments' | 'delivery' | 'faq'>('desc');
+  const [descriptionExpanded, setDescriptionExpanded] = useState(false);
 
   const specRows = SPEC_ROWS
     .map(([key, label]) => [label, (specs?.[key] || '').trim()] as [string, string])
@@ -501,10 +503,29 @@ function ProductTabs({
                  </dl>
                </div>
              )}
-             <div
-               className="product-rich-copy"
-               dangerouslySetInnerHTML={{ __html: normalizeDescriptionHtml(html) }}
-             />
+              <div>
+                <motion.div
+                  initial={false}
+                  animate={{ height: descriptionExpanded ? 'auto' : 260 }}
+                  transition={{ duration: reduceMotion ? 0 : 0.28, ease: [0.33, 1, 0.68, 1] }}
+                  className={`relative overflow-hidden ${descriptionExpanded ? '' : 'after:absolute after:inset-x-0 after:bottom-0 after:h-20 after:bg-gradient-to-t after:from-[#0A0A0A] after:to-transparent'}`}
+                >
+                  <div
+                    className="product-rich-copy"
+                    dangerouslySetInnerHTML={{ __html: normalizeDescriptionHtml(html) }}
+                  />
+                </motion.div>
+                <button
+                  type="button"
+                  onClick={() => setDescriptionExpanded((value) => !value)}
+                  className="mt-3 inline-flex items-center gap-2 text-[11px] font-semibold uppercase tracking-[0.16em] text-white/60 transition-colors hover:text-white"
+                  aria-expanded={descriptionExpanded}
+                  data-testid="button-toggle-description"
+                >
+                  {descriptionExpanded ? 'Daha Az Göster' : 'Tüm Açıklamayı Göster'}
+                  <ChevronDown className={`h-4 w-4 transition-transform duration-200 ${descriptionExpanded ? 'rotate-180' : ''}`} />
+                </button>
+              </div>
            </div>
          )}
 
@@ -1011,14 +1032,14 @@ export default function ProductDetail() {
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            className="fixed inset-0 z-[200] bg-black/96 backdrop-blur-sm flex items-center justify-center"
+            className="fixed inset-0 z-[200] bg-black flex items-center justify-center"
             onClick={() => setLightboxOpen(false)}
             data-testid="lightbox"
           >
             <button
               type="button"
               onClick={() => setLightboxOpen(false)}
-              className="absolute top-5 right-5 w-10 h-10 flex items-center justify-center bg-[#141414]/10 hover:bg-[#141414]/20 rounded-full text-white transition-colors z-20"
+              className="absolute top-5 right-5 w-10 h-10 flex items-center justify-center bg-white/10 hover:bg-white/20 rounded-full text-white transition-colors z-20"
               aria-label="Kapat"
               data-testid="button-lightbox-close"
             >
@@ -1027,10 +1048,10 @@ export default function ProductDetail() {
 
             {images.length > 1 && (
               <>
-                <button type="button" onClick={(e) => { e.stopPropagation(); setSelectedImage((p) => p === 0 ? images.length - 1 : p - 1); }} className="hidden sm:flex absolute left-5 w-11 h-11 items-center justify-center bg-[#141414]/10 hover:bg-[#141414]/20 rounded-full text-white z-20" aria-label="Önceki">
+                <button type="button" onClick={(e) => { e.stopPropagation(); setSelectedImage((p) => p === 0 ? images.length - 1 : p - 1); }} className="hidden sm:flex absolute left-5 w-11 h-11 items-center justify-center bg-white/10 hover:bg-white/20 rounded-full text-white z-20" aria-label="Önceki">
                   <ChevronLeft className="w-5 h-5" />
                 </button>
-                <button type="button" onClick={(e) => { e.stopPropagation(); setSelectedImage((p) => p === images.length - 1 ? 0 : p + 1); }} className="hidden sm:flex absolute right-5 w-11 h-11 items-center justify-center bg-[#141414]/10 hover:bg-[#141414]/20 rounded-full text-white z-20" aria-label="Sonraki">
+                <button type="button" onClick={(e) => { e.stopPropagation(); setSelectedImage((p) => p === images.length - 1 ? 0 : p + 1); }} className="hidden sm:flex absolute right-5 w-11 h-11 items-center justify-center bg-white/10 hover:bg-white/20 rounded-full text-white z-20" aria-label="Sonraki">
                   <ChevronRight className="w-5 h-5" />
                 </button>
               </>
@@ -1045,7 +1066,7 @@ export default function ProductDetail() {
                 transition={{ duration: 0.2 }}
                 src={images[selectedImage]}
                 alt={product.name}
-                className="max-w-[88vw] max-h-[88vh] object-contain select-none"
+                className="max-w-[90vw] max-h-[90vh] object-contain select-none"
                 onClick={(e) => e.stopPropagation()}
                 draggable={false}
               />
@@ -1067,7 +1088,7 @@ export default function ProductDetail() {
               <div className="absolute bottom-5 left-1/2 -translate-x-1/2 flex gap-1.5 z-20">
                 {images.map((_, i) => (
                   <button key={i} type="button" onClick={(e) => { e.stopPropagation(); setSelectedImage(i); }}
-                    className={`h-1.5 rounded-full transition-all ${i === selectedImage ? 'bg-[#141414] w-6' : 'bg-[#141414]/30 w-1.5'}`}
+                      className={`h-1.5 rounded-full transition-all ${i === selectedImage ? 'bg-white w-6' : 'bg-white/30 w-1.5'}`}
                     aria-label={`Görsel ${i + 1}`} />
                 ))}
               </div>
@@ -1105,14 +1126,14 @@ export default function ProductDetail() {
 
               {/* Thumbnail strip (desktop) */}
               {images.length > 1 && (
-                <div className="hidden sm:flex flex-col gap-2 w-[68px] shrink-0">
+                <div className="hidden sm:flex flex-col gap-2 w-[68px] h-[372px] shrink-0 overflow-y-auto pr-1 [scrollbar-width:thin]">
                   {images.map((img, i) => (
                     <motion.button
                       key={i}
                       type="button"
                       onClick={() => setSelectedImage(i)}
                       whileTap={reduceMotion ? undefined : { scale: 0.94 }}
-                      className={`relative aspect-square overflow-hidden bg-[#151515] transition-opacity duration-200 ${
+                      className={`relative aspect-square overflow-hidden rounded-md bg-zinc-900 transition-opacity duration-200 ${
                         i === selectedImage ? '' : 'opacity-50 hover:opacity-85'
                       }`}
                       data-testid={`button-thumbnail-${i}`}
@@ -1123,7 +1144,7 @@ export default function ProductDetail() {
                         <motion.span
                           layoutId="thumb-active-ring"
                           transition={reduceMotion ? { duration: 0 } : { type: 'spring', stiffness: 500, damping: 40 }}
-                          className="absolute inset-0 ring-1 ring-inset ring-[#141414] pointer-events-none"
+                          className="absolute inset-[2px] rounded-[3px] ring-2 ring-white ring-offset-2 ring-offset-[#0A0A0A] pointer-events-none"
                         />
                       )}
                     </motion.button>
@@ -1137,7 +1158,7 @@ export default function ProductDetail() {
                 <div className="hidden sm:block">
                   <div
                     ref={heroImageRef}
-                    className="relative aspect-[4/5] bg-[#151515] overflow-hidden cursor-zoom-in"
+                    className="relative aspect-[3/4] rounded-xl bg-zinc-900 overflow-hidden cursor-zoom-in"
                     onMouseEnter={() => setIsZooming(true)}
                     onMouseLeave={() => setIsZooming(false)}
                     onMouseMove={handleHeroMove}
@@ -1159,15 +1180,18 @@ export default function ProductDetail() {
                           className="absolute inset-0 w-full h-full object-cover will-change-transform"
                           style={{
                             transformOrigin: `${zoomPos.x}% ${zoomPos.y}%`,
-                            transform: isZooming && !reduceMotion ? 'scale(1.55)' : 'scale(1)',
+                            transform: isZooming && !reduceMotion ? 'scale(2)' : 'scale(1)',
                             transition: 'transform 0.4s cubic-bezier(0.22,1,0.36,1)',
                           }}
                           draggable={false}
                         />
                       </motion.div>
                     </AnimatePresence>
+                    <svg className={`absolute inset-1 z-[1] h-[calc(100%-0.5rem)] w-[calc(100%-0.5rem)] pointer-events-none ${reduceMotion ? '' : 'animate-[spin_18s_linear_infinite]'}`} viewBox="0 0 100 100" preserveAspectRatio="none" aria-hidden="true">
+                      <rect x="1.5" y="1.5" width="97" height="97" rx="2" fill="none" stroke="white" strokeWidth="0.45" strokeDasharray="3 3" vectorEffect="non-scaling-stroke" />
+                    </svg>
                     {product.discountBadge && (
-                      <span className="absolute top-4 left-4 z-10 bg-white text-black text-[10px] font-bold tracking-[0.2em] px-3 py-1.5 uppercase">{product.discountBadge}</span>
+                      <span className="absolute top-4 left-4 z-10 bg-red-500 text-black text-[10px] font-extrabold tracking-[0.16em] px-3 py-1.5 uppercase">{product.discountBadge}</span>
                     )}
                     {product.isNew && !product.discountBadge && (
                       <span className="absolute top-4 left-4 z-10 bg-white text-black text-[10px] font-bold tracking-[0.2em] px-3 py-1.5 uppercase">Yeni</span>
@@ -1180,7 +1204,7 @@ export default function ProductDetail() {
 
                 {/* Mobile carousel */}
                 <div className="sm:hidden -mx-4">
-                  <div className="relative aspect-square bg-[#151515] overflow-hidden" ref={emblaRef}>
+                  <div className="relative aspect-[3/4] rounded-xl bg-zinc-900 overflow-hidden" ref={emblaRef}>
                     <div className="flex h-full">
                       {images.map((img, i) => (
                         <button type="button" key={i} className="flex-[0_0_100%] min-w-0 h-full" onClick={() => setLightboxOpen(true)} aria-label={`Görsel ${i + 1} - büyüt`}>
@@ -1188,16 +1212,32 @@ export default function ProductDetail() {
                         </button>
                       ))}
                     </div>
-                    {product.discountBadge && <span className="absolute top-4 left-4 z-10 bg-white text-black text-[10px] font-bold tracking-[0.2em] px-3 py-1.5 uppercase">{product.discountBadge}</span>}
+                    <svg className={`absolute inset-1 z-[1] h-[calc(100%-0.5rem)] w-[calc(100%-0.5rem)] pointer-events-none ${reduceMotion ? '' : 'animate-[spin_18s_linear_infinite]'}`} viewBox="0 0 100 100" preserveAspectRatio="none" aria-hidden="true">
+                      <rect x="1.5" y="1.5" width="97" height="97" rx="2" fill="none" stroke="white" strokeWidth="0.45" strokeDasharray="3 3" vectorEffect="non-scaling-stroke" />
+                    </svg>
+                    {product.discountBadge && <span className="absolute top-4 left-4 z-10 bg-red-500 text-black text-[10px] font-extrabold tracking-[0.16em] px-3 py-1.5 uppercase">{product.discountBadge}</span>}
                     {product.isNew && !product.discountBadge && <span className="absolute top-4 left-4 z-10 bg-white text-black text-[10px] font-bold tracking-[0.2em] px-3 py-1.5 uppercase">Yeni</span>}
                   </div>
                   {images.length > 1 && (
-                    <div className="flex justify-center gap-1.5 mt-3">
-                      {images.map((_, i) => (
-                        <button key={i} type="button" onClick={() => setSelectedImage(i)}
-                          className={`h-1.5 rounded-full transition-all ${i === selectedImage ? 'bg-[#141414] w-5' : 'bg-black/18 w-1.5'}`}
-                          aria-label={`Görsel ${i + 1}`} />
-                      ))}
+                    <div className="mt-3 space-y-3">
+                      <div className="flex justify-center gap-2 overflow-x-auto px-3 [scrollbar-width:none]">
+                        {images.map((img, i) => (
+                          <button key={i} type="button" onClick={() => setSelectedImage(i)}
+                            className={`relative h-12 w-9 overflow-hidden rounded-md bg-zinc-900 transition-opacity ${i === selectedImage ? 'ring-2 ring-white ring-offset-2 ring-offset-[#0A0A0A]' : 'opacity-50'}`}
+                            aria-label={`Görsel ${i + 1}`}>
+                            <img src={img} alt="" className="h-full w-full object-cover" loading="lazy" />
+                          </button>
+                        ))}
+                      </div>
+                      {images.length > 5 && (
+                        <div className="flex justify-center gap-1.5">
+                          {images.map((_, i) => (
+                            <button key={i} type="button" onClick={() => setSelectedImage(i)}
+                              className={`h-1.5 rounded-full transition-all ${i === selectedImage ? 'bg-white w-5' : 'bg-white/30 w-1.5'}`}
+                              aria-label={`Görsel ${i + 1}`} />
+                          ))}
+                        </div>
+                      )}
                     </div>
                   )}
                 </div>
