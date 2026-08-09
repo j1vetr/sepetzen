@@ -44,6 +44,7 @@ import {
   sendReviewPendingToAdmin,
 } from "./whatsappService";
 import { getBankTransferConfig } from "./bankTransfer";
+import { defaultRange, getSalesOverview, overviewToCsv } from "./analytics";
 import {
   createCheckoutFormInitialize,
   retrieveCheckoutForm,
@@ -4548,6 +4549,50 @@ Bu ürün için 4 bölümlü HTML açıklama üret. Teknik Özellikler bölümü
       })));
     } catch (error) {
       res.status(500).json({ error: "Failed to fetch country breakdown" });
+    }
+  });
+
+  // ── Detaylı satış analizi ────────────────────────────────────────────────
+  const analyticsQuerySchema = z.object({
+    granularity: z.enum(["day", "month", "year"]).default("day"),
+    start: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).optional(),
+    end: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).optional(),
+  });
+
+  function resolveAnalyticsRequest(query: unknown) {
+    const parsed = analyticsQuerySchema.safeParse(query);
+    if (!parsed.success) return null;
+    const { granularity } = parsed.data;
+    const fallback = defaultRange(granularity, new Date());
+    const start = parsed.data.start ?? fallback.start;
+    const end = parsed.data.end ?? fallback.end;
+    if (start > end) return null;
+    return { granularity, range: { start, end } };
+  }
+
+  app.get("/api/admin/analytics/overview", requireAdmin, async (req, res) => {
+    const request = resolveAnalyticsRequest(req.query);
+    if (!request) return res.status(400).json({ error: "Geçersiz tarih aralığı" });
+    try {
+      res.json(await getSalesOverview(request.range, request.granularity));
+    } catch (error) {
+      console.error("[analytics] overview error:", error);
+      res.status(500).json({ error: "Satış analizi hesaplanamadı" });
+    }
+  });
+
+  app.get("/api/admin/analytics/export", requireAdmin, async (req, res) => {
+    const request = resolveAnalyticsRequest(req.query);
+    if (!request) return res.status(400).json({ error: "Geçersiz tarih aralığı" });
+    try {
+      const overview = await getSalesOverview(request.range, request.granularity);
+      const fileName = `satis-raporu-${overview.range.start}_${overview.range.end}.csv`;
+      res.setHeader("Content-Type", "text/csv; charset=utf-8");
+      res.setHeader("Content-Disposition", `attachment; filename="${fileName}"`);
+      res.send(overviewToCsv(overview));
+    } catch (error) {
+      console.error("[analytics] export error:", error);
+      res.status(500).json({ error: "Rapor dışa aktarılamadı" });
     }
   });
 

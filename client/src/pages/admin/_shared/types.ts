@@ -125,6 +125,59 @@ export interface AnalyticsBestSeller {
   product?: Pick<Product, 'id' | 'name' | 'slug' | 'images'>;
 }
 
+export type AnalyticsGranularity = 'day' | 'month' | 'year';
+
+export interface AnalyticsRange {
+  start: string;
+  end: string;
+}
+
+export interface AnalyticsSummary {
+  orders: number;
+  grossRevenue: number;
+  cancelledOrders: number;
+  cancelledRevenue: number;
+  netOrders: number;
+  netRevenue: number;
+  avgOrderValue: number;
+  cancelRate: number;
+}
+
+export interface AnalyticsSeriesRow {
+  bucket: string;
+  orders: number;
+  netOrders: number;
+  cancelledOrders: number;
+  grossRevenue: number;
+  netRevenue: number;
+  avgOrderValue: number;
+}
+
+export interface AnalyticsBreakdownRow {
+  key: string;
+  label: string;
+  orders: number;
+  revenue: number;
+}
+
+export interface AnalyticsOverview {
+  granularity: AnalyticsGranularity;
+  range: AnalyticsRange;
+  previousRange: AnalyticsRange;
+  summary: AnalyticsSummary;
+  previousSummary: AnalyticsSummary;
+  changes: {
+    netRevenue: number | null;
+    netOrders: number | null;
+    avgOrderValue: number | null;
+    grossRevenue: number | null;
+    cancelledOrders: number | null;
+  };
+  series: AnalyticsSeriesRow[];
+  paymentBreakdown: AnalyticsBreakdownRow[];
+  channelBreakdown: AnalyticsBreakdownRow[];
+}
+
 export interface AnalyticsCountryRow {
   country: string;
   city?: string;
