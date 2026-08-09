@@ -1133,20 +1133,13 @@ export default function ProductDetail() {
                       type="button"
                       onClick={() => setSelectedImage(i)}
                       whileTap={reduceMotion ? undefined : { scale: 0.94 }}
-                      className={`relative aspect-square overflow-hidden rounded-md bg-zinc-900 transition-opacity duration-200 ${
-                        i === selectedImage ? '' : 'opacity-50 hover:opacity-85'
+                      className={`relative aspect-square overflow-hidden rounded-md bg-zinc-900 border-2 transition-opacity duration-200 ${
+                        i === selectedImage ? 'border-white' : 'border-transparent opacity-50 hover:opacity-85'
                       }`}
                       data-testid={`button-thumbnail-${i}`}
                       aria-label={`Görsel ${i + 1}`}
                     >
                       <img src={img} alt="" className="w-full h-full object-cover" loading="lazy" />
-                      {i === selectedImage && (
-                        <motion.span
-                          layoutId="thumb-active-ring"
-                          transition={reduceMotion ? { duration: 0 } : { type: 'spring', stiffness: 500, damping: 40 }}
-                          className="absolute inset-0 rounded-md ring-2 ring-inset ring-white pointer-events-none"
-                        />
-                      )}
                     </motion.button>
                   ))}
                 </div>
@@ -1217,7 +1210,7 @@ export default function ProductDetail() {
                       <div className="flex justify-center gap-2 overflow-x-auto px-3 py-1 [scrollbar-width:none]">
                         {images.map((img, i) => (
                           <button key={i} type="button" onClick={() => setSelectedImage(i)}
-                            className={`relative h-12 w-9 shrink-0 overflow-hidden rounded-md bg-zinc-900 transition-opacity ${i === selectedImage ? 'ring-2 ring-inset ring-white' : 'opacity-50'}`}
+                            className={`relative h-12 w-9 shrink-0 overflow-hidden rounded-md bg-zinc-900 border-2 transition-opacity ${i === selectedImage ? 'border-white' : 'border-transparent opacity-50'}`}
                             aria-label={`Görsel ${i + 1}`}>
                             <img src={img} alt="" className="h-full w-full object-cover" loading="lazy" />
                           </button>
