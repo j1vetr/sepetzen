@@ -5575,21 +5575,33 @@ window.addEventListener('load', function() {
         isPrivate: false,
       });
 
-      // If Aras Kargo was used for this order, try to cancel the shipment too
-      // Derive the barcodeNumber the same way createShipment does
-      const { getArasCredentials, cancelShipment: arasCancel } = await import('./arasKargoService.js');
-      const arasCreds = await getArasCredentials();
-      if (arasCreds.enabled && arasCreds.username) {
+      // Kargo kaydı varsa sağlayıcı tarafında da iptal etmeyi dene.
+      const { getProviderForOrder } = await import('./shipping/index.js');
+      const cargoProvider = await getProviderForOrder(order as any);
+
+      let shouldCancelShipment = !!(order as any).shipmentId;
+      if (!shouldCancelShipment && cargoProvider.id === 'aras') {
+        // Eski siparişlerde gönderi kimliği kaydedilmemiş olabilir; nota bakılır.
         const existingNotes = await storage.getOrderNotes(req.params.id);
-        const wasSentToAras = existingNotes.some(n => n.content.includes("Aras Kargo API'ye kayıt gönderildi"));
-        if (wasSentToAras) {
-          const barcodeNumber = order.orderNumber.replace(/[^A-Za-z0-9]/g, '').slice(0, 32);
-          arasCancel(barcodeNumber, req.body.reason || 'Siparis iptali').then(result => {
+        shouldCancelShipment = existingNotes.some(n => n.content.includes("Aras Kargo API'ye kayıt gönderildi"));
+      }
+
+      if (shouldCancelShipment && cargoProvider.supportsCancel) {
+        const providerStatus = await cargoProvider.status();
+        if (providerStatus.configured) {
+          cargoProvider.cancelShipment(
+            {
+              orderNumber: order.orderNumber,
+              shipmentId: (order as any).shipmentId,
+              trackingNumber: order.trackingNumber,
+            },
+            req.body.reason || 'Siparis iptali',
+          ).then(result => {
             const noteContent = result.success
-              ? `Aras Kargo'da kargo iptali yapıldı. (OperationCode: ${result.operationCode || '-'})`
-              : `Aras Kargo iptal denenedi ancak başarısız: ${result.error}`;
+              ? result.message || `${cargoProvider.label} gönderisi iptal edildi.`
+              : `${cargoProvider.label} kargo iptali denendi ancak başarısız: ${result.error}`;
             storage.createOrderNote({ orderId: req.params.id, content: noteContent, authorId: 'system' }).catch(() => {});
-          }).catch(err => console.error('[ArasKargo] Auto-cancel failed:', err));
+          }).catch(err => console.error('[Shipping] Auto-cancel failed:', err));
         }
       }
 
@@ -5634,6 +5646,261 @@ window.addEventListener('load', function() {
     } catch (error: any) {
       console.error('[ArasKargo] GetCargoInfo error:', error);
       res.status(500).json({ success: false, error: error.message });
+    }
+  });
+
+  // ── Sağlayıcı bağımsız kargo entegrasyonu ──────────────────────────────
+  // Aktif sağlayıcı (Aras Kargo / Geliver / ShipEntegra) Ayarlar > Kargo
+  // bölümünden seçilir. Sipariş ekranı yalnızca aşağıdaki uçları kullanır;
+  // sağlayıcıya özel eski /aras-kargo/* uçları geriye dönük uyumluluk için durur.
+
+  /** Takip bilgisini siparişe yazar, kargoya verildi durumuna geçirir ve bildirimleri tetikler. */
+  const applyShipmentTracking = async (
+    orderId: string,
+    order: any,
+    data: { trackingNumber: string; trackingUrl?: string; carrierName: string },
+  ) => {
+    await storage.updateOrderTracking(orderId, {
+      trackingNumber: data.trackingNumber,
+      trackingUrl: data.trackingUrl,
+      shippingCarrier: data.carrierName,
+    });
+
+    let updatedOrder = order;
+    if (order.status !== 'shipped' && order.status !== 'delivered') {
+      updatedOrder = (await storage.updateOrder(orderId, { status: 'shipped', shippedAt: new Date() })) || order;
+    }
+
+    const orderForNotif = {
+      ...updatedOrder,
+      trackingNumber: data.trackingNumber,
+      trackingUrl: data.trackingUrl,
+      shippingCarrier: data.carrierName,
+    };
+    sendOrderShippedToCustomer(orderForNotif as any).catch(err =>
+      console.error('[Shipping] WhatsApp shipping notification failed:', err)
+    );
+    sendShippingNotificationEmail(orderForNotif as any).catch(err =>
+      console.error('[Shipping] Email shipping notification failed:', err)
+    );
+  };
+
+  app.get("/api/admin/shipping/providers", requireAdmin, async (_req, res) => {
+    try {
+      const { getProviderStatuses } = await import('./shipping/index.js');
+      res.json(await getProviderStatuses());
+    } catch (error: any) {
+      console.error('[Shipping] Provider status error:', error);
+      res.status(500).json({ error: error.message || 'Kargo sağlayıcıları okunamadı' });
+    }
+  });
+
+  app.post("/api/admin/shipping/test-connection", requireAdmin, async (req, res) => {
+    try {
+      const { getProvider, isProviderId, getActiveProviderId } = await import('./shipping/index.js');
+      const requested = String(req.body?.provider || '');
+      const id = isProviderId(requested) ? requested : await getActiveProviderId();
+      const provider = getProvider(id);
+      const result = await provider.testConnection();
+      res.json({ provider: id, providerLabel: provider.label, ...result });
+    } catch (error: any) {
+      console.error('[Shipping] Test connection error:', error);
+      res.status(500).json({ success: false, error: error.message || 'Bağlantı testi yapılamadı' });
+    }
+  });
+
+  app.post("/api/admin/orders/:id/shipment/create", requireAdmin, async (req, res) => {
+    try {
+      const { getActiveProvider, arasTrackingUrl } = await import('./shipping/index.js');
+      const order = await storage.getOrder(req.params.id);
+      if (!order) return res.status(404).json({ success: false, error: "Sipariş bulunamadı" });
+
+      const provider = await getActiveProvider();
+      const status = await provider.status();
+      if (!status.enabled) {
+        return res.json({ success: false, error: `${provider.label} entegrasyonu kapalı. Ayarlar > Kargo bölümünden etkinleştirin.` });
+      }
+      if (!status.configured) {
+        return res.json({ success: false, error: `${provider.label} ayarları eksik. ${status.missing || ''}`.trim() });
+      }
+
+      const force = !!req.query.force;
+      if (!force && order.shipmentId) {
+        return res.json({
+          success: false,
+          alreadySent: true,
+          error: 'Bu sipariş için zaten bir kargo kaydı var. Yeni kayıt oluşturmak isterseniz tekrar gönderin.',
+        });
+      }
+      if (!force && provider.id === 'aras') {
+        const existingNotes = await storage.getOrderNotes(req.params.id);
+        if (existingNotes.some(n => n.content.includes("Aras Kargo API'ye kayıt gönderildi"))) {
+          return res.json({
+            success: false,
+            alreadySent: true,
+            error: 'Bu sipariş daha önce Aras Kargo sistemine gönderildi.',
+          });
+        }
+      }
+
+      const addr = order.shippingAddress as any;
+      const countryRaw = String(addr?.country || 'TR');
+      const isTurkey = ['türkiye', 'turkiye', 'turkey', 'tr'].includes(countryRaw.toLowerCase());
+      const addressLine = [addr?.address, addr?.district, addr?.city].filter(Boolean).join(', ');
+      const items = await storage.getOrderItems(order.id);
+      const settings = await storage.getSiteSettings();
+
+      const result = await provider.createShipment({
+        orderNumber: order.orderNumber,
+        recipient: {
+          name: order.customerName,
+          phone: order.customerPhone || '',
+          email: order.customerEmail || undefined,
+          address: addressLine || addr?.address || '',
+          city: addr?.city || '',
+          district: addr?.district || addr?.city || '',
+          postalCode: addr?.postalCode || addr?.zip || undefined,
+          countryCode: isTurkey ? 'TR' : countryRaw.toUpperCase().slice(0, 2),
+        },
+        items: items.map(i => ({
+          title: i.productName,
+          quantity: i.quantity,
+          unitPrice: i.price,
+          sku: i.variantId || undefined,
+        })),
+        desi: settings.aras_kargo_default_desi || '1',
+        weightKg: settings.shipping_default_weight_kg || undefined,
+        totalAmount: order.total,
+        currency: 'TRY',
+        isWorldwide: !isTurkey,
+      });
+
+      if (!result.success) {
+        return res.json({ ...result, provider: provider.id, providerLabel: provider.label });
+      }
+
+      await storage.updateOrder(order.id, {
+        shipmentProvider: provider.id,
+        shipmentId: result.shipmentId || order.shipmentId || null,
+        shipmentLabelUrl: result.labelUrl || order.shipmentLabelUrl || null,
+      } as any);
+
+      // Aras için eski not metni korunur; çift gönderim koruması bu metne bakıyor.
+      const noteContent = provider.id === 'aras'
+        ? `Aras Kargo API'ye kayıt gönderildi. Entegrasyon kodu: ${result.shipmentId || order.orderNumber}. Şube irsaliye oluşturduktan sonra takip numarası "Takip Durumu" ile çekilebilir.`
+        : [
+            `${provider.label} gönderi kaydı oluşturuldu.`,
+            result.shipmentId ? `Gönderi kimliği: ${result.shipmentId}.` : '',
+            result.trackingNumber ? `Takip no: ${result.trackingNumber}.` : '',
+          ].filter(Boolean).join(' ');
+      await storage.createOrderNote({ orderId: order.id, content: noteContent, authorId: 'system' });
+
+      if (result.trackingNumber && !order.trackingNumber) {
+        const trackingUrl = result.trackingUrl
+          || (provider.id === 'aras' ? arasTrackingUrl(result.trackingNumber) : undefined);
+        await applyShipmentTracking(order.id, order, {
+          trackingNumber: result.trackingNumber,
+          trackingUrl,
+          carrierName: result.carrierName || provider.label,
+        });
+      }
+
+      res.json({ ...result, provider: provider.id, providerLabel: provider.label });
+    } catch (error: any) {
+      console.error('[Shipping] Create shipment error:', error);
+      res.status(500).json({ success: false, error: error.message || 'Kargo gönderisi oluşturulamadı' });
+    }
+  });
+
+  app.get("/api/admin/orders/:id/shipment/status", requireAdmin, async (req, res) => {
+    try {
+      const { getProviderForOrder, arasTrackingUrl } = await import('./shipping/index.js');
+      const order = await storage.getOrder(req.params.id);
+      if (!order) return res.status(404).json({ success: false, error: "Sipariş bulunamadı" });
+
+      const provider = await getProviderForOrder(order as any);
+      const result = await provider.track({
+        orderNumber: order.orderNumber,
+        shipmentId: (order as any).shipmentId,
+        trackingNumber: order.trackingNumber,
+        labelUrl: (order as any).shipmentLabelUrl,
+      });
+
+      let savedToOrder = false;
+
+      if (result.success && result.labelUrl && result.labelUrl !== (order as any).shipmentLabelUrl) {
+        await storage.updateOrder(order.id, { shipmentLabelUrl: result.labelUrl } as any);
+      }
+
+      if (result.success && result.found && result.trackingNumber && !order.trackingNumber) {
+        const trackingUrl = result.trackingUrl
+          || (provider.id === 'aras' ? arasTrackingUrl(result.trackingNumber) : undefined);
+        await applyShipmentTracking(order.id, order, {
+          trackingNumber: result.trackingNumber,
+          trackingUrl,
+          carrierName: order.shippingCarrier || provider.label,
+        });
+        await storage.createOrderNote({
+          orderId: order.id,
+          content: `${provider.label} takip numarası otomatik alındı: ${result.trackingNumber}`,
+          authorId: 'system',
+        });
+        savedToOrder = true;
+      }
+
+      if (result.success && result.delivered && order.status === 'shipped') {
+        await storage.updateOrder(order.id, { status: 'delivered', deliveredAt: new Date() });
+        await storage.createOrderNote({
+          orderId: order.id,
+          content: `${provider.label} durumu: "${result.statusText || 'Teslim edildi'}" - sipariş teslim edildi olarak işaretlendi.`,
+          authorId: 'system',
+        });
+      }
+
+      res.json({ ...result, provider: provider.id, providerLabel: provider.label, savedToOrder });
+    } catch (error: any) {
+      console.error('[Shipping] Track shipment error:', error);
+      res.status(500).json({ success: false, error: error.message || 'Kargo durumu sorgulanamadı' });
+    }
+  });
+
+  app.get("/api/admin/orders/:id/shipment/label", requireAdmin, async (req, res) => {
+    try {
+      const { getProviderForOrder } = await import('./shipping/index.js');
+      const order = await storage.getOrder(req.params.id);
+      if (!order) return res.status(404).send('<h1>Sipariş bulunamadı</h1>');
+
+      const provider = await getProviderForOrder(order as any);
+
+      // Aras etiketi uygulama içinde HTML olarak üretiliyor.
+      if (provider.id === 'aras') {
+        return res.redirect(`/api/admin/orders/${order.id}/aras-kargo/label`);
+      }
+
+      const label = await provider.getLabel({
+        orderNumber: order.orderNumber,
+        shipmentId: (order as any).shipmentId,
+        trackingNumber: order.trackingNumber,
+        labelUrl: (order as any).shipmentLabelUrl,
+      });
+
+      if (!label.success || !label.url) {
+        return res
+          .status(400)
+          .send(`<!DOCTYPE html><html lang="tr"><head><meta charset="UTF-8"><title>Etiket</title></head>
+<body style="font-family:Arial,sans-serif;padding:40px;color:#111">
+<h2>Kargo etiketi alınamadı</h2>
+<p>${(label.error || 'Bilinmeyen hata').replace(/</g, '&lt;')}</p>
+</body></html>`);
+      }
+
+      if (label.url !== (order as any).shipmentLabelUrl) {
+        await storage.updateOrder(order.id, { shipmentLabelUrl: label.url } as any);
+      }
+      res.redirect(label.url);
+    } catch (error: any) {
+      console.error('[Shipping] Label error:', error);
+      res.status(500).send(`<h1>Etiket alınamadı</h1><p>${String(error.message || error).replace(/</g, '&lt;')}</p>`);
     }
   });
 
@@ -6194,6 +6461,12 @@ window.addEventListener('load', function() {
       if (settings.aras_kargo_password) {
         settings.aras_kargo_password = '••••••••';
       }
+      if (settings.geliver_api_token) {
+        settings.geliver_api_token = '••••••••';
+      }
+      if (settings.shipentegra_client_secret) {
+        settings.shipentegra_client_secret = '••••••••';
+      }
       res.json(settings);
     } catch (error) {
       res.status(500).json({ error: "Failed to fetch settings" });
@@ -6216,7 +6489,18 @@ window.addEventListener('load', function() {
       if (settings.aras_kargo_password === '••••••••') {
         delete settings.aras_kargo_password;
       }
+      if (settings.geliver_api_token === '••••••••') {
+        delete settings.geliver_api_token;
+      }
+      if (settings.shipentegra_client_secret === '••••••••') {
+        delete settings.shipentegra_client_secret;
+      }
       await storage.setSiteSettings(settings);
+      // ShipEntegra kimlik bilgileri değiştiyse önbellekteki token geçersizdir.
+      if (Object.keys(settings).some((key) => key.startsWith('shipentegra_'))) {
+        const { clearShipEntegraTokenCache } = await import('./shipping/shipentegra');
+        clearShipEntegraTokenCache();
+      }
       // Merchant besleme ayarları değiştiyse önbelleği düşür
       if (Object.keys(settings).some((key) => key.startsWith("google_merchant_") || key === "site_url" || key === "site_name")) {
         const { invalidateGoogleMerchantFeedCache } = await import("./googleMerchant");

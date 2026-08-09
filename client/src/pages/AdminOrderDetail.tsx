@@ -48,6 +48,8 @@ interface OrderItem {
   variantDetails?: string;
   sku?: string;
   productImage?: string;
+  /** Admin sipariş detayı API'si ürün adını linklemek için slug döndürür. */
+  productSlug?: string | null;
   quantity: number;
   price: string;
   subtotal: string;
@@ -83,6 +85,9 @@ interface Order {
   trackingNumber?: string;
   trackingUrl?: string;
   shippingCarrier?: string;
+  shipmentProvider?: string | null;
+  shipmentId?: string | null;
+  shipmentLabelUrl?: string | null;
   createdAt: string;
   items: OrderItem[];
 }
@@ -157,12 +162,11 @@ export default function AdminOrderDetail() {
     isInfluencerCode: boolean;
     influencerInstagram?: string;
   } | null>(null);
-  const [arasCreating, setArasCreating] = useState(false);
-  const [arasQuerying, setArasQuerying] = useState(false);
-  const [arasMessage, setArasMessage] = useState<{ type: 'success' | 'error' | 'warn'; text: string } | null>(null);
-  const [arasAlreadySent, setArasAlreadySent] = useState(false);
-  const [arasCargoInfo, setArasCargoInfo] = useState(false);
-  const [arasCargoStatus, setArasCargoStatus] = useState<{ status?: string; deliveryDate?: string; deliveryBranch?: string; waybillNo?: string } | null>(null);
+  const [shipmentCreating, setShipmentCreating] = useState(false);
+  const [shipmentQuerying, setShipmentQuerying] = useState(false);
+  const [shipmentMessage, setShipmentMessage] = useState<{ type: 'success' | 'error' | 'warn'; text: string } | null>(null);
+  const [shipmentAlreadySent, setShipmentAlreadySent] = useState(false);
+  const [carrier, setCarrier] = useState<{ id: string; label: string; enabled: boolean; configured: boolean; missing?: string } | null>(null);
   useEffect(() => {
     let cancelled = false;
     const fetchOrder = async () => {
@@ -246,9 +250,13 @@ export default function AdminOrderDetail() {
     if (!order) return;
     setIsUpdating(true);
     try {
+      // Aras için firma takip linki üretilir; diğer sağlayıcılarda link boş
+      // bırakılırsa müşteriye kendi sipariş takip sayfamız gönderilir.
       const finalTrackingUrl =
         trackingUrl ||
-        `https://kargotakip.araskargo.com.tr/mainpage.aspx?code=${trackingNumber}`;
+        (carrier?.id === 'aras' || !carrier
+          ? `https://kargotakip.araskargo.com.tr/mainpage.aspx?code=${trackingNumber}`
+          : '');
 
       await fetch(`/api/admin/orders/${order.id}/tracking`, {
         method: 'PUT',
@@ -256,7 +264,7 @@ export default function AdminOrderDetail() {
         body: JSON.stringify({
           trackingNumber,
           trackingUrl: finalTrackingUrl,
-          shippingCarrier: 'Aras Kargo',
+          shippingCarrier: order.shippingCarrier || carrierLabel,
         }),
         credentials: 'include',
       });
@@ -286,89 +294,107 @@ export default function AdminOrderDetail() {
     }
   };
 
-  const handleArasCreate = async (force = false) => {
+  // Aktif kargo sağlayıcısını (Aras / Geliver / ShipEntegra) öğren
+  useEffect(() => {
+    let cancelled = false;
+    fetch('/api/admin/shipping/providers', { credentials: 'include' })
+      .then(res => (res.ok ? res.json() : null))
+      .then(data => {
+        if (cancelled || !data?.active) return;
+        setCarrier(data.active);
+      })
+      .catch(() => {});
+    return () => { cancelled = true; };
+  }, []);
+
+  const carrierLabel = carrier?.label || 'Kargo';
+
+  const handleShipmentCreate = async (force = false) => {
     if (!order) return;
-    setArasCreating(true);
-    setArasMessage(null);
-    setArasAlreadySent(false);
+    setShipmentCreating(true);
+    setShipmentMessage(null);
+    setShipmentAlreadySent(false);
     try {
-      const url = `/api/admin/orders/${order.id}/aras-kargo/create${force ? '?force=1' : ''}`;
+      const url = `/api/admin/orders/${order.id}/shipment/create${force ? '?force=1' : ''}`;
       const res = await fetch(url, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         credentials: 'include',
       });
       const data = await res.json();
+      const label = data.providerLabel || carrierLabel;
       if (data.success) {
-        setArasMessage({ type: 'success', text: `Aras Kargo sistemine kayıt gönderildi. Kargo şubeye teslim ettikten sonra "Takip No Sorgula" butonuna basın.` });
+        setShipmentMessage({
+          type: 'success',
+          text: data.trackingNumber
+            ? `${label} gönderisi oluşturuldu. Takip no: ${data.trackingNumber}`
+            : `${label} sistemine kayıt gönderildi. Takip numarası oluştuğunda "Takip Durumu" ile çekebilirsiniz.`,
+        });
         setNotes((prev) => [{
           id: Date.now().toString(),
-          content: `Aras Kargo API'ye kayıt gönderildi. Entegrasyon kodu: ${data.integrationCode}`,
+          content: `${label} gönderi kaydı oluşturuldu.${data.shipmentId ? ` Gönderi kimliği: ${data.shipmentId}` : ''}`,
           createdAt: new Date().toISOString(),
         }, ...prev]);
-      } else if (data.alreadySent) {
-        setArasAlreadySent(true);
-        setArasMessage({ type: 'warn', text: 'Bu sipariş daha önce Aras sistemine gönderildi.' });
-      } else {
-        setArasMessage({ type: 'error', text: data.error || data.resultMessage || 'Kargo oluşturulamadı' });
-      }
-    } catch {
-      setArasMessage({ type: 'error', text: 'Bağlantı hatası. Lütfen tekrar deneyin.' });
-    } finally {
-      setArasCreating(false);
-    }
-  };
-
-  const handleArasQuery = async () => {
-    if (!order) return;
-    setArasQuerying(true);
-    setArasMessage(null);
-    try {
-      const res = await fetch(`/api/admin/orders/${order.id}/aras-kargo/status`, {
-        credentials: 'include',
-      });
-      const data = await res.json();
-      if (data.success && data.found && data.trackingNumber) {
-        const msg = data.savedToOrder
-          ? `Takip numarası alındı ve siparişe kaydedildi: ${data.trackingNumber}`
-          : `Takip numarası: ${data.trackingNumber}${data.cargoStatus ? ` - Durum: ${data.cargoStatus}` : ''}`;
-        setArasMessage({ type: 'success', text: msg });
-        if (data.savedToOrder) {
+        setOrder(prev => prev ? {
+          ...prev,
+          shipmentProvider: data.provider,
+          shipmentId: data.shipmentId ?? prev.shipmentId,
+          shipmentLabelUrl: data.labelUrl ?? prev.shipmentLabelUrl,
+          ...(data.trackingNumber ? { trackingNumber: data.trackingNumber, status: 'shipped' } : {}),
+        } as Order : prev);
+        if (data.trackingNumber) {
           setTrackingNumber(data.trackingNumber);
-          setOrder({ ...order, trackingNumber: data.trackingNumber, status: 'shipped' });
           setStatus('shipped');
         }
-      } else if (data.success && !data.found) {
-        setArasMessage({ type: 'error', text: data.error || 'Şube henüz irsaliye oluşturmadı. Kargo fiziksel teslimden sonra tekrar sorgulayın.' });
+      } else if (data.alreadySent) {
+        setShipmentAlreadySent(true);
+        setShipmentMessage({ type: 'warn', text: data.error || 'Bu sipariş için daha önce kargo kaydı oluşturuldu.' });
       } else {
-        setArasMessage({ type: 'error', text: data.error || 'Durum sorgulanamadı' });
+        setShipmentMessage({ type: 'error', text: data.error || 'Kargo gönderisi oluşturulamadı' });
       }
     } catch {
-      setArasMessage({ type: 'error', text: 'Bağlantı hatası. Lütfen tekrar deneyin.' });
+      setShipmentMessage({ type: 'error', text: 'Bağlantı hatası. Lütfen tekrar deneyin.' });
     } finally {
-      setArasQuerying(false);
+      setShipmentCreating(false);
     }
   };
 
-  const handleArasCargoInfo = async () => {
+  const handleShipmentStatus = async () => {
     if (!order) return;
-    setArasCargoInfo(true);
-    setArasMessage(null);
-    setArasCargoStatus(null);
+    setShipmentQuerying(true);
+    setShipmentMessage(null);
     try {
-      const res = await fetch(`/api/admin/orders/${order.id}/aras-kargo/cargo-info`, { credentials: 'include' });
+      const res = await fetch(`/api/admin/orders/${order.id}/shipment/status`, { credentials: 'include' });
       const data = await res.json();
+      const label = data.providerLabel || carrierLabel;
       if (data.success && data.found) {
-        setArasCargoStatus({ status: data.status, deliveryDate: data.deliveryDate, deliveryBranch: data.deliveryBranch, waybillNo: data.waybillNo });
-        const parts = [data.status && `Durum: ${data.status}`, data.deliveryDate && `Teslim: ${data.deliveryDate}`, data.deliveryBranch && `Şube: ${data.deliveryBranch}`].filter(Boolean);
-        setArasMessage({ type: 'success', text: parts.join(' - ') || 'Kargo bilgisi alındı' });
+        const parts = [
+          data.trackingNumber && `Takip no: ${data.trackingNumber}`,
+          data.statusText && `Durum: ${data.statusText}`,
+          data.deliveredAt && `Teslim: ${data.deliveredAt}`,
+        ].filter(Boolean);
+        setShipmentMessage({
+          type: 'success',
+          text: (data.savedToOrder ? 'Takip bilgisi siparişe kaydedildi. ' : '') + (parts.join(' - ') || `${label} kaydı bulundu.`),
+        });
+        if (data.savedToOrder && data.trackingNumber) {
+          setTrackingNumber(data.trackingNumber);
+          setStatus('shipped');
+          setOrder(prev => prev ? { ...prev, trackingNumber: data.trackingNumber, status: 'shipped' } as Order : prev);
+        }
+        if (data.delivered) {
+          setStatus('delivered');
+          setOrder(prev => prev ? { ...prev, status: 'delivered' } as Order : prev);
+        }
+      } else if (data.success && !data.found) {
+        setShipmentMessage({ type: 'warn', text: data.error || `${label} tarafında henüz kayıt görünmüyor. Kargo teslim edildikten sonra tekrar sorgulayın.` });
       } else {
-        setArasMessage({ type: 'error', text: data.error || 'Kargo bilgisi bulunamadı' });
+        setShipmentMessage({ type: 'error', text: data.error || 'Kargo durumu sorgulanamadı' });
       }
     } catch {
-      setArasMessage({ type: 'error', text: 'Bağlantı hatası.' });
+      setShipmentMessage({ type: 'error', text: 'Bağlantı hatası. Lütfen tekrar deneyin.' });
     } finally {
-      setArasCargoInfo(false);
+      setShipmentQuerying(false);
     }
   };
 
@@ -875,82 +901,79 @@ export default function AdminOrderDetail() {
               </div>
             </Card>
 
-            {/* Shipping (Aras Kargo) */}
+            {/* Shipping — aktif sağlayıcı (Aras / Geliver / ShipEntegra) */}
             <div id="shipping-section">
             <Card className="p-5">
               <SectionHeading
-                title="Aras Kargo"
-                description="API ile otomatik gönder veya takip numarasını elle gir."
+                title={carrierLabel}
+                description="API ile otomatik gönderi oluştur veya takip numarasını elle gir."
               />
               <div className="space-y-2.5">
+
+                {carrier && (!carrier.enabled || !carrier.configured) && (
+                  <div className="text-[11.5px] px-3 py-2 rounded-md bg-amber-50 border border-amber-200 text-amber-800" data-testid="text-provider-warning">
+                    {!carrier.enabled
+                      ? `${carrier.label} entegrasyonu kapalı. Ayarlar > Kargo bölümünden açabilirsiniz.`
+                      : `${carrier.label} ayarları eksik. ${carrier.missing || ''}`}
+                  </div>
+                )}
 
                 {/* API Buttons — Row 1 */}
                 <div className="flex gap-2">
                   <button
                     type="button"
-                    onClick={() => handleArasCreate()}
-                    disabled={arasCreating || arasQuerying || isTerminal}
+                    onClick={() => handleShipmentCreate()}
+                    disabled={shipmentCreating || shipmentQuerying || isTerminal}
                     className="flex-1 inline-flex items-center justify-center gap-1.5 h-9 rounded-md bg-neutral-900 text-white text-[12px] font-semibold hover:bg-neutral-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-                    data-testid="button-aras-create"
-                    title="SetOrder API'ye sipariş bilgilerini gönderir"
+                    data-testid="button-shipment-create"
+                    title={`${carrierLabel} sistemine gönderi kaydı oluşturur`}
                   >
-                    {arasCreating ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Send className="w-3.5 h-3.5" />}
-                    {arasCreating ? 'Gönderiliyor…' : 'API\'ye Gönder'}
+                    {shipmentCreating ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Send className="w-3.5 h-3.5" />}
+                    {shipmentCreating ? 'Gönderiliyor…' : 'Gönderi Oluştur'}
                   </button>
                   <button
                     type="button"
-                    onClick={handleArasQuery}
-                    disabled={arasQuerying || arasCreating}
+                    onClick={handleShipmentStatus}
+                    disabled={shipmentQuerying || shipmentCreating}
                     className="flex-1 inline-flex items-center justify-center gap-1.5 h-9 rounded-md border border-neutral-200 bg-white text-[12px] font-semibold text-neutral-700 hover:bg-neutral-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-                    data-testid="button-aras-query"
-                    title="Aras sisteminden takip numarasını çeker"
+                    data-testid="button-shipment-status"
+                    title="Takip numarasını ve güncel kargo durumunu sorgular"
                   >
-                    {arasQuerying ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <RefreshCw className="w-3.5 h-3.5" />}
-                    {arasQuerying ? 'Sorgulanıyor…' : 'Takip No Sorgula'}
+                    {shipmentQuerying ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <RefreshCw className="w-3.5 h-3.5" />}
+                    {shipmentQuerying ? 'Sorgulanıyor…' : 'Takip Durumu'}
                   </button>
                 </div>
 
                 {/* API Buttons — Row 2 */}
                 <div className="flex gap-2">
                   <a
-                    href={order ? `/api/admin/orders/${order.id}/aras-kargo/label` : '#'}
+                    href={order ? `/api/admin/orders/${order.id}/shipment/label` : '#'}
                     target="_blank"
                     rel="noopener noreferrer"
                     className="flex-1 inline-flex items-center justify-center gap-1.5 h-9 rounded-md border-2 border-orange-300 bg-orange-50 text-[12px] font-semibold text-orange-700 hover:bg-orange-100 hover:border-orange-400 transition-colors"
-                    data-testid="link-aras-label"
-                    title="A4 kargo etiketi + barkod - yeni sekmede açılır, otomatik yazdır çalışır"
+                    data-testid="link-shipment-label"
+                    title="Kargo etiketi yeni sekmede açılır"
                   >
                     <Printer className="w-3.5 h-3.5" />
                     Etiket Yazdır
                   </a>
-                  <button
-                    type="button"
-                    onClick={handleArasCargoInfo}
-                    disabled={arasCargoInfo || arasCreating || arasQuerying}
-                    className="flex-1 inline-flex items-center justify-center gap-1.5 h-9 rounded-md border border-sky-200 bg-sky-50 text-[12px] font-semibold text-sky-700 hover:bg-sky-100 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-                    data-testid="button-aras-cargo-info"
-                    title="GetCargoInfo - gerçek kargo durumunu sorgular (teslim edildi, şubede, yolda)"
-                  >
-                    {arasCargoInfo ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Truck className="w-3.5 h-3.5" />}
-                    {arasCargoInfo ? 'Sorgulanıyor…' : 'Kargo Durumu'}
-                  </button>
                 </div>
 
                 {/* API result message */}
-                {arasMessage && (
+                {shipmentMessage && (
                   <div className={`text-[11.5px] px-3 py-2 rounded-md leading-relaxed ${
-                    arasMessage.type === 'success'
+                    shipmentMessage.type === 'success'
                       ? 'bg-neutral-50 border border-neutral-200 text-neutral-800'
-                      : arasMessage.type === 'warn'
+                      : shipmentMessage.type === 'warn'
                       ? 'bg-amber-50 border border-amber-200 text-amber-800'
                       : 'bg-red-50 border border-red-200 text-red-700'
-                  }`} data-testid="text-aras-message">
-                    {arasMessage.text}
-                    {arasAlreadySent && (
+                  }`} data-testid="text-shipment-message">
+                    {shipmentMessage.text}
+                    {shipmentAlreadySent && (
                       <button
                         type="button"
-                        onClick={() => handleArasCreate(true)}
-                        disabled={arasCreating}
+                        onClick={() => handleShipmentCreate(true)}
+                        disabled={shipmentCreating}
                         className="ml-2 underline text-amber-700 hover:text-amber-900 font-semibold"
                       >
                         Tekrar gönder
@@ -970,7 +993,7 @@ export default function AdminOrderDetail() {
                     />
                   </FormField>
                   <div className="mt-2">
-                    <FormField label="Takip URL" hint="Boş bırakılırsa Aras Kargo linki oluşturulur.">
+                    <FormField label="Takip URL" hint="Boş bırakılırsa sağlayıcıya uygun takip linki oluşturulur.">
                       <TextInput
                         placeholder="https://…"
                         value={trackingUrl}

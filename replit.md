@@ -84,6 +84,13 @@ hakkimizda, mesafeli-satis-sozlesmesi, on-bilgilendirme-formu, uyelik-sozlesmesi
 - **Lucide React**: Icons.
 - **Sharp**: Image optimization.
 
+## Shipping (multi-carrier adapter framework)
+- **Provider abstraction**: `CargoProvider` interface (`server/shipping/types.ts`) + registry (`server/shipping/index.ts`).
+- **Adapters**: `aras.ts` (wraps existing SOAP service, default), `geliver.ts` (Bearer token REST), `shipentegra.ts` (client id/secret token auth).
+- **Active provider**: `site_settings.shipping_provider` (default `aras`). Orders remember their own provider in `orders.shipment_provider`, so old shipments keep working after a switch.
+- **Admin routes**: `/api/admin/shipping/providers`, `/api/admin/shipping/test-connection`, `/api/admin/orders/:id/shipment/{create,status,label}`. Legacy `/aras-kargo/*` routes remain for backward compatibility.
+- **Admin UI**: provider picker + credentials in `SettingsTab.tsx` (Kargo), shipment actions in `AdminOrderDetail.tsx`.
+
 ## Marketplace Sync (multi-marketplace adapter framework)
 - **One-way pull**: marketplace → site catalog (categories, products, images, stock, price). No order/push.
 - **Adapter pattern**: `MarketplaceAdapter` interface (`server/marketplaces/types.ts`) + registry (`server/marketplaces/registry.ts`).

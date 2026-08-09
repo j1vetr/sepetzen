@@ -456,11 +456,13 @@ function preparingNotificationTemplate(order: Order): string {
 }
 
 function shippingNotificationTemplate(order: Order): string {
-  const arasTrackingUrl = order.trackingNumber
+  const carrier = order.shippingCarrier || 'Kargo';
+  // Sağlayıcıdan takip linki gelmediyse: Aras için firma linki, diğerlerinde
+  // kendi sipariş takip sayfamız kullanılır.
+  const carrierFallbackUrl = order.trackingNumber && /aras/i.test(carrier)
     ? `https://kargotakip.araskargo.com.tr/mainpage.aspx?code=${encodeURIComponent(order.trackingNumber)}`
-    : null;
-  const trackingUrl = order.trackingUrl || arasTrackingUrl;
-  const carrier = order.shippingCarrier || 'Aras Kargo';
+    : `${CONTACT.siteUrl}/siparis-takip?no=${encodeURIComponent(order.orderNumber)}`;
+  const trackingUrl = order.trackingUrl || carrierFallbackUrl;
   const orderDate = formatTRDateTime(order.createdAt);
 
   return wrapTemplate(`

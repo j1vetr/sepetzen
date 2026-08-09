@@ -124,6 +124,22 @@ export const insertProductSchema = createInsertSchema(products).omit({
   id: true,
   createdAt: true,
   updatedAt: true,
+}).extend({
+  // drizzle-zod, jsonb `$type` alanlarının içini `unknown` olarak çıkarır;
+  // bu da insert tipinin drizzle'ın beklediği tiple uyuşmamasına yol açar.
+  // Alan şeması burada açıkça bildirilerek tip kesinliği sağlanır.
+  images: z.array(z.string()).optional(),
+  availableSizes: z.array(z.string()).optional(),
+  availableColors: z.array(z.object({ name: z.string(), hex: z.string().nullable() })).optional(),
+  specs: z.object({
+    urunCinsi: z.string().optional(),
+    tamUzunluk: z.string().optional(),
+    namluUzunlugu: z.string().optional(),
+    etKalinligi: z.string().optional(),
+    agirlik: z.string().optional(),
+    celikCinsi: z.string().optional(),
+    sapCinsi: z.string().optional(),
+  }).optional(),
 });
 
 export type InsertProduct = z.infer<typeof insertProductSchema>;
@@ -224,6 +240,9 @@ export const orders = pgTable("orders", {
   trackingNumber: text("tracking_number"),
   trackingUrl: text("tracking_url"),
   shippingCarrier: text("shipping_carrier"),
+  shipmentProvider: text("shipment_provider"),
+  shipmentId: text("shipment_id"),
+  shipmentLabelUrl: text("shipment_label_url"),
   invoiceUrl: text("invoice_url"),
   processingAt: timestamp("processing_at"),
   shippedAt: timestamp("shipped_at"),
@@ -237,6 +256,15 @@ export const insertOrderSchema = createInsertSchema(orders).omit({
   id: true,
   createdAt: true,
   updatedAt: true,
+}).extend({
+  // jsonb `$type` alanı — bkz. insertProductSchema.specs açıklaması.
+  shippingAddress: z.object({
+    address: z.string(),
+    city: z.string(),
+    district: z.string(),
+    postalCode: z.string(),
+    country: z.string().optional(),
+  }),
 });
 
 export type InsertOrder = z.infer<typeof insertOrderSchema>;
@@ -484,6 +512,13 @@ export const insertCampaignSchema = createInsertSchema(campaigns).omit({
   clickCount: true,
   createdAt: true,
   updatedAt: true,
+}).extend({
+  // jsonb `$type` alanı — bkz. insertProductSchema.specs açıklaması.
+  targetAudience: z.object({
+    type: z.enum(['all', 'segment']),
+    // `value` her tipte olabildiği için filtre dizisi tip düzeyinde bildirilir.
+    filters: z.custom<Array<{ field: string; operator: string; value: any }>>().optional(),
+  }).nullable().optional(),
 });
 
 export type InsertCampaign = z.infer<typeof insertCampaignSchema>;
@@ -687,6 +722,10 @@ export const insertSizeChartSchema = createInsertSchema(sizeCharts).omit({
   id: true,
   createdAt: true,
   updatedAt: true,
+}).extend({
+  // jsonb `$type` alanları — bkz. insertProductSchema.specs açıklaması.
+  columns: z.array(z.string()).optional(),
+  rows: z.array(z.array(z.string())).optional(),
 });
 
 export type InsertSizeChart = z.infer<typeof insertSizeChartSchema>;
@@ -824,6 +863,11 @@ export const insertMarketplaceProductSchema = createInsertSchema(marketplaceProd
   id: true,
   createdAt: true,
   lastSyncedAt: true,
+}).extend({
+  // jsonb `$type` alanları — bkz. insertProductSchema.specs açıklaması.
+  imageHashes: z.array(z.string()).optional(),
+  pushAttributes: z.record(z.unknown()).optional(),
+  pushMeta: z.record(z.unknown()).optional(),
 });
 export type InsertMarketplaceProduct = z.infer<typeof insertMarketplaceProductSchema>;
 export type MarketplaceProduct = typeof marketplaceProducts.$inferSelect;
@@ -1003,6 +1047,38 @@ export const insertMarketplaceSyncRunSchema = createInsertSchema(marketplaceSync
   id: true,
   startedAt: true,
   completedAt: true,
+}).extend({
+  // jsonb `$type` alanı — bkz. insertProductSchema.specs açıklaması.
+  stats: z.object({
+    categoriesAdded: z.number().optional(),
+    categoriesUpdated: z.number().optional(),
+    productsAdded: z.number().optional(),
+    productsUpdated: z.number().optional(),
+    productsDeactivated: z.number().optional(),
+    productsReactivated: z.number().optional(),
+    variantsUpdated: z.number().optional(),
+    variantsUnmatched: z.number().optional(),
+    imagesDownloaded: z.number().optional(),
+    imagesSkipped: z.number().optional(),
+    imagesFailed: z.number().optional(),
+    pagesProcessed: z.number().optional(),
+    processedTotal: z.number().optional(),
+    expectedTotal: z.number().optional(),
+    currentProductName: z.string().optional(),
+    currentPage: z.number().optional(),
+    retriedRequests: z.number().optional(),
+    recoveredRequests: z.number().optional(),
+    categoriesCachedFromTree: z.number().optional(),
+  }).optional(),
+  errors: z.array(z.object({ context: z.string(), message: z.string() })).optional(),
+  errorSummary: z.object({
+    http4xx: z.object({ count: z.number(), samples: z.array(z.string()) }).optional(),
+    http5xx: z.object({ count: z.number(), samples: z.array(z.string()) }).optional(),
+    network: z.object({ count: z.number(), samples: z.array(z.string()) }).optional(),
+    parse: z.object({ count: z.number(), samples: z.array(z.string()) }).optional(),
+    other: z.object({ count: z.number(), samples: z.array(z.string()) }).optional(),
+    imagesFailed: z.number().optional(),
+  }).optional(),
 });
 export type InsertMarketplaceSyncRun = z.infer<typeof insertMarketplaceSyncRunSchema>;
 export type MarketplaceSyncRun = typeof marketplaceSyncRuns.$inferSelect;

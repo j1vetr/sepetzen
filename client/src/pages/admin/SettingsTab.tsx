@@ -103,6 +103,55 @@ const WHATSAPP_VARIABLES = [
 ];
 
 // ── Aras Sender Address Picker ─────────────────────────────────────────────
+/** Seçili kargo sağlayıcısı için bağlantı testi yapar. */
+function ShippingTestButton({ provider, label }: { provider: string; label: string }) {
+  const [testing, setTesting] = useState(false);
+  const [result, setResult] = useState<{ ok: boolean; text: string } | null>(null);
+
+  const runTest = async () => {
+    setTesting(true);
+    setResult(null);
+    try {
+      const res = await fetch('/api/admin/shipping/test-connection', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify({ provider }),
+      });
+      const data = await res.json();
+      setResult({ ok: !!data.success, text: data.success ? (data.message || 'Bağlantı başarılı.') : (data.error || 'Bağlantı kurulamadı.') });
+    } catch {
+      setResult({ ok: false, text: 'Bağlantı hatası. Lütfen tekrar deneyin.' });
+    } finally {
+      setTesting(false);
+    }
+  };
+
+  return (
+    <div className="mt-4 flex flex-wrap items-center gap-3">
+      <button
+        type="button"
+        onClick={runTest}
+        disabled={testing}
+        className="inline-flex items-center gap-2 px-4 py-2 rounded-lg border border-neutral-200 bg-neutral-50 text-sm font-medium text-neutral-800 hover:bg-neutral-100 disabled:opacity-50"
+        data-testid={`button-test-${provider}`}
+      >
+        {testing ? <Loader2 className="w-4 h-4 animate-spin" /> : <ShieldCheck className="w-4 h-4" />}
+        {testing ? 'Test ediliyor…' : `${label} bağlantısını test et`}
+      </button>
+      {result && (
+        <span
+          className={`text-xs px-3 py-1.5 rounded-md ${result.ok ? 'bg-emerald-50 text-emerald-700 border border-emerald-200' : 'bg-red-50 text-red-700 border border-red-200'}`}
+          data-testid={`text-test-result-${provider}`}
+        >
+          {result.text}
+        </span>
+      )}
+      <span className="text-xs text-neutral-400">Testten önce ayarları kaydedin.</span>
+    </div>
+  );
+}
+
 function ArasSenderAddressPicker({ value, onChange }: { value: string; onChange: (v: string) => void }) {
   const [loading, setLoading] = useState(false);
   const [addresses, setAddresses] = useState<{ addressId: string; adres: string; sube: string; bolge: string }[]>([]);
@@ -521,6 +570,24 @@ export default function SettingsPanel() {
     aras_kargo_query_url: 'https://customerservices.araskargo.com.tr/ArasCargoCustomerIntegrationService/ArasCargoIntegrationService.svc',
     aras_kargo_sender_address_id: '',
     aras_kargo_default_desi: '1',
+    shipping_provider: 'aras',
+    geliver_enabled: 'false',
+    geliver_api_token: '',
+    geliver_sender_address_id: '',
+    geliver_service_code: 'GELIVER_STANDART',
+    geliver_store_url: '',
+    geliver_test_mode: 'false',
+    shipentegra_enabled: 'false',
+    shipentegra_client_id: '',
+    shipentegra_client_secret: '',
+    shipentegra_test_mode: 'false',
+    shipentegra_shipping_type: '1',
+    shipentegra_sender_name: '',
+    shipentegra_sender_address: '',
+    shipentegra_sender_city: '',
+    shipentegra_sender_zip: '',
+    shipentegra_sender_phone: '',
+    shipentegra_sender_email: '',
     ...Object.fromEntries(WHATSAPP_EVENTS.flatMap(({ key, defaultTpl }) => [
       [`wpileti_evt_${key}`, 'true'],
       [`wpileti_tpl_${key}`, defaultTpl],
@@ -1814,7 +1881,56 @@ export default function SettingsPanel() {
       {section === 'guvenlik' && <GoogleOAuthSection />}
 
       {/* Aras Kargo Section */}
-      {section === 'kargo' && (
+      {section === 'kargo' && (<>
+      {/* Aktif kargo sağlayıcısı seçimi */}
+      <div className="bg-white border border-neutral-200 rounded-xl p-6" data-testid="card-shipping-provider">
+        <div className="flex items-center gap-3 mb-5">
+          <div className="p-2 bg-neutral-100 rounded-lg">
+            <Truck className="w-5 h-5 text-neutral-700" />
+          </div>
+          <div>
+            <h3 className="text-lg font-semibold text-neutral-900">Aktif Kargo Sağlayıcısı</h3>
+            <p className="text-sm text-neutral-500">
+              Sipariş detayındaki "Gönderi Oluştur" işlemi seçtiğiniz sağlayıcı üzerinden çalışır.
+            </p>
+          </div>
+        </div>
+
+        <div className="grid sm:grid-cols-3 gap-3">
+          {([
+            { id: 'aras', name: 'Aras Kargo', desc: 'Yurt içi SOAP entegrasyonu' },
+            { id: 'geliver', name: 'Geliver', desc: 'Çoklu kargo pazaryeri (REST)' },
+            { id: 'shipentegra', name: 'ShipEntegra', desc: 'Yurt dışı gönderiler (REST)' },
+          ] as const).map(p => (
+            <label
+              key={p.id}
+              className={`flex flex-col gap-1 p-4 rounded-lg border-2 cursor-pointer transition-colors ${
+                settings.shipping_provider === p.id
+                  ? 'border-neutral-900 bg-neutral-50'
+                  : 'border-neutral-200 hover:border-neutral-300'
+              }`}
+              data-testid={`radio-provider-${p.id}`}
+            >
+              <div className="flex items-center gap-2">
+                <input
+                  type="radio"
+                  name="shipping_provider"
+                  value={p.id}
+                  checked={settings.shipping_provider === p.id}
+                  onChange={() => setSettings(s => ({ ...s, shipping_provider: p.id }))}
+                  className="w-4 h-4"
+                />
+                <span className="text-sm font-semibold text-neutral-900">{p.name}</span>
+              </div>
+              <span className="text-xs text-neutral-500 pl-6">{p.desc}</span>
+            </label>
+          ))}
+        </div>
+        <p className="text-xs text-neutral-400 mt-3">
+          Daha önce başka bir sağlayıcı ile oluşturulmuş gönderiler, o sağlayıcı üzerinden sorgulanmaya devam eder.
+        </p>
+      </div>
+
       <div className="bg-white border border-neutral-200 rounded-xl p-6" data-testid="card-aras-kargo-settings">
         <div className="flex items-center gap-3 mb-6">
           <div className="p-2 bg-orange-50 rounded-lg">
@@ -1911,8 +2027,255 @@ export default function SettingsPanel() {
         <p className="text-xs text-neutral-400 mt-1">
           Değişiklikler ana ayarlar kaydedildiğinde (aşağıdaki "Ayarları Kaydet" butonu) uygulanır.
         </p>
+
+        <ShippingTestButton provider="aras" label="Aras Kargo" />
       </div>
-      )}
+
+      {/* Geliver */}
+      <div className="bg-white border border-neutral-200 rounded-xl p-6" data-testid="card-geliver-settings">
+        <div className="flex items-center gap-3 mb-6">
+          <div className="p-2 bg-sky-50 rounded-lg">
+            <Truck className="w-5 h-5 text-sky-600" />
+          </div>
+          <div className="flex-1">
+            <h3 className="text-lg font-semibold text-neutral-900">Geliver API</h3>
+            <p className="text-sm text-neutral-500">
+              Tek istekte gönderi oluşturur ve etiketi satın alır; barkod ve etiket bağlantısı siparişe kaydedilir.
+            </p>
+          </div>
+          <label className="flex items-center gap-2 cursor-pointer">
+            <input
+              type="checkbox"
+              checked={settings.geliver_enabled === 'true'}
+              onChange={(e) => setSettings(s => ({ ...s, geliver_enabled: e.target.checked ? 'true' : 'false' }))}
+              className="w-5 h-5 rounded"
+              data-testid="checkbox-geliver-enabled"
+            />
+            <span className="text-sm font-medium text-neutral-900">Etkin</span>
+          </label>
+        </div>
+
+        <div className="grid md:grid-cols-2 gap-4 mb-4">
+          <div>
+            <label className="block text-sm font-medium text-neutral-500 mb-2">API Token</label>
+            <input
+              type="password"
+              value={settings.geliver_api_token}
+              onChange={(e) => setSettings(s => ({ ...s, geliver_api_token: e.target.value }))}
+              placeholder="••••••••"
+              className="w-full px-4 py-3 bg-neutral-50 border border-neutral-200 rounded-lg text-neutral-900 font-mono text-sm"
+              data-testid="input-geliver-token"
+            />
+            <p className="text-xs text-neutral-400 mt-1">Geliver panelinden alınan Bearer token.</p>
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-neutral-500 mb-2">Servis Kodu (providerServiceCode)</label>
+            <input
+              type="text"
+              value={settings.geliver_service_code}
+              onChange={(e) => setSettings(s => ({ ...s, geliver_service_code: e.target.value }))}
+              placeholder="GELIVER_STANDART"
+              className="w-full px-4 py-3 bg-neutral-50 border border-neutral-200 rounded-lg text-neutral-900 font-mono text-sm"
+              data-testid="input-geliver-service-code"
+            />
+            <p className="text-xs text-neutral-400 mt-1">Örn. GELIVER_STANDART, MNG_STANDART, SURAT_STANDART.</p>
+          </div>
+        </div>
+
+        <div className="grid md:grid-cols-2 gap-4 mb-4">
+          <div>
+            <label className="block text-sm font-medium text-neutral-500 mb-2">Gönderici Adres ID <span className="text-neutral-400 font-normal">(opsiyonel)</span></label>
+            <input
+              type="text"
+              value={settings.geliver_sender_address_id}
+              onChange={(e) => setSettings(s => ({ ...s, geliver_sender_address_id: e.target.value }))}
+              placeholder="Boş bırakılırsa varsayılan adres kullanılır"
+              className="w-full px-4 py-3 bg-neutral-50 border border-neutral-200 rounded-lg text-neutral-900 font-mono text-sm"
+              data-testid="input-geliver-sender-address"
+            />
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-neutral-500 mb-2">Mağaza Adresi (sourceIdentifier)</label>
+            <input
+              type="text"
+              value={settings.geliver_store_url}
+              onChange={(e) => setSettings(s => ({ ...s, geliver_store_url: e.target.value }))}
+              placeholder="https://magazam.com"
+              className="w-full px-4 py-3 bg-neutral-50 border border-neutral-200 rounded-lg text-neutral-900 text-sm"
+              data-testid="input-geliver-store-url"
+            />
+          </div>
+        </div>
+
+        <label className="flex items-center gap-2 cursor-pointer">
+          <input
+            type="checkbox"
+            checked={settings.geliver_test_mode === 'true'}
+            onChange={(e) => setSettings(s => ({ ...s, geliver_test_mode: e.target.checked ? 'true' : 'false' }))}
+            className="w-4 h-4 rounded"
+            data-testid="checkbox-geliver-test-mode"
+          />
+          <span className="text-sm text-neutral-700">Test gönderisi oluştur (canlıda kapatın)</span>
+        </label>
+
+        <ShippingTestButton provider="geliver" label="Geliver" />
+      </div>
+
+      {/* ShipEntegra */}
+      <div className="bg-white border border-neutral-200 rounded-xl p-6" data-testid="card-shipentegra-settings">
+        <div className="flex items-center gap-3 mb-6">
+          <div className="p-2 bg-violet-50 rounded-lg">
+            <Globe className="w-5 h-5 text-violet-600" />
+          </div>
+          <div className="flex-1">
+            <h3 className="text-lg font-semibold text-neutral-900">ShipEntegra API</h3>
+            <p className="text-sm text-neutral-500">
+              Sipariş oluşturur, etiket üretir ve takip numarasını siparişe yazar. Yurt dışı gönderiler için uygundur.
+            </p>
+          </div>
+          <label className="flex items-center gap-2 cursor-pointer">
+            <input
+              type="checkbox"
+              checked={settings.shipentegra_enabled === 'true'}
+              onChange={(e) => setSettings(s => ({ ...s, shipentegra_enabled: e.target.checked ? 'true' : 'false' }))}
+              className="w-5 h-5 rounded"
+              data-testid="checkbox-shipentegra-enabled"
+            />
+            <span className="text-sm font-medium text-neutral-900">Etkin</span>
+          </label>
+        </div>
+
+        <div className="grid md:grid-cols-2 gap-4 mb-4">
+          <div>
+            <label className="block text-sm font-medium text-neutral-500 mb-2">Client ID</label>
+            <input
+              type="text"
+              value={settings.shipentegra_client_id}
+              onChange={(e) => setSettings(s => ({ ...s, shipentegra_client_id: e.target.value }))}
+              placeholder="ShipEntegra Client ID"
+              className="w-full px-4 py-3 bg-neutral-50 border border-neutral-200 rounded-lg text-neutral-900 font-mono text-sm"
+              data-testid="input-shipentegra-client-id"
+            />
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-neutral-500 mb-2">Client Secret</label>
+            <input
+              type="password"
+              value={settings.shipentegra_client_secret}
+              onChange={(e) => setSettings(s => ({ ...s, shipentegra_client_secret: e.target.value }))}
+              placeholder="••••••••"
+              className="w-full px-4 py-3 bg-neutral-50 border border-neutral-200 rounded-lg text-neutral-900"
+              data-testid="input-shipentegra-client-secret"
+            />
+          </div>
+        </div>
+
+        <div className="grid md:grid-cols-2 gap-4 mb-4">
+          <div>
+            <label className="block text-sm font-medium text-neutral-500 mb-2">Gönderici Adı</label>
+            <input
+              type="text"
+              value={settings.shipentegra_sender_name}
+              onChange={(e) => setSettings(s => ({ ...s, shipentegra_sender_name: e.target.value }))}
+              placeholder="Firma / kişi adı"
+              className="w-full px-4 py-3 bg-neutral-50 border border-neutral-200 rounded-lg text-neutral-900 text-sm"
+              data-testid="input-shipentegra-sender-name"
+            />
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-neutral-500 mb-2">Gönderici Adresi</label>
+            <input
+              type="text"
+              value={settings.shipentegra_sender_address}
+              onChange={(e) => setSettings(s => ({ ...s, shipentegra_sender_address: e.target.value }))}
+              placeholder="Adres satırı"
+              className="w-full px-4 py-3 bg-neutral-50 border border-neutral-200 rounded-lg text-neutral-900 text-sm"
+              data-testid="input-shipentegra-sender-address"
+            />
+          </div>
+        </div>
+
+        <div className="grid md:grid-cols-3 gap-4 mb-4">
+          <div>
+            <label className="block text-sm font-medium text-neutral-500 mb-2">Şehir</label>
+            <input
+              type="text"
+              value={settings.shipentegra_sender_city}
+              onChange={(e) => setSettings(s => ({ ...s, shipentegra_sender_city: e.target.value }))}
+              placeholder="Istanbul"
+              className="w-full px-4 py-3 bg-neutral-50 border border-neutral-200 rounded-lg text-neutral-900 text-sm"
+              data-testid="input-shipentegra-sender-city"
+            />
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-neutral-500 mb-2">Posta Kodu</label>
+            <input
+              type="text"
+              value={settings.shipentegra_sender_zip}
+              onChange={(e) => setSettings(s => ({ ...s, shipentegra_sender_zip: e.target.value }))}
+              placeholder="34000"
+              className="w-full px-4 py-3 bg-neutral-50 border border-neutral-200 rounded-lg text-neutral-900 text-sm"
+              data-testid="input-shipentegra-sender-zip"
+            />
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-neutral-500 mb-2">Gönderi Tipi</label>
+            <select
+              value={settings.shipentegra_shipping_type}
+              onChange={(e) => setSettings(s => ({ ...s, shipentegra_shipping_type: e.target.value }))}
+              className="w-full px-4 py-3 bg-neutral-50 border border-neutral-200 rounded-lg text-neutral-900 text-sm"
+              data-testid="select-shipentegra-shipping-type"
+            >
+              <option value="1">ShipEntegra DDP</option>
+              <option value="2">DDU</option>
+              <option value="3">IOSS</option>
+              <option value="4">ShipEntegra IOSS</option>
+              <option value="5">HMRC</option>
+              <option value="6">Diğer</option>
+              <option value="7">VOEC</option>
+            </select>
+          </div>
+        </div>
+
+        <div className="grid md:grid-cols-2 gap-4 mb-4">
+          <div>
+            <label className="block text-sm font-medium text-neutral-500 mb-2">Gönderici Telefon</label>
+            <input
+              type="text"
+              value={settings.shipentegra_sender_phone}
+              onChange={(e) => setSettings(s => ({ ...s, shipentegra_sender_phone: e.target.value }))}
+              placeholder="+90 555 000 00 00"
+              className="w-full px-4 py-3 bg-neutral-50 border border-neutral-200 rounded-lg text-neutral-900 text-sm"
+              data-testid="input-shipentegra-sender-phone"
+            />
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-neutral-500 mb-2">Gönderici E-posta</label>
+            <input
+              type="email"
+              value={settings.shipentegra_sender_email}
+              onChange={(e) => setSettings(s => ({ ...s, shipentegra_sender_email: e.target.value }))}
+              placeholder="info@magazam.com"
+              className="w-full px-4 py-3 bg-neutral-50 border border-neutral-200 rounded-lg text-neutral-900 text-sm"
+              data-testid="input-shipentegra-sender-email"
+            />
+          </div>
+        </div>
+
+        <label className="flex items-center gap-2 cursor-pointer">
+          <input
+            type="checkbox"
+            checked={settings.shipentegra_test_mode === 'true'}
+            onChange={(e) => setSettings(s => ({ ...s, shipentegra_test_mode: e.target.checked ? 'true' : 'false' }))}
+            className="w-4 h-4 rounded"
+            data-testid="checkbox-shipentegra-test-mode"
+          />
+          <span className="text-sm text-neutral-700">Sandbox ortamını kullan (canlıda kapatın)</span>
+        </label>
+
+        <ShippingTestButton provider="shipentegra" label="ShipEntegra" />
+      </div>
+      </>)}
 
       {section === 'bildirim' && (<>
       <div className="bg-white border border-neutral-200 rounded-xl p-6">

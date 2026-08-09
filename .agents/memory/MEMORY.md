@@ -8,4 +8,8 @@
 
 - [Payment providers](payment-providers.md) — iyzico + PayTR live-only, keys in site_settings not env, provider toggles, shared finalizer, PayTR OK-ack only on terminal state.
 
+- [Cargo provider contracts](cargo-provider-contracts.md) — carrier endpoints come from vendor SDKs, not doc sites; ShipEntegra `/orders/manual`, Geliver `/transactions` root-level service code.
+
+- [drizzle-zod jsonb types](drizzle-zod-jsonb-types.md) — jsonb `$type` is lost by createInsertSchema; re-declare the field with `.extend()` or insert calls fail typecheck elsewhere.
+
 - [Monochrome rebrand & dark theme](monochrome-rebrand.md) — storefront is full dark monochrome; admin stays light; legacy polen/sepetzen tokens render near-black (invisible on dark) — never use them in storefront.

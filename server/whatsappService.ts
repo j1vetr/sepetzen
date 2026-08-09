@@ -243,7 +243,7 @@ async function orderVars(order: Order, config: WhatsAppConfig): Promise<Record<s
     kargoUcreti: String(order.shippingCost),
     kargoTakipNo: order.trackingNumber || '-',
     kargoTakipLink: order.trackingUrl || siparisTakipLink,
-    kargoFirma: order.shippingCarrier || 'Aras Kargo',
+    kargoFirma: order.shippingCarrier || 'Kargo',
     siparisTarihi: formatTRDate(order.createdAt),
     siparisSaati: formatTRTime(order.createdAt),
     siparisTarihSaat: formatTRDateTime(order.createdAt),

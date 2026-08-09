@@ -647,7 +647,8 @@ export class DbStorage implements IStorage {
       conditions.push(lte(products.basePrice, String(filters.maxPrice)));
     }
 
-    let query = db.select().from(products).where(and(...conditions));
+    // $dynamic(): sorgu koşullu olarak zincirlendiği için dinamik moda alınır.
+    let query = db.select().from(products).where(and(...conditions)).$dynamic();
 
     // Apply sorting
     switch (filters?.sort) {

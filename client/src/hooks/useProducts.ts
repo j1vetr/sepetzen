@@ -67,6 +67,10 @@ export interface Category {
   slug: string;
   image?: string;
   displayOrder: number;
+  /** SEO ve kategori açıklaması alanları /api/categories yanıtında döner. */
+  seoTitle?: string | null;
+  seoDescription?: string | null;
+  contentHtml?: string | null;
 }
 
 export interface ProductFilters {
