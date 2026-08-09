@@ -2,6 +2,7 @@ import nodemailer from 'nodemailer';
 import { storage } from './storage';
 import type { Order, OrderItem, User } from '@shared/schema';
 import { BANK_TRANSFER_INFO } from '@shared/bankInfo';
+import type { BillingAddress } from '@shared/billing';
 
 // Havale banka bilgileri site_settings'ten okunur, boşsa koddaki varsayılan kullanılır.
 async function getBankInfoForEmail(): Promise<{ bankName: string; accountHolder: string; iban: string; discountPercent: number }> {
@@ -102,6 +103,65 @@ function escapeHtml(s: string | number | undefined | null): string {
     .replace(/</g, '&lt;')
     .replace(/>/g, '&gt;')
     .replace(/"/g, '&quot;');
+}
+
+/**
+ * Siparişin billing_address alanından "Fatura Bilgileri" bloğunu oluşturur.
+ * Tüm değerler escapeHtml ile basılır.
+ *
+ * @param billing   orders.billingAddress jsonb değeri
+ * @param shipping  Teslimat adresi (aynılık kontrolü için)
+ */
+function buildBillingInfoHtml(
+  billing: BillingAddress | null | undefined,
+  shipping: { address: string; city: string; district: string; postalCode: string },
+): string {
+  if (!billing) return '';
+
+  // Fatura adresi teslimat ile aynı mı?
+  const sameAddr =
+    billing.address === shipping.address &&
+    billing.city === shipping.city &&
+    billing.district === shipping.district;
+
+  // Kurumsal / bireysel kimlik satırları
+  let invoiceLines = '';
+  if (billing.invoiceType === 'corporate') {
+    if (billing.companyName) {
+      invoiceLines += `<div style="font-size:13px;color:${BRAND.body};line-height:1.6;">Firma: <strong style="color:${BRAND.ink};">${escapeHtml(billing.companyName)}</strong></div>`;
+    }
+    if (billing.taxOffice) {
+      invoiceLines += `<div style="font-size:13px;color:${BRAND.body};line-height:1.6;">Vergi Dairesi: ${escapeHtml(billing.taxOffice)}</div>`;
+    }
+    if (billing.taxNumber) {
+      invoiceLines += `<div style="font-size:13px;color:${BRAND.body};line-height:1.6;">VKN: ${escapeHtml(billing.taxNumber)}</div>`;
+    }
+  } else {
+    if (billing.tcknNumber) {
+      invoiceLines += `<div style="font-size:13px;color:${BRAND.body};line-height:1.6;">TCKN: ${escapeHtml(billing.tcknNumber)}</div>`;
+    }
+  }
+
+  // Fatura adresi satırları
+  let addrLines = '';
+  if (sameAddr) {
+    addrLines = `<div style="font-size:13px;color:${BRAND.muted};line-height:1.6;font-style:italic;">Teslimat adresi ile aynı</div>`;
+  } else {
+    addrLines = `
+      <div style="font-size:13px;color:${BRAND.body};line-height:1.6;">${escapeHtml(billing.address)}</div>
+      <div style="font-size:13px;color:${BRAND.body};line-height:1.6;">${escapeHtml(billing.district)}, ${escapeHtml(billing.city)} ${escapeHtml(billing.postalCode)}</div>
+    `;
+  }
+
+  const typeLabel = billing.invoiceType === 'corporate' ? 'Kurumsal' : 'Bireysel';
+
+  return `
+    <div style="font-size:11px;color:${BRAND.muted};letter-spacing:1.5px;text-transform:uppercase;font-weight:600;margin-bottom:4px;">
+      Fatura Bilgileri <span style="font-size:10px;font-weight:500;letter-spacing:0.5px;text-transform:none;">(${escapeHtml(typeLabel)})</span>
+    </div>
+    ${invoiceLines}
+    ${addrLines}
+  `;
 }
 
 function emailButton(href: string, label: string, opts?: { variant?: 'primary' | 'ghost' }): string {
@@ -361,6 +421,8 @@ function orderConfirmationTemplate(order: Order, items: OrderItemForEmail[], sit
   }).join('');
 
   const shippingAddress = order.shippingAddress as { address: string; city: string; district: string; postalCode: string; country?: string };
+  const billingAddress = order.billingAddress as BillingAddress | null | undefined;
+  const billingHtml = buildBillingInfoHtml(billingAddress, shippingAddress);
   const trackingUrl = `${siteUrl}/siparis-takip?no=${encodeURIComponent(order.orderNumber)}`;
   const orderDate = formatTRDateTime(order.createdAt);
 
@@ -416,6 +478,7 @@ function orderConfirmationTemplate(order: Order, items: OrderItemForEmail[], sit
       <div style="font-size:13px;color:${BRAND.body};line-height:1.6;">${escapeHtml(shippingAddress.address)}</div>
       <div style="font-size:13px;color:${BRAND.body};line-height:1.6;">${escapeHtml(shippingAddress.district)}, ${escapeHtml(shippingAddress.city)} ${escapeHtml(shippingAddress.postalCode)}</div>
       <div style="font-size:13px;color:${BRAND.body};margin-top:8px;">${escapeHtml(order.customerPhone)}</div>
+      ${billingHtml ? `${HR()}${billingHtml}` : ''}
     `)}
 
     ${Small(`Sorularınız için <a href="mailto:${CONTACT.email}" style="color:${BRAND.primaryDeep};text-decoration:none;font-weight:600;">${CONTACT.email}</a> veya <a href="tel:${CONTACT.phoneTel}" style="color:${BRAND.primaryDeep};text-decoration:none;font-weight:600;">${CONTACT.phoneDisplay}</a>`)}
@@ -630,6 +693,8 @@ function adminOrderNotificationTemplate(order: Order, items: OrderItem[]): strin
   `).join('');
 
   const shippingAddress = order.shippingAddress as { address: string; city: string; district: string; postalCode: string; country?: string };
+  const billingAddress = order.billingAddress as BillingAddress | null | undefined;
+  const billingHtml = buildBillingInfoHtml(billingAddress, shippingAddress);
   const dateStr = formatTRDateTime(order.createdAt);
 
   return wrapTemplate(`
@@ -664,6 +729,7 @@ function adminOrderNotificationTemplate(order: Order, items: OrderItem[]): strin
       <div style="font-size:11px;color:${BRAND.muted};letter-spacing:1.5px;text-transform:uppercase;font-weight:600;margin:8px 0 4px 0;">Teslimat Adresi</div>
       <div style="font-size:13px;color:${BRAND.body};line-height:1.6;">${escapeHtml(shippingAddress.address)}</div>
       <div style="font-size:13px;color:${BRAND.body};line-height:1.6;">${escapeHtml(shippingAddress.district)}, ${escapeHtml(shippingAddress.city)} ${escapeHtml(shippingAddress.postalCode)}</div>
+      ${billingHtml ? `${HR()}${billingHtml}` : ''}
     `)}
 
     ${sectionTitle('Ürünler')}
