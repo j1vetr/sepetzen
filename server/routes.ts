@@ -122,8 +122,9 @@ const ensureDir = (dir: string) => {
 ensureDir(path.join(uploadDir, "products"));
 ensureDir(path.join(uploadDir, "categories"));
 ensureDir(path.join(uploadDir, "hero"));
+ensureDir(path.join(uploadDir, "blog"));
 
-const VALID_UPLOAD_TYPES = ['products', 'categories', 'hero', 'branding'];
+const VALID_UPLOAD_TYPES = ['products', 'categories', 'hero', 'branding', 'blog'];
 
 const multerStorage = multer.diskStorage({
   destination: (req, file, cb) => {
