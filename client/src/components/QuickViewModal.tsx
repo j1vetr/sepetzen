@@ -5,6 +5,7 @@ import { useCart } from '@/hooks/useCart';
 import { useCartModal } from '@/hooks/useCartModal';
 import { getOriginalPrice } from '@/lib/discountPrice';
 import { FreeShippingBadge } from './FreeShippingBadge';
+import { useFreeShippingThreshold } from '@/hooks/useShippingSettings';
 
 interface ProductVariant {
   id: string;
@@ -61,6 +62,7 @@ export function QuickViewModal({ product, isOpen, onClose }: QuickViewModalProps
 
   const price = parseFloat(product.basePrice || '0');
   const originalPrice = getOriginalPrice(price, product.discountBadge);
+  const freeShippingThreshold = useFreeShippingThreshold();
 
   const totalStock = product.variants?.reduce((sum, v) => sum + (v.stock || 0), 0) ?? 0;
   const isOutOfStock =
@@ -123,7 +125,11 @@ export function QuickViewModal({ product, isOpen, onClose }: QuickViewModalProps
                   className="w-full h-full object-cover"
                 />
                 {!isOutOfStock && (
-                  <FreeShippingBadge className="absolute top-4 left-4 z-10" />
+                  <FreeShippingBadge
+                    className="absolute top-4 left-4 z-10"
+                    productPrice={price}
+                    threshold={freeShippingThreshold}
+                  />
                 )}
                 {product.images.length > 1 && (
                   <div className="absolute bottom-4 left-1/2 -translate-x-1/2 flex gap-2">

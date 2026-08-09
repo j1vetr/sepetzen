@@ -2654,7 +2654,10 @@ Bu ürün için 4 bölümlü HTML açıklama üret. Teknik Özellikler bölümü
       }
 
       // Calculate shipping and total
-      const FREE_SHIPPING_THRESHOLD = 1500;
+      const configuredShippingThreshold = Number.parseFloat((await storage.getSiteSetting('free_shipping_threshold')) ?? '1500');
+      const FREE_SHIPPING_THRESHOLD = Number.isFinite(configuredShippingThreshold) && configuredShippingThreshold > 0
+        ? configuredShippingThreshold
+        : 1500;
       const DOMESTIC_SHIPPING_COST = 200;
       const INTERNATIONAL_SHIPPING_COST = 2500;
       const IRAQ_SHIPPING_COST = 5700;
@@ -2983,7 +2986,10 @@ Bu ürün için 4 bölümlü HTML açıklama üret. Teknik Özellikler bölümü
       }
 
       // Shipping
-      const FREE_SHIPPING_THRESHOLD = 1500;
+      const configuredShippingThreshold = Number.parseFloat((await storage.getSiteSetting('free_shipping_threshold')) ?? '1500');
+      const FREE_SHIPPING_THRESHOLD = Number.isFinite(configuredShippingThreshold) && configuredShippingThreshold > 0
+        ? configuredShippingThreshold
+        : 1500;
       const DOMESTIC_SHIPPING_COST = 200;
       const INTERNATIONAL_SHIPPING_COST = 2500;
       const IRAQ_SHIPPING_COST = 5700;
@@ -3839,7 +3845,10 @@ Bu ürün için 4 bölümlü HTML açıklama üret. Teknik Özellikler bölümü
       }
       
       // Calculate shipping and total on server
-      const FREE_SHIPPING_THRESHOLD = 1500;
+      const configuredShippingThreshold = Number.parseFloat((await storage.getSiteSetting('free_shipping_threshold')) ?? '1500');
+      const FREE_SHIPPING_THRESHOLD = Number.isFinite(configuredShippingThreshold) && configuredShippingThreshold > 0
+        ? configuredShippingThreshold
+        : 1500;
       const DOMESTIC_SHIPPING_COST = 200;
       const INTERNATIONAL_SHIPPING_COST = 2500;
       const IRAQ_SHIPPING_COST = 5700;
@@ -6445,6 +6454,18 @@ window.addEventListener('load', function() {
     }
   });
 
+  app.get("/api/shipping/settings", async (_req, res) => {
+    try {
+      const settings = await storage.getSiteSettings();
+      const value = Number.parseFloat(settings.free_shipping_threshold ?? '1500');
+      res.json({
+        freeShippingThreshold: Number.isFinite(value) && value > 0 ? value : 1500,
+      });
+    } catch {
+      res.status(500).json({ error: "Failed to fetch shipping settings" });
+    }
+  });
+
   // Site Settings Routes
   app.get("/api/admin/settings", requireAdmin, async (req, res) => {
     try {
@@ -6477,6 +6498,13 @@ window.addEventListener('load', function() {
   app.post("/api/admin/settings", requireAdmin, async (req, res) => {
     try {
       const settings = req.body;
+      if (settings.free_shipping_threshold !== undefined) {
+        const threshold = Number.parseFloat(settings.free_shipping_threshold);
+        if (!Number.isFinite(threshold) || threshold <= 0) {
+          return res.status(400).json({ error: "Ücretsiz kargo eşiği sıfırdan büyük olmalıdır." });
+        }
+        settings.free_shipping_threshold = String(Math.round(threshold));
+      }
       // Don't update masked credentials
       if (settings.smtp_pass === '••••••••') {
         delete settings.smtp_pass;

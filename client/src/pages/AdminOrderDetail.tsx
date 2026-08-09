@@ -493,7 +493,7 @@ export default function AdminOrderDetail() {
 
   if (loadError || !order) {
     return (
-      <div className="min-h-screen bg-neutral-50 flex items-center justify-center px-4">
+      <div className="admin-font min-h-screen bg-neutral-50 flex items-center justify-center px-4">
         <Card className="max-w-md w-full p-8 text-center">
           <div className="w-10 h-10 rounded-full bg-neutral-100 border border-neutral-200 mx-auto mb-3 flex items-center justify-center">
             <Package className="w-4 h-4 text-neutral-400" />
@@ -524,7 +524,7 @@ export default function AdminOrderDetail() {
   const isInfluencer = order.couponCode && couponInfo?.isInfluencerCode;
 
   return (
-    <div className="min-h-screen bg-neutral-50 pb-24 sm:pb-8">
+    <div className="admin-font min-h-screen bg-neutral-50 pb-24 sm:pb-8">
       <div className="max-w-6xl mx-auto px-4 sm:px-6 py-6 sm:py-8">
         {/* Back link */}
         <Link

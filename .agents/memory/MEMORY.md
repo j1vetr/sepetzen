@@ -12,4 +12,6 @@
 
 - [drizzle-zod jsonb types](drizzle-zod-jsonb-types.md) — jsonb `$type` is lost by createInsertSchema; re-declare the field with `.extend()` or insert calls fail typecheck elsewhere.
 
+- [Free shipping threshold](free-shipping-threshold.md) — one admin-editable setting; every badge, cart meter and server shipping calculation must read it, never a local literal.
+
 - [Monochrome rebrand & dark theme](monochrome-rebrand.md) — storefront is full dark monochrome; admin stays light; legacy polen/sepetzen tokens render near-black (invisible on dark) — never use them in storefront.

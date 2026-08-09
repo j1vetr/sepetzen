@@ -8,6 +8,9 @@ import { motion, AnimatePresence, useInView } from 'framer-motion';
 import { ArrowUpRight, Truck, ShieldCheck, Star, ChevronLeft, ChevronRight, Instagram } from 'lucide-react';
 import { useProducts, type Product } from '@/hooks/useProducts';
 import { useQuery } from '@tanstack/react-query';
+import { FreeShippingBadge } from '@/components/FreeShippingBadge';
+import { useFreeShippingThreshold } from '@/hooks/useShippingSettings';
+import { isFreeShippingPromotion } from '@/lib/promotionBadge';
 import {
   DEFAULT_HOMEPAGE_CONTENT,
   resolveHomepageContent,
@@ -66,6 +69,7 @@ function HeroSlider({ products, slides }: { products: Product[]; slides: HeroSli
   }, []);
 
   const slide = HERO_SLIDES[active];
+  const freeShippingThreshold = useFreeShippingThreshold();
 
   return (
     <section
@@ -205,9 +209,14 @@ function HeroSlider({ products, slides }: { products: Product[]; slides: HeroSli
                         )}
                         {/* Gradient overlay at bottom */}
                         <div className="absolute inset-x-0 bottom-0 h-20 bg-gradient-to-t from-black/70 to-transparent pointer-events-none" />
-                        {/* Badge */}
-                        {(p.isNew || p.discountBadge) && (
-                          <span className="absolute top-2 left-2 text-[7.5px] tracking-[0.18em] uppercase text-white bg-[#141414] px-2 py-0.5 font-bold">
+                        <FreeShippingBadge
+                          className="absolute top-2 left-2 z-10"
+                          size="compact"
+                          productPrice={price}
+                          threshold={freeShippingThreshold}
+                        />
+                        {(p.isNew || (p.discountBadge && !isFreeShippingPromotion(p.discountBadge))) && (
+                          <span className="absolute top-2 right-2 text-[7.5px] tracking-[0.18em] uppercase text-white bg-[#141414] px-2 py-0.5 font-bold">
                             {p.isNew ? 'Yeni' : p.discountBadge}
                           </span>
                         )}
@@ -500,6 +509,7 @@ function PopularCategories({ products }: { products: Product[] }) {
 function NewArrivals({ products }: { products: Product[] }) {
   const ref = useRef<HTMLElement>(null);
   const inView = useInView(ref, { once: true, amount: 0.1 });
+  const freeShippingThreshold = useFreeShippingThreshold();
   const items = useMemo(() => {
     return products.filter(p => (p.isNew || p.discountBadge) && p.images?.length).slice(0, 4);
   }, [products]);
@@ -556,13 +566,19 @@ function NewArrivals({ products }: { products: Product[] }) {
                       className="absolute inset-0 w-full h-full object-cover transition-transform duration-700 ease-out group-hover:scale-105"
                     />
                     {/* Badge */}
-                    {p.discountBadge && (
-                      <div className="absolute top-2.5 left-2.5 bg-[#141414] text-white text-[9px] font-bold tracking-[0.16em] uppercase px-2 py-1">
+                    <FreeShippingBadge
+                      className="absolute top-2.5 left-2.5 z-10"
+                      size="compact"
+                      productPrice={price}
+                      threshold={freeShippingThreshold}
+                    />
+                    {!isFreeShippingPromotion(p.discountBadge) && p.discountBadge && (
+                      <div className="absolute top-2.5 right-2.5 bg-[#141414] text-white text-[9px] font-bold tracking-[0.16em] uppercase px-2 py-1">
                         {p.discountBadge}
                       </div>
                     )}
                     {p.isNew && !p.discountBadge && (
-                      <div className="absolute top-2.5 left-2.5 bg-white text-black text-[9px] font-bold tracking-[0.16em] uppercase px-2 py-1">
+                      <div className="storefront-new-badge storefront-new-badge--compact absolute top-2.5 right-2.5">
                         Yeni
                       </div>
                     )}

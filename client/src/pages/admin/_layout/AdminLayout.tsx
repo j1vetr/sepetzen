@@ -47,7 +47,7 @@ export default function AdminLayout({
   };
 
   return (
-    <div className="min-h-screen bg-white text-neutral-900 flex font-sans">
+    <div className="admin-font min-h-screen bg-white text-neutral-900 flex">
       {mobileMenuOpen && (
         <div
           className="fixed inset-0 bg-black/30 z-40 md:hidden"

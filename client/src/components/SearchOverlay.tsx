@@ -4,6 +4,8 @@ import { Search, X, Loader2, ArrowRight } from 'lucide-react';
 import { Link, useLocation } from 'wouter';
 import { useQuery } from '@tanstack/react-query';
 import { FreeShippingBadge } from './FreeShippingBadge';
+import { isFreeShippingPromotion } from '@/lib/promotionBadge';
+import { useFreeShippingThreshold } from '@/hooks/useShippingSettings';
 
 interface SearchProduct {
   id: string;
@@ -35,6 +37,7 @@ export function SearchOverlay({ isOpen, onClose }: SearchOverlayProps) {
   const [debouncedQuery, setDebouncedQuery] = useState('');
   const inputRef = useRef<HTMLInputElement>(null);
   const [, navigate] = useLocation();
+  const freeShippingThreshold = useFreeShippingThreshold();
 
   // Focus + reset on open/close
   useEffect(() => {
@@ -294,14 +297,14 @@ export function SearchOverlay({ isOpen, onClose }: SearchOverlayProps) {
                               )}
 
                               {/* Badges */}
-                              {(product.isNew || product.discountBadge) && (
-                                <div className="absolute top-2 left-2 flex flex-col gap-1">
+                              {(product.isNew || (product.discountBadge && !isFreeShippingPromotion(product.discountBadge))) && (
+                                <div className="absolute top-2 right-2 flex flex-col gap-1 items-end">
                                   {product.isNew && (
-                                    <span className="text-[8.5px] tracking-[0.18em] uppercase font-bold bg-black text-white px-1.5 py-1">
+                                    <span className="storefront-new-badge storefront-new-badge--compact">
                                       Yeni
                                     </span>
                                   )}
-                                  {product.discountBadge && (
+                                  {!isFreeShippingPromotion(product.discountBadge) && product.discountBadge && (
                                     <span className="text-[8.5px] tracking-[0.18em] uppercase font-bold bg-white text-black px-1.5 py-1">
                                       {product.discountBadge}
                                     </span>
@@ -309,8 +312,10 @@ export function SearchOverlay({ isOpen, onClose }: SearchOverlayProps) {
                                 </div>
                               )}
                               <FreeShippingBadge
-                                className="absolute bottom-2 left-2 z-10"
+                                className="absolute top-2 left-2 z-10"
                                 size="compact"
+                                productPrice={parseFloat(product.basePrice || '0') || 0}
+                                threshold={freeShippingThreshold}
                               />
                             </div>
 

@@ -32,7 +32,7 @@ export default function AdminLogin() {
 
   return (
     <div
-      className="min-h-screen flex flex-col items-center justify-center px-5 py-12"
+      className="admin-font min-h-screen flex flex-col items-center justify-center px-5 py-12"
       style={{ background: 'linear-gradient(160deg, #0F0F0F 0%, #0F0F0F 50%, #0F0F0F 100%)' }}
     >
       {/* Subtle texture overlay */}

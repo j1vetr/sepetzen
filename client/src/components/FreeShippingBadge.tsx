@@ -4,6 +4,8 @@ import { cn } from '@/lib/utils';
 interface FreeShippingBadgeProps {
   className?: string;
   size?: 'compact' | 'default';
+  productPrice: number;
+  threshold: number;
 }
 
 /**
@@ -13,7 +15,11 @@ interface FreeShippingBadgeProps {
 export function FreeShippingBadge({
   className,
   size = 'default',
+  productPrice,
+  threshold,
 }: FreeShippingBadgeProps) {
+  if (productPrice < threshold) return null;
+
   return (
     <span
       className={cn(

@@ -47,7 +47,7 @@ function PageLoader() {
   const [location] = useLocation();
   const isAdmin = location.startsWith('/toov-admin');
   return (
-    <div className={`min-h-screen flex items-center justify-center ${isAdmin ? 'bg-background' : 'bg-[#0A0A0A]'}`}>
+    <div className={`${isAdmin ? 'admin-font bg-background' : 'bg-[#0A0A0A]'} min-h-screen flex items-center justify-center`}>
       <Loader2 className={`w-8 h-8 animate-spin ${isAdmin ? 'text-muted-foreground' : 'text-white/40'}`} />
     </div>
   );

@@ -570,6 +570,7 @@ export default function SettingsPanel() {
     aras_kargo_query_url: 'https://customerservices.araskargo.com.tr/ArasCargoCustomerIntegrationService/ArasCargoIntegrationService.svc',
     aras_kargo_sender_address_id: '',
     aras_kargo_default_desi: '1',
+    free_shipping_threshold: '1500',
     shipping_provider: 'aras',
     geliver_enabled: 'false',
     geliver_api_token: '',
@@ -1882,6 +1883,35 @@ export default function SettingsPanel() {
 
       {/* Aras Kargo Section */}
       {section === 'kargo' && (<>
+      <div className="bg-white border border-neutral-200 rounded-xl p-6" data-testid="card-free-shipping-threshold">
+        <div className="flex items-center gap-3 mb-5">
+          <div className="p-2 bg-neutral-100 rounded-lg">
+            <Truck className="w-5 h-5 text-neutral-700" />
+          </div>
+          <div>
+            <h3 className="text-lg font-semibold text-neutral-900">Ücretsiz Kargo Eşiği</h3>
+            <p className="text-sm text-neutral-500">
+              Bu tutar ve üzerindeki ürünlerde ücretsiz kargo rozeti gösterilir. Sipariş kargo ücreti de aynı eşik üzerinden hesaplanır.
+            </p>
+          </div>
+        </div>
+        <div className="max-w-xs">
+          <label className="block text-sm font-medium text-neutral-700 mb-2" htmlFor="free-shipping-threshold">
+            Minimum ürün / sepet tutarı (TL)
+          </label>
+          <input
+            id="free-shipping-threshold"
+            type="number"
+            min="1"
+            step="1"
+            value={settings.free_shipping_threshold}
+            onChange={(e) => setSettings(s => ({ ...s, free_shipping_threshold: e.target.value }))}
+            data-testid="input-free-shipping-threshold"
+            className="w-full px-4 py-3 bg-neutral-50 border border-neutral-200 rounded-lg text-neutral-900 text-sm focus:outline-none focus:border-neutral-900 transition-colors"
+          />
+        </div>
+      </div>
+
       {/* Aktif kargo sağlayıcısı seçimi */}
       <div className="bg-white border border-neutral-200 rounded-xl p-6" data-testid="card-shipping-provider">
         <div className="flex items-center gap-3 mb-5">

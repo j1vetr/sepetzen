@@ -65,6 +65,8 @@ import { SEO } from '@/components/SEO';
 import { ShippingCountdown } from '@/components/ShippingCountdown';
 import { ProductCard } from '@/components/ProductCard';
 import { FreeShippingBadge } from '@/components/FreeShippingBadge';
+import { isFreeShippingPromotion } from '@/lib/promotionBadge';
+import { useFreeShippingThreshold } from '@/hooks/useShippingSettings';
 
 import { getOriginalPrice } from '@/lib/discountPrice';
 import { useProduct, useProducts, useCategories } from '@/hooks/useProducts';
@@ -672,6 +674,7 @@ export default function ProductDetail() {
   const { addToCart } = useCart();
   const { showModal } = useCartModal();
   const { toast } = useToast();
+  const freeShippingThreshold = useFreeShippingThreshold();
   const { user } = useAuth();
 
   const { data: reviews = [] } = useProductReviews(product?.id || '');
@@ -969,6 +972,9 @@ export default function ProductDetail() {
   const images = renderedImages;
   const price = parseFloat(product.basePrice || '0');
   const originalPrice = getOriginalPrice(price, product.discountBadge);
+  const visibleDiscountBadge = !isFreeShippingPromotion(product.discountBadge)
+    ? product.discountBadge
+    : null;
   const category = categories.find((c) => c.id === product.categoryId);
   const totalStock = product.variants?.reduce((sum, v) => sum + (v.stock || 0), 0) ?? 0;
   const isOutOfStock = !!product.variants && product.variants.length > 0 && totalStock === 0;
@@ -1181,13 +1187,17 @@ export default function ProductDetail() {
                         />
                       </motion.div>
                     </AnimatePresence>
-                    {product.discountBadge && (
-                      <span className="absolute top-4 left-4 z-10 bg-red-500 text-black text-[10px] font-extrabold tracking-[0.16em] px-3 py-1.5 uppercase">{product.discountBadge}</span>
+                    {visibleDiscountBadge && (
+                      <span className="absolute top-4 right-4 z-10 bg-red-500 text-black text-[10px] font-extrabold tracking-[0.16em] px-3 py-1.5 uppercase">{visibleDiscountBadge}</span>
                     )}
-                    {product.isNew && !product.discountBadge && (
-                      <span className="absolute top-4 left-4 z-10 bg-white text-black text-[10px] font-bold tracking-[0.2em] px-3 py-1.5 uppercase">Yeni</span>
+                    {product.isNew && !visibleDiscountBadge && (
+                      <span className="storefront-new-badge absolute top-4 right-4 z-10">Yeni</span>
                     )}
-                    <FreeShippingBadge className="absolute bottom-4 left-4 z-10" />
+                    <FreeShippingBadge
+                      className="absolute top-4 left-4 z-10"
+                      productPrice={price}
+                      threshold={freeShippingThreshold}
+                    />
                     <div className="absolute bottom-4 right-4 text-[10px] text-white/50 bg-black/25 px-2 py-1 backdrop-blur-sm font-mono">
                       {selectedImage + 1} / {images.length}
                     </div>
@@ -1204,9 +1214,13 @@ export default function ProductDetail() {
                         </button>
                       ))}
                     </div>
-                    {product.discountBadge && <span className="absolute top-4 left-4 z-10 bg-red-500 text-black text-[10px] font-extrabold tracking-[0.16em] px-3 py-1.5 uppercase">{product.discountBadge}</span>}
-                    {product.isNew && !product.discountBadge && <span className="absolute top-4 left-4 z-10 bg-white text-black text-[10px] font-bold tracking-[0.2em] px-3 py-1.5 uppercase">Yeni</span>}
-                    <FreeShippingBadge className="absolute bottom-4 left-4 z-10" />
+                    {visibleDiscountBadge && <span className="absolute top-4 right-4 z-10 bg-red-500 text-black text-[10px] font-extrabold tracking-[0.16em] px-3 py-1.5 uppercase">{visibleDiscountBadge}</span>}
+                    {product.isNew && !visibleDiscountBadge && <span className="storefront-new-badge absolute top-4 right-4 z-10">Yeni</span>}
+                    <FreeShippingBadge
+                      className="absolute top-4 left-4 z-10"
+                      productPrice={price}
+                      threshold={freeShippingThreshold}
+                    />
                   </div>
                   {images.length > 1 && (
                     <div className="mt-3 space-y-3">

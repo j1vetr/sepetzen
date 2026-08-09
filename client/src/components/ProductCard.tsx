@@ -6,6 +6,8 @@ import { useFavoriteIds, useToggleFavorite } from '@/hooks/useFavorites';
 import { QuickViewModal } from './QuickViewModal';
 import { FreeShippingBadge } from './FreeShippingBadge';
 import { getOriginalPrice } from '@/lib/discountPrice';
+import { useFreeShippingThreshold } from '@/hooks/useShippingSettings';
+import { isFreeShippingPromotion } from '@/lib/promotionBadge';
 
 interface ProductVariant {
   id: string;
@@ -43,6 +45,10 @@ export const ProductCard = memo(function ProductCard({ product }: ProductCardPro
   const isLiked = favoriteIds.includes(product.id);
   const price = parseFloat(product.basePrice || '0') || 0;
   const originalPrice = getOriginalPrice(price, product.discountBadge);
+  const freeShippingThreshold = useFreeShippingThreshold();
+  const visibleDiscountBadge = !isFreeShippingPromotion(product.discountBadge)
+    ? product.discountBadge
+    : null;
   const mainImage = product.images && product.images.length > 0
     ? product.images[0]
     : 'https://images.unsplash.com/photo-1618354691373-d851c5c3a990?w=600&h=800&fit=crop';
@@ -88,20 +94,20 @@ export const ProductCard = memo(function ProductCard({ product }: ProductCardPro
             )}
 
             {/* Badges */}
-            {product.discountBadge && !isOutOfStock && (
+            {visibleDiscountBadge && !isOutOfStock && (
               <div
-                className="absolute top-3 left-3 z-10"
+                className="absolute top-3 right-3 z-10"
                 data-testid={`badge-discount-${product.id}`}
               >
                 <span className="bg-white text-black text-[10px] font-bold tracking-wider px-2.5 py-1 uppercase">
-                  {product.discountBadge}
+                  {visibleDiscountBadge}
                 </span>
               </div>
             )}
 
-            {product.isNew && !isOutOfStock && !product.discountBadge && (
+            {product.isNew && !isOutOfStock && !visibleDiscountBadge && (
               <span
-                className="absolute top-3 left-3 bg-white text-black text-[10px] font-bold tracking-[0.2em] px-2.5 py-1 uppercase z-10"
+                className="storefront-new-badge absolute top-3 right-3 z-10"
                 data-testid={`badge-new-${product.id}`}
               >
                 Yeni
@@ -110,8 +116,10 @@ export const ProductCard = memo(function ProductCard({ product }: ProductCardPro
 
             {!isOutOfStock && (
               <FreeShippingBadge
-                className="absolute bottom-3 left-3 z-10"
+                className="absolute top-3 left-3 z-10"
                 size="compact"
+                productPrice={price}
+                threshold={freeShippingThreshold}
               />
             )}
 
