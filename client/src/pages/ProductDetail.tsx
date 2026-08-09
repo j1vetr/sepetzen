@@ -58,7 +58,6 @@ function WhatsAppIcon({ className }: { className?: string }) {
     </svg>
   );
 }
-
 import { Header } from '@/components/Header';
 import { Footer } from '@/components/Footer';
 import { SEO } from '@/components/SEO';
@@ -1188,13 +1187,13 @@ export default function ProductDetail() {
                       </motion.div>
                     </AnimatePresence>
                     {visibleDiscountBadge && (
-                      <span className="absolute top-4 right-4 z-10 bg-red-500 text-black text-[10px] font-extrabold tracking-[0.16em] px-3 py-1.5 uppercase">{visibleDiscountBadge}</span>
+                      <span className="absolute top-4 left-4 z-10 bg-red-500 text-black text-[10px] font-extrabold tracking-[0.16em] px-3 py-1.5 uppercase">{visibleDiscountBadge}</span>
                     )}
                     {product.isNew && !visibleDiscountBadge && (
-                      <span className="storefront-new-badge absolute top-4 right-4 z-10">Yeni</span>
+                      <span className="storefront-new-badge absolute top-4 left-4 z-10">Yeni</span>
                     )}
                     <FreeShippingBadge
-                      className="absolute top-4 left-4 z-10"
+                      className="absolute bottom-4 left-4 z-10"
                       productPrice={price}
                       threshold={freeShippingThreshold}
                     />
@@ -1214,10 +1213,10 @@ export default function ProductDetail() {
                         </button>
                       ))}
                     </div>
-                    {visibleDiscountBadge && <span className="absolute top-4 right-4 z-10 bg-red-500 text-black text-[10px] font-extrabold tracking-[0.16em] px-3 py-1.5 uppercase">{visibleDiscountBadge}</span>}
-                    {product.isNew && !visibleDiscountBadge && <span className="storefront-new-badge absolute top-4 right-4 z-10">Yeni</span>}
+                    {visibleDiscountBadge && <span className="absolute top-4 left-4 z-10 bg-red-500 text-black text-[10px] font-extrabold tracking-[0.16em] px-3 py-1.5 uppercase">{visibleDiscountBadge}</span>}
+                    {product.isNew && !visibleDiscountBadge && <span className="storefront-new-badge absolute top-4 left-4 z-10">Yeni</span>}
                     <FreeShippingBadge
-                      className="absolute top-4 left-4 z-10"
+                      className="absolute bottom-4 left-4 z-10"
                       productPrice={price}
                       threshold={freeShippingThreshold}
                     />

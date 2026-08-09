@@ -10,18 +10,19 @@ import {
 import { motion, AnimatePresence } from 'framer-motion';
 import { SEO } from '@/components/SEO';
 import { BANK_TRANSFER_DISCOUNT_RATE } from '@shared/bankInfo';
+import { useFreeShippingThreshold } from '@/hooks/useShippingSettings';
 
-const FREE_SHIPPING_THRESHOLD = 1500;
 const DOMESTIC_SHIPPING_COST = 200;
 
 export default function Cart() {
   const { items, isLoading, updateQuantity, removeItem, totalItems, subtotal } = useCart();
   const [summaryOpen, setSummaryOpen] = useState(false);
+  const freeShippingThreshold = useFreeShippingThreshold();
 
-  const shippingCost = subtotal >= FREE_SHIPPING_THRESHOLD ? 0 : DOMESTIC_SHIPPING_COST;
+  const shippingCost = subtotal >= freeShippingThreshold ? 0 : DOMESTIC_SHIPPING_COST;
   const total = subtotal + shippingCost;
-  const remainingForFreeShipping = Math.max(0, FREE_SHIPPING_THRESHOLD - subtotal);
-  const shippingProgress = Math.min((subtotal / FREE_SHIPPING_THRESHOLD) * 100, 100);
+  const remainingForFreeShipping = Math.max(0, freeShippingThreshold - subtotal);
+  const shippingProgress = Math.min((subtotal / freeShippingThreshold) * 100, 100);
   const bankDiscountPercent = Math.round(BANK_TRANSFER_DISCOUNT_RATE * 100);
   const bankDiscountTotal = total * (1 - BANK_TRANSFER_DISCOUNT_RATE);
 

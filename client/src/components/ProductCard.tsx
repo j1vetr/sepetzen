@@ -96,7 +96,7 @@ export const ProductCard = memo(function ProductCard({ product }: ProductCardPro
             {/* Badges */}
             {visibleDiscountBadge && !isOutOfStock && (
               <div
-                className="absolute top-3 right-3 z-10"
+                className="absolute top-3 left-3 z-10"
                 data-testid={`badge-discount-${product.id}`}
               >
                 <span className="bg-white text-black text-[10px] font-bold tracking-wider px-2.5 py-1 uppercase">
@@ -107,7 +107,7 @@ export const ProductCard = memo(function ProductCard({ product }: ProductCardPro
 
             {product.isNew && !isOutOfStock && !visibleDiscountBadge && (
               <span
-                className="storefront-new-badge absolute top-3 right-3 z-10"
+                className="storefront-new-badge absolute top-3 left-3 z-10"
                 data-testid={`badge-new-${product.id}`}
               >
                 Yeni
@@ -116,7 +116,7 @@ export const ProductCard = memo(function ProductCard({ product }: ProductCardPro
 
             {!isOutOfStock && (
               <FreeShippingBadge
-                className="absolute top-3 left-3 z-10"
+                className="absolute bottom-3 left-3 z-10"
                 size="compact"
                 productPrice={price}
                 threshold={freeShippingThreshold}

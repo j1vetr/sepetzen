@@ -19,6 +19,7 @@ import {
 import { COUNTRIES } from '@/lib/countries';
 import { GoogleAuthButton } from '@/components/AuthLayout';
 import { BANK_TRANSFER_INFO } from '@shared/bankInfo';
+import { useFreeShippingThreshold } from '@/hooks/useShippingSettings';
 
 interface Product {
   id: string;
@@ -42,7 +43,6 @@ interface UserAddress {
   isDefault: boolean;
 }
 
-const FREE_SHIPPING_THRESHOLD = 1500;
 const INTERNATIONAL_SHIPPING_COST = 2500;
 const IRAQ_SHIPPING_COST = 5700;
 const DOMESTIC_SHIPPING_COST = 200;
@@ -58,6 +58,7 @@ export default function Checkout() {
   const { items, subtotal, clearCart } = useCart();
   const { user } = useAuth();
   const { toast } = useToast();
+  const freeShippingThreshold = useFreeShippingThreshold();
   const [loading, setLoading] = useState(false);
   const [currentStep, setCurrentStep] = useState(1);
   const [orderComplete, setOrderComplete] = useState(false);
@@ -249,11 +250,11 @@ export default function Checkout() {
   const isDomestic = formData.country === 'Türkiye';
   const isIraq = formData.country === 'Irak';
   const baseShippingCost = isDomestic 
-    ? (subtotal >= FREE_SHIPPING_THRESHOLD ? 0 : DOMESTIC_SHIPPING_COST)
+    ? (subtotal >= freeShippingThreshold ? 0 : DOMESTIC_SHIPPING_COST)
     : isIraq ? IRAQ_SHIPPING_COST : INTERNATIONAL_SHIPPING_COST;
   const shippingCost = appliedCoupon?.freeShipping ? 0 : baseShippingCost;
-  const remainingForFreeShipping = isDomestic && !appliedCoupon?.freeShipping ? (FREE_SHIPPING_THRESHOLD - subtotal) : 0;
-  const shippingProgress = isDomestic ? Math.min((subtotal / FREE_SHIPPING_THRESHOLD) * 100, 100) : 100;
+  const remainingForFreeShipping = isDomestic && !appliedCoupon?.freeShipping ? (freeShippingThreshold - subtotal) : 0;
+  const shippingProgress = isDomestic ? Math.min((subtotal / freeShippingThreshold) * 100, 100) : 100;
   
   // Calculate discount based on coupon
   const calculateDiscount = () => {

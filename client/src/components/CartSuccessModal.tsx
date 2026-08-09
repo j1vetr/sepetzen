@@ -3,6 +3,7 @@ import { X, Check, ShoppingBag, ArrowRight, Truck } from 'lucide-react';
 import { Link } from 'wouter';
 import { Button } from '@/components/ui/button';
 import { useEffect, useState } from 'react';
+import { useFreeShippingThreshold } from '@/hooks/useShippingSettings';
 
 interface CartSuccessModalProps {
   isOpen: boolean;
@@ -18,8 +19,6 @@ interface CartSuccessModalProps {
   cartItemCount: number;
 }
 
-const FREE_SHIPPING_THRESHOLD = 2500;
-
 function useIsMobile() {
   const [isMobile, setIsMobile] = useState(false);
   useEffect(() => {
@@ -33,11 +32,12 @@ function useIsMobile() {
 
 export function CartSuccessModal({ isOpen, onClose, product, cartTotal, cartItemCount }: CartSuccessModalProps) {
   const isMobile = useIsMobile();
+  const freeShippingThreshold = useFreeShippingThreshold();
 
   if (!product) return null;
 
-  const remainingForFreeShipping = Math.max(0, FREE_SHIPPING_THRESHOLD - cartTotal);
-  const shippingProgress = Math.min((cartTotal / FREE_SHIPPING_THRESHOLD) * 100, 100);
+  const remainingForFreeShipping = Math.max(0, freeShippingThreshold - cartTotal);
+  const shippingProgress = Math.min((cartTotal / freeShippingThreshold) * 100, 100);
   const freeShipReached = remainingForFreeShipping === 0;
 
   return (

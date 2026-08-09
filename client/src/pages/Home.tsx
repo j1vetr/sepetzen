@@ -567,18 +567,18 @@ function NewArrivals({ products }: { products: Product[] }) {
                     />
                     {/* Badge */}
                     <FreeShippingBadge
-                      className="absolute top-2.5 left-2.5 z-10"
+                      className="absolute bottom-2.5 left-2.5 z-10"
                       size="compact"
                       productPrice={price}
                       threshold={freeShippingThreshold}
                     />
                     {!isFreeShippingPromotion(p.discountBadge) && p.discountBadge && (
-                      <div className="absolute top-2.5 right-2.5 bg-[#141414] text-white text-[9px] font-bold tracking-[0.16em] uppercase px-2 py-1">
+                      <div className="absolute top-2.5 left-2.5 bg-[#141414] text-white text-[9px] font-bold tracking-[0.16em] uppercase px-2 py-1">
                         {p.discountBadge}
                       </div>
                     )}
                     {p.isNew && !p.discountBadge && (
-                      <div className="storefront-new-badge storefront-new-badge--compact absolute top-2.5 right-2.5">
+                      <div className="storefront-new-badge storefront-new-badge--compact absolute top-2.5 left-2.5">
                         Yeni
                       </div>
                     )}
