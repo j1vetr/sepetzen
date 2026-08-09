@@ -1029,3 +1029,31 @@ export const insertPageSchema = createInsertSchema(pages).omit({
 
 export type InsertPage = z.infer<typeof insertPageSchema>;
 export type Page = typeof pages.$inferSelect;
+
+// ============================================================================
+// BLOG — İçerik pazarlaması / SEO yazıları
+// ============================================================================
+
+export const blogPosts = pgTable("blog_posts", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  slug: text("slug").notNull().unique(),
+  title: text("title").notNull(),
+  excerpt: text("excerpt").notNull().default(""),
+  content: text("content").notNull().default(""),
+  coverImage: text("cover_image"),
+  seoTitle: text("seo_title"),
+  seoDescription: text("seo_description"),
+  isPublished: boolean("is_published").default(false).notNull(),
+  publishedAt: timestamp("published_at"),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+});
+
+export const insertBlogPostSchema = createInsertSchema(blogPosts).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
+export type InsertBlogPost = z.infer<typeof insertBlogPostSchema>;
+export type BlogPost = typeof blogPosts.$inferSelect;

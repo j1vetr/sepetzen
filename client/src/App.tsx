@@ -35,6 +35,8 @@ const CancellationPolicy = lazy(() => import("@/pages/CancellationPolicy"));
 const KVKK = lazy(() => import("@/pages/KVKK"));
 const Store = lazy(() => import("@/pages/Store"));
 const StaticPage = lazy(() => import("@/pages/StaticPage"));
+const Blog = lazy(() => import("@/pages/Blog"));
+const BlogPost = lazy(() => import("@/pages/BlogPost"));
 const PaymentSuccess = lazy(() => import("@/pages/PaymentSuccess"));
 const PaymentFail = lazy(() => import("@/pages/PaymentFail"));
 const OrderTracking = lazy(() => import("@/pages/OrderTracking"));
@@ -91,6 +93,8 @@ function Router() {
         <Route path="/sayfa/gizlilik"><Redirect to="/sayfa/gizlilik-guvenlik" /></Route>
         <Route path="/sayfa/cerez"><Redirect to="/sayfa/cerez-politikasi" /></Route>
         <Route path="/sayfa/:slug" component={StaticPage} />
+        <Route path="/blog" component={Blog} />
+        <Route path="/blog/:slug" component={BlogPost} />
         <Route path="/toov-admin/login" component={AdminLogin} />
         <Route path="/toov-admin/orders/:id" component={AdminOrderDetail} />
         <Route path="/toov-admin" component={AdminDashboard} />

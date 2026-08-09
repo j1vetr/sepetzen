@@ -381,10 +381,15 @@ export async function registerRoutes(
         { loc: "/sayfa/iletisim", priority: "0.5", changefreq: "monthly" },
       ];
 
-      const [categories, products] = await Promise.all([
+      const [categories, products, blogPostList] = await Promise.all([
         storage.getCategories().catch(() => []),
         storage.getAllProducts().catch(() => []),
+        storage.getBlogPosts({ publishedOnly: true }).catch(() => []),
       ]);
+
+      if (blogPostList.length > 0) {
+        staticPages.push({ loc: "/blog", priority: "0.7", changefreq: "weekly" });
+      }
 
       const escapeXml = (str: string) =>
         str
@@ -416,6 +421,14 @@ export async function registerRoutes(
           : today;
         urls.push(
           `  <url>\n    <loc>${baseUrl}/urun/${escapeXml(product.slug)}</loc>\n    <lastmod>${lastmod}</lastmod>\n    <changefreq>weekly</changefreq>\n    <priority>0.7</priority>\n  </url>`
+        );
+      }
+
+      for (const post of blogPostList) {
+        if (!post?.slug) continue;
+        const lastmod = new Date(post.updatedAt ?? post.createdAt).toISOString().split("T")[0];
+        urls.push(
+          `  <url>\n    <loc>${baseUrl}/blog/${escapeXml(post.slug)}</loc>\n    <lastmod>${lastmod}</lastmod>\n    <changefreq>monthly</changefreq>\n    <priority>0.6</priority>\n  </url>`
         );
       }
 
@@ -615,6 +628,29 @@ export async function registerRoutes(
     }
   });
 
+  // ── Public Blog API ──────────────────────────────────────────────────────
+  app.get("/api/blog", async (_req, res) => {
+    try {
+      const posts = await storage.getBlogPosts({ publishedOnly: true });
+      // Liste görünümünde içerik HTML'i taşınmaz.
+      res.json(posts.map(({ content, ...rest }) => rest));
+    } catch (err) {
+      console.error("[blog] list error:", err);
+      res.status(500).json({ error: "Blog yazıları yüklenemedi" });
+    }
+  });
+
+  app.get("/api/blog/:slug", async (req, res) => {
+    try {
+      const post = await storage.getBlogPostBySlug(req.params.slug);
+      if (!post || !post.isPublished) return res.status(404).json({ error: "Yazı bulunamadı" });
+      res.json(post);
+    } catch (err) {
+      console.error("[blog] get error:", err);
+      res.status(500).json({ error: "Yazı yüklenemedi" });
+    }
+  });
+
   app.get("/api/pages/:slug", async (req, res) => {
     try {
       const page = await storage.getPageBySlug(req.params.slug);
@@ -804,8 +840,89 @@ export async function registerRoutes(
     }
   });
 
+  // ── Admin Blog API ───────────────────────────────────────────────────────
+  const blogPostBodySchema = z.object({
+    slug: z.string().trim().min(1).max(160).regex(/^[a-z0-9]+(?:-[a-z0-9]+)*$/, {
+      message: "Adres yalnızca küçük harf, rakam ve tire içerebilir",
+    }),
+    title: z.string().trim().min(1).max(200),
+    excerpt: z.string().max(500).default(""),
+    content: z.string().max(200_000).default(""),
+    coverImage: z.string().max(500).nullable().optional(),
+    seoTitle: z.string().max(200).nullable().optional(),
+    seoDescription: z.string().max(400).nullable().optional(),
+    isPublished: z.boolean().default(false),
+  });
+
+  app.get("/api/admin/blog", requireAdmin, async (_req, res) => {
+    try {
+      res.json(await storage.getBlogPosts());
+    } catch (err) {
+      console.error("[blog] admin list error:", err);
+      res.status(500).json({ error: "Blog yazıları yüklenemedi" });
+    }
+  });
+
+  app.post("/api/admin/blog", requireAdmin, async (req, res) => {
+    const parsed = blogPostBodySchema.safeParse(req.body);
+    if (!parsed.success) {
+      return res.status(400).json({ error: parsed.error.issues[0]?.message || "Yazı bilgileri geçersiz" });
+    }
+    try {
+      const existing = await storage.getBlogPostBySlug(parsed.data.slug);
+      if (existing) return res.status(409).json({ error: "Bu adres başka bir yazıda kullanılıyor" });
+      const post = await storage.createBlogPost({
+        ...parsed.data,
+        content: sanitizeStoredHtml(parsed.data.content),
+        publishedAt: parsed.data.isPublished ? new Date() : null,
+      });
+      res.status(201).json(post);
+    } catch (err) {
+      console.error("[blog] create error:", err);
+      res.status(500).json({ error: "Yazı kaydedilemedi" });
+    }
+  });
+
+  app.put("/api/admin/blog/:id", requireAdmin, async (req, res) => {
+    const parsed = blogPostBodySchema.safeParse(req.body);
+    if (!parsed.success) {
+      return res.status(400).json({ error: parsed.error.issues[0]?.message || "Yazı bilgileri geçersiz" });
+    }
+    try {
+      const current = await storage.getBlogPost(req.params.id);
+      if (!current) return res.status(404).json({ error: "Yazı bulunamadı" });
+      const slugOwner = await storage.getBlogPostBySlug(parsed.data.slug);
+      if (slugOwner && slugOwner.id !== current.id) {
+        return res.status(409).json({ error: "Bu adres başka bir yazıda kullanılıyor" });
+      }
+      // Yayına ilk alındığı an yayın tarihi olarak kalır.
+      const publishedAt = parsed.data.isPublished ? current.publishedAt ?? new Date() : null;
+      const post = await storage.updateBlogPost(current.id, {
+        ...parsed.data,
+        content: sanitizeStoredHtml(parsed.data.content),
+        publishedAt,
+      });
+      res.json(post);
+    } catch (err) {
+      console.error("[blog] update error:", err);
+      res.status(500).json({ error: "Yazı kaydedilemedi" });
+    }
+  });
+
+  app.delete("/api/admin/blog/:id", requireAdmin, async (req, res) => {
+    try {
+      const current = await storage.getBlogPost(req.params.id);
+      if (!current) return res.status(404).json({ error: "Yazı bulunamadı" });
+      await storage.deleteBlogPost(current.id);
+      res.json({ success: true });
+    } catch (err) {
+      console.error("[blog] delete error:", err);
+      res.status(500).json({ error: "Yazı silinemedi" });
+    }
+  });
+
   // Allowed upload types for security
-  const ALLOWED_UPLOAD_TYPES = ['products', 'categories', 'hero', 'branding'];
+  const ALLOWED_UPLOAD_TYPES = ['products', 'categories', 'hero', 'branding', 'blog'];
 
   // File Upload Route with type validation and image optimization
   app.post("/api/admin/upload/:type", requireAdmin, (req, res, next) => {

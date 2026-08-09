@@ -28,6 +28,10 @@ function SocialIcon({ platform }: { platform: SocialLink['platform'] }) {
 
 export function Footer() {
   const identity = useSiteIdentity();
+  // Blog, site kimliği ayarlarında tanımlı değilse de footer'dan erişilebilir kalsın.
+  const kurumsalLinks = identity.kurumsalLinks.some((link) => link.href === '/blog')
+    ? identity.kurumsalLinks
+    : [{ href: '/blog', label: 'Blog' }, ...identity.kurumsalLinks];
   return (
     <footer
       className="relative bg-[#0F0F0F] text-white overflow-hidden"
@@ -84,7 +88,7 @@ export function Footer() {
               Kurumsal
             </h4>
             <ul className="space-y-3 text-[14px] text-white/70">
-              {identity.kurumsalLinks.map((link) => (
+              {kurumsalLinks.map((link) => (
                 <li key={link.href}>
                   <Link
                     href={link.href}

@@ -15,6 +15,7 @@ import {
   Ticket,
   MessageSquare,
   HandCoins,
+  Newspaper,
 } from 'lucide-react';
 import type { SidebarCategory } from '../_layout/AdminLayout';
 import type { TabType } from './types';
@@ -32,6 +33,7 @@ export const VALID_TABS: TabType[] = [
   'menu',
   'homepage',
   'pages',
+  'blog',
   'marketplaces',
   'marketplaceOrders',
   'coupons',
@@ -86,6 +88,7 @@ export const SIDEBAR_CATEGORIES: SidebarCategory[] = [
       { id: 'homepage', icon: Home, label: 'Ana Sayfa' },
       { id: 'menu', icon: MenuIcon, label: 'Menü' },
       { id: 'pages', icon: FileText, label: 'Yasal Sayfalar' },
+      { id: 'blog', icon: Newspaper, label: 'Blog' },
     ],
   },
   {
@@ -113,6 +116,7 @@ export const TAB_DESCRIPTIONS: Record<TabType, string> = {
   coupons: 'İndirim kuponları oluşturun ve takip edin.',
   homepage: 'Ana sayfanızın bölümlerini düzenleyin.',
   pages: 'Yasal ve bilgilendirme sayfalarınızın içeriklerini düzenleyin.',
+  blog: 'Blog yazılarınızı oluşturun, düzenleyin ve yayınlayın.',
   menu: 'Sitenizin üst menüsünü düzenleyin.',
   settings: 'Mağaza bilgileri ve genel ayarlar.',
   database: 'Teknik veri araçları. Gerekmedikçe kullanmanıza gerek yok.',

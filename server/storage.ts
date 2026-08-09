@@ -29,6 +29,9 @@ import {
   quoteItems,
   menuItems,
   pages,
+  blogPosts,
+  type BlogPost,
+  type InsertBlogPost,
   type Page,
   type InsertPage,
   type AdminUser,
@@ -414,6 +417,14 @@ export interface IStorage {
   updatePage(id: string, page: Partial<InsertPage>): Promise<Page | undefined>;
   deletePage(id: string): Promise<void>;
   upsertPage(slug: string, data: Omit<InsertPage, 'slug'>): Promise<Page>;
+
+  // Blog
+  getBlogPosts(options?: { publishedOnly?: boolean }): Promise<BlogPost[]>;
+  getBlogPost(id: string): Promise<BlogPost | undefined>;
+  getBlogPostBySlug(slug: string): Promise<BlogPost | undefined>;
+  createBlogPost(post: InsertBlogPost): Promise<BlogPost>;
+  updateBlogPost(id: string, post: Partial<InsertBlogPost>): Promise<BlogPost | undefined>;
+  deleteBlogPost(id: string): Promise<void>;
 }
 
 export class DbStorage implements IStorage {
@@ -2631,6 +2642,48 @@ export class DbStorage implements IStorage {
       return updated;
     }
     return this.createPage({ slug, ...data });
+  }
+
+  // ── Blog ────────────────────────────────────────────────────────────────
+  async getBlogPosts(options?: { publishedOnly?: boolean }): Promise<BlogPost[]> {
+    const query = db.select().from(blogPosts);
+    const rows = options?.publishedOnly
+      ? await query.where(eq(blogPosts.isPublished, true))
+      : await query;
+    // Yayın tarihi olan yazılar önce; yoksa oluşturma tarihine göre.
+    return rows.sort((a, b) => {
+      const aDate = (a.publishedAt ?? a.createdAt).getTime();
+      const bDate = (b.publishedAt ?? b.createdAt).getTime();
+      return bDate - aDate;
+    });
+  }
+
+  async getBlogPost(id: string): Promise<BlogPost | undefined> {
+    const [post] = await db.select().from(blogPosts).where(eq(blogPosts.id, id));
+    return post;
+  }
+
+  async getBlogPostBySlug(slug: string): Promise<BlogPost | undefined> {
+    const [post] = await db.select().from(blogPosts).where(eq(blogPosts.slug, slug));
+    return post;
+  }
+
+  async createBlogPost(post: InsertBlogPost): Promise<BlogPost> {
+    const [created] = await db.insert(blogPosts).values(post).returning();
+    return created;
+  }
+
+  async updateBlogPost(id: string, post: Partial<InsertBlogPost>): Promise<BlogPost | undefined> {
+    const [updated] = await db
+      .update(blogPosts)
+      .set({ ...post, updatedAt: new Date() })
+      .where(eq(blogPosts.id, id))
+      .returning();
+    return updated;
+  }
+
+  async deleteBlogPost(id: string): Promise<void> {
+    await db.delete(blogPosts).where(eq(blogPosts.id, id));
   }
 }
 
