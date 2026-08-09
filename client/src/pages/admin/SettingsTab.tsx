@@ -1,6 +1,6 @@
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useState, useEffect, type ComponentType } from 'react';
-import { Settings, Mail, Loader2, CheckCircle2, XCircle, Send, Server, CreditCard, Copy, AlertTriangle, Wrench, MessageCircle, KeyRound, ShieldCheck, Truck, MapPin, Megaphone, Globe, Banknote, Upload } from 'lucide-react';
+import { Settings, Mail, Loader2, CheckCircle2, XCircle, Send, Server, CreditCard, Copy, AlertTriangle, Wrench, MessageCircle, KeyRound, ShieldCheck, Truck, MapPin, Megaphone, Globe, Banknote, Upload, ShoppingBag } from 'lucide-react';
 import { BANK_TRANSFER_INFO } from '@shared/bankInfo';
 import type { SiteIdentity, SocialLink, MobileNavItem } from '@shared/siteIdentity';
 
@@ -503,6 +503,10 @@ export default function SettingsPanel() {
     admin_email: '',
     site_url: '',
     site_name: '',
+    google_merchant_enabled: 'false',
+    google_merchant_brand: '',
+    google_merchant_category: '',
+    google_merchant_include_out_of_stock: 'false',
     wpileti_enabled: 'false',
     wpileti_api_key: '',
     wpileti_endpoint: 'http://127.0.0.1:3225/api/send-message',
@@ -528,6 +532,7 @@ export default function SettingsPanel() {
   const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
   const [iyzicoSaving, setIyzicoSaving] = useState(false);
   const [callbackCopied, setCallbackCopied] = useState(false);
+  const [merchantLinkCopied, setMerchantLinkCopied] = useState(false);
   const [iyzicoApiKey, setIyzicoApiKey] = useState('');
   const [iyzicoSecretKey, setIyzicoSecretKey] = useState('');
   const [iyzicoTesting, setIyzicoTesting] = useState(false);
@@ -836,6 +841,15 @@ export default function SettingsPanel() {
 
   const { data: savedSettings, isLoading } = useQuery<Record<string, string>>({
     queryKey: ['/api/admin/settings'],
+  });
+
+  const { data: merchantStatus, refetch: refetchMerchantStatus, isFetching: merchantStatusLoading } = useQuery<{
+    enabled: boolean;
+    feedUrl: string;
+    itemCount: number;
+    productCount: number;
+  }>({
+    queryKey: ['/api/admin/google-merchant/status'],
   });
 
   useEffect(() => {
@@ -1210,6 +1224,169 @@ export default function SettingsPanel() {
             )}
           </div>
         )}
+      </div>
+      )}
+
+      {section === 'genel' && (
+      <div className="bg-white border border-neutral-200 rounded-xl p-6" data-testid="card-google-merchant-settings">
+        <div className="flex items-center gap-3 mb-6">
+          <div className="p-2 bg-neutral-50 rounded-lg">
+            <ShoppingBag className="w-5 h-5 text-neutral-900" />
+          </div>
+          <div>
+            <h3 className="text-lg font-semibold text-neutral-900">Google Merchant Beslemesi</h3>
+            <p className="text-sm text-neutral-500">
+              Ürünlerinizi Google Alışveriş'te listelemek için XML besleme adresi üretir. Merchant Center'da "Planlanmış getirme" olarak eklenir.
+            </p>
+          </div>
+        </div>
+
+        <div className="space-y-5">
+          <div className="grid grid-cols-2 gap-3">
+            <button
+              type="button"
+              onClick={() => setSettings(s => ({ ...s, google_merchant_enabled: 'false' }))}
+              data-testid="button-merchant-off"
+              className={`px-4 py-3 rounded-lg border text-sm font-medium transition-colors text-left ${
+                settings.google_merchant_enabled !== 'true'
+                  ? 'bg-neutral-900 text-white border-neutral-900'
+                  : 'bg-white text-neutral-700 border-neutral-200 hover:bg-neutral-50'
+              }`}
+            >
+              <div className="flex items-center gap-2">
+                {settings.google_merchant_enabled !== 'true' && <CheckCircle2 className="w-4 h-4" />}
+                <span>KAPALI</span>
+              </div>
+              <div className={`text-xs mt-1 ${settings.google_merchant_enabled !== 'true' ? 'text-white/70' : 'text-neutral-500'}`}>
+                Besleme adresi 404 döner
+              </div>
+            </button>
+            <button
+              type="button"
+              onClick={() => setSettings(s => ({ ...s, google_merchant_enabled: 'true' }))}
+              data-testid="button-merchant-on"
+              className={`px-4 py-3 rounded-lg border text-sm font-medium transition-colors text-left ${
+                settings.google_merchant_enabled === 'true'
+                  ? 'bg-emerald-600 text-white border-emerald-600'
+                  : 'bg-white text-neutral-700 border-neutral-200 hover:bg-neutral-50'
+              }`}
+            >
+              <div className="flex items-center gap-2">
+                {settings.google_merchant_enabled === 'true' && <CheckCircle2 className="w-4 h-4" />}
+                <span>AÇIK</span>
+              </div>
+              <div className={`text-xs mt-1 ${settings.google_merchant_enabled === 'true' ? 'text-white/80' : 'text-neutral-500'}`}>
+                Besleme yayında
+              </div>
+            </button>
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-neutral-500 mb-2">Besleme Adresi</label>
+            <div className="flex gap-2">
+              <input
+                type="text"
+                readOnly
+                value={merchantStatus?.feedUrl || `${(settings.site_url || '').replace(/\/+$/, '')}/google-merchant.xml`}
+                className="flex-1 px-4 py-3 bg-neutral-50 border border-neutral-200 rounded-lg text-neutral-900 text-sm font-mono"
+                data-testid="input-merchant-feed-url"
+              />
+              <button
+                type="button"
+                onClick={() => {
+                  const url = merchantStatus?.feedUrl || `${(settings.site_url || '').replace(/\/+$/, '')}/google-merchant.xml`;
+                  navigator.clipboard.writeText(url);
+                  setMerchantLinkCopied(true);
+                  setTimeout(() => setMerchantLinkCopied(false), 2000);
+                }}
+                className="flex items-center gap-2 px-4 py-3 bg-neutral-900 text-white rounded-lg hover:bg-neutral-800 transition-colors text-sm font-medium"
+                data-testid="button-copy-merchant-feed-url"
+              >
+                {merchantLinkCopied ? <CheckCircle2 className="w-4 h-4" /> : <Copy className="w-4 h-4" />}
+                {merchantLinkCopied ? 'Kopyalandı' : 'Kopyala'}
+              </button>
+            </div>
+            <p className="text-xs text-neutral-500 mt-1">
+              Adres, "Site URL" ayarına göre oluşur. Merchant Center'a bu adresi ekleyin.
+            </p>
+          </div>
+
+          <div className="grid md:grid-cols-2 gap-4">
+            <div>
+              <label className="block text-sm font-medium text-neutral-500 mb-2">Marka Adı</label>
+              <input
+                type="text"
+                value={settings.google_merchant_brand}
+                onChange={(e) => setSettings(s => ({ ...s, google_merchant_brand: e.target.value }))}
+                placeholder={settings.site_name || 'Sepetzen'}
+                className="w-full px-4 py-3 bg-neutral-50 border border-neutral-200 rounded-lg text-neutral-900 focus:border-neutral-900 transition-colors"
+                data-testid="input-merchant-brand"
+              />
+              <p className="text-xs text-neutral-500 mt-1">Ürünün kendi markası boşsa bu değer kullanılır</p>
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-neutral-500 mb-2">Varsayılan Google Ürün Kategorisi</label>
+              <input
+                type="text"
+                value={settings.google_merchant_category}
+                onChange={(e) => setSettings(s => ({ ...s, google_merchant_category: e.target.value }))}
+                placeholder="Örn: 632 veya Home &amp; Garden > Kitchen &amp; Dining"
+                className="w-full px-4 py-3 bg-neutral-50 border border-neutral-200 rounded-lg text-neutral-900 focus:border-neutral-900 transition-colors"
+                data-testid="input-merchant-category"
+              />
+              <p className="text-xs text-neutral-500 mt-1">Boş bırakılırsa Google kategoriyi kendi tahmin eder</p>
+            </div>
+          </div>
+
+          <label className="flex items-center gap-3 cursor-pointer">
+            <input
+              type="checkbox"
+              checked={settings.google_merchant_include_out_of_stock === 'true'}
+              onChange={(e) => setSettings(s => ({ ...s, google_merchant_include_out_of_stock: e.target.checked ? 'true' : 'false' }))}
+              className="w-4 h-4 accent-neutral-900"
+              data-testid="checkbox-merchant-include-oos"
+            />
+            <span className="text-sm text-neutral-900">Stokta olmayan ürünleri de beslemeye ekle (out_of_stock olarak)</span>
+          </label>
+
+          <div className="flex items-start gap-2 p-3 bg-neutral-50 border border-neutral-200 rounded-lg text-xs text-neutral-700" data-testid="text-merchant-status">
+            {merchantStatusLoading ? (
+              <><Loader2 className="w-4 h-4 animate-spin" /> Besleme özeti hesaplanıyor...</>
+            ) : merchantStatus ? (
+              <span>
+                Beslemede <strong>{merchantStatus.productCount}</strong> ürün, <strong>{merchantStatus.itemCount}</strong> varyant kaydı yer alıyor.
+                {' '}Görseli olmayan, pasif veya fiyatsız ürünler dışarıda bırakılır.
+              </span>
+            ) : (
+              <span>Besleme özeti alınamadı.</span>
+            )}
+          </div>
+
+          <div className="flex justify-end gap-2">
+            <button
+              type="button"
+              onClick={() => refetchMerchantStatus()}
+              disabled={merchantStatusLoading}
+              className="px-5 py-2.5 border border-neutral-200 text-neutral-700 rounded-lg hover:bg-neutral-50 transition-colors text-sm font-medium disabled:opacity-50"
+              data-testid="button-merchant-refresh"
+            >
+              Özeti Yenile
+            </button>
+            <button
+              type="button"
+              onClick={async () => {
+                await handleSave();
+                await refetchMerchantStatus();
+              }}
+              disabled={isSaving}
+              className="flex items-center gap-2 px-5 py-2.5 bg-neutral-900 text-white rounded-lg hover:bg-neutral-800 transition-colors text-sm font-medium disabled:opacity-50"
+              data-testid="button-save-merchant-settings"
+            >
+              {isSaving ? <Loader2 className="w-4 h-4 animate-spin" /> : <CheckCircle2 className="w-4 h-4" />}
+              Besleme Ayarlarını Kaydet
+            </button>
+          </div>
+        </div>
       </div>
       )}
 

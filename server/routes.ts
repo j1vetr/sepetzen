@@ -360,6 +360,26 @@ export async function registerRoutes(
     }
   });
 
+  // Google Merchant Center (Google Shopping) RSS 2.0 ürün akışı
+  // Merchant Center → Ürünler → Besleme → Planlanmış getirme URL'i olarak kullanılır
+  app.get("/google-merchant.xml", async (_req, res) => {
+    try {
+      const { getGoogleMerchantSettings, getGoogleMerchantFeed } = await import("./googleMerchant");
+      const feedSettings = await getGoogleMerchantSettings();
+      if (!feedSettings.enabled) {
+        res.status(404).type("text/plain; charset=utf-8").send("Google Merchant beslemesi kapalı");
+        return;
+      }
+      const { xml } = await getGoogleMerchantFeed(feedSettings);
+      res.setHeader("Content-Type", "application/xml; charset=utf-8");
+      res.setHeader("Cache-Control", "public, max-age=1800");
+      res.send(xml);
+    } catch (error) {
+      console.error("[google-merchant] feed üretimi başarısız:", error);
+      res.status(500).send("Feed üretilemedi");
+    }
+  });
+
   // Dynamic sitemap.xml — categories + products + static pages
   app.get(["/sitemap.xml", "/sitemap_index.xml"], async (_req, res) => {
     try {
@@ -6197,9 +6217,33 @@ window.addEventListener('load', function() {
         delete settings.aras_kargo_password;
       }
       await storage.setSiteSettings(settings);
+      // Merchant besleme ayarları değiştiyse önbelleği düşür
+      if (Object.keys(settings).some((key) => key.startsWith("google_merchant_") || key === "site_url" || key === "site_name")) {
+        const { invalidateGoogleMerchantFeedCache } = await import("./googleMerchant");
+        invalidateGoogleMerchantFeedCache();
+      }
       res.json({ success: true });
     } catch (error) {
       res.status(500).json({ error: "Failed to save settings" });
+    }
+  });
+
+  // Google Merchant besleme durumu — admin panelinde önizleme için
+  app.get("/api/admin/google-merchant/status", requireAdmin, async (_req, res) => {
+    try {
+      const { getGoogleMerchantSettings, buildGoogleMerchantFeed, GOOGLE_MERCHANT_FEED_PATH } =
+        await import("./googleMerchant");
+      const feedSettings = await getGoogleMerchantSettings();
+      const { itemCount, productCount } = await buildGoogleMerchantFeed(feedSettings);
+      res.json({
+        enabled: feedSettings.enabled,
+        feedUrl: `${feedSettings.siteUrl}${GOOGLE_MERCHANT_FEED_PATH}`,
+        itemCount,
+        productCount,
+      });
+    } catch (error) {
+      console.error("[google-merchant] durum alınamadı:", error);
+      res.status(500).json({ error: "Besleme durumu alınamadı" });
     }
   });
 
