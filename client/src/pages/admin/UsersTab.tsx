@@ -1,4 +1,4 @@
-import { Users as UsersIcon, Eye, Trash2 } from 'lucide-react';
+import { Users as UsersIcon, Pencil, Trash2 } from 'lucide-react';
 import type { User } from './_shared/types';
 import { Card, SearchInput, IconButton, EmptyState } from './_ui/AdminUI';
 
@@ -73,10 +73,10 @@ export default function UsersTab({ users, searchQuery, setSearchQuery, setViewin
                       <div className="flex justify-end gap-2">
                         <IconButton
                           onClick={() => setViewingUser(user)}
-                          title="Görüntüle"
-                          data-testid={`button-view-user-${user.id}`}
+                          title="Düzenle"
+                          data-testid={`button-edit-user-${user.id}`}
                         >
-                          <Eye className="w-4 h-4" />
+                          <Pencil className="w-4 h-4" />
                         </IconButton>
                         <IconButton
                           tone="danger"
@@ -125,10 +125,10 @@ export default function UsersTab({ users, searchQuery, setSearchQuery, setViewin
                   <button
                     onClick={() => setViewingUser(user)}
                     className="inline-flex items-center justify-center gap-1.5 h-9 flex-1 text-[13px] font-medium bg-white text-neutral-700 border border-neutral-200 rounded-md hover:bg-neutral-50 hover:text-neutral-900 transition-colors"
-                    data-testid={`card-button-view-user-${user.id}`}
+                    data-testid={`card-button-edit-user-${user.id}`}
                   >
-                    <Eye className="w-4 h-4" />
-                    Görüntüle
+                    <Pencil className="w-4 h-4" />
+                    Düzenle
                   </button>
                   <button
                     onClick={() => confirmDelete(user.id)}

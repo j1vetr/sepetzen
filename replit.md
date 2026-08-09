@@ -32,7 +32,7 @@ All user-visible date/time rendering for orders (admin panel, customer profile, 
 
 ### Navigation
 - Header navigation reads from the `menu_items` table (`/api/menu`). When at least one root item exists, the desktop nav renders each root menu item directly as a top-level entry (submenus open as their own dropdown, category/link items render as plain links), and the mobile drawer renders each root as a top-level accordion row. The legacy single "Kategoriler" mega-dropdown is no longer used. When `menu_items` is empty, Header falls back to a single "Kategoriler" dropdown built from `categories` with `displayOrder < 100`.
-- **Home page** (`client/src/pages/Home.tsx`): Awwwards/FWA-grade product-led experience. Hero wordmark "SEPETZEN / OUTDOOR GEAR"; statement marquee: El Yapımı Bıçaklar, Outdoor Ekipmanları, Kamp Çakıları, Bahçe Aletleri, Doğal Malzeme, Türk Ustalığı. Pinned horizontal showcase, bento product mosaic, image-driven category bento (8 menu roots), final CTA. Smooth scroll via **Lenis**; custom **mix-blend-difference cursor** for desktop.
+- **Home page** (`client/src/pages/Home.tsx`): Awwwards/FWA-grade product-led experience. Hero wordmark "SEPETZEN / OUTDOOR GEAR"; statement marquee: El Yapımı Bıçaklar, Outdoor Ekipmanları, Kamp Çakıları, Bahçe Aletleri, Doğal Malzeme, Türk Ustalığı. Pinned horizontal showcase, bento product mosaic, image-driven category bento (8 menu roots), final CTA. Uses native browser scrolling; custom **mix-blend-difference cursor** for desktop.
 - Categories: Çakılar, Bıçaklar, Bağ & Bahçe Aletleri, Kamp & Outdoor Ekipmanları, Pet Shop & Çiftlik, Nalbur & Hırdavat, Mangal & Izgara & Ahşap (30 categories total, seeded in `server/seed-sepetzen.ts`).
 
 ### Key Features

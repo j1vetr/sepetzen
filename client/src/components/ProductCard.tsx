@@ -135,7 +135,7 @@ export const ProductCard = memo(function ProductCard({ product }: ProductCardPro
               animate={{ opacity: isHovered || isLiked ? 1 : 0 }}
               transition={{ duration: 0.2 }}
               disabled={isFavoriteLoading}
-              className="absolute top-3 right-3 z-10 w-8 h-8 bg-white/10 backdrop-blur-md border border-white/12 flex items-center justify-center shadow-sm"
+              className="absolute top-3 right-3 z-10 w-8 h-8 rounded-full bg-white/10 backdrop-blur-md border border-white/12 flex items-center justify-center shadow-sm"
             >
               {isFavoriteLoading ? (
                 <Loader2 className="w-3.5 h-3.5 animate-spin text-white" />

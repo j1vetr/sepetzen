@@ -189,7 +189,7 @@ export default function HomepageTab() {
                   <label className="mt-1.5 flex items-center justify-center gap-1 text-[11px] text-neutral-600 hover:text-neutral-900 cursor-pointer border border-neutral-200 rounded py-1">
                     {uploadingIndex === i ? <Loader2 className="w-3 h-3 animate-spin" /> : <Upload className="w-3 h-3" />}
                     Görsel
-                    <input type="file" accept="image/*" className="hidden" onChange={(e) => { const f = e.target.files?.[0]; if (f) uploadHeroImage(f, i); e.target.value = ''; }} data-testid={`input-slide-image-${i}`} />
+                    <input type="file" accept="image/png,image/jpeg,image/webp,image/gif" className="hidden" onChange={(e) => { const f = e.target.files?.[0]; if (f) uploadHeroImage(f, i); e.target.value = ''; }} data-testid={`input-slide-image-${i}`} />
                   </label>
                 </div>
 

@@ -2,6 +2,7 @@ import { sql, relations } from "drizzle-orm";
 import { pgTable, text, varchar, integer, decimal, boolean, timestamp, jsonb, uniqueIndex, index } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
+import { INVOICE_TYPES, type BillingAddress } from "./billing";
 
 export const adminUsers = pgTable("admin_users", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
@@ -43,6 +44,21 @@ export const insertUserSchema = createInsertSchema(users).omit({
 export type InsertUser = z.infer<typeof insertUserSchema>;
 export type User = typeof users.$inferSelect;
 
+export const adminUpdateUserSchema = z.object({
+  email: z.string().trim().email("Geçerli bir e-posta adresi girin").max(255),
+  firstName: z.string().trim().max(100).nullable(),
+  lastName: z.string().trim().max(100).nullable(),
+  phone: z.string().trim().max(30).nullable(),
+  address: z.string().trim().max(1000).nullable(),
+  city: z.string().trim().max(100).nullable(),
+  district: z.string().trim().max(100).nullable(),
+  postalCode: z.string().trim().max(20).nullable(),
+  country: z.string().trim().max(100).nullable(),
+  whatsappOptIn: z.boolean(),
+});
+
+export type AdminUpdateUser = z.infer<typeof adminUpdateUserSchema>;
+
 // NOTE: user_sessions table is managed by connect-pg-simple middleware, not Drizzle
 // Do NOT add it to schema - it will cause permission errors on db:push
 
@@ -60,6 +76,12 @@ export const userAddresses = pgTable("user_addresses", {
   postalCode: text("postal_code"),
   country: text("country").default("Türkiye").notNull(),
   isDefault: boolean("is_default").default(false).notNull(),
+  // Fatura bilgileri (Bireysel / Kurumsal) — bkz. shared/billing.ts
+  invoiceType: text("invoice_type").default("individual").notNull(),
+  tcknNumber: text("tckn_number"),
+  companyName: text("company_name"),
+  taxOffice: text("tax_office"),
+  taxNumber: text("tax_number"),
   createdAt: timestamp("created_at").defaultNow().notNull(),
   updatedAt: timestamp("updated_at").defaultNow().notNull(),
 });
@@ -68,6 +90,8 @@ export const insertUserAddressSchema = createInsertSchema(userAddresses).omit({
   id: true,
   createdAt: true,
   updatedAt: true,
+}).extend({
+  invoiceType: z.enum(INVOICE_TYPES).optional(),
 });
 
 export type InsertUserAddress = z.infer<typeof insertUserAddressSchema>;
@@ -228,6 +252,7 @@ export const orders = pgTable("orders", {
     postalCode: string;
     country?: string;
   }>().notNull(),
+  billingAddress: jsonb("billing_address").$type<BillingAddress>(),
   subtotal: decimal("subtotal", { precision: 10, scale: 2 }).notNull(),
   shippingCost: decimal("shipping_cost", { precision: 10, scale: 2 }).default("0").notNull(),
   discountAmount: decimal("discount_amount", { precision: 10, scale: 2 }).default("0"),
@@ -265,6 +290,18 @@ export const insertOrderSchema = createInsertSchema(orders).omit({
     postalCode: z.string(),
     country: z.string().optional(),
   }),
+  billingAddress: z.object({
+    address: z.string(),
+    city: z.string(),
+    district: z.string(),
+    postalCode: z.string(),
+    country: z.string().optional(),
+    invoiceType: z.enum(INVOICE_TYPES).optional(),
+    tcknNumber: z.string().nullable().optional(),
+    companyName: z.string().nullable().optional(),
+    taxOffice: z.string().nullable().optional(),
+    taxNumber: z.string().nullable().optional(),
+  }).nullable().optional(),
 });
 
 export type InsertOrder = z.infer<typeof insertOrderSchema>;
@@ -604,6 +641,7 @@ export const pendingPayments = pgTable("pending_payments", {
     postalCode: string;
     country?: string;
   }>().notNull(),
+  billingAddress: jsonb("billing_address").$type<BillingAddress>(),
   cartItems: jsonb("cart_items").$type<Array<{
     productId: string;
     variantId: string | null;

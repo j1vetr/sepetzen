@@ -11,7 +11,7 @@ import PDFDocument from "pdfkit";
 import sharp from "sharp";
 import { cache, CACHE_KEYS, CACHE_TTL } from "./cache";
 import { eq, desc, sql } from "drizzle-orm";
-import { insertAdminUserSchema, insertCategorySchema, insertProductSchema, insertProductVariantSchema, insertCartItemSchema, insertOrderSchema, insertOrderItemSchema, insertUserSchema, couponRedemptions, orders, coupons, products, stockAdjustments, productCategories, productVariants } from "@shared/schema";
+import { insertAdminUserSchema, insertCategorySchema, insertProductSchema, insertProductVariantSchema, insertCartItemSchema, insertOrderSchema, insertOrderItemSchema, insertUserSchema, adminUpdateUserSchema, couponRedemptions, orders, coupons, products, stockAdjustments, productCategories, productVariants } from "@shared/schema";
 import { optimizeImage, optimizeImageBuffer, optimizeUploadedFiles } from "./imageOptimizer";
 import { 
   sendWelcomeEmail, 
@@ -65,6 +65,7 @@ import {
   AUTO_GROUP_DISPLAY_ORDER_MAX,
 } from "./menu-grouping";
 import { menuItems as menuItemsTable } from "@shared/schema";
+import { resolveBillingAddress, normalizeInvoiceInfo, validateInvoiceInfo } from "@shared/billing";
 import { HOMEPAGE_CONTENT_KEY, homepageContentSchema, resolveHomepageContent } from "@shared/homepage";
 import { SITE_IDENTITY_KEY, siteIdentitySchema, mergeSiteIdentity } from "@shared/siteIdentity";
 import { and, gte, lte } from "drizzle-orm";
@@ -147,9 +148,15 @@ const upload = multer({
   storage: multerStorage,
   limits: { fileSize: 10 * 1024 * 1024 }, // 10MB limit
   fileFilter: (req, file, cb) => {
-    const allowedTypes = /jpeg|jpg|png|gif|webp/;
-    const extname = allowedTypes.test(path.extname(file.originalname).toLowerCase());
-    const mimetype = allowedTypes.test(file.mimetype);
+    const allowedExtensions = new Set(['.jpeg', '.jpg', '.png', '.gif', '.webp']);
+    const allowedMimeTypes = new Set([
+      'image/jpeg',
+      'image/png',
+      'image/gif',
+      'image/webp',
+    ]);
+    const extname = allowedExtensions.has(path.extname(file.originalname).toLowerCase());
+    const mimetype = allowedMimeTypes.has(file.mimetype.toLowerCase());
     if (extname && mimetype) {
       cb(null, true);
     } else {
@@ -862,6 +869,32 @@ export async function registerRoutes(
     }
   });
 
+  app.post("/api/admin/pages", requireAdmin, async (req, res) => {
+    const parsed = z.object({
+      slug: z.string().trim().min(1).max(160).regex(/^[a-z0-9]+(?:-[a-z0-9]+)*$/, {
+        message: "Adres yalnızca küçük harf, rakam ve tire içerebilir",
+      }),
+      title: z.string().trim().min(1).max(200),
+      content: z.string().max(200_000).default(""),
+      isPublished: z.boolean().default(false),
+    }).safeParse(req.body);
+    if (!parsed.success) {
+      return res.status(400).json({ error: parsed.error.issues[0]?.message ?? "Sayfa bilgileri geçersiz" });
+    }
+    try {
+      const existing = await storage.getPageBySlug(parsed.data.slug);
+      if (existing) return res.status(409).json({ error: "Bu web adresi zaten kullanılıyor" });
+      const page = await storage.createPage({
+        ...parsed.data,
+        content: sanitizeStoredHtml(parsed.data.content),
+      });
+      res.status(201).json(page);
+    } catch (err) {
+      console.error("[pages] admin create error:", err);
+      res.status(500).json({ error: "Sayfa oluşturulamadı" });
+    }
+  });
+
   // ── Admin Blog API ───────────────────────────────────────────────────────
   const blogPostBodySchema = z.object({
     slug: z.string().trim().min(1).max(160).regex(/^[a-z0-9]+(?:-[a-z0-9]+)*$/, {
@@ -1049,6 +1082,48 @@ export async function registerRoutes(
       res.json({ ...user, password: undefined });
     } catch (error) {
       res.status(500).json({ error: "Failed to fetch user" });
+    }
+  });
+
+  app.patch("/api/admin/users/:id", requireAdmin, async (req, res) => {
+    try {
+      const existingUser = await storage.getUser(req.params.id);
+      if (!existingUser) {
+        return res.status(404).json({ error: "Kullanıcı bulunamadı" });
+      }
+
+      const parsed = adminUpdateUserSchema.safeParse(req.body);
+      if (!parsed.success) {
+        return res.status(400).json({
+          error: parsed.error.issues[0]?.message || "Geçersiz kullanıcı bilgisi",
+        });
+      }
+
+      const data = parsed.data;
+      const normalizedEmail = data.email.toLowerCase();
+      const userWithEmail = await storage.getUserByEmail(normalizedEmail);
+      if (userWithEmail && userWithEmail.id !== existingUser.id) {
+        return res.status(409).json({ error: "Bu e-posta adresi başka bir kullanıcı tarafından kullanılıyor" });
+      }
+
+      const emptyToNull = (value: string | null) => value || null;
+      const updated = await storage.updateUser(existingUser.id, {
+        email: normalizedEmail,
+        firstName: emptyToNull(data.firstName),
+        lastName: emptyToNull(data.lastName),
+        phone: emptyToNull(data.phone),
+        address: emptyToNull(data.address),
+        city: emptyToNull(data.city),
+        district: emptyToNull(data.district),
+        postalCode: emptyToNull(data.postalCode),
+        country: emptyToNull(data.country),
+        whatsappOptIn: data.whatsappOptIn,
+      });
+
+      res.json({ ...updated, password: undefined });
+    } catch (error) {
+      console.error("[Admin] User update error:", error);
+      res.status(500).json({ error: "Kullanıcı bilgileri güncellenemedi" });
     }
   });
 
@@ -1383,8 +1458,15 @@ export async function registerRoutes(
     }
 
     try {
-      const { title, firstName, lastName, phone, address, city, district, postalCode, isDefault } = req.body;
-      
+      const { title, firstName, lastName, phone, address, city, district, postalCode, country, isDefault } = req.body;
+
+      // Fatura bilgileri (Bireysel / Kurumsal) — checkout ile aynı kurallar.
+      const invoice = normalizeInvoiceInfo(req.body);
+      const invoiceError = validateInvoiceInfo(invoice);
+      if (invoiceError) {
+        return res.status(400).json({ error: invoiceError });
+      }
+
       // Check if this is the first address - if so, make it default
       const existingAddresses = await storage.getUserAddresses(payload.userId);
       const shouldBeDefault = existingAddresses.length === 0 ? true : !!isDefault;
@@ -1399,7 +1481,9 @@ export async function registerRoutes(
         city,
         district,
         postalCode,
+        ...(country ? { country } : {}),
         isDefault: shouldBeDefault,
+        ...invoice,
       });
       res.status(201).json(newAddress);
     } catch (error) {
@@ -1419,7 +1503,14 @@ export async function registerRoutes(
         return res.status(404).json({ error: "Adres bulunamadı" });
       }
 
-      const { title, firstName, lastName, phone, address, city, district, postalCode, isDefault } = req.body;
+      const { title, firstName, lastName, phone, address, city, district, postalCode, country, isDefault } = req.body;
+
+      const invoice = normalizeInvoiceInfo(req.body);
+      const invoiceError = validateInvoiceInfo(invoice);
+      if (invoiceError) {
+        return res.status(400).json({ error: invoiceError });
+      }
+
       const updated = await storage.updateUserAddress(req.params.id, {
         title,
         firstName,
@@ -1429,7 +1520,9 @@ export async function registerRoutes(
         city,
         district,
         postalCode,
+        ...(country ? { country } : {}),
         isDefault,
+        ...invoice,
       });
       res.json(updated);
     } catch (error) {
@@ -2550,7 +2643,7 @@ Bu ürün için 4 bölümlü HTML açıklama üret. Teknik Özellikler bölümü
         return res.status(400).json({ error: "Sepet boş" });
       }
 
-      const { customerName, customerEmail, customerPhone, address, city, district, postalCode, country, couponCode, createAccount, accountPassword, provider } = req.body;
+      const { customerName, customerEmail, customerPhone, address, city, district, postalCode, country, billingAddress: requestedBillingAddress, couponCode, createAccount, accountPassword, provider } = req.body;
       const selectedCountry = country || 'Türkiye';
       const paymentProvider: 'iyzico' | 'paytr' = provider === 'paytr' ? 'paytr' : 'iyzico';
 
@@ -2558,6 +2651,12 @@ Bu ürün için 4 bölümlü HTML açıklama üret. Teknik Özellikler bölümü
       if (!customerName || !customerEmail || !customerPhone || !address || !city || !district) {
         return res.status(400).json({ error: "Lütfen tüm alanları doldurun" });
       }
+      const shippingAddress = { address, city, district, postalCode: postalCode || '', country: selectedCountry };
+      const billingResult = resolveBillingAddress(requestedBillingAddress, shippingAddress);
+      if (!billingResult.ok) {
+        return res.status(400).json({ error: billingResult.error });
+      }
+      const billingAddress = billingResult.value;
 
       // Validate password if creating account
       let accountPasswordHash = null;
@@ -2742,7 +2841,8 @@ Bu ürün için 4 bölümlü HTML açıklama üret. Teknik Özellikler bölümü
         customerName,
         customerEmail,
         customerPhone,
-        shippingAddress: { address, city, district, postalCode: postalCode || '', country: selectedCountry },
+        shippingAddress,
+        billingAddress,
         cartItems: cartItemsForStorage,
         subtotal: serverSubtotal.toFixed(2),
         shippingCost: shippingCost.toFixed(2),
@@ -2853,10 +2953,10 @@ Bu ürün için 4 bölümlü HTML açıklama üret. Teknik Özellikler bölümü
         },
         billingAddress: {
           contactName: customerName,
-          city: city,
-          country: selectedCountry,
-          address: `${address}, ${district}`,
-          zipCode: postalCode || undefined,
+          city: billingAddress.city,
+          country: billingAddress.country || selectedCountry,
+          address: `${billingAddress.address}, ${billingAddress.district}`,
+          zipCode: billingAddress.postalCode || undefined,
         },
         basketItems: iyzicoBasketItems,
       });
@@ -2905,12 +3005,18 @@ Bu ürün için 4 bölümlü HTML açıklama üret. Teknik Özellikler bölümü
         return res.status(400).json({ error: "Sepet boş" });
       }
 
-      const { customerName, customerEmail, customerPhone, address, city, district, postalCode, country, couponCode, createAccount, accountPassword } = req.body;
+      const { customerName, customerEmail, customerPhone, address, city, district, postalCode, country, billingAddress: requestedBillingAddress, couponCode, createAccount, accountPassword } = req.body;
       const selectedCountry = country || 'Türkiye';
 
       if (!customerName || !customerEmail || !customerPhone || !address || !city || !district) {
         return res.status(400).json({ error: "Lütfen tüm alanları doldurun" });
       }
+      const shippingAddress = { address, city, district, postalCode: postalCode || '', country: selectedCountry };
+      const billingResult = resolveBillingAddress(requestedBillingAddress, shippingAddress);
+      if (!billingResult.ok) {
+        return res.status(400).json({ error: billingResult.error });
+      }
+      const billingAddress = billingResult.value;
 
       let accountPasswordHash: string | null = null;
       if (createAccount && accountPassword) {
@@ -3043,7 +3149,8 @@ Bu ürün için 4 bölümlü HTML açıklama üret. Teknik Özellikler bölümü
         customerName,
         customerEmail,
         customerPhone,
-        shippingAddress: { address, city, district, postalCode: postalCode || '', country: selectedCountry },
+        shippingAddress,
+        billingAddress,
         subtotal: serverSubtotal.toFixed(2),
         shippingCost: shippingCost.toFixed(2),
         discountAmount: totalDiscount.toFixed(2),
@@ -3107,6 +3214,7 @@ Bu ürün için 4 bölümlü HTML açıklama üret. Teknik Özellikler bölümü
       customerEmail: pendingPayment.customerEmail,
       customerPhone: pendingPayment.customerPhone,
       shippingAddress: pendingPayment.shippingAddress,
+      billingAddress: pendingPayment.billingAddress,
       subtotal: pendingPayment.subtotal,
       shippingCost: pendingPayment.shippingCost,
       discountAmount: pendingPayment.discountAmount || '0',
@@ -3208,6 +3316,9 @@ Bu ürün için 4 bölümlü HTML açıklama üret. Teknik Özellikler bölümü
             district: shippingAddr.district,
             postalCode: shippingAddr.postalCode || null,
           });
+          // Siparişte verilen fatura tipi/bilgisi adres defterine de taşınsın ki
+          // kurumsal müşteri ikinci siparişinde tekrar yazmak zorunda kalmasın.
+          const orderInvoice = normalizeInvoiceInfo(pendingPayment.billingAddress ?? null);
           await storage.createUserAddress({
             userId: newUser.id,
             title: 'Teslimat Adresi',
@@ -3219,6 +3330,7 @@ Bu ürün için 4 bölümlü HTML açıklama üret. Teknik Özellikler bölümü
             district: shippingAddr.district,
             postalCode: shippingAddr.postalCode || null,
             isDefault: true,
+            ...orderInvoice,
           });
           sendWelcomeEmail(newUser).catch(err => console.error('[Email] Welcome email failed:', err));
           console.log(`[${paymentMethod} Callback] User account created:`, newUser.email);

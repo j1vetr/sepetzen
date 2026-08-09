@@ -74,6 +74,18 @@ interface Order {
     district: string;
     postalCode: string;
   };
+  billingAddress?: {
+    address: string;
+    city: string;
+    district: string;
+    postalCode: string;
+    country?: string;
+    invoiceType?: 'individual' | 'corporate' | null;
+    tcknNumber?: string | null;
+    companyName?: string | null;
+    taxOffice?: string | null;
+    taxNumber?: string | null;
+  } | null;
   subtotal: string;
   shippingCost: string;
   discountAmount: string;
@@ -845,11 +857,9 @@ export default function AdminOrderDetail() {
               </div>
             </Card>
 
-            {/* Shipping address (also used as billing address) */}
             <Card className="p-5">
               <SectionHeading
-                title="Teslimat ve Fatura Adresi"
-                description="Bu sipariş için teslimat ve fatura adresi aynıdır."
+                title="Teslimat Adresi"
               />
               <div className="text-[12.5px] text-neutral-700 space-y-1 leading-relaxed">
                 <p className="flex items-start gap-1.5">
@@ -862,6 +872,31 @@ export default function AdminOrderDetail() {
                     ` · ${order.shippingAddress.postalCode}`}
                 </p>
               </div>
+              {order.billingAddress && (
+                <div className="mt-4 pt-4 border-t border-neutral-100">
+                  <SectionHeading title="Fatura Adresi" />
+                  <div className="text-[12.5px] text-neutral-700 space-y-1 leading-relaxed">
+                    <p className="flex items-start gap-1.5">
+                      <MapPin className="w-3 h-3 text-neutral-400 mt-1 shrink-0" />
+                      <span>{order.billingAddress.address}</span>
+                    </p>
+                    <p className="text-neutral-500 ml-[18px]">
+                      {order.billingAddress.district}, {order.billingAddress.city}
+                      {order.billingAddress.postalCode && ` · ${order.billingAddress.postalCode}`}
+                    </p>
+                    {order.billingAddress.invoiceType === 'corporate' ? (
+                      <div className="ml-[18px] pt-1 text-neutral-600">
+                        <p className="font-medium text-neutral-800">Kurumsal · {order.billingAddress.companyName}</p>
+                        <p>{order.billingAddress.taxOffice} · VKN {order.billingAddress.taxNumber}</p>
+                      </div>
+                    ) : (
+                      <p className="ml-[18px] pt-1 text-neutral-500">
+                        Bireysel{order.billingAddress.tcknNumber ? ` · TCKN ${order.billingAddress.tcknNumber}` : ''}
+                      </p>
+                    )}
+                  </div>
+                </div>
+              )}
             </Card>
 
             {/* Status */}

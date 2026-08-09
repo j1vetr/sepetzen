@@ -140,6 +140,21 @@ export function useAdminDashboardData({
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ['admin', 'users'] }),
   });
 
+  const saveUserMutation = useMutation({
+    mutationFn: async (user: User) => {
+      const response = await fetch(`/api/admin/users/${user.id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify(user),
+      });
+      const result = await response.json();
+      if (!response.ok) throw new Error(result.error || 'Kullanıcı bilgileri güncellenemedi');
+      return result;
+    },
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['admin', 'users'] }),
+  });
+
   const saveProductMutation = useMutation({
     mutationFn: async (product: Partial<Product>) => {
       const method = product.id ? 'PATCH' : 'POST';
@@ -199,6 +214,7 @@ export function useAdminDashboardData({
     deleteProductMutation,
     deleteCategoryMutation,
     deleteUserMutation,
+    saveUserMutation,
     saveProductMutation,
     saveCategoryMutation,
   };

@@ -231,6 +231,17 @@
   border-color: rgba(255, 255, 255, 0.12);
 }
 
+/* Mega menu stays readable over moving page content, including while the
+   sticky header is in its scrolled glass state. The inline layer in Header
+   provides the same values as a fallback for browsers that skip utility
+   generation for custom @utility classes. */
+.mega-menu-panel {
+  isolation: isolate;
+  background-color: rgba(9, 9, 9, 0.92);
+  -webkit-backdrop-filter: blur(22px) saturate(1.35);
+  backdrop-filter: blur(22px) saturate(1.35);
+}
+
 .font-display {
   font-family: var(--font-display);
   font-weight: 700;
@@ -326,48 +337,46 @@
   animation: hero-slider 20s linear infinite;
 }
 
-/* Scrollbar styling */
-::-webkit-scrollbar {
-  width: 6px;
+@keyframes product-gallery-orbit {
+  to { transform: rotate(1turn); }
 }
 
-::-webkit-scrollbar-track {
-  background: transparent;
+.product-gallery-orbit {
+  position: relative;
+  isolation: isolate;
+  overflow: hidden;
+  padding: 1px;
+  background: rgba(255, 255, 255, 0.14);
 }
 
-::-webkit-scrollbar-thumb {
-  background: hsl(var(--sepetzen-muted));
-  border-radius: 3px;
+.product-gallery-orbit::before {
+  content: '';
+  position: absolute;
+  z-index: -1;
+  top: -50%;
+  left: -50%;
+  width: 200%;
+  height: 200%;
+  background: conic-gradient(
+    from 0deg,
+    transparent 0deg 278deg,
+    rgba(255, 255, 255, 0.18) 300deg,
+    rgba(255, 255, 255, 0.98) 326deg,
+    rgba(255, 255, 255, 0.18) 350deg,
+    transparent 360deg
+  );
+  animation: product-gallery-orbit 3.2s linear infinite;
 }
 
-::-webkit-scrollbar-thumb:hover {
-  background: hsl(var(--sepetzen-green));
+@media (prefers-reduced-motion: reduce) {
+  .product-gallery-orbit::before {
+    animation: none;
+  }
 }
 
 /* Custom cursor */
 .cursor-none * {
   cursor: none !important;
-}
-
-/* Lenis smooth scroll */
-html.lenis {
-  height: auto;
-}
-
-.lenis.lenis-smooth {
-  scroll-behavior: auto;
-}
-
-.lenis.lenis-smooth [data-lenis-prevent] {
-  overscroll-behavior: contain;
-}
-
-.lenis.lenis-stopped {
-  overflow: hidden;
-}
-
-.lenis.lenis-scrolling iframe {
-  pointer-events: none;
 }
 
 /* Mix-blend-difference cursor */

@@ -137,6 +137,8 @@ export function Header() {
   const [allCatsExpanded, setAllCatsExpanded] = useState(false);
   const [sidebarProductKey, setSidebarProductKey] = useState(0);
   const closeTimerRef = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
+  const allCatsCloseTimerRef = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
+  const [allCatsOpen, setAllCatsOpen] = useState(false);
   const { totalItems, subtotal } = useCart();
   const siteIdentity = useSiteIdentity();
   const { user, logout } = useAuth();
@@ -161,6 +163,23 @@ export function Header() {
 
   const cancelClose = () => {
     if (closeTimerRef.current) clearTimeout(closeTimerRef.current);
+  };
+
+  const openAllCats = () => {
+    if (allCatsCloseTimerRef.current) clearTimeout(allCatsCloseTimerRef.current);
+    setAllCatsOpen(true);
+  };
+
+  const closeAllCats = () => {
+    if (allCatsCloseTimerRef.current) clearTimeout(allCatsCloseTimerRef.current);
+    allCatsCloseTimerRef.current = setTimeout(() => {
+      setAllCatsOpen(false);
+      setAllCatsExpanded(false);
+    }, 160);
+  };
+
+  const cancelAllCatsClose = () => {
+    if (allCatsCloseTimerRef.current) clearTimeout(allCatsCloseTimerRef.current);
   };
 
   const { data: categoriesData = [] } = useQuery<CategoryData[]>({
@@ -388,7 +407,7 @@ export function Header() {
 
       {/* ── Main header (nav bar) — desktop'ta sticky, mobile'da fixed ── */}
       <header
-        className={`sticky top-0 left-0 right-0 z-40 flex items-center h-16 lg:h-auto overflow-visible transition-all duration-300 ${
+        className={`sticky top-0 left-0 right-0 z-[100] flex items-center h-16 lg:h-auto overflow-visible transition-all duration-300 ${
           scrolled
             ? 'surface-glass-dark border-b border-white/10 shadow-[0_4px_24px_-8px_rgba(0,0,0,0.45)]'
             : 'bg-[#0A0A0A] border-b border-white/8'
@@ -487,11 +506,20 @@ export function Header() {
               </AnimatePresence>
 
               {!scrolled && (
-              <DropdownMenu modal={false} onOpenChange={(open) => { if (!open) setAllCatsExpanded(false); }}>
+              <DropdownMenu
+                modal={false}
+                open={allCatsOpen}
+                onOpenChange={(open) => {
+                  setAllCatsOpen(open);
+                  if (!open) setAllCatsExpanded(false);
+                }}
+              >
                 <DropdownMenuTrigger asChild>
                   <button
                     className="flex items-center gap-2 bg-white/[0.07] hover:bg-white/[0.12] border border-white/10 hover:border-white/25 transition-colors px-3 2xl:px-4 py-2.5 text-[10px] tracking-[0.10em] 2xl:tracking-[0.14em] uppercase font-bold text-white whitespace-nowrap"
                     data-testid="button-all-categories"
+                    onMouseEnter={openAllCats}
+                    onMouseLeave={closeAllCats}
                   >
                     <LayoutGrid className="w-3.5 h-3.5" strokeWidth={1.75} />
                     Tüm Kategoriler
@@ -503,6 +531,8 @@ export function Header() {
                   sideOffset={12}
                   className="surface-glass-dark bg-black/85 text-white border border-white/10 shadow-[0_8px_30px_rgba(0,0,0,0.5)] rounded-md p-3 z-[9999]"
                   style={{ minWidth: shownAllCats.length > 6 ? 480 : 240 }}
+                   onMouseEnter={cancelAllCatsClose}
+                   onMouseLeave={closeAllCats}
                 >
                   {visibleCategories.length === 0 ? (
                     <DropdownMenuItem
@@ -749,7 +779,12 @@ export function Header() {
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -6 }}
             transition={{ duration: 0.26, ease: [0.16, 1, 0.3, 1] }}
-            className="absolute top-full left-0 right-0 surface-glass-dark border-b border-white/10 shadow-[0_40px_80px_-16px_rgba(0,0,0,0.55)] z-50 overflow-hidden"
+            className="mega-menu-panel absolute top-full left-0 right-0 surface-glass-dark border-b border-white/10 shadow-[0_40px_80px_-16px_rgba(0,0,0,0.55)] z-[110] overflow-hidden"
+            style={{
+              backgroundColor: 'rgba(9, 9, 9, 0.92)',
+              backdropFilter: 'blur(22px) saturate(1.35)',
+              WebkitBackdropFilter: 'blur(22px) saturate(1.35)',
+            }}
             onMouseEnter={cancelClose}
             onMouseLeave={closeMega}
             data-testid={`mega-panel-${megaMenuId}`}
@@ -916,7 +951,7 @@ export function Header() {
               exit={{ opacity: 0 }}
               transition={{ duration: 0.3 }}
               onClick={() => setMobileOpen(false)}
-              className="fixed inset-0 z-40 bg-black/55 backdrop-blur-md"
+              className="fixed inset-0 z-[200] bg-black/55 backdrop-blur-md"
               data-testid="overlay-mobile-menu"
             />
 
@@ -925,7 +960,7 @@ export function Header() {
               animate={{ x: 0 }}
               exit={{ x: '-100%' }}
               transition={{ duration: 0.55, ease: [0.16, 1, 0.3, 1] }}
-              className="fixed inset-y-0 left-0 z-50 w-[92%] max-w-[420px] surface-glass-dark flex flex-col overflow-hidden shadow-[0_0_60px_rgba(0,0,0,0.55)]"
+              className="fixed inset-y-0 left-0 z-[210] w-[92%] max-w-[420px] surface-glass-dark flex flex-col overflow-hidden shadow-[0_0_60px_rgba(0,0,0,0.55)]"
               data-testid="drawer-mobile-menu"
             >
               {/* ── Hero panel: brand header ── */}

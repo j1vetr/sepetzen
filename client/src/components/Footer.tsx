@@ -34,7 +34,7 @@ export function Footer() {
     : [{ href: '/blog', label: 'Blog' }, ...identity.kurumsalLinks];
   return (
     <footer
-      className="relative bg-[#0F0F0F] text-white overflow-hidden"
+      className="relative bg-[#000000] text-white overflow-hidden"
       data-testid="footer"
     >
       <div

@@ -548,7 +548,7 @@ export default function ProductModal({
               <input
                 type="file"
                 multiple
-                accept="image/*"
+                accept="image/png,image/jpeg,image/webp,image/gif"
                 onChange={handleFileChange}
                 className="hidden"
                 id="image-upload"
@@ -562,7 +562,7 @@ export default function ProductModal({
                     seçin
                   </span>
                 </p>
-                <p className="text-[11px] text-neutral-500 mt-1">PNG, JPG, WEBP · max 10MB</p>
+                <p className="text-[11px] text-neutral-500 mt-1">PNG, JPG, WEBP veya GIF · max 10MB</p>
               </label>
             </div>
 

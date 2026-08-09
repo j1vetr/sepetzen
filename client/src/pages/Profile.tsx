@@ -36,6 +36,7 @@ import { formatTRDate, formatTRDateTime } from '@shared/dateFormat';
 import { useFavorites } from '@/hooks/useFavorites';
 import { ProductCard } from '@/components/ProductCard';
 import { COUNTRIES } from '@/lib/countries';
+import { InvoiceFields, emptyInvoiceForm, invoiceFormFrom, invoicePayload, validateInvoiceForm, type InvoiceFormValue } from '@/components/InvoiceFields';
 
 type TabType = 'orders' | 'profile' | 'addresses' | 'favorites';
 
@@ -85,6 +86,11 @@ interface UserAddress {
   postalCode: string | null;
   country: string;
   isDefault: boolean;
+  invoiceType?: 'individual' | 'corporate' | null;
+  tcknNumber?: string | null;
+  companyName?: string | null;
+  taxOffice?: string | null;
+  taxNumber?: string | null;
 }
 
 const statusConfig: Record<string, { label: string; color: string; icon: React.ElementType; bg: string }> = {
@@ -200,6 +206,9 @@ export default function Profile() {
     country: 'Türkiye',
     isDefault: false,
   });
+  // Fatura bilgileri (Bireysel / Kurumsal) — adres formundaki açılır sekme.
+  const [invoiceInfo, setInvoiceInfo] = useState<InvoiceFormValue>(emptyInvoiceForm);
+  const [invoiceOpen, setInvoiceOpen] = useState(false);
 
   const { data: addresses = [], isLoading: addressesLoading } = useQuery<UserAddress[]>({
     queryKey: ['user-addresses'],
@@ -287,10 +296,15 @@ export default function Profile() {
       country: 'Türkiye',
       isDefault: false,
     });
+    setInvoiceInfo(emptyInvoiceForm);
+    setInvoiceOpen(false);
   };
 
   const handleEditAddress = (addr: UserAddress) => {
     setEditingAddress(addr);
+    const invoice = invoiceFormFrom(addr as any);
+    setInvoiceInfo(invoice);
+    setInvoiceOpen(invoice.invoiceType === 'corporate');
     setAddressForm({
       title: addr.title,
       firstName: addr.firstName,
@@ -307,10 +321,17 @@ export default function Profile() {
   };
 
   const handleSaveAddress = () => {
+    const invoiceError = validateInvoiceForm(invoiceInfo);
+    if (invoiceError) {
+      setInvoiceOpen(true);
+      toast({ title: 'Fatura bilgileri eksik', description: invoiceError, variant: 'destructive' });
+      return;
+    }
+    const data = { ...addressForm, ...invoicePayload(invoiceInfo) };
     if (editingAddress) {
-      updateAddressMutation.mutate({ id: editingAddress.id, data: addressForm });
+      updateAddressMutation.mutate({ id: editingAddress.id, data });
     } else {
-      createAddressMutation.mutate(addressForm);
+      createAddressMutation.mutate(data);
     }
   };
 
@@ -883,6 +904,17 @@ export default function Profile() {
                               </select>
                             </div>
                           </div>
+                          <InvoiceFields
+                            value={invoiceInfo}
+                            onChange={setInvoiceInfo}
+                            open={invoiceOpen}
+                            onOpenChange={setInvoiceOpen}
+                            inputClassName="w-full px-4 py-3 bg-white/5 border border-white/12 rounded-md text-white placeholder:text-white/30 focus:outline-none focus:border-white transition-colors"
+                            labelClassName="block text-sm font-medium text-white/55 mb-2"
+                            description="Bu adresle sipariş verdiğinizde fatura bu bilgilerle düzenlenir."
+                            testIdPrefix="profile-invoice"
+                          />
+
                           <div className="flex items-center gap-3">
                             <input
                               type="checkbox"
@@ -969,6 +1001,19 @@ export default function Profile() {
                                 <p className="text-white/45">{addr.address}</p>
                                 <p className="text-white/45">{addr.district}, {addr.city} {addr.postalCode}</p>
                                 <p className="text-white/45 mt-1">{addr.phone}</p>
+                                {addr.invoiceType === 'corporate' ? (
+                                  <div className="mt-2 pt-2 border-t border-white/8 text-white/45 text-sm">
+                                    <span className="inline-block text-[10px] bg-white/12 text-white/80 font-semibold uppercase tracking-wider px-2 py-0.5 rounded-md mb-1">
+                                      Kurumsal Fatura
+                                    </span>
+                                    <p>{addr.companyName}</p>
+                                    <p>{addr.taxOffice} · VKN {addr.taxNumber}</p>
+                                  </div>
+                                ) : addr.tcknNumber ? (
+                                  <p className="text-white/35 text-sm mt-2 pt-2 border-t border-white/8">
+                                    Bireysel fatura · TCKN {addr.tcknNumber}
+                                  </p>
+                                ) : null}
                               </div>
                               <div className="flex gap-2">
                                 <button

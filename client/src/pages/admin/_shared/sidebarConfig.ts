@@ -1,6 +1,7 @@
 import {
   Home,
   FileText,
+  PanelBottom,
   LayoutDashboard,
   BarChart3,
   Package,
@@ -87,6 +88,7 @@ export const SIDEBAR_CATEGORIES: SidebarCategory[] = [
     items: [
       { id: 'homepage', icon: Home, label: 'Ana Sayfa' },
       { id: 'menu', icon: MenuIcon, label: 'Menü' },
+      { id: 'footer', icon: PanelBottom, label: 'Footer & İletişim' },
       { id: 'pages', icon: FileText, label: 'Yasal Sayfalar' },
       { id: 'blog', icon: Newspaper, label: 'Blog' },
     ],
@@ -115,6 +117,7 @@ export const TAB_DESCRIPTIONS: Record<TabType, string> = {
   reviews: 'Müşteri yorumlarını onaylayın veya kaldırın.',
   coupons: 'İndirim kuponları oluşturun ve takip edin.',
   homepage: 'Ana sayfanızın bölümlerini düzenleyin.',
+  footer: 'Footer bağlantılarını, iletişim bilgilerini ve sosyal medya hesaplarını düzenleyin.',
   pages: 'Yasal ve bilgilendirme sayfalarınızın içeriklerini düzenleyin.',
   blog: 'Blog yazılarınızı oluşturun, düzenleyin ve yayınlayın.',
   menu: 'Sitenizin üst menüsünü düzenleyin.',

@@ -660,6 +660,8 @@ const CAROUSEL_OPTIONS = {
   duration: 22,
 } as const;
 
+const DESKTOP_THUMBNAIL_PAGE_SIZE = 5;
+
 // ─── Main Component ───────────────────────────────────────────────────────────
 
 export default function ProductDetail() {
@@ -687,6 +689,7 @@ export default function ProductDetail() {
 
   // UI state
   const [selectedImage, setSelectedImage] = useState(0);
+  const [desktopThumbnailStart, setDesktopThumbnailStart] = useState(0);
   const [quantity, setQuantity] = useState(1);
   const [isAdding, setIsAdding] = useState(false);
   const [justAdded, setJustAdded] = useState(false);
@@ -731,35 +734,16 @@ export default function ProductDetail() {
   const [emblaRef, emblaApi] = useEmblaCarousel(CAROUSEL_OPTIONS);
   const [lightboxEmblaRef, lightboxEmblaApi] = useEmblaCarousel(CAROUSEL_OPTIONS);
 
-  const isScrollingRef = useRef(false);
-  const scrollDebounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-
   const onSelect = useCallback(() => {
     if (!emblaApi) return;
-    if (isScrollingRef.current) return;
     setSelectedImage(emblaApi.selectedScrollSnap());
   }, [emblaApi]);
 
   useEffect(() => {
     if (!emblaApi) return;
-    const onScrollStart = () => {
-      isScrollingRef.current = true;
-      if (scrollDebounceRef.current) clearTimeout(scrollDebounceRef.current);
-    };
-    const onScrollEnd = () => {
-      scrollDebounceRef.current = setTimeout(() => {
-        isScrollingRef.current = false;
-        setSelectedImage(emblaApi.selectedScrollSnap());
-      }, 60);
-    };
-    emblaApi.on('scroll', onScrollStart);
-    emblaApi.on('settle', onScrollEnd);
     emblaApi.on('select', onSelect);
     return () => {
-      emblaApi.off('scroll', onScrollStart);
-      emblaApi.off('settle', onScrollEnd);
       emblaApi.off('select', onSelect);
-      if (scrollDebounceRef.current) clearTimeout(scrollDebounceRef.current);
     };
   }, [emblaApi, onSelect]);
 
@@ -824,9 +808,15 @@ export default function ProductDetail() {
 
   useEffect(() => {
     setSelectedImage(0);
+    setDesktopThumbnailStart(0);
     setQuantity(1);
     setShowReviewForm(false);
   }, [product?.id]);
+
+  useEffect(() => {
+    const selectedPageStart = Math.floor(selectedImage / DESKTOP_THUMBNAIL_PAGE_SIZE) * DESKTOP_THUMBNAIL_PAGE_SIZE;
+    setDesktopThumbnailStart((current) => current === selectedPageStart ? current : selectedPageStart);
+  }, [selectedImage]);
 
   const handleHeroMove = (e: React.MouseEvent<HTMLDivElement>) => {
     if (!heroImageRef.current || reduceMotion) return;
@@ -969,6 +959,11 @@ export default function ProductDetail() {
   // ─── Derived values ───────────────────────────────────────────────────────
 
   const images = renderedImages;
+  const desktopThumbnailImages = images.slice(
+    desktopThumbnailStart,
+    desktopThumbnailStart + DESKTOP_THUMBNAIL_PAGE_SIZE,
+  );
+  const hasMoreDesktopThumbnails = images.length > DESKTOP_THUMBNAIL_PAGE_SIZE;
   const price = parseFloat(product.basePrice || '0');
   const originalPrice = getOriginalPrice(price, product.discountBadge);
   const visibleDiscountBadge = !isFreeShippingPromotion(product.discountBadge)
@@ -1104,11 +1099,11 @@ export default function ProductDetail() {
       </AnimatePresence>
 
       {/* ── Main ── */}
-      <main className="pt-6 lg:pt-10 pb-24 lg:pb-20">
+      <main className="pt-6 lg:pt-6 pb-24 lg:pb-16">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
 
           {/* Breadcrumb */}
-          <nav className="flex items-center gap-1.5 text-[11px] text-white/38 mb-8 font-mono tracking-[0.15em] uppercase flex-wrap">
+          <nav className="flex items-center gap-1.5 text-[11px] text-white/38 mb-8 lg:mb-5 font-mono tracking-[0.15em] uppercase flex-wrap">
             <Link href="/" className="hover:text-white transition-colors">Ana Sayfa</Link>
             {category && (
               <>
@@ -1121,33 +1116,52 @@ export default function ProductDetail() {
           </nav>
 
           {/* ── Product grid: Gallery + Info ── */}
-          <div className="grid lg:grid-cols-[1fr_420px] xl:grid-cols-[1fr_460px] gap-8 lg:gap-14 items-start">
+          <div className="grid lg:grid-cols-[minmax(0,1fr)_400px] xl:grid-cols-[minmax(0,1fr)_440px] gap-8 lg:gap-8 xl:gap-10 items-start">
 
             {/* LEFT — Sticky Gallery (only sticky when right column has enough content) */}
             <motion.div
               initial={reduceMotion ? false : { opacity: 0, y: 18 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.5, ease: [0.33, 1, 0.68, 1] }}
-              className={`flex flex-col sm:flex-row gap-3 sm:gap-4${product.description ? ' lg:sticky lg:top-24 lg:self-start' : ''}`}>
+              className={`flex flex-col sm:flex-row gap-3 sm:gap-4 lg:gap-3${product.description ? ' lg:sticky lg:top-24 lg:self-start' : ''}`}>
 
               {/* Thumbnail strip (desktop) */}
               {images.length > 1 && (
-                <div className="hidden sm:flex flex-col gap-2 w-[68px] h-[372px] shrink-0 overflow-y-auto py-0.5 pr-1 [scrollbar-width:thin]">
-                  {images.map((img, i) => (
-                    <motion.button
-                      key={i}
+                <div className="hidden sm:flex flex-col gap-2 w-[68px] h-[372px] lg:w-14 lg:h-[440px] xl:w-16 xl:h-[480px] shrink-0">
+                  <div className={`grid min-h-0 flex-1 gap-2 ${hasMoreDesktopThumbnails ? 'grid-rows-5' : ''}`}>
+                    {desktopThumbnailImages.map((img, offset) => {
+                      const imageIndex = desktopThumbnailStart + offset;
+                      return (
+                        <motion.button
+                          key={imageIndex}
+                          type="button"
+                          onClick={() => setSelectedImage(imageIndex)}
+                          whileTap={reduceMotion ? undefined : { scale: 0.94 }}
+                          className={`relative min-h-0 w-full overflow-hidden rounded-md bg-zinc-900 border-2 transition-opacity duration-200 ${
+                            imageIndex === selectedImage ? 'border-white' : 'border-transparent opacity-50 hover:opacity-85'
+                          }`}
+                          data-testid={`button-thumbnail-${imageIndex}`}
+                          aria-label={`Görsel ${imageIndex + 1}`}
+                        >
+                          <img src={img} alt="" className="w-full h-full object-cover" loading="lazy" />
+                        </motion.button>
+                      );
+                    })}
+                  </div>
+                  {hasMoreDesktopThumbnails && (
+                    <button
                       type="button"
-                      onClick={() => setSelectedImage(i)}
-                      whileTap={reduceMotion ? undefined : { scale: 0.94 }}
-                      className={`relative aspect-square overflow-hidden rounded-md bg-zinc-900 border-2 transition-opacity duration-200 ${
-                        i === selectedImage ? 'border-white' : 'border-transparent opacity-50 hover:opacity-85'
-                      }`}
-                      data-testid={`button-thumbnail-${i}`}
-                      aria-label={`Görsel ${i + 1}`}
+                      onClick={() => setDesktopThumbnailStart((current) => {
+                        const next = current + DESKTOP_THUMBNAIL_PAGE_SIZE;
+                        return next >= images.length ? 0 : next;
+                      })}
+                      className="flex h-9 shrink-0 items-center justify-center rounded-md border border-white/12 bg-white/[0.04] text-white/80 transition-colors hover:border-white/35 hover:bg-white/10 hover:text-white"
+                      aria-label="Sonraki ürün görsellerini göster"
+                      title="Sonraki görseller"
                     >
-                      <img src={img} alt="" className="w-full h-full object-cover" loading="lazy" />
-                    </motion.button>
-                  ))}
+                      <ChevronDown className="h-4 w-4" aria-hidden="true" />
+                    </button>
+                  )}
                 </div>
               )}
 
@@ -1155,50 +1169,52 @@ export default function ProductDetail() {
               <div className="flex-1 min-w-0">
                 {/* Desktop */}
                 <div className="hidden sm:block">
-                  <div
-                    ref={heroImageRef}
-                    className="relative aspect-[3/4] rounded-xl bg-zinc-900 overflow-hidden cursor-zoom-in border border-white/15 ring-1 ring-white/5 ring-offset-4 ring-offset-[#0A0A0A]"
-                    onMouseEnter={() => setIsZooming(true)}
-                    onMouseLeave={() => setIsZooming(false)}
-                    onMouseMove={handleHeroMove}
-                    onClick={() => setLightboxOpen(true)}
-                    data-testid="img-product-main"
-                  >
-                    <AnimatePresence mode="wait">
-                      <motion.div
-                        key={selectedImage}
-                        className="absolute inset-0"
-                        initial={{ opacity: 0 }}
-                        animate={{ opacity: 1 }}
-                        exit={{ opacity: 0 }}
-                        transition={{ duration: reduceMotion ? 0 : 0.28, ease: [0.33, 1, 0.68, 1] }}
-                      >
-                        <img
-                          src={images[selectedImage]}
-                          alt={product.name}
-                          className="absolute inset-0 w-full h-full object-cover will-change-transform"
-                          style={{
-                            transformOrigin: `${zoomPos.x}% ${zoomPos.y}%`,
-                            transform: isZooming && !reduceMotion ? 'scale(2)' : 'scale(1)',
-                            transition: 'transform 0.4s cubic-bezier(0.22,1,0.36,1)',
-                          }}
-                          draggable={false}
-                        />
-                      </motion.div>
-                    </AnimatePresence>
-                    {visibleDiscountBadge && (
-                      <span className="absolute top-4 left-4 z-10 bg-red-500 text-black text-[10px] font-extrabold tracking-[0.16em] px-3 py-1.5 uppercase">{visibleDiscountBadge}</span>
-                    )}
-                    {product.isNew && !visibleDiscountBadge && (
-                      <span className="storefront-new-badge absolute top-4 left-4 z-10">Yeni</span>
-                    )}
-                    <FreeShippingBadge
-                      className="absolute bottom-4 left-4 z-10"
-                      productPrice={price}
-                      threshold={freeShippingThreshold}
-                    />
-                    <div className="absolute bottom-4 right-4 text-[10px] text-white/50 bg-black/25 px-2 py-1 backdrop-blur-sm font-mono">
-                      {selectedImage + 1} / {images.length}
+                  <div className="product-gallery-orbit rounded-xl">
+                    <div
+                      ref={heroImageRef}
+                      className="relative aspect-[3/4] lg:aspect-auto lg:h-[440px] xl:h-[480px] rounded-[11px] bg-zinc-900 overflow-hidden cursor-zoom-in border border-white/15"
+                      onMouseEnter={() => setIsZooming(true)}
+                      onMouseLeave={() => setIsZooming(false)}
+                      onMouseMove={handleHeroMove}
+                      onClick={() => setLightboxOpen(true)}
+                      data-testid="img-product-main"
+                    >
+                      <AnimatePresence mode="wait">
+                        <motion.div
+                          key={selectedImage}
+                          className="absolute inset-0"
+                          initial={{ opacity: 0 }}
+                          animate={{ opacity: 1 }}
+                          exit={{ opacity: 0 }}
+                          transition={{ duration: reduceMotion ? 0 : 0.28, ease: [0.33, 1, 0.68, 1] }}
+                        >
+                          <img
+                            src={images[selectedImage]}
+                            alt={product.name}
+                            className="absolute inset-0 w-full h-full object-cover will-change-transform"
+                            style={{
+                              transformOrigin: `${zoomPos.x}% ${zoomPos.y}%`,
+                              transform: isZooming && !reduceMotion ? 'scale(2)' : 'scale(1)',
+                              transition: 'transform 0.4s cubic-bezier(0.22,1,0.36,1)',
+                            }}
+                            draggable={false}
+                          />
+                        </motion.div>
+                      </AnimatePresence>
+                      {visibleDiscountBadge && (
+                        <span className="absolute top-4 left-4 lg:top-3 lg:left-3 z-10 bg-red-500 text-black text-[10px] font-extrabold tracking-[0.16em] px-3 py-1.5 uppercase">{visibleDiscountBadge}</span>
+                      )}
+                      {product.isNew && !visibleDiscountBadge && (
+                        <span className="storefront-new-badge absolute top-4 left-4 lg:top-3 lg:left-3 z-10">Yeni</span>
+                      )}
+                      <FreeShippingBadge
+                        className="absolute bottom-4 left-4 lg:bottom-3 lg:left-3 z-10"
+                        productPrice={price}
+                        threshold={freeShippingThreshold}
+                      />
+                      <div className="absolute bottom-4 right-4 lg:bottom-3 lg:right-3 text-[10px] text-white/50 bg-black/25 px-2 py-1 backdrop-blur-sm font-mono">
+                        {selectedImage + 1} / {images.length}
+                      </div>
                     </div>
                   </div>
                 </div>
@@ -1252,11 +1268,11 @@ export default function ProductDetail() {
               initial={reduceMotion ? false : { opacity: 0, y: 18 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.5, delay: reduceMotion ? 0 : 0.12, ease: [0.33, 1, 0.68, 1] }}
-              className="border border-white/8 p-5 lg:p-6">
+              className="border border-white/8 p-5 lg:p-4 xl:p-5">
 
                {/* Sepetzen maker mark — the product has a maker, not a generic marketplace */}
-               <div className="mb-7 flex items-center gap-4 border-b border-white/8 pb-5">
-                 <div className="flex h-12 w-12 shrink-0 items-center justify-center bg-[#1A1A1A] border border-white/10 p-2">
+                <div className="mb-7 flex items-center gap-4 border-b border-white/8 pb-5 lg:mb-3 lg:gap-3 lg:pb-3">
+                  <div className="flex h-12 w-12 lg:h-9 lg:w-9 shrink-0 items-center justify-center bg-[#1A1A1A] border border-white/10 p-2">
                    <img
                      src="/uploads/branding/sepetzen-logo-white.png"
                      alt="Sepetzen"
@@ -1264,13 +1280,13 @@ export default function ProductDetail() {
                    />
                  </div>
                  <div>
-                   <p className="font-display text-[17px] tracking-[0.12em] text-white">SEPETZEN</p>
-                   <p className="mt-0.5 text-[10px] uppercase tracking-[0.14em] text-white/45">Outdoor Gear · Dalaman / Muğla</p>
+                    <p className="font-display text-[17px] lg:text-[15px] tracking-[0.12em] text-white">SEPETZEN</p>
+                    <p className="mt-0.5 text-[10px] lg:text-[9px] uppercase tracking-[0.14em] text-white/45">Outdoor Gear · Dalaman / Muğla</p>
                  </div>
                </div>
 
                {/* Category + Brand */}
-              <div className="flex items-center justify-between gap-4 pb-3 mb-4 border-b border-white/8">
+               <div className="flex items-center justify-between gap-4 pb-3 mb-4 lg:pb-2 lg:mb-2 border-b border-white/8">
                 {category ? (
                   <Link href={`/kategori/${category.slug}`}>
                     <span className="inline-block text-[10px] text-white uppercase tracking-[0.3em] hover:underline font-mono">
@@ -1285,7 +1301,7 @@ export default function ProductDetail() {
 
               {/* Product name */}
                <h1
-                 className="font-display text-3xl sm:text-4xl font-bold text-white leading-[1.05] tracking-[0.015em]"
+                  className="font-display text-3xl sm:text-4xl lg:text-[32px] xl:text-4xl font-bold text-white leading-[1.05] tracking-[0.015em]"
                 data-testid="text-product-name"
               >
                 {product.name}
@@ -1293,7 +1309,7 @@ export default function ProductDetail() {
 
               {/* Rating */}
               {ratingData && ratingData.count > 0 && (
-                <div className="flex items-center gap-2.5 mt-3">
+                 <div className="flex items-center gap-2.5 mt-3 lg:mt-2">
                   <StarRating rating={Math.round(ratingData.average)} size={13} />
                   <span className="text-[12px] text-white/45">
                     {ratingData.average.toFixed(1)} <span className="text-white/25">·</span> {ratingData.count} değerlendirme
@@ -1302,14 +1318,14 @@ export default function ProductDetail() {
               )}
 
               {/* Price */}
-               <div className="flex items-baseline gap-3 mt-4 pt-4 mb-3 border-t border-white/8">
+                <div className="flex items-baseline gap-3 mt-4 pt-4 mb-3 lg:mt-3 lg:pt-3 lg:mb-2 border-t border-white/8">
                 {originalPrice && (
                   <span className="text-base text-white/30 line-through" data-testid="text-original-price">
                     {originalPrice.toLocaleString('tr-TR', { maximumFractionDigits: 0 })} ₺
                   </span>
                 )}
                 <span
-                   className="font-display text-4xl sm:text-5xl font-bold text-white tabular-nums tracking-[0.02em]"
+                    className="font-display text-4xl sm:text-5xl lg:text-[42px] xl:text-5xl font-bold text-white tabular-nums tracking-[0.02em]"
                   data-testid="text-product-price"
                 >
                   {price.toLocaleString('tr-TR', { minimumFractionDigits: 2 })} ₺
@@ -1320,11 +1336,11 @@ export default function ProductDetail() {
               {product.description && (() => {
                 const blurb = extractBlurb(product.description);
                 return blurb ? (
-                  <p className="text-[13px] text-white/50 leading-relaxed mb-5">{blurb}</p>
+                  <p className="text-[13px] text-white/50 leading-relaxed mb-5 lg:mb-3 lg:line-clamp-2">{blurb}</p>
                 ) : null;
               })()}
 
-               <div className="border-t border-white/8 pt-5 space-y-3">
+                <div className="border-t border-white/8 pt-5 space-y-3 lg:pt-3 lg:space-y-2">
                 {/* Stock status + Shipping countdown */}
                 <div className="flex items-center gap-3 flex-wrap">
                   {isOutOfStock ? (
@@ -1344,7 +1360,7 @@ export default function ProductDetail() {
                   <div className="flex items-center border border-white/12 shrink-0">
                     <motion.button type="button" onClick={() => setQuantity((q) => Math.max(1, q - 1))}
                       whileTap={reduceMotion ? undefined : { scale: 0.88 }}
-                      className="w-10 h-11 flex items-center justify-center text-white hover:bg-white hover:text-black transition-colors"
+                      className="w-10 h-11 lg:w-9 lg:h-10 flex items-center justify-center text-white hover:bg-white hover:text-black transition-colors"
                       aria-label="Azalt" data-testid="button-decrease-quantity">
                       <Minus className="w-3.5 h-3.5" />
                     </motion.button>
@@ -1358,7 +1374,7 @@ export default function ProductDetail() {
                     >{quantity}</motion.span>
                     <motion.button type="button" onClick={() => setQuantity((q) => q + 1)}
                       whileTap={reduceMotion ? undefined : { scale: 0.88 }}
-                      className="w-10 h-11 flex items-center justify-center text-white hover:bg-white hover:text-black transition-colors"
+                      className="w-10 h-11 lg:w-9 lg:h-10 flex items-center justify-center text-white hover:bg-white hover:text-black transition-colors"
                       aria-label="Artır" data-testid="button-increase-quantity">
                       <Plus className="w-3.5 h-3.5" />
                     </motion.button>
@@ -1369,7 +1385,7 @@ export default function ProductDetail() {
                     onClick={handleAddToCart}
                     disabled={isAdding || isOutOfStock}
                     whileTap={reduceMotion || isOutOfStock ? undefined : { scale: 0.97 }}
-                     className={`flex-1 h-12 font-semibold text-[11px] uppercase tracking-[0.2em] transition-colors flex items-center justify-center gap-2 ${
+                      className={`flex-1 h-12 lg:h-10 font-semibold text-[11px] uppercase tracking-[0.2em] transition-colors flex items-center justify-center gap-2 ${
                        isOutOfStock ? 'bg-[#1A1A1A] text-white/30 cursor-not-allowed' : 'bg-white text-black hover:bg-white/90'
                     }`}
                     data-testid="button-add-to-cart"
@@ -1405,7 +1421,7 @@ export default function ProductDetail() {
                   <a
                     href={`https://wa.me/905366301138?text=${encodeURIComponent(`Merhaba, "${product.name}" ürününü sipariş vermek istiyorum. ${typeof window !== 'undefined' ? window.location.href : ''}`)}`}
                     target="_blank" rel="noopener noreferrer"
-                    className="flex items-center justify-center gap-2 w-full h-10 border border-[#25D366]/30 text-[#25D366] hover:bg-[#25D366]/6 transition-colors text-[11px] font-semibold tracking-[0.16em] uppercase"
+                    className="flex items-center justify-center gap-2 w-full h-10 lg:h-9 border border-[#25D366]/30 text-[#25D366] hover:bg-[#25D366]/6 transition-colors text-[11px] font-semibold tracking-[0.16em] uppercase"
                     data-testid="link-whatsapp-order"
                   >
                     <WhatsAppIcon className="w-4 h-4" />
@@ -1578,7 +1594,11 @@ export default function ProductDetail() {
                   <div className="bg-[#141414] p-6 mb-8 border border-white/6">
                     <div className="flex items-baseline justify-between mb-5 gap-3 flex-wrap">
                       <h3 className="font-semibold text-white text-[15px]">Değerlendirme Yaz</h3>
-                      {!user && (
+                        {user ? (
+                          <p className="text-[11px] text-white/45">
+                            {`${user.firstName || ''} ${user.lastName || ''}`.trim() || user.email} olarak yorum yapıyorsunuz.
+                          </p>
+                        ) : (
                         <p className="text-[11px] text-white/45">
                           Üye misin?{' '}
                           <Link href="/giris"><span className="underline hover:text-white cursor-pointer">Giriş yap</span></Link>

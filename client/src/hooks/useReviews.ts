@@ -102,6 +102,7 @@ export function useCreateReview() {
       const response = await fetch(`/api/products/${data.productId}/reviews`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
         body: JSON.stringify({
           rating: data.rating,
           title: data.title,

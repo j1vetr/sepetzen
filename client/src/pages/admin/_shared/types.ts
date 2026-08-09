@@ -50,9 +50,15 @@ export interface Order {
 export interface User {
   id: string;
   email: string;
-  firstName: string;
-  lastName: string;
-  phone: string;
+  firstName: string | null;
+  lastName: string | null;
+  phone: string | null;
+  address: string | null;
+  city: string | null;
+  district: string | null;
+  postalCode: string | null;
+  country: string | null;
+  whatsappOptIn: boolean;
   createdAt: string;
 }
 
@@ -202,6 +208,7 @@ export type TabType =
   | 'database'
   | 'menu'
   | 'homepage'
+  | 'footer'
   | 'pages'
   | 'blog'
   | 'marketplaces'

@@ -9,7 +9,6 @@ import { CartModalProvider } from "@/hooks/useCartModal";
 import { lazy, Suspense, memo, useEffect } from "react";
 import { Loader2 } from "lucide-react";
 import { ScrollToTop } from "@/components/ScrollToTop";
-import { SmoothScroll } from "@/components/SmoothScroll";
 import { MobileBottomNav } from "@/components/MobileBottomNav";
 import { GoogleAuthNotice } from "@/components/GoogleAuthNotice";
 
@@ -113,7 +112,6 @@ function App() {
           <CartModalProvider>
             <TooltipProvider>
               <div className="relative w-full mobile-nav-spacer">
-                <SmoothScroll />
                 <GoogleAuthNotice />
                 <Toaster />
                 <Router />

@@ -389,9 +389,11 @@ async function downloadImage(
   if (!fs.existsSync(UPLOAD_DIR)) fs.mkdirSync(UPLOAD_DIR, { recursive: true });
   const webpPath = path.join(UPLOAD_DIR, `${hash}.webp`);
   const jpgPath = path.join(UPLOAD_DIR, `${hash}.jpg`);
+  const gifPath = path.join(UPLOAD_DIR, `${hash}.gif`);
   let written: string | null = null;
   if (fs.existsSync(webpPath)) written = webpPath;
   else if (fs.existsSync(jpgPath)) written = jpgPath;
+  else if (fs.existsSync(gifPath)) written = gifPath;
   else {
     const out = await optimizeImageBuffer(buf, webpPath);
     written = out;

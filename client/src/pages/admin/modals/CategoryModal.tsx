@@ -299,7 +299,7 @@ export default function CategoryModal({
                 Değiştir
                 <input
                   type="file"
-                  accept="image/*"
+                  accept="image/png,image/jpeg,image/webp,image/gif"
                   onChange={handleFileChange}
                   className="hidden"
                   data-testid="input-category-image"
@@ -319,13 +319,13 @@ export default function CategoryModal({
                   Yüklemek için tıklayın veya sürükleyin
                 </p>
                 <p className="text-[11px] text-neutral-500 mt-0.5">
-                  PNG, JPG veya WEBP - en fazla 10MB
+                  PNG, JPG, WEBP veya GIF - en fazla 10MB
                 </p>
               </div>
               <input
                 id="category-image-upload"
                 type="file"
-                accept="image/*"
+                accept="image/png,image/jpeg,image/webp,image/gif"
                 onChange={handleFileChange}
                 className="hidden"
                 data-testid="input-category-image"

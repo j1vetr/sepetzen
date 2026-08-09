@@ -16,6 +16,7 @@ import SettingsTab from './admin/SettingsTab';
 import DatabaseTab from './admin/DatabaseTab';
 import MenuTab from './admin/MenuTab';
 import HomepageTab from './admin/HomepageTab';
+import FooterTab from './admin/FooterTab';
 import PagesTab from './admin/PagesTab';
 import BlogTab from './admin/BlogTab';
 import CouponsTab from './admin/CouponsTab';
@@ -94,6 +95,7 @@ export default function AdminDashboard() {
     deleteProductMutation,
     deleteCategoryMutation,
     deleteUserMutation,
+    saveUserMutation,
     saveProductMutation,
     saveCategoryMutation,
   } = data;
@@ -201,6 +203,7 @@ export default function AdminDashboard() {
         {activeTab === 'database' && <DatabaseTab />}
         {activeTab === 'menu' && <MenuTab categories={categories} />}
         {activeTab === 'homepage' && <HomepageTab />}
+        {activeTab === 'footer' && <FooterTab />}
         {activeTab === 'pages' && <PagesTab />}
         {activeTab === 'blog' && <BlogTab />}
         {activeTab === 'marketplaces' && (
@@ -244,7 +247,15 @@ export default function AdminDashboard() {
           isSaving={saveCategoryMutation.isPending}
         />
       )}
-      {viewingUser && <UserDetailModal user={viewingUser} onClose={() => setViewingUser(null)} />}
+      {viewingUser && (
+        <UserDetailModal
+          user={viewingUser}
+          onClose={() => setViewingUser(null)}
+          onSave={(user) => saveUserMutation.mutate(user, { onSuccess: () => setViewingUser(null) })}
+          isSaving={saveUserMutation.isPending}
+          saveError={saveUserMutation.error instanceof Error ? saveUserMutation.error.message : null}
+        />
+      )}
       {showBulkPriceModal && (
         <BulkPriceModal
           categories={categories}

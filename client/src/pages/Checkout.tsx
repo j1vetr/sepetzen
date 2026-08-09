@@ -19,6 +19,7 @@ import {
 import { COUNTRIES } from '@/lib/countries';
 import { GoogleAuthButton } from '@/components/AuthLayout';
 import { BANK_TRANSFER_INFO } from '@shared/bankInfo';
+import { InvoiceFields, emptyInvoiceForm, invoiceFormFrom, invoicePayload, validateInvoiceForm, type InvoiceFormValue } from '@/components/InvoiceFields';
 import { useFreeShippingThreshold } from '@/hooks/useShippingSettings';
 
 interface Product {
@@ -41,6 +42,11 @@ interface UserAddress {
   postalCode: string | null;
   country: string;
   isDefault: boolean;
+  invoiceType?: 'individual' | 'corporate' | null;
+  tcknNumber?: string | null;
+  companyName?: string | null;
+  taxOffice?: string | null;
+  taxNumber?: string | null;
 }
 
 const INTERNATIONAL_SHIPPING_COST = 2500;
@@ -197,6 +203,17 @@ export default function Checkout() {
     postalCode: '',
     country: 'Türkiye',
   });
+  const [useSeparateBillingAddress, setUseSeparateBillingAddress] = useState(false);
+  const [billingAddress, setBillingAddress] = useState({
+    address: '',
+    city: '',
+    district: '',
+    postalCode: '',
+    country: 'Türkiye',
+  });
+  // Fatura kimlik bilgileri (Bireysel / Kurumsal) — açılıp kapanan sekme.
+  const [invoiceInfo, setInvoiceInfo] = useState<InvoiceFormValue>(emptyInvoiceForm);
+  const [invoiceOpen, setInvoiceOpen] = useState(false);
 
   useEffect(() => {
     if (user) {
@@ -216,6 +233,9 @@ export default function Checkout() {
       if (defaultAddr) {
         setSelectedAddressId(defaultAddr.id);
         setHasAutoSelectedAddress(true);
+        const invoice = invoiceFormFrom(defaultAddr as any);
+        setInvoiceInfo(invoice);
+        if (invoice.invoiceType === 'corporate') setInvoiceOpen(true);
         setFormData(prev => ({
           ...prev,
           customerName: `${defaultAddr.firstName} ${defaultAddr.lastName}`.trim(),
@@ -234,6 +254,9 @@ export default function Checkout() {
   const handleSelectAddress = (addr: UserAddress) => {
     setSelectedAddressId(addr.id);
     setShowNewAddressForm(false);
+    const invoice = invoiceFormFrom(addr as any);
+    setInvoiceInfo(invoice);
+    if (invoice.invoiceType === 'corporate') setInvoiceOpen(true);
     setFormData(prev => ({
       ...prev,
       customerName: `${addr.firstName} ${addr.lastName}`.trim(),
@@ -336,6 +359,11 @@ export default function Checkout() {
     setStepErrors({});
   };
 
+  const handleBillingAddressChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
+    setBillingAddress({ ...billingAddress, [e.target.name]: e.target.value });
+    setStepErrors({});
+  };
+
   const validateStep = (step: number): boolean => {
     const errors: string[] = [];
     
@@ -350,6 +378,16 @@ export default function Checkout() {
       if (!formData.address.trim()) errors.push('Adres gerekli');
       if (!formData.city.trim()) errors.push('İl gerekli');
       if (!formData.district.trim()) errors.push('İlçe gerekli');
+      if (useSeparateBillingAddress) {
+        if (!billingAddress.address.trim()) errors.push('Fatura adresi gerekli');
+        if (!billingAddress.city.trim()) errors.push('Fatura ili gerekli');
+        if (!billingAddress.district.trim()) errors.push('Fatura ilçesi gerekli');
+      }
+      const invoiceError = validateInvoiceForm(invoiceInfo);
+      if (invoiceError) {
+        errors.push(invoiceError);
+        setInvoiceOpen(true);
+      }
       if (createAccount && accountPassword.length < 6) {
         errors.push('Şifre en az 6 karakter olmalı');
       }
@@ -415,6 +453,11 @@ export default function Checkout() {
           district: formData.district,
           postalCode: formData.postalCode,
           country: formData.country,
+          billingAddress: {
+            sameAsShipping: !useSeparateBillingAddress,
+            ...(useSeparateBillingAddress ? billingAddress : {}),
+            ...invoicePayload(invoiceInfo),
+          },
           couponCode: appliedCoupon?.code || null,
           createAccount: !user && createAccount,
           accountPassword: !user && createAccount ? accountPassword : null,
@@ -483,6 +526,11 @@ export default function Checkout() {
           district: formData.district,
           postalCode: formData.postalCode,
           country: formData.country,
+          billingAddress: {
+            sameAsShipping: !useSeparateBillingAddress,
+            ...(useSeparateBillingAddress ? billingAddress : {}),
+            ...invoicePayload(invoiceInfo),
+          },
           couponCode: appliedCoupon?.code || null,
           createAccount: !user && createAccount,
           accountPassword: !user && createAccount ? accountPassword : null,
@@ -1292,6 +1340,75 @@ export default function Checkout() {
                           )}
                         </div>
                       )}
+
+                      <div className="mt-6 border-t border-white/10 pt-5">
+                        <InvoiceFields
+                          value={invoiceInfo}
+                          onChange={setInvoiceInfo}
+                          open={invoiceOpen}
+                          onOpenChange={setInvoiceOpen}
+                          inputClassName="w-full h-12 bg-[#141414] border border-white/12 focus:border-white/40 focus:outline-none rounded-lg px-3 text-white text-[14px] placeholder:text-white/30"
+                          testIdPrefix="checkout-invoice"
+                        >
+                          <label className="flex items-start gap-3 cursor-pointer pt-1">
+                            <input
+                              type="checkbox"
+                              checked={useSeparateBillingAddress}
+                              onChange={(e) => setUseSeparateBillingAddress(e.target.checked)}
+                              className="mt-0.5 w-5 h-5 border-white/20 bg-[#141414] rounded-md accent-white"
+                              data-testid="checkbox-separate-billing-address"
+                            />
+                            <div>
+                              <span className="text-[13.5px] font-semibold text-white">Fatura adresim farklı</span>
+                              <p className="text-[11.5px] text-white/45 mt-0.5">Seçilmezse teslimat adresiniz fatura adresi olarak kullanılır.</p>
+                            </div>
+                          </label>
+
+                        <AnimatePresence>
+                          {useSeparateBillingAddress && (
+                            <motion.div
+                              initial={{ opacity: 0, height: 0 }}
+                              animate={{ opacity: 1, height: 'auto' }}
+                              exit={{ opacity: 0, height: 0 }}
+                              className="overflow-hidden"
+                            >
+                              <div className="mt-5 p-4 bg-[#141414] border border-white/10 rounded-xl space-y-4">
+                                <div>
+                                  <h3 className="text-[13.5px] font-semibold text-white">FATURA ADRESİ</h3>
+                                  <p className="text-[11.5px] text-white/45 mt-0.5">Faturanız bu adres bilgileriyle düzenlenecek.</p>
+                                </div>
+                                <div className="space-y-1.5">
+                                  <Label htmlFor="billingAddress" className="text-[12px] font-medium text-white/70">Adres *</Label>
+                                  <Input id="billingAddress" name="address" value={billingAddress.address} onChange={handleBillingAddressChange} placeholder="Sokak, Mahalle, Bina No, Daire No" data-testid="input-billing-address" className={inputCls} />
+                                </div>
+                                <div className="grid grid-cols-2 gap-3 sm:gap-4">
+                                  <div className="space-y-1.5 min-w-0">
+                                    <Label htmlFor="billingCity" className="text-[12px] font-medium text-white/70">İl *</Label>
+                                    <Input id="billingCity" name="city" value={billingAddress.city} onChange={handleBillingAddressChange} placeholder="İstanbul" data-testid="input-billing-city" className={inputCls} />
+                                  </div>
+                                  <div className="space-y-1.5 min-w-0">
+                                    <Label htmlFor="billingDistrict" className="text-[12px] font-medium text-white/70">İlçe *</Label>
+                                    <Input id="billingDistrict" name="district" value={billingAddress.district} onChange={handleBillingAddressChange} placeholder="Kadıköy" data-testid="input-billing-district" className={inputCls} />
+                                  </div>
+                                </div>
+                                <div className="grid grid-cols-2 gap-3 sm:gap-4">
+                                  <div className="space-y-1.5 min-w-0">
+                                    <Label htmlFor="billingPostalCode" className="text-[12px] font-medium text-white/70">Posta Kodu</Label>
+                                    <Input id="billingPostalCode" name="postalCode" value={billingAddress.postalCode} onChange={handleBillingAddressChange} placeholder="34000" data-testid="input-billing-postal-code" className={inputCls} />
+                                  </div>
+                                  <div className="space-y-1.5 min-w-0">
+                                    <Label htmlFor="billingCountry" className="text-[12px] font-medium text-white/70">Ülke *</Label>
+                                    <select id="billingCountry" name="country" value={billingAddress.country} onChange={handleBillingAddressChange} data-testid="select-billing-country" className="w-full h-12 bg-[#141414] border border-white/12 focus:border-white/40 focus:outline-none rounded-lg px-3 text-white text-[14px]">
+                                      {COUNTRIES.map((country) => <option key={country} value={country} className="bg-[#141414]">{country}</option>)}
+                                    </select>
+                                  </div>
+                                </div>
+                              </div>
+                            </motion.div>
+                          )}
+                        </AnimatePresence>
+                        </InvoiceFields>
+                      </div>
 
                       {!user && (
                         <div className="mt-6 p-4 bg-[#0F0F0F] border border-white/12 rounded-xl">

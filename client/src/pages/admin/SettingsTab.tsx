@@ -382,7 +382,7 @@ function SiteIdentitySection() {
               </div>
             ))}
           </div>
-          <p className="mt-2 text-xs text-neutral-500">Logo için yatay PNG/WebP, favicon için kare PNG önerilir. Yüklenen görseli siteye aktarmak için aşağıdan kaydedin.</p>
+          <p className="mt-2 text-xs text-neutral-500">PNG, JPG, WebP ve GIF desteklenir. Logo için yatay PNG/WebP, favicon için kare PNG önerilir. Yüklenen görseli siteye aktarmak için aşağıdan kaydedin.</p>
         </div>
 
         {/* Announcements */}
@@ -541,8 +541,11 @@ const SETTINGS_SECTIONS: { key: SettingsSection; label: string; Icon: ComponentT
   { key: 'guvenlik', label: 'Giriş & Güvenlik', Icon: ShieldCheck },
 ];
 
-export default function SettingsPanel() {
-  const [section, setSection] = useState<SettingsSection>('genel');
+export default function SettingsPanel({ initialSection = 'genel', contentOnly = false }: {
+  initialSection?: SettingsSection;
+  contentOnly?: boolean;
+}) {
+  const [section, setSection] = useState<SettingsSection>(initialSection);
   const [settings, setSettings] = useState<Record<string, string>>({
     smtp_host: '',
     smtp_port: '587',
@@ -1079,12 +1082,12 @@ export default function SettingsPanel() {
 
   return (
     <div className="space-y-6">
-      <div>
+      {!contentOnly && <div>
         <h2 className="text-2xl font-bold text-neutral-900">Ayarlar</h2>
         <p className="text-neutral-500">Site, ödeme, kargo, bildirim ve güvenlik ayarlarını yönetin</p>
-      </div>
+      </div>}
 
-      <div className="flex flex-wrap gap-1.5 border-b border-neutral-200 pb-px -mb-2" data-testid="settings-tabs">
+      {!contentOnly && <div className="flex flex-wrap gap-1.5 border-b border-neutral-200 pb-px -mb-2" data-testid="settings-tabs">
         {SETTINGS_SECTIONS.map(({ key, label, Icon }) => (
           <button
             key={key}
@@ -1101,7 +1104,7 @@ export default function SettingsPanel() {
             {label}
           </button>
         ))}
-      </div>
+      </div>}
 
       {message && (
         <div className={`flex items-center gap-2 p-4 rounded-lg ${

@@ -30,6 +30,14 @@ export async function optimizeImage(
   try {
     const image = sharp(inputPath);
     const metadata = await image.metadata();
+
+    // Re-encoding a GIF as WebP can flatten animated files to a single frame.
+    // Keep GIF uploads byte-for-byte so both static and animated GIFs continue
+    // to work in admin previews and on the storefront.
+    if (metadata.format === 'gif') {
+      console.log(`[ImageOptimizer] Preserved GIF: ${path.basename(inputPath)}`);
+      return inputPath;
+    }
     
     let pipeline = image;
     
@@ -82,6 +90,16 @@ export async function optimizeImageBuffer(
   try {
     const image = sharp(buffer);
     const metadata = await image.metadata();
+
+    // `outputPath` is often a temporary .tmp/.webp path for imported images.
+    // Write GIF data to a real .gif file without decoding/re-encoding it so
+    // animation, timing, and transparency are preserved.
+    if (metadata.format === 'gif') {
+      const gifPath = path.join(dir, `${baseName}.gif`);
+      await fs.promises.writeFile(gifPath, buffer);
+      console.log(`[ImageOptimizer] Preserved GIF buffer: ${path.basename(gifPath)}`);
+      return gifPath;
+    }
     
     let pipeline = image;
     

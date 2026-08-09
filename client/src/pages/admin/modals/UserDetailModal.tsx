@@ -1,87 +1,168 @@
-import { useState, useEffect } from 'react';
+import { useEffect, useState } from 'react';
+import { Loader2 } from 'lucide-react';
 import type { User } from '../_shared/types';
 import AdminModal from '../_ui/AdminModal';
+import { PrimaryButton, SecondaryButton } from '../_ui/AdminUI';
 
-export default function UserDetailModal({ user, onClose }: { user: User; onClose: () => void }) {
+type UserForm = Omit<User, 'id' | 'createdAt'>;
+
+const toForm = (user: User): UserForm => ({
+  email: user.email ?? '',
+  firstName: user.firstName ?? '',
+  lastName: user.lastName ?? '',
+  phone: user.phone ?? '',
+  address: user.address ?? '',
+  city: user.city ?? '',
+  district: user.district ?? '',
+  postalCode: user.postalCode ?? '',
+  country: user.country ?? 'Türkiye',
+  whatsappOptIn: user.whatsappOptIn ?? true,
+});
+
+export default function UserDetailModal({
+  user,
+  onClose,
+  onSave,
+  isSaving,
+  saveError,
+}: {
+  user: User;
+  onClose: () => void;
+  onSave: (user: User) => void;
+  isSaving: boolean;
+  saveError: string | null;
+}) {
+  const [form, setForm] = useState<UserForm>(() => toForm(user));
   const [stats, setStats] = useState<{
     totalOrders: number;
     totalSpent: number;
     lastOrderDate: string | null;
     products: string[];
   } | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
+  const [isLoadingStats, setIsLoadingStats] = useState(true);
 
   useEffect(() => {
+    setForm(toForm(user));
+    setIsLoadingStats(true);
     fetch(`/api/admin/users/${user.id}/stats`, { credentials: 'include' })
-      .then(res => res.json())
-      .then(data => {
-        setStats(data);
-        setIsLoading(false);
-      })
-      .catch(() => setIsLoading(false));
-  }, [user.id]);
+      .then((res) => (res.ok ? res.json() : Promise.reject()))
+      .then((data) => setStats(data))
+      .catch(() => setStats(null))
+      .finally(() => setIsLoadingStats(false));
+  }, [user]);
+
+  const setField = <K extends keyof UserForm>(field: K, value: UserForm[K]) =>
+    setForm((current) => ({ ...current, [field]: value }));
+
+  const inputClass =
+    'w-full h-10 px-3 text-sm text-neutral-900 bg-white border border-neutral-200 rounded-md outline-none focus:border-neutral-400 focus:ring-2 focus:ring-neutral-900/10';
+  const labelClass = 'block text-xs font-medium text-neutral-600 mb-1.5';
 
   return (
-    <AdminModal open onClose={onClose} title="Kullanıcı Detayı" size="md" testId="modal-user-detail">
-      <div className="space-y-4">
-          <div className="flex items-center gap-4 mb-6">
-            <div className="w-16 h-16 rounded-full bg-neutral-200 flex items-center justify-center text-neutral-900 text-2xl font-bold">
-              {user.firstName?.charAt(0) || user.email.charAt(0).toUpperCase()}
-            </div>
-            <div>
-              <p className="text-xl font-semibold text-neutral-900">{user.firstName} {user.lastName}</p>
-              <p className="text-neutral-500">{user.email}</p>
-            </div>
+    <AdminModal
+      open
+      onClose={onClose}
+      title="Kullanıcı Bilgilerini Düzenle"
+      description="Profil ve iletişim bilgilerini güncelleyin."
+      size="lg"
+      testId="modal-user-detail"
+      closeOnOutsideClick={!isSaving}
+      footer={
+        <>
+          <SecondaryButton onClick={onClose} disabled={isSaving}>Vazgeç</SecondaryButton>
+          <PrimaryButton form="user-edit-form" type="submit" disabled={isSaving} data-testid="button-save-user">
+            {isSaving && <Loader2 className="w-4 h-4 animate-spin" />}
+            Kaydet
+          </PrimaryButton>
+        </>
+      }
+    >
+      <form
+        id="user-edit-form"
+        className="space-y-6"
+        onSubmit={(event) => {
+          event.preventDefault();
+          onSave({ ...user, ...form });
+        }}
+      >
+        <section>
+          <h3 className="text-sm font-semibold text-neutral-900 mb-4">Hesap ve iletişim</h3>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <label>
+              <span className={labelClass}>Ad</span>
+              <input className={inputClass} value={form.firstName ?? ''} onChange={(e) => setField('firstName', e.target.value)} maxLength={100} />
+            </label>
+            <label>
+              <span className={labelClass}>Soyad</span>
+              <input className={inputClass} value={form.lastName ?? ''} onChange={(e) => setField('lastName', e.target.value)} maxLength={100} />
+            </label>
+            <label className="sm:col-span-2">
+              <span className={labelClass}>E-posta <span className="text-red-600">*</span></span>
+              <input className={inputClass} type="email" required value={form.email} onChange={(e) => setField('email', e.target.value)} maxLength={255} />
+            </label>
+            <label>
+              <span className={labelClass}>Telefon</span>
+              <input className={inputClass} type="tel" value={form.phone ?? ''} onChange={(e) => setField('phone', e.target.value)} maxLength={30} />
+            </label>
+            <label className="flex items-center gap-3 pt-6 cursor-pointer">
+              <input type="checkbox" checked={form.whatsappOptIn} onChange={(e) => setField('whatsappOptIn', e.target.checked)} className="w-4 h-4 accent-neutral-900" />
+              <span className="text-sm text-neutral-700">WhatsApp bilgilendirmelerine izin veriyor</span>
+            </label>
           </div>
-          
-          <div className="grid grid-cols-2 gap-4">
-            <div>
-              <p className="text-sm text-neutral-500">Telefon</p>
-              <p className="text-neutral-900">{user.phone || '-'}</p>
-            </div>
-            <div>
-              <p className="text-sm text-neutral-500">Kayıt Tarihi</p>
-              <p className="text-neutral-900">{new Date(user.createdAt).toLocaleDateString('tr-TR')}</p>
-            </div>
+        </section>
+
+        <section className="pt-5 border-t border-neutral-200">
+          <h3 className="text-sm font-semibold text-neutral-900 mb-4">Kayıtlı adres</h3>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <label className="sm:col-span-2">
+              <span className={labelClass}>Adres</span>
+              <textarea className={`${inputClass} h-24 py-2 resize-y`} value={form.address ?? ''} onChange={(e) => setField('address', e.target.value)} maxLength={1000} />
+            </label>
+            <label>
+              <span className={labelClass}>İl</span>
+              <input className={inputClass} value={form.city ?? ''} onChange={(e) => setField('city', e.target.value)} maxLength={100} />
+            </label>
+            <label>
+              <span className={labelClass}>İlçe</span>
+              <input className={inputClass} value={form.district ?? ''} onChange={(e) => setField('district', e.target.value)} maxLength={100} />
+            </label>
+            <label>
+              <span className={labelClass}>Posta kodu</span>
+              <input className={inputClass} value={form.postalCode ?? ''} onChange={(e) => setField('postalCode', e.target.value)} maxLength={20} />
+            </label>
+            <label>
+              <span className={labelClass}>Ülke</span>
+              <input className={inputClass} value={form.country ?? ''} onChange={(e) => setField('country', e.target.value)} maxLength={100} />
+            </label>
           </div>
+        </section>
 
-          {/* Order Stats */}
-          {isLoading ? (
-            <div className="text-center py-4 text-neutral-500">Yükleniyor...</div>
-          ) : stats && (
-            <div className="pt-4 border-t border-neutral-200 space-y-4">
-              <div className="grid grid-cols-3 gap-4">
-                <div className="bg-neutral-50 rounded-lg p-3 text-center">
-                  <p className="text-2xl font-bold text-neutral-900">{stats.totalOrders}</p>
-                  <p className="text-xs text-neutral-500">Toplam Sipariş</p>
-                </div>
-                <div className="bg-neutral-50 rounded-lg p-3 text-center">
-                  <p className="text-2xl font-bold text-neutral-400">{stats.totalSpent.toFixed(2)}₺</p>
-                  <p className="text-xs text-neutral-500">Toplam Harcama</p>
-                </div>
-                <div className="bg-neutral-50 rounded-lg p-3 text-center">
-                  <p className="text-sm font-medium text-neutral-900">
-                    {stats.lastOrderDate ? new Date(stats.lastOrderDate).toLocaleDateString('tr-TR') : '-'}
-                  </p>
-                  <p className="text-xs text-neutral-500">Son Sipariş</p>
-                </div>
-              </div>
+        {saveError && <p className="text-sm text-red-600" role="alert">{saveError}</p>}
 
-              {stats.products.length > 0 && (
-                <div>
-                  <p className="text-sm text-neutral-500 mb-2">Satın Alınan Ürünler</p>
-                  <div className="flex flex-wrap gap-2 max-h-32 overflow-y-auto">
-                    {stats.products.map((product, index) => (
-                      <span key={index} className="px-2 py-1 bg-neutral-50 text-neutral-700 text-xs rounded-full">
-                        {product}
-                      </span>
-                    ))}
-                  </div>
-                </div>
-              )}
+        <section className="pt-5 border-t border-neutral-200">
+          <h3 className="text-sm font-semibold text-neutral-900 mb-3">Sipariş özeti</h3>
+          {isLoadingStats ? (
+            <div className="text-sm text-neutral-500">Yükleniyor...</div>
+          ) : stats ? (
+            <div className="grid grid-cols-3 gap-3">
+              <Stat label="Toplam sipariş" value={String(stats.totalOrders)} />
+              <Stat label="Toplam harcama" value={`${stats.totalSpent.toFixed(2)} ₺`} />
+              <Stat label="Son sipariş" value={stats.lastOrderDate ? new Date(stats.lastOrderDate).toLocaleDateString('tr-TR') : '-'} />
             </div>
+          ) : (
+            <p className="text-sm text-neutral-500">Sipariş özeti alınamadı.</p>
           )}
-      </div>
+        </section>
+      </form>
     </AdminModal>
+  );
+}
+
+function Stat({ label, value }: { label: string; value: string }) {
+  return (
+    <div className="bg-neutral-50 rounded-lg p-3 text-center">
+      <p className="text-sm font-semibold text-neutral-900 truncate">{value}</p>
+      <p className="mt-1 text-[11px] text-neutral-500">{label}</p>
+    </div>
   );
 }
