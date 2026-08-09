@@ -8,7 +8,7 @@ import { useCart } from '@/hooks/useCart';
 import { useAuth } from '@/hooks/useAuth';
 import { SEO } from '@/components/SEO';
 import { useToast } from '@/hooks/use-toast';
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { motion, AnimatePresence } from 'framer-motion';
 import { 
   User, Mail, Phone, MapPin, CreditCard, Truck, Shield, 
@@ -184,9 +184,16 @@ export default function Checkout() {
     enabled: !!user,
   });
 
+  const queryClient = useQueryClient();
+
   const [selectedAddressId, setSelectedAddressId] = useState<string | null>(null);
   const [showNewAddressForm, setShowNewAddressForm] = useState(false);
   const [hasAutoSelectedAddress, setHasAutoSelectedAddress] = useState(false);
+  // "Bu adresi kaydet" seçeneği (yeni adres formu, giriş yapmış kullanıcı)
+  const [saveNewAddress, setSaveNewAddress] = useState(false);
+  // Seçili adresin fatura bilgisi anlık görüntüsü; değişince güncelleme önerisi gösterilir
+  const [invoiceInfoAtSelection, setInvoiceInfoAtSelection] = useState<InvoiceFormValue | null>(null);
+  const [addressSaving, setAddressSaving] = useState(false);
 
   const cartItemsWithProducts = items.map(item => {
     const product = products.find(p => p.id === item.productId);
@@ -235,6 +242,7 @@ export default function Checkout() {
         setHasAutoSelectedAddress(true);
         const invoice = invoiceFormFrom(defaultAddr as any);
         setInvoiceInfo(invoice);
+        setInvoiceInfoAtSelection(invoice);
         if (invoice.invoiceType === 'corporate') setInvoiceOpen(true);
         setFormData(prev => ({
           ...prev,
@@ -256,6 +264,7 @@ export default function Checkout() {
     setShowNewAddressForm(false);
     const invoice = invoiceFormFrom(addr as any);
     setInvoiceInfo(invoice);
+    setInvoiceInfoAtSelection(invoice);
     if (invoice.invoiceType === 'corporate') setInvoiceOpen(true);
     setFormData(prev => ({
       ...prev,
@@ -268,6 +277,48 @@ export default function Checkout() {
       country: addr.country || 'Türkiye',
     }));
   };
+
+  // Seçili adreste fatura bilgisi değiştiğinde güncelleme kaydeder
+  const handleUpdateSelectedAddressInvoice = async () => {
+    if (!selectedAddressId) return;
+    const addr = savedAddresses.find(a => a.id === selectedAddressId);
+    if (!addr) return;
+    setAddressSaving(true);
+    try {
+      const res = await fetch(`/api/auth/addresses/${selectedAddressId}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          title: addr.title,
+          firstName: addr.firstName,
+          lastName: addr.lastName,
+          phone: addr.phone,
+          address: addr.address,
+          city: addr.city,
+          district: addr.district,
+          postalCode: addr.postalCode,
+          country: addr.country,
+          ...invoicePayload(invoiceInfo),
+        }),
+        credentials: 'include',
+      });
+      if (res.ok) {
+        setInvoiceInfoAtSelection(invoiceInfo);
+        queryClient.invalidateQueries({ queryKey: ['user-addresses'] });
+        toast({ title: 'Adres güncellendi', description: 'Fatura bilgileri adres defterinize kaydedildi.' });
+      }
+    } catch {
+      // non-fatal
+    } finally {
+      setAddressSaving(false);
+    }
+  };
+
+  // Seçili adresin fatura bilgisi değişti mi?
+  const invoiceChangedFromSelection =
+    !!selectedAddressId &&
+    invoiceInfoAtSelection !== null &&
+    JSON.stringify(invoiceInfo) !== JSON.stringify(invoiceInfoAtSelection);
 
   // Calculate shipping based on country
   const isDomestic = formData.country === 'Türkiye';
@@ -415,9 +466,40 @@ export default function Checkout() {
     setCurrentStep(step);
   };
 
-  const handleNextStep = () => {
+  const handleNextStep = async () => {
     if (validateStep(currentStep)) {
       if (currentStep === 2) {
+        // Giriş yapmış kullanıcı yeni adres girdi ve kaydetmek istedi
+        if (user && showNewAddressForm && saveNewAddress) {
+          setAddressSaving(true);
+          try {
+            const [firstName, ...lastParts] = formData.customerName.trim().split(' ');
+            const lastName = lastParts.join(' ');
+            await fetch('/api/auth/addresses', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                title: 'Adresim',
+                firstName: firstName || formData.customerName,
+                lastName: lastName || '',
+                phone: formData.customerPhone,
+                address: formData.address,
+                city: formData.city,
+                district: formData.district,
+                postalCode: formData.postalCode,
+                country: formData.country,
+                ...invoicePayload(invoiceInfo),
+              }),
+              credentials: 'include',
+            });
+            queryClient.invalidateQueries({ queryKey: ['user-addresses'] });
+          } catch {
+            // non-fatal — adres kaydedilemese de siparişe devam et
+          } finally {
+            setAddressSaving(false);
+          }
+        }
+
         // Move to payment step. If a card tab is selected, kick off the provider now.
         setCurrentStep(3);
         if (paymentMethod === 'card' && !checkoutFormContent && !paymentPageUrl) {
@@ -1338,6 +1420,23 @@ export default function Checkout() {
                               </p>
                             </div>
                           )}
+
+                          {/* Giriş yapmış kullanıcıya yeni adresi kaydetme seçeneği */}
+                          {user && showNewAddressForm && (
+                            <label className="flex items-start gap-3 cursor-pointer p-3 rounded-lg border border-white/10 bg-[#0F0F0F] hover:bg-white/[0.02] transition-colors">
+                              <input
+                                type="checkbox"
+                                checked={saveNewAddress}
+                                onChange={(e) => setSaveNewAddress(e.target.checked)}
+                                className="mt-0.5 w-5 h-5 border-white/20 bg-[#141414] rounded-md accent-white shrink-0"
+                                data-testid="checkbox-save-new-address"
+                              />
+                              <div>
+                                <span className="text-[13.5px] font-semibold text-white">Bu adresi kaydet</span>
+                                <p className="text-[11.5px] text-white/45 mt-0.5">Bir sonraki siparişinizde hızlıca seçebilirsiniz.</p>
+                              </div>
+                            </label>
+                          )}
                         </div>
                       )}
 
@@ -1409,6 +1508,33 @@ export default function Checkout() {
                         </AnimatePresence>
                         </InvoiceFields>
                       </div>
+
+                      {/* Seçili adreste fatura bilgisi değiştiğinde güncelleme önerisi */}
+                      <AnimatePresence>
+                        {invoiceChangedFromSelection && (
+                          <motion.div
+                            initial={{ opacity: 0, height: 0 }}
+                            animate={{ opacity: 1, height: 'auto' }}
+                            exit={{ opacity: 0, height: 0 }}
+                            className="overflow-hidden"
+                          >
+                            <div className="mt-3 flex items-center justify-between gap-3 p-3 rounded-lg border border-white/15 bg-[#0F0F0F]">
+                              <p className="text-[12.5px] text-white/65">
+                                Fatura bilgileri değiştirildi. Adresi güncellemek ister misiniz?
+                              </p>
+                              <button
+                                type="button"
+                                onClick={handleUpdateSelectedAddressInvoice}
+                                disabled={addressSaving}
+                                className="shrink-0 text-[12.5px] font-semibold text-white underline underline-offset-2 disabled:opacity-50"
+                                data-testid="button-update-address-invoice"
+                              >
+                                {addressSaving ? 'Kaydediliyor…' : 'Güncelle'}
+                              </button>
+                            </div>
+                          </motion.div>
+                        )}
+                      </AnimatePresence>
 
                       {!user && (
                         <div className="mt-6 p-4 bg-[#0F0F0F] border border-white/12 rounded-xl">
