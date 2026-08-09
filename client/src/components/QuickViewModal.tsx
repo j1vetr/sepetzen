@@ -4,6 +4,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { useCart } from '@/hooks/useCart';
 import { useCartModal } from '@/hooks/useCartModal';
 import { getOriginalPrice } from '@/lib/discountPrice';
+import { FreeShippingBadge } from './FreeShippingBadge';
 
 interface ProductVariant {
   id: string;
@@ -121,6 +122,9 @@ export function QuickViewModal({ product, isOpen, onClose }: QuickViewModalProps
                   alt={product.name}
                   className="w-full h-full object-cover"
                 />
+                {!isOutOfStock && (
+                  <FreeShippingBadge className="absolute top-4 left-4 z-10" />
+                )}
                 {product.images.length > 1 && (
                   <div className="absolute bottom-4 left-1/2 -translate-x-1/2 flex gap-2">
                     {product.images.slice(0, 5).map((img, index) => (

@@ -4,6 +4,7 @@ import { motion } from 'framer-motion';
 import { Link } from 'wouter';
 import { useFavoriteIds, useToggleFavorite } from '@/hooks/useFavorites';
 import { QuickViewModal } from './QuickViewModal';
+import { FreeShippingBadge } from './FreeShippingBadge';
 import { getOriginalPrice } from '@/lib/discountPrice';
 
 interface ProductVariant {
@@ -105,6 +106,13 @@ export const ProductCard = memo(function ProductCard({ product }: ProductCardPro
               >
                 Yeni
               </span>
+            )}
+
+            {!isOutOfStock && (
+              <FreeShippingBadge
+                className="absolute bottom-3 left-3 z-10"
+                size="compact"
+              />
             )}
 
             {/* Favorite button */}

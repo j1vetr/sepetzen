@@ -3,6 +3,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { Search, X, Loader2, ArrowRight } from 'lucide-react';
 import { Link, useLocation } from 'wouter';
 import { useQuery } from '@tanstack/react-query';
+import { FreeShippingBadge } from './FreeShippingBadge';
 
 interface SearchProduct {
   id: string;
@@ -307,6 +308,10 @@ export function SearchOverlay({ isOpen, onClose }: SearchOverlayProps) {
                                   )}
                                 </div>
                               )}
+                              <FreeShippingBadge
+                                className="absolute bottom-2 left-2 z-10"
+                                size="compact"
+                              />
                             </div>
 
                             <h4
