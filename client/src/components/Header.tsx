@@ -336,7 +336,7 @@ export function Header() {
                     </span>
                   </button>
                 </DropdownMenuTrigger>
-                <DropdownMenuContent align="end" className="surface-glass-dark border border-white/10 shadow-[0_8px_30px_rgba(0,0,0,0.5)] rounded-md min-w-[180px] z-[9999]">
+                <DropdownMenuContent align="end" className="surface-glass-dark bg-black/85 text-white border border-white/10 shadow-[0_8px_30px_rgba(0,0,0,0.5)] rounded-md min-w-[180px] z-[9999]">
                   <DropdownMenuItem disabled className="text-[10px] tracking-widest text-white/30 uppercase">{user.firstName || user.email}</DropdownMenuItem>
                   <DropdownMenuItem onClick={() => navigate('/hesabim')} className="text-[11px] tracking-wider uppercase text-white/75 hover:bg-white/5 hover:text-white cursor-pointer py-2.5">
                     <User className="w-4 h-4 mr-2" />Hesabım
@@ -501,7 +501,7 @@ export function Header() {
                 <DropdownMenuContent
                   align="start"
                   sideOffset={12}
-                  className="surface-glass-dark border border-white/10 shadow-[0_8px_30px_rgba(0,0,0,0.5)] rounded-md p-3 z-[9999]"
+                  className="surface-glass-dark bg-black/85 text-white border border-white/10 shadow-[0_8px_30px_rgba(0,0,0,0.5)] rounded-md p-3 z-[9999]"
                   style={{ minWidth: shownAllCats.length > 6 ? 480 : 240 }}
                 >
                   {visibleCategories.length === 0 ? (
@@ -610,7 +610,7 @@ export function Header() {
                     <DropdownMenuContent
                       align="end"
                       sideOffset={12}
-                      className="surface-glass-dark border border-white/10 shadow-[0_8px_30px_rgba(0,0,0,0.5)] rounded-md p-2 min-w-[220px] z-[9999]"
+                      className="surface-glass-dark bg-black/85 text-white border border-white/10 shadow-[0_8px_30px_rgba(0,0,0,0.5)] rounded-md p-2 min-w-[220px] z-[9999]"
                     >
                       {menuRoots.slice(7).map((root) => {
                         const children = (root.children || []).filter(c => c.isActive);
@@ -660,7 +660,7 @@ export function Header() {
                   <DropdownMenuContent
                     align="start"
                     sideOffset={20}
-                    className="surface-glass-dark border border-white/10 shadow-[0_8px_30px_rgba(0,0,0,0.5)] rounded-md p-5"
+                    className="surface-glass-dark bg-black/85 text-white border border-white/10 shadow-[0_8px_30px_rgba(0,0,0,0.5)] rounded-md p-5"
                     style={{ minWidth: visibleCategories.length > 6 ? 520 : 240 }}
                   >
                     {visibleCategories.length === 0 ? (
@@ -960,50 +960,53 @@ export function Header() {
                   exit="initial"
                   className="space-y-0"
                 >
+                  {/* Eyebrow */}
+                  <motion.li variants={stagger.item} aria-hidden="true">
+                    <div className="flex items-center gap-3 pt-3 pb-2">
+                      <span className="text-[9px] font-mono tracking-[0.34em] uppercase text-white/35">Menü</span>
+                      <span className="h-px flex-1 bg-gradient-to-r from-white/20 to-transparent" />
+                    </div>
+                  </motion.li>
+
                   {/* Ana Sayfa */}
                   <motion.li variants={stagger.item}>
                     <Link
                       href="/"
                       onClick={() => setMobileOpen(false)}
-                      className="group relative flex items-center justify-between py-2.5"
+                      className="group relative flex items-center justify-between py-3.5"
                       data-testid="link-mobile-home"
                     >
-                      <span className="flex items-center gap-3">
-                        <span className="text-[9px] font-mono tracking-[0.18em] text-white/35 group-hover:text-white transition-colors">
-                          01
-                        </span>
-                        <span className="font-display text-[17px] leading-none tracking-[0.01em] text-white group-hover:text-white/80 transition-colors">
-                          Ana Sayfa
-                        </span>
+                      <span className="font-display text-[19px] leading-none tracking-[0.02em] text-white transition-transform duration-300 group-active:translate-x-1">
+                        Ana Sayfa
                       </span>
-                      <ArrowUpRight className="w-3.5 h-3.5 text-white/30 rotate-45 group-hover:rotate-0 group-hover:text-white transition-all duration-300" />
+                      <ArrowUpRight className="w-4 h-4 text-white/30 rotate-45 group-hover:rotate-0 group-hover:text-white transition-all duration-300" />
                     </Link>
                   </motion.li>
 
                   {useMenuTree ? (
-                    menuRoots.map((root, idx) => {
+                    menuRoots.map((root) => {
                       const children = (root.children || []).filter(c => c.isActive);
                       const isSubmenu = root.type === 'submenu';
                       const isOpen = !!mobileSubOpen[root.id];
-                      const number = String(idx + 2).padStart(2, '0');
-    
+
                       if (isSubmenu) {
                         return (
-                          <motion.li key={root.id} variants={stagger.item} className="border-t border-white/[0.10]">
+                          <motion.li key={root.id} variants={stagger.item} className="border-t border-white/[0.07]">
                             <button
                               onClick={() => setMobileSubOpen(s => ({ ...s, [root.id]: !s[root.id] }))}
-                              className="group relative w-full flex items-center justify-between py-2.5"
+                              className="group relative w-full flex items-center justify-between py-3.5"
                               data-testid={`button-mobile-group-${root.id}`}
                               aria-expanded={isOpen}
                             >
-                              <span className="flex items-center gap-3">
-                                <span className={`text-[9px] font-mono tracking-[0.18em] transition-colors ${isOpen ? 'text-white' : 'text-white/35 group-hover:text-white'}`}>
-                                  {number}
-                                </span>
-                                                                <span className={`font-display text-[17px] leading-none tracking-[0.01em] transition-colors ${isOpen ? 'text-white' : 'text-white group-hover:text-white/80'}`}>
+                              <span className="flex items-center gap-2.5">
+                                <span className={`font-display text-[19px] leading-none tracking-[0.02em] transition-colors ${isOpen ? 'text-white' : 'text-white group-hover:text-white/80'}`}>
                                   {root.title}
                                 </span>
-                                <span className="text-[9px] text-white/40 self-center">({children.length})</span>
+                                {children.length > 0 && (
+                                  <span className="min-w-[20px] h-[20px] px-1 inline-flex items-center justify-center rounded-full border border-white/15 text-[9px] font-mono text-white/50">
+                                    {children.length}
+                                  </span>
+                                )}
                               </span>
                               <motion.span
                                 animate={{ rotate: isOpen ? 90 : 0 }}
@@ -1027,7 +1030,7 @@ export function Header() {
                                   animate={{ height: 'auto', opacity: 1 }}
                                   exit={{ height: 0, opacity: 0 }}
                                   transition={{ duration: 0.32, ease: [0.16, 1, 0.3, 1] }}
-                                  className="overflow-hidden pl-7 border-l border-white/25 ml-[3px] mb-2"
+                                  className="overflow-hidden pl-5 border-l border-white/15 ml-[2px] mb-3"
                                 >
                                   {children.length === 0 ? (
                                     <li className="text-[10px] text-white/40 py-1.5">Henüz alt kategori yok</li>
@@ -1038,10 +1041,11 @@ export function Header() {
                                         <Link
                                           href={href}
                                           onClick={() => setMobileOpen(false)}
-                                          className="group flex items-center gap-2 py-1.5 text-white/65 hover:text-white transition-colors"
+                                          className="group flex items-center gap-2.5 py-2 text-white/60 hover:text-white transition-colors"
                                           data-testid={`link-mobile-mega-${child.id}`}
                                         >
-                                                                                    <span className="text-[11px] tracking-[0.12em] uppercase">
+                                          <span className="w-1 h-1 rounded-full bg-white/25 group-hover:bg-white transition-colors" />
+                                          <span className="text-[11.5px] tracking-[0.14em] uppercase">
                                             {child.title}
                                           </span>
                                         </Link>
@@ -1057,45 +1061,35 @@ export function Header() {
 
                       const href = hrefForMenu(root);
                       return (
-                        <motion.li key={root.id} variants={stagger.item} className="border-t border-white/[0.10]">
+                        <motion.li key={root.id} variants={stagger.item} className="border-t border-white/[0.07]">
                           <Link
                             href={href}
                             onClick={() => setMobileOpen(false)}
-                            className="group relative flex items-center justify-between py-2.5"
+                            className="group relative flex items-center justify-between py-3.5"
                             data-testid={`link-mobile-root-${root.id}`}
                           >
-                            <span className="flex items-center gap-3">
-                              <span className="text-[9px] font-mono tracking-[0.18em] text-white/35 group-hover:text-white transition-colors">
-                                {number}
-                              </span>
-                                                            <span className="font-display text-[17px] leading-none tracking-[0.01em] text-white group-hover:text-white/80 transition-colors">
-                                {root.title}
-                              </span>
+                            <span className="font-display text-[19px] leading-none tracking-[0.02em] text-white transition-transform duration-300 group-active:translate-x-1">
+                              {root.title}
                             </span>
-                            <ArrowUpRight className="w-3.5 h-3.5 text-white/30 rotate-45 group-hover:rotate-0 group-hover:text-white transition-all duration-300" />
+                            <ArrowUpRight className="w-4 h-4 text-white/30 rotate-45 group-hover:rotate-0 group-hover:text-white transition-all duration-300" />
                           </Link>
                         </motion.li>
                       );
                     })
                   ) : (
-                    visibleCategories.map((c, idx) => {
+                    visibleCategories.map((c) => {
                       return (
-                        <motion.li key={c.id} variants={stagger.item} className="border-t border-white/[0.10]">
+                        <motion.li key={c.id} variants={stagger.item} className="border-t border-white/[0.07]">
                           <Link
                             href={`/kategori/${c.slug}`}
                             onClick={() => setMobileOpen(false)}
-                            className="group relative flex items-center justify-between py-2.5"
+                            className="group relative flex items-center justify-between py-3.5"
                             data-testid={`link-mobile-cat-${c.slug}`}
                           >
-                            <span className="flex items-center gap-3">
-                              <span className="text-[9px] font-mono tracking-[0.18em] text-white/35 group-hover:text-white transition-colors">
-                                {String(idx + 2).padStart(2, '0')}
-                              </span>
-                                                            <span className="font-display text-[17px] leading-none tracking-[0.01em] text-white group-hover:text-white/80 transition-colors">
-                                {c.name}
-                              </span>
+                            <span className="font-display text-[19px] leading-none tracking-[0.02em] text-white transition-transform duration-300 group-active:translate-x-1">
+                              {c.name}
                             </span>
-                            <ArrowUpRight className="w-3.5 h-3.5 text-white/30 rotate-45 group-hover:rotate-0 group-hover:text-white transition-all duration-300" />
+                            <ArrowUpRight className="w-4 h-4 text-white/30 rotate-45 group-hover:rotate-0 group-hover:text-white transition-all duration-300" />
                           </Link>
                         </motion.li>
                       );
@@ -1103,22 +1097,20 @@ export function Header() {
                   )}
 
                   {user && (
-                    <motion.li variants={stagger.item} className="border-t border-b border-white/[0.10]">
+                    <motion.li variants={stagger.item} className="border-t border-b border-white/[0.07]">
                       <Link
                         href="/hesabim"
                         onClick={() => setMobileOpen(false)}
-                        className="group relative flex items-center justify-between py-2.5"
+                        className="group relative flex items-center justify-between py-3.5"
                         data-testid="link-mobile-hesabim"
                       >
                         <span className="flex items-center gap-3">
-                          <span className="text-[9px] font-mono tracking-[0.18em] text-white/35 group-hover:text-white transition-colors">
-                            ★
-                          </span>
-                          <span className="font-display text-[17px] leading-none tracking-[0.01em] text-white group-hover:text-white/80 transition-colors">
+                          <User className="w-4 h-4 text-white/45 group-hover:text-white transition-colors" strokeWidth={1.75} />
+                          <span className="font-display text-[19px] leading-none tracking-[0.02em] text-white group-hover:text-white/80 transition-colors">
                             Hesabım
                           </span>
                         </span>
-                        <ArrowUpRight className="w-3.5 h-3.5 text-white/30 rotate-45 group-hover:rotate-0 group-hover:text-white transition-all duration-300" />
+                        <ArrowUpRight className="w-4 h-4 text-white/30 rotate-45 group-hover:rotate-0 group-hover:text-white transition-all duration-300" />
                       </Link>
                     </motion.li>
                   )}

@@ -1126,7 +1126,7 @@ export default function ProductDetail() {
 
               {/* Thumbnail strip (desktop) */}
               {images.length > 1 && (
-                <div className="hidden sm:flex flex-col gap-2 w-[68px] h-[372px] shrink-0 overflow-y-auto pr-1 [scrollbar-width:thin]">
+                <div className="hidden sm:flex flex-col gap-2 w-[68px] h-[372px] shrink-0 overflow-y-auto py-0.5 pr-1 [scrollbar-width:thin]">
                   {images.map((img, i) => (
                     <motion.button
                       key={i}
@@ -1144,7 +1144,7 @@ export default function ProductDetail() {
                         <motion.span
                           layoutId="thumb-active-ring"
                           transition={reduceMotion ? { duration: 0 } : { type: 'spring', stiffness: 500, damping: 40 }}
-                          className="absolute inset-[2px] rounded-[3px] ring-2 ring-white ring-offset-2 ring-offset-[#0A0A0A] pointer-events-none"
+                          className="absolute inset-0 rounded-md ring-2 ring-inset ring-white pointer-events-none"
                         />
                       )}
                     </motion.button>
@@ -1158,7 +1158,7 @@ export default function ProductDetail() {
                 <div className="hidden sm:block">
                   <div
                     ref={heroImageRef}
-                    className="relative aspect-[3/4] rounded-xl bg-zinc-900 overflow-hidden cursor-zoom-in"
+                    className="relative aspect-[3/4] rounded-xl bg-zinc-900 overflow-hidden cursor-zoom-in border border-white/15 ring-1 ring-white/5 ring-offset-4 ring-offset-[#0A0A0A]"
                     onMouseEnter={() => setIsZooming(true)}
                     onMouseLeave={() => setIsZooming(false)}
                     onMouseMove={handleHeroMove}
@@ -1169,8 +1169,8 @@ export default function ProductDetail() {
                       <motion.div
                         key={selectedImage}
                         className="absolute inset-0"
-                        initial={reduceMotion ? { opacity: 0 } : { opacity: 0, scale: 1.03 }}
-                        animate={{ opacity: 1, scale: 1 }}
+                        initial={{ opacity: 0 }}
+                        animate={{ opacity: 1 }}
                         exit={{ opacity: 0 }}
                         transition={{ duration: reduceMotion ? 0 : 0.28, ease: [0.33, 1, 0.68, 1] }}
                       >
@@ -1187,9 +1187,6 @@ export default function ProductDetail() {
                         />
                       </motion.div>
                     </AnimatePresence>
-                    <svg className={`absolute inset-1 z-[1] h-[calc(100%-0.5rem)] w-[calc(100%-0.5rem)] pointer-events-none ${reduceMotion ? '' : 'animate-[spin_18s_linear_infinite]'}`} viewBox="0 0 100 100" preserveAspectRatio="none" aria-hidden="true">
-                      <rect x="1.5" y="1.5" width="97" height="97" rx="2" fill="none" stroke="white" strokeWidth="0.45" strokeDasharray="3 3" vectorEffect="non-scaling-stroke" />
-                    </svg>
                     {product.discountBadge && (
                       <span className="absolute top-4 left-4 z-10 bg-red-500 text-black text-[10px] font-extrabold tracking-[0.16em] px-3 py-1.5 uppercase">{product.discountBadge}</span>
                     )}
@@ -1203,8 +1200,8 @@ export default function ProductDetail() {
                 </div>
 
                 {/* Mobile carousel */}
-                <div className="sm:hidden -mx-4">
-                  <div className="relative aspect-[3/4] rounded-xl bg-zinc-900 overflow-hidden" ref={emblaRef}>
+                <div className="sm:hidden px-1">
+                  <div className="relative aspect-[4/5] rounded-xl bg-zinc-900 overflow-hidden border border-white/15 ring-1 ring-white/5 ring-offset-4 ring-offset-[#0A0A0A]" ref={emblaRef}>
                     <div className="flex h-full">
                       {images.map((img, i) => (
                         <button type="button" key={i} className="flex-[0_0_100%] min-w-0 h-full" onClick={() => setLightboxOpen(true)} aria-label={`Görsel ${i + 1} - büyüt`}>
@@ -1212,18 +1209,15 @@ export default function ProductDetail() {
                         </button>
                       ))}
                     </div>
-                    <svg className={`absolute inset-1 z-[1] h-[calc(100%-0.5rem)] w-[calc(100%-0.5rem)] pointer-events-none ${reduceMotion ? '' : 'animate-[spin_18s_linear_infinite]'}`} viewBox="0 0 100 100" preserveAspectRatio="none" aria-hidden="true">
-                      <rect x="1.5" y="1.5" width="97" height="97" rx="2" fill="none" stroke="white" strokeWidth="0.45" strokeDasharray="3 3" vectorEffect="non-scaling-stroke" />
-                    </svg>
                     {product.discountBadge && <span className="absolute top-4 left-4 z-10 bg-red-500 text-black text-[10px] font-extrabold tracking-[0.16em] px-3 py-1.5 uppercase">{product.discountBadge}</span>}
                     {product.isNew && !product.discountBadge && <span className="absolute top-4 left-4 z-10 bg-white text-black text-[10px] font-bold tracking-[0.2em] px-3 py-1.5 uppercase">Yeni</span>}
                   </div>
                   {images.length > 1 && (
                     <div className="mt-3 space-y-3">
-                      <div className="flex justify-center gap-2 overflow-x-auto px-3 [scrollbar-width:none]">
+                      <div className="flex justify-center gap-2 overflow-x-auto px-3 py-1 [scrollbar-width:none]">
                         {images.map((img, i) => (
                           <button key={i} type="button" onClick={() => setSelectedImage(i)}
-                            className={`relative h-12 w-9 overflow-hidden rounded-md bg-zinc-900 transition-opacity ${i === selectedImage ? 'ring-2 ring-white ring-offset-2 ring-offset-[#0A0A0A]' : 'opacity-50'}`}
+                            className={`relative h-12 w-9 shrink-0 overflow-hidden rounded-md bg-zinc-900 transition-opacity ${i === selectedImage ? 'ring-2 ring-inset ring-white' : 'opacity-50'}`}
                             aria-label={`Görsel ${i + 1}`}>
                             <img src={img} alt="" className="h-full w-full object-cover" loading="lazy" />
                           </button>
