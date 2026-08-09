@@ -194,6 +194,7 @@ export interface IStorage {
     search?: string;
     minPrice?: number;
     maxPrice?: number;
+    limit?: number;
     sizes?: string[];
     colors?: string[];
     sort?: 'price_asc' | 'price_desc' | 'newest' | 'popular';
@@ -615,6 +616,7 @@ export class DbStorage implements IStorage {
     search?: string;
     minPrice?: number;
     maxPrice?: number;
+    limit?: number;
     sizes?: string[];
     colors?: string[];
     sort?: 'price_asc' | 'price_desc' | 'newest' | 'popular';
@@ -666,6 +668,10 @@ export class DbStorage implements IStorage {
         break;
       default:
         query = query.orderBy(desc(products.createdAt));
+    }
+
+    if (filters?.limit !== undefined) {
+      query = query.limit(Math.max(1, Math.min(100, filters.limit)));
     }
 
     let result = await query;

@@ -1716,7 +1716,7 @@ export async function registerRoutes(
   // Products API
   app.get("/api/products", async (req, res) => {
     try {
-      const { categoryId, isFeatured, isNew, search, minPrice, maxPrice, sort } = req.query;
+      const { categoryId, isFeatured, isNew, search, minPrice, maxPrice, sort, limit } = req.query;
       const products = await storage.getProducts({
         categoryId: categoryId as string,
         isFeatured: isFeatured !== undefined ? isFeatured === 'true' : undefined,
@@ -1725,6 +1725,7 @@ export async function registerRoutes(
         minPrice: minPrice ? parseFloat(minPrice as string) : undefined,
         maxPrice: maxPrice ? parseFloat(maxPrice as string) : undefined,
         sort: sort as 'price_asc' | 'price_desc' | 'newest' | 'popular' | undefined,
+        limit: limit ? parseInt(limit as string, 10) : undefined,
       });
       res.json(products);
     } catch (error) {

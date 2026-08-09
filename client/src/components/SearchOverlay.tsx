@@ -83,7 +83,7 @@ export function SearchOverlay({ isOpen, onClose }: SearchOverlayProps) {
   const { data: searchResults = [], isLoading: searching } = useQuery<SearchProduct[]>({
     queryKey: ['search-products', debouncedQuery],
     queryFn: async () => {
-      const res = await fetch(`/api/products?search=${encodeURIComponent(debouncedQuery)}`);
+      const res = await fetch(`/api/products?search=${encodeURIComponent(debouncedQuery)}&limit=4`);
       if (!res.ok) throw new Error('Search failed');
       return res.json();
     },
@@ -95,7 +95,7 @@ export function SearchOverlay({ isOpen, onClose }: SearchOverlayProps) {
   const { data: featured = [] } = useQuery<SearchProduct[]>({
     queryKey: ['search-featured'],
     queryFn: async () => {
-      const res = await fetch('/api/products?isFeatured=true');
+      const res = await fetch('/api/products?isFeatured=true&limit=4');
       if (!res.ok) return [];
       return res.json();
     },
@@ -118,7 +118,7 @@ export function SearchOverlay({ isOpen, onClose }: SearchOverlayProps) {
     [categories],
   );
 
-  const displayedProducts = hasQuery ? searchResults : featured.slice(0, 8);
+  const displayedProducts = hasQuery ? searchResults.slice(0, 4) : featured.slice(0, 4);
 
   const handleProductClick = () => onClose();
 
@@ -140,11 +140,9 @@ export function SearchOverlay({ isOpen, onClose }: SearchOverlayProps) {
             exit={{ opacity: 0 }}
             transition={{ duration: 0.25 }}
             onClick={onClose}
-            className="fixed inset-0 z-[100] overflow-hidden bg-[#050505]/55 backdrop-blur-[22px]"
+            className="fixed inset-0 z-[100] overflow-hidden bg-[#050505]/80"
             data-testid="overlay-search"
           >
-            <div className="absolute -top-[22%] left-[8%] h-[58vw] w-[58vw] rounded-full bg-white/[0.09] blur-[120px]" />
-            <div className="absolute -bottom-[30%] right-[3%] h-[55vw] w-[55vw] rounded-full bg-slate-300/[0.07] blur-[130px]" />
           </motion.div>
 
           {/* ── Floating glass panel ── */}
@@ -153,7 +151,7 @@ export function SearchOverlay({ isOpen, onClose }: SearchOverlayProps) {
             animate={{ opacity: 1, y: 0, scale: 1 }}
             exit={{ opacity: 0, y: -22, scale: 0.99 }}
             transition={{ duration: 0.38, ease: [0.16, 1, 0.3, 1] }}
-            className="fixed inset-x-2 top-2 bottom-2 z-[101] mx-auto flex max-w-[1380px] flex-col overflow-hidden rounded-[26px] border border-white/[0.18] bg-[linear-gradient(135deg,rgba(34,34,38,0.78),rgba(12,12,14,0.67)_48%,rgba(27,27,30,0.73))] shadow-[0_32px_100px_-20px_rgba(0,0,0,0.82),inset_0_1px_0_rgba(255,255,255,0.16)] backdrop-blur-[34px] sm:inset-x-4 sm:top-4 sm:bottom-4 lg:top-7 lg:bottom-7"
+            className="fixed inset-x-2 top-2 bottom-2 z-[101] mx-auto flex max-w-[1380px] flex-col overflow-hidden rounded-[26px] border border-white/[0.18] bg-[#171719] shadow-[0_32px_100px_-20px_rgba(0,0,0,0.82),inset_0_1px_0_rgba(255,255,255,0.16)] sm:inset-x-4 sm:top-4 sm:bottom-4 lg:top-7 lg:bottom-7"
             data-testid="panel-search"
           >
             <div className="pointer-events-none absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-white/70 to-transparent" />
@@ -278,12 +276,9 @@ export function SearchOverlay({ isOpen, onClose }: SearchOverlayProps) {
                     </div>
 
                     <div className="grid grid-cols-2 gap-3 md:grid-cols-3 lg:grid-cols-4 lg:gap-4">
-                      {displayedProducts.map((product, index) => (
-                        <motion.div
+                      {displayedProducts.map((product) => (
+                        <div
                           key={product.id}
-                          initial={{ opacity: 0, y: 10 }}
-                          animate={{ opacity: 1, y: 0 }}
-                          transition={{ duration: 0.25, delay: Math.min(index * 0.03, 0.25) }}
                         >
                           <Link
                             href={`/urun/${product.slug}`}
@@ -341,7 +336,7 @@ export function SearchOverlay({ isOpen, onClose }: SearchOverlayProps) {
                               {formatPrice(product.basePrice)} ₺
                             </p>
                           </Link>
-                        </motion.div>
+                        </div>
                       ))}
                     </div>
                   </div>

@@ -951,7 +951,7 @@ export function Header() {
               exit={{ opacity: 0 }}
               transition={{ duration: 0.3 }}
               onClick={() => setMobileOpen(false)}
-              className="fixed inset-0 z-[200] bg-black/55 backdrop-blur-md"
+              className="fixed inset-0 z-[200] bg-black/35 backdrop-blur-sm"
               data-testid="overlay-mobile-menu"
             />
 
@@ -960,11 +960,11 @@ export function Header() {
               animate={{ x: 0 }}
               exit={{ x: '-100%' }}
               transition={{ duration: 0.55, ease: [0.16, 1, 0.3, 1] }}
-              className="fixed inset-y-0 left-0 z-[210] w-[92%] max-w-[420px] surface-glass-dark flex flex-col overflow-hidden shadow-[0_0_60px_rgba(0,0,0,0.55)]"
+              className="mobile-drawer-glass fixed inset-y-0 left-0 z-[210] w-[92%] max-w-[420px] surface-glass-dark flex flex-col overflow-hidden shadow-[0_0_60px_rgba(0,0,0,0.55)]"
               data-testid="drawer-mobile-menu"
             >
               {/* ── Hero panel: brand header ── */}
-              <div className="relative h-[120px] shrink-0 overflow-hidden border-b border-white/10 bg-black/40 flex items-center justify-center">
+              <div className="relative h-[120px] shrink-0 overflow-hidden border-b border-white/10 bg-black/20 flex items-center justify-center">
                 <motion.button
                   whileTap={{ scale: 0.88 }}
                   onClick={() => setMobileOpen(false)}
@@ -1153,7 +1153,7 @@ export function Header() {
               </nav>
 
               {/* ── Bottom: auth + cart CTA ── */}
-              <div className="shrink-0">
+              <div className="mobile-drawer-footer shrink-0">
                 {!user && (
                   <div className="grid grid-cols-2 border-t border-white/10">
                     <Link
@@ -1177,7 +1177,7 @@ export function Header() {
                 <Link
                   href="/sepet"
                   onClick={() => setMobileOpen(false)}
-                  className="group relative bg-black hover:bg-[#141414] transition-colors duration-500 px-6 py-4 flex items-center justify-between text-white"
+                  className="group relative bg-black/25 hover:bg-white/[0.08] transition-colors duration-500 px-6 py-4 flex items-center justify-between text-white"
                   data-testid="link-mobile-sepet"
                 >
                   <span className="flex items-center gap-3">
