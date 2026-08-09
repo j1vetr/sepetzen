@@ -25,6 +25,8 @@ export const mobileNavItemSchema = z.object({
 });
 
 export const siteIdentitySchema = z.object({
+  logoUrl: z.string().min(1),
+  faviconUrl: z.string().min(1),
   announcements: z.array(z.string().min(1)).min(1),
   phone: z.string().min(1),
   phoneHref: z.string().min(1),
@@ -43,6 +45,8 @@ export type MobileNavItem = z.infer<typeof mobileNavItemSchema>;
 export type SiteIdentity = z.infer<typeof siteIdentitySchema>;
 
 export const DEFAULT_SITE_IDENTITY: SiteIdentity = {
+  logoUrl: "/uploads/branding/sepetzen-logo-white.png",
+  faviconUrl: "/favicon.png",
   announcements: [
     "1500 TL ve Üzeri Ücretsiz Kargo!",
     "İlk Siparişinize Sepette %10 İndirim!",

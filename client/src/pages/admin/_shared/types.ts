@@ -149,6 +149,7 @@ export type TabType =
   | 'database'
   | 'menu'
   | 'homepage'
+  | 'pages'
   | 'marketplaces'
   | 'marketplaceOrders'
   | 'coupons'

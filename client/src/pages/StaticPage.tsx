@@ -5,6 +5,7 @@ import { Header } from '@/components/Header';
 import { Footer } from '@/components/Footer';
 import { SEO } from '@/components/SEO';
 import { Link } from 'wouter';
+import { sanitizeAdminHtml } from '@/lib/sanitizeHtml';
 
 interface Page {
   id: string;
@@ -105,7 +106,7 @@ export default function StaticPage() {
                 [&_td]:border [&_td]:border-border [&_td]:px-3 [&_td]:py-2 [&_td]:text-sm
                 [&_th]:border [&_th]:border-white/8 [&_th]:px-3 [&_th]:py-2 [&_th]:text-sm [&_th]:font-semibold [&_th]:bg-[#141414]
               "
-              dangerouslySetInnerHTML={{ __html: page.content }}
+              dangerouslySetInnerHTML={{ __html: sanitizeAdminHtml(page.content) }}
             />
           </>
         )}

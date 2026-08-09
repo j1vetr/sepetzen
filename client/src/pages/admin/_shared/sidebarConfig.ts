@@ -1,5 +1,6 @@
 import {
   Home,
+  FileText,
   LayoutDashboard,
   BarChart3,
   Package,
@@ -30,6 +31,7 @@ export const VALID_TABS: TabType[] = [
   'database',
   'menu',
   'homepage',
+  'pages',
   'marketplaces',
   'marketplaceOrders',
   'coupons',
@@ -83,6 +85,7 @@ export const SIDEBAR_CATEGORIES: SidebarCategory[] = [
     items: [
       { id: 'homepage', icon: Home, label: 'Ana Sayfa' },
       { id: 'menu', icon: MenuIcon, label: 'Menü' },
+      { id: 'pages', icon: FileText, label: 'Yasal Sayfalar' },
     ],
   },
   {
@@ -109,6 +112,7 @@ export const TAB_DESCRIPTIONS: Record<TabType, string> = {
   reviews: 'Müşteri yorumlarını onaylayın veya kaldırın.',
   coupons: 'İndirim kuponları oluşturun ve takip edin.',
   homepage: 'Ana sayfanızın bölümlerini düzenleyin.',
+  pages: 'Yasal ve bilgilendirme sayfalarınızın içeriklerini düzenleyin.',
   menu: 'Sitenizin üst menüsünü düzenleyin.',
   settings: 'Mağaza bilgileri ve genel ayarlar.',
   database: 'Teknik veri araçları. Gerekmedikçe kullanmanıza gerek yok.',

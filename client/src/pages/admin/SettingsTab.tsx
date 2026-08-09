@@ -1,6 +1,6 @@
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useState, useEffect, type ComponentType } from 'react';
-import { Settings, Mail, Loader2, CheckCircle2, XCircle, Send, Server, CreditCard, Copy, AlertTriangle, Wrench, MessageCircle, KeyRound, ShieldCheck, Truck, MapPin, Megaphone, Globe, Banknote } from 'lucide-react';
+import { Settings, Mail, Loader2, CheckCircle2, XCircle, Send, Server, CreditCard, Copy, AlertTriangle, Wrench, MessageCircle, KeyRound, ShieldCheck, Truck, MapPin, Megaphone, Globe, Banknote, Upload } from 'lucide-react';
 import { BANK_TRANSFER_INFO } from '@shared/bankInfo';
 import type { SiteIdentity, SocialLink, MobileNavItem } from '@shared/siteIdentity';
 
@@ -247,6 +247,21 @@ function SiteIdentitySection() {
     }
   };
 
+  const uploadBrandingFile = async (file: File, field: 'logoUrl' | 'faviconUrl') => {
+    setMsg(null);
+    const formData = new FormData();
+    formData.append('images', file);
+    try {
+      const res = await fetch('/api/admin/upload/branding', { method: 'POST', body: formData, credentials: 'include' });
+      const payload = await res.json().catch(() => ({}));
+      if (!res.ok || !payload.urls?.[0]) throw new Error(payload.error || 'Görsel yüklenemedi');
+      set({ [field]: payload.urls[0] } as Partial<SiteIdentity>);
+      setMsg({ type: 'success', text: field === 'logoUrl' ? 'Logo yüklendi. Kaydettiğinizde vitrine yansır.' : 'Favicon yüklendi. Kaydettiğinizde tarayıcı sekmesinde görünür.' });
+    } catch (error) {
+      setMsg({ type: 'error', text: error instanceof Error ? error.message : 'Görsel yüklenemedi' });
+    }
+  };
+
   const inputCls = 'w-full px-3 py-2 bg-neutral-50 border border-neutral-200 rounded-lg text-neutral-900 text-sm';
   const smallBtnCls = 'text-[11px] font-semibold text-neutral-500 hover:text-red-600 transition-colors shrink-0';
   const addBtnCls = 'text-[12px] font-semibold text-neutral-700 border border-neutral-200 rounded-lg px-3 py-1.5 hover:bg-neutral-50 transition-colors';
@@ -295,6 +310,32 @@ function SiteIdentitySection() {
       )}
 
       <div className="space-y-6">
+        <div>
+          <h4 className={groupTitleCls}>Logo ve Tarayıcı Simgesi</h4>
+          <div className="grid md:grid-cols-2 gap-4">
+            {([
+              ['logoUrl', 'Site Logosu', 'img-logo-upload'],
+              ['faviconUrl', 'Favicon', 'img-favicon-upload'],
+            ] as const).map(([field, label, testId]) => (
+              <div key={field} className="rounded-lg border border-neutral-200 p-3">
+                <p className="mb-2 text-sm font-medium text-neutral-700">{label}</p>
+                <div className="h-20 bg-neutral-950 rounded-md flex items-center justify-center overflow-hidden mb-3">
+                  <img src={identity[field]} alt={`${label} önizleme`} className="max-h-full max-w-full object-contain" />
+                </div>
+                <label className="inline-flex cursor-pointer items-center gap-2 text-xs font-semibold text-neutral-700 hover:text-neutral-950">
+                  <Upload className="h-4 w-4" /> Görsel Yükle
+                  <input type="file" accept="image/png,image/jpeg,image/webp,image/gif" className="hidden" data-testid={testId} onChange={(event) => {
+                    const file = event.target.files?.[0];
+                    if (file) uploadBrandingFile(file, field);
+                    event.target.value = '';
+                  }} />
+                </label>
+              </div>
+            ))}
+          </div>
+          <p className="mt-2 text-xs text-neutral-500">Logo için yatay PNG/WebP, favicon için kare PNG önerilir. Yüklenen görseli siteye aktarmak için aşağıdan kaydedin.</p>
+        </div>
+
         {/* Announcements */}
         <div>
           <h4 className={groupTitleCls}>Duyuru Bandı Mesajları</h4>

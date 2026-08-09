@@ -301,7 +301,7 @@ export function Header() {
           {/* Sol: Logo */}
           <Link href="/" onClick={scrollToTop} data-testid="link-logo" className="justify-self-start block">
             <img
-              src="/uploads/branding/sepetzen-logo-white.png"
+              src={siteIdentity.logoUrl}
               alt="Sepetzen – Kamp, Outdoor, Bıçak ve Bağ Bahçe"
               data-testid="img-logo"
               className="h-20 w-auto object-contain"
@@ -410,7 +410,7 @@ export function Header() {
 
             <Link href="/" onClick={scrollToTop} data-testid="link-logo-mobile-header" className="justify-self-center block">
               <img
-                src="/uploads/branding/sepetzen-logo-white.png"
+                src={siteIdentity.logoUrl}
                 alt="Sepetzen"
                 data-testid="img-logo-mobile-header"
                 className="h-14 w-auto object-contain"
@@ -477,7 +477,7 @@ export function Header() {
                       className="block"
                     >
                       <img
-                        src="/uploads/branding/sepetzen-logo-white.png"
+                        src={siteIdentity.logoUrl}
                         alt="Sepetzen"
                         className="h-12 w-auto object-contain"
                       />
@@ -943,7 +943,7 @@ export function Header() {
 
                 <Link href="/" onClick={() => { setMobileOpen(false); scrollToTop(); }} data-testid="link-logo-mobile-drawer" className="block">
                   <img
-                    src="/uploads/branding/sepetzen-logo-white.png"
+                    src={siteIdentity.logoUrl}
                     alt="Sepetzen"
                     data-testid="img-logo-mobile-drawer"
                     className="h-16 w-auto object-contain"

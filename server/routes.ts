@@ -156,6 +156,14 @@ const upload = multer({
   },
 });
 
+function sanitizeStoredHtml(rawHtml: string): string {
+  return rawHtml
+    .replace(/<\s*(script|style|iframe|object|embed|form)\b[^>]*>[\s\S]*?<\s*\/\s*\1\s*>/gi, '')
+    .replace(/<\s*(script|style|iframe|object|embed|form)\b[^>]*\/?\s*>/gi, '')
+    .replace(/\s+on[a-z]+\s*=\s*(?:"[^"]*"|'[^']*'|[^\s>]+)/gi, '')
+    .replace(/\s+(href|src)\s*=\s*(["'])\s*(?:javascript|vbscript|data):[\s\S]*?\2/gi, '');
+}
+
 // Helper function to generate quote PDF as buffer for email attachment
 async function generateQuotePdfBuffer(quote: any, dealer: any, items: any[]): Promise<Buffer> {
   return new Promise(async (resolve, reject) => {
@@ -618,6 +626,8 @@ export async function registerRoutes(
     }
   });
 
+  // Admin sayfa uçları `requireAdmin` tanımından sonra kaydedilir.
+
   // Admin Authentication with JWT
   app.post("/api/admin/login", async (req: Request, res) => {
     try {
@@ -763,6 +773,36 @@ export async function registerRoutes(
     }
     return id;
   };
+
+  // ── Admin Pages API (requireAdmin tanımlandıktan sonra) ──────────────────
+  app.get("/api/admin/pages", requireAdmin, async (_req, res) => {
+    try {
+      res.json(await storage.getPages());
+    } catch (err) {
+      console.error("[pages] admin list error:", err);
+      res.status(500).json({ error: "Sayfalar yüklenemedi" });
+    }
+  });
+
+  app.put("/api/admin/pages/:id", requireAdmin, async (req, res) => {
+    const parsed = z.object({
+      title: z.string().trim().min(1).max(200),
+      content: z.string().max(200_000),
+      isPublished: z.boolean(),
+    }).safeParse(req.body);
+    if (!parsed.success) return res.status(400).json({ error: "Sayfa bilgileri geçersiz" });
+    try {
+      const page = await storage.updatePage(req.params.id, {
+        ...parsed.data,
+        content: sanitizeStoredHtml(parsed.data.content),
+      });
+      if (!page) return res.status(404).json({ error: "Sayfa bulunamadı" });
+      res.json(page);
+    } catch (err) {
+      console.error("[pages] admin update error:", err);
+      res.status(500).json({ error: "Sayfa kaydedilemedi" });
+    }
+  });
 
   // Allowed upload types for security
   const ALLOWED_UPLOAD_TYPES = ['products', 'categories', 'hero', 'branding'];

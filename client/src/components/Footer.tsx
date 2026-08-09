@@ -49,7 +49,7 @@ export function Footer() {
           <div className="md:col-span-12 lg:col-span-4">
             <Link href="/" className="inline-block mb-5" data-testid="link-footer-logo">
               <img
-                src="/uploads/branding/sepetzen-logo-white.png"
+                src={identity.logoUrl}
                 alt="Sepetzen – Kamp, Outdoor, Bıçak ve Bağ Bahçe"
                 data-testid="img-footer-logo"
                 className="h-20 w-auto object-contain"

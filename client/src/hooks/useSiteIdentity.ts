@@ -1,3 +1,4 @@
+import { useEffect } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { DEFAULT_SITE_IDENTITY, type SiteIdentity } from '@shared/siteIdentity';
 
@@ -11,5 +12,16 @@ export function useSiteIdentity(): SiteIdentity {
     queryKey: ['/api/site-identity'],
     staleTime: 5 * 60 * 1000,
   });
-  return data ?? DEFAULT_SITE_IDENTITY;
+  const identity = data ?? DEFAULT_SITE_IDENTITY;
+
+  useEffect(() => {
+    const favicon = document.querySelector<HTMLLinkElement>('link[rel="icon"]');
+    const shortcut = document.querySelector<HTMLLinkElement>('link[rel="shortcut icon"]');
+    const appleTouch = document.querySelector<HTMLLinkElement>('link[rel="apple-touch-icon"]');
+    [favicon, shortcut, appleTouch].forEach((link) => {
+      if (link) link.href = `${identity.faviconUrl}${identity.faviconUrl.includes('?') ? '&' : '?'}v=${encodeURIComponent(identity.faviconUrl)}`;
+    });
+  }, [identity.faviconUrl]);
+
+  return identity;
 }
