@@ -271,14 +271,17 @@ export default function Store() {
                       )}
                     </button>
                   </SheetTrigger>
-                  <SheetContent side="left" className="w-[300px] bg-[#141414] border-r border-white/12 p-5">
+                  <SheetContent
+                    side="left"
+                    className="flex h-full w-[300px] flex-col overflow-hidden bg-[#141414] border-r border-white/12 p-5"
+                  >
                     <SheetHeader>
                       <SheetTitle className="text-[13px] font-bold tracking-[0.18em] uppercase text-left text-white flex items-center gap-2">
                         <SlidersHorizontal className="w-3.5 h-3.5 text-white" strokeWidth={2} />
                         Filtrele
                       </SheetTitle>
                     </SheetHeader>
-                    <div className="mt-6">
+                    <div className="mt-6 min-h-0 flex-1 overflow-y-auto overscroll-contain pr-1 pb-[calc(var(--mobile-nav-total,58px)+1rem)]">
                       <SidebarContent />
                     </div>
                   </SheetContent>

@@ -14,4 +14,6 @@
 
 - [Free shipping threshold](free-shipping-threshold.md) — one admin-editable setting; every badge, cart meter and server shipping calculation must read it, never a local literal.
 
+- [Overlay z-index stack](overlay-z-index-stack.md) — shared sheet/dialog primitives default *below* the sticky header; fix stacking order on the primitive, not with per-page padding.
+
 - [Monochrome rebrand & dark theme](monochrome-rebrand.md) — storefront is full dark monochrome; admin stays light; legacy polen/sepetzen tokens render near-black (invisible on dark) — never use them in storefront.
