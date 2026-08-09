@@ -191,6 +191,7 @@ export default function Checkout() {
   const [hasAutoSelectedAddress, setHasAutoSelectedAddress] = useState(false);
   // "Bu adresi kaydet" seçeneği (yeni adres formu, giriş yapmış kullanıcı)
   const [saveNewAddress, setSaveNewAddress] = useState(false);
+  const [newAddressTitle, setNewAddressTitle] = useState('Adresim');
   // Seçili adresin fatura bilgisi anlık görüntüsü; değişince güncelleme önerisi gösterilir
   const [invoiceInfoAtSelection, setInvoiceInfoAtSelection] = useState<InvoiceFormValue | null>(null);
   const [addressSaving, setAddressSaving] = useState(false);
@@ -479,7 +480,7 @@ export default function Checkout() {
               method: 'POST',
               headers: { 'Content-Type': 'application/json' },
               body: JSON.stringify({
-                title: 'Adresim',
+                title: newAddressTitle.trim() || 'Adresim',
                 firstName: firstName || formData.customerName,
                 lastName: lastName || '',
                 phone: formData.customerPhone,
@@ -1423,19 +1424,43 @@ export default function Checkout() {
 
                           {/* Giriş yapmış kullanıcıya yeni adresi kaydetme seçeneği */}
                           {user && showNewAddressForm && (
-                            <label className="flex items-start gap-3 cursor-pointer p-3 rounded-lg border border-white/10 bg-[#0F0F0F] hover:bg-white/[0.02] transition-colors">
-                              <input
-                                type="checkbox"
-                                checked={saveNewAddress}
-                                onChange={(e) => setSaveNewAddress(e.target.checked)}
-                                className="mt-0.5 w-5 h-5 border-white/20 bg-[#141414] rounded-md accent-white shrink-0"
-                                data-testid="checkbox-save-new-address"
-                              />
-                              <div>
-                                <span className="text-[13.5px] font-semibold text-white">Bu adresi kaydet</span>
-                                <p className="text-[11.5px] text-white/45 mt-0.5">Bir sonraki siparişinizde hızlıca seçebilirsiniz.</p>
-                              </div>
-                            </label>
+                            <div className="space-y-2">
+                              <label className="flex items-start gap-3 cursor-pointer p-3 rounded-lg border border-white/10 bg-[#0F0F0F] hover:bg-white/[0.02] transition-colors">
+                                <input
+                                  type="checkbox"
+                                  checked={saveNewAddress}
+                                  onChange={(e) => setSaveNewAddress(e.target.checked)}
+                                  className="mt-0.5 w-5 h-5 border-white/20 bg-[#141414] rounded-md accent-white shrink-0"
+                                  data-testid="checkbox-save-new-address"
+                                />
+                                <div>
+                                  <span className="text-[13.5px] font-semibold text-white">Bu adresi kaydet</span>
+                                  <p className="text-[11.5px] text-white/45 mt-0.5">Bir sonraki siparişinizde hızlıca seçebilirsiniz.</p>
+                                </div>
+                              </label>
+                              <AnimatePresence>
+                                {saveNewAddress && (
+                                  <motion.div
+                                    initial={{ opacity: 0, height: 0 }}
+                                    animate={{ opacity: 1, height: 'auto' }}
+                                    exit={{ opacity: 0, height: 0 }}
+                                    className="overflow-hidden"
+                                  >
+                                    <div className="px-1 space-y-1.5">
+                                      <Label htmlFor="newAddressTitle" className="text-[12px] font-medium text-white/70">Adres Başlığı</Label>
+                                      <Input
+                                        id="newAddressTitle"
+                                        value={newAddressTitle}
+                                        onChange={(e) => setNewAddressTitle(e.target.value)}
+                                        placeholder="Ev, İş…"
+                                        data-testid="input-new-address-title"
+                                        className="w-full h-10 bg-[#0F0F0F] border border-white/12 focus:border-white/40 focus:outline-none rounded-lg px-3 text-white text-[14px] placeholder:text-white/30"
+                                      />
+                                    </div>
+                                  </motion.div>
+                                )}
+                              </AnimatePresence>
+                            </div>
                           )}
                         </div>
                       )}
