@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { Upload, Image as ImageIcon, Trash2, Loader2, RefreshCw } from 'lucide-react';
+import { Upload, Image as ImageIcon, Trash2, Loader2, RefreshCw, ChevronDown } from 'lucide-react';
 import type { Category } from '../_shared/types';
 import { sanitizeAdminHtml } from '@/lib/sanitizeHtml';
 import AdminModal from '../_ui/AdminModal';
@@ -40,16 +40,21 @@ function generateSlug(name: string): string {
 
 interface CategoryModalProps {
   category: Category | null;
+  /** Üst kategori seçimi için tüm kategoriler. */
+  categories: Category[];
   onClose: () => void;
   onSave: (category: Partial<Category>) => void;
   isSaving: boolean;
+  saveError?: string | null;
 }
 
 export default function CategoryModal({
   category,
+  categories,
   onClose,
   onSave,
   isSaving,
+  saveError,
 }: CategoryModalProps) {
   const [formData, setFormData] = useState({
     name: category?.name || '',
@@ -59,7 +64,11 @@ export default function CategoryModal({
     seoTitle: category?.seoTitle || '',
     seoDescription: category?.seoDescription || '',
     contentHtml: category?.contentHtml || '',
+    parentId: category?.parentId || '',
   });
+  const [showAdvanced, setShowAdvanced] = useState(
+    !!(category?.seoTitle || category?.seoDescription || category?.contentHtml),
+  );
   const [showContentPreview, setShowContentPreview] = useState(false);
   const [slugAuto, setSlugAuto] = useState<boolean>(!category);
   const [pendingFile, setPendingFile] = useState<File | null>(null);
@@ -86,7 +95,9 @@ export default function CategoryModal({
       seoTitle: category?.seoTitle || '',
       seoDescription: category?.seoDescription || '',
       contentHtml: category?.contentHtml || '',
+      parentId: category?.parentId || '',
     });
+    setShowAdvanced(!!(category?.seoTitle || category?.seoDescription || category?.contentHtml));
     setShowContentPreview(false);
     setSlugAuto(!category);
     setPendingFile(null);
@@ -170,11 +181,15 @@ export default function CategoryModal({
       seoTitle: formData.seoTitle.trim() || null,
       seoDescription: formData.seoDescription.trim() || null,
       contentHtml: formData.contentHtml.trim() || null,
+      parentId: formData.parentId || null,
     });
   };
 
   const isValid = !!formData.name.trim();
   const submitting = isSaving || isUploading;
+  // Alt kategorisi olan bir kategori kendisi alt kategori olamaz (tek seviye).
+  const hasChildren = !!category && categories.some((c) => c.parentId === category.id);
+  const parentOptions = categories.filter((c) => !c.parentId && c.id !== category?.id);
 
   return (
     <AdminModal
@@ -217,11 +232,12 @@ export default function CategoryModal({
       }
     >
       <form id="category-form" onSubmit={handleSubmit} className="space-y-6">
+        {saveError && <InlineAlert tone="error">{saveError}</InlineAlert>}
         <section className="space-y-3">
           <SectionHeading
             number={1}
             title="Genel"
-            description="Kategori adı ve URL slug'ını belirleyin."
+            description="Kategori adı ve konumu. Yıldızlı alan zorunludur."
           />
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <FormField label="Kategori Adı" required>
@@ -236,7 +252,7 @@ export default function CategoryModal({
             </FormField>
             <FormField
               label="Slug"
-             
+
               hint={
                 slugAuto
                   ? 'Ad değiştikçe otomatik üretilir.'
@@ -264,6 +280,30 @@ export default function CategoryModal({
               </div>
             </FormField>
           </div>
+          <FormField
+            label="Üst Kategori"
+            hint={
+              hasChildren
+                ? 'Bu kategorinin alt kategorileri olduğu için kendisi alt kategori yapılamaz.'
+                : 'Boş bırakılırsa ana kategori olur. Alt kategori olarak eklemek için bir ana kategori seçin.'
+            }
+          >
+            <select
+              id="category-parent"
+              value={formData.parentId}
+              onChange={(e) => setFormData((prev) => ({ ...prev, parentId: e.target.value }))}
+              disabled={hasChildren}
+              className="w-full rounded-md border border-neutral-200 bg-white px-2.5 py-2 text-[13px] text-neutral-900 focus:outline-none focus:ring-2 focus:ring-neutral-900/10 focus:border-neutral-400 disabled:bg-neutral-50 disabled:text-neutral-400"
+              data-testid="select-category-parent"
+            >
+              <option value="">Ana kategori (üst kategori yok)</option>
+              {parentOptions.map((c) => (
+                <option key={c.id} value={c.id}>
+                  {c.name}
+                </option>
+              ))}
+            </select>
+          </FormField>
         </section>
 
         <section className="space-y-3">
@@ -308,7 +348,7 @@ export default function CategoryModal({
             </div>
           ) : (
             <label
-             
+
               className="flex flex-col items-center justify-center text-center gap-2 rounded-md border border-dashed border-neutral-300 bg-neutral-50/40 hover:bg-neutral-50 hover:border-neutral-400 transition-colors p-6 cursor-pointer"
             >
               <div className="w-9 h-9 rounded-md bg-neutral-100 flex items-center justify-center text-neutral-500">
@@ -334,6 +374,21 @@ export default function CategoryModal({
           )}
         </section>
 
+        <div className="pt-1">
+          <button
+            type="button"
+            onClick={() => setShowAdvanced((v) => !v)}
+            className="inline-flex items-center gap-1.5 text-[12px] font-medium text-neutral-600 hover:text-neutral-900 transition-colors"
+            data-testid="button-toggle-advanced"
+          >
+            <ChevronDown
+              className={`w-3.5 h-3.5 transition-transform ${showAdvanced ? 'rotate-180' : ''}`}
+            />
+            {showAdvanced ? 'Gelişmiş ayarları gizle' : 'Gelişmiş ayarları göster (sıralama, SEO, içerik)'}
+          </button>
+        </div>
+
+        {showAdvanced && (
         <section className="space-y-3">
           <SectionHeading
             number={3}
@@ -360,7 +415,9 @@ export default function CategoryModal({
             Liste ekranından sürükle-bırak ile de yeniden sıralayabilirsiniz.
           </p>
         </section>
+        )}
 
+        {showAdvanced && (
         <section className="space-y-3">
           <SectionHeading
             number={4}
@@ -433,6 +490,7 @@ export default function CategoryModal({
             )}
           </div>
         </section>
+        )}
 
         <div className="sm:hidden flex flex-col gap-2 pt-2">
           <PrimaryButton

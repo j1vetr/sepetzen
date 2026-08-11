@@ -71,6 +71,8 @@ export interface Category {
   seoTitle?: string | null;
   seoDescription?: string | null;
   contentHtml?: string | null;
+  /** Üst kategori kimliği; null ise ana kategoridir. */
+  parentId?: string | null;
 }
 
 export interface ProductFilters {

@@ -115,8 +115,32 @@ export default function Store() {
     priceRange[0] > 0 || priceRange[1] < 10000 || !!selectedCategory || statusFilters.length > 0;
 
   const VISIBLE_CATEGORY_COUNT = 5;
-  const visibleCategories = showAllCategories ? categories : categories.slice(0, VISIBLE_CATEGORY_COUNT);
-  const hiddenCategoryCount = categories.length - VISIBLE_CATEGORY_COUNT;
+  // Hiyerarşik sıralama: ana kategoriler sırayla, hemen ardından girintili
+  // alt kategorileri gelir.
+  const orderedCategories = useMemo(() => {
+    const byOrder = (a: (typeof categories)[number], b: (typeof categories)[number]) =>
+      (a.displayOrder ?? 0) - (b.displayOrder ?? 0);
+    const tops = categories.filter(c => !c.parentId).sort(byOrder);
+    const topIds = tops.map(t => t.id);
+    const result: ((typeof categories)[number] & { isChild?: boolean })[] = [];
+    for (const top of tops) {
+      result.push(top);
+      categories
+        .filter(c => c.parentId === top.id)
+        .sort(byOrder)
+        .forEach(child => result.push({ ...child, isChild: true }));
+    }
+    // Üst kategorisi listede olmayan alt kategoriler kaybolmasın
+    categories
+      .filter(c => c.parentId && topIds.indexOf(c.parentId) === -1)
+      .sort(byOrder)
+      .forEach(c => result.push(c));
+    return result;
+  }, [categories]);
+  const visibleCategories = showAllCategories
+    ? orderedCategories
+    : orderedCategories.slice(0, VISIBLE_CATEGORY_COUNT);
+  const hiddenCategoryCount = orderedCategories.length - VISIBLE_CATEGORY_COUNT;
 
   // JSX değişkeni (bileşen değil): her render'da remount olup bölüm açık/kapalı
   // durumlarının ve input odaklarının sıfırlanmasını önler.
@@ -149,7 +173,9 @@ export default function Store() {
               }`}
               data-testid={`filter-category-${cat.slug}`}
             >
-              <span>{cat.name}</span>
+              <span className={cat.isChild ? 'pl-4' : ''}>
+                {cat.isChild ? `└ ${cat.name}` : cat.name}
+              </span>
               {selectedCategory === cat.id && (
                 <span className="w-1.5 h-1.5 rounded-full bg-white" />
               )}

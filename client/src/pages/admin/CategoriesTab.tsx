@@ -9,6 +9,7 @@ import {
   Image as ImageIcon,
   FolderTree,
   Loader2,
+  CornerDownRight,
 } from 'lucide-react';
 import type { Category } from './_shared/types';
 import { useToast } from '@/hooks/use-toast';
@@ -49,7 +50,9 @@ interface CategoriesTabProps {
   categories: Category[];
   setEditingCategory: (c: Category | null) => void;
   setShowCategoryModal: (b: boolean) => void;
-  deleteCategoryMutation: { mutate: (id: string) => void };
+  deleteCategoryMutation: {
+    mutate: (arg: { id: string; promoteChildren?: boolean }) => void;
+  };
   categoriesLoading?: boolean;
   categoriesError?: unknown;
 }
@@ -57,19 +60,26 @@ interface CategoriesTabProps {
 interface SortableCardProps {
   category: Category;
   index: number;
+  childCount?: number;
+  isChild?: boolean;
   onEdit: () => void;
   onDelete: () => void;
   onCommit: () => void;
   isSaving: boolean;
+  /** Kartın altında (aynı sürüklenen blok içinde) gösterilecek alt liste. */
+  subList?: React.ReactNode;
 }
 
 function SortableCategoryCard({
   category,
   index,
+  childCount = 0,
+  isChild = false,
   onEdit,
   onDelete,
   onCommit,
   isSaving,
+  subList,
 }: SortableCardProps) {
   const dragControls = useDragControls();
   return (
@@ -111,6 +121,9 @@ function SortableCategoryCard({
           <div className="flex-1 min-w-0 px-3 sm:px-4 py-2.5 sm:py-3 flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-3">
             <div className="min-w-0 flex-1">
               <div className="flex items-center gap-2">
+                {isChild && (
+                  <CornerDownRight className="w-3.5 h-3.5 text-neutral-400 shrink-0" />
+                )}
                 <span
                   className="inline-flex items-center justify-center min-w-[22px] h-[18px] px-1.5 rounded bg-neutral-100 border border-neutral-200 text-[10px] font-semibold tabular-nums text-neutral-600"
                   data-testid={`order-category-${category.id}`}
@@ -124,6 +137,15 @@ function SortableCategoryCard({
                 >
                   {category.name}
                 </h3>
+                {childCount > 0 && (
+                  <span
+                    className="inline-flex items-center gap-1 px-1.5 h-[18px] rounded bg-neutral-100 border border-neutral-200 text-[10px] text-neutral-600 shrink-0"
+                    data-testid={`badge-child-count-${category.id}`}
+                  >
+                    <FolderTree className="w-3 h-3" />
+                    {childCount} alt kategori
+                  </span>
+                )}
               </div>
               <p
                 className="text-[11px] text-neutral-500 truncate mt-0.5"
@@ -155,9 +177,13 @@ function SortableCategoryCard({
           </div>
         </div>
       </Card>
+      {subList}
     </Reorder.Item>
   );
 }
+
+const byDisplayOrder = (a: Category, b: Category) =>
+  (a.displayOrder ?? 0) - (b.displayOrder ?? 0);
 
 export default function CategoriesTab({
   categories,
@@ -169,30 +195,50 @@ export default function CategoriesTab({
 }: CategoriesTabProps) {
   const { toast } = useToast();
   const queryClient = useQueryClient();
-  const [items, setItems] = useState<Category[]>([]);
+  // Hiyerarşik durum: ana kategoriler + her ana kategorinin alt listesi.
+  // Sürükle-bırak yalnızca kendi seviyesinde çalışır.
+  const [parents, setParents] = useState<Category[]>([]);
+  const [childMap, setChildMap] = useState<Record<string, Category[]>>({});
   const [isSavingOrder, setIsSavingOrder] = useState(false);
-  const itemsRef = useRef<Category[]>([]);
+  const parentsRef = useRef<Category[]>([]);
+  const childMapRef = useRef<Record<string, Category[]>>({});
 
-  const sortedFromProps = useMemo(
-    () => [...categories].sort((a, b) => (a.displayOrder ?? 0) - (b.displayOrder ?? 0)),
-    [categories],
-  );
+  const { parentsFromProps, childMapFromProps } = useMemo(() => {
+    const tops = categories.filter((c) => !c.parentId).sort(byDisplayOrder);
+    const map: Record<string, Category[]> = {};
+    for (const c of categories) {
+      if (c.parentId) {
+        (map[c.parentId] = map[c.parentId] || []).push(c);
+      }
+    }
+    Object.keys(map).forEach((k) => map[k].sort(byDisplayOrder));
+    // Üst kategorisi listede olmayan (yetim) alt kategoriler kaybolmasın:
+    // ana seviyede göster.
+    const topIds = new Set(tops.map((c) => c.id));
+    const orphans = Object.keys(map)
+      .filter((pid) => !topIds.has(pid))
+      .flatMap((pid) => {
+        const list = map[pid];
+        delete map[pid];
+        return list;
+      });
+    return {
+      parentsFromProps: [...tops, ...orphans],
+      childMapFromProps: map,
+    };
+  }, [categories]);
 
   useEffect(() => {
     if (!isSavingOrder) {
-      setItems(sortedFromProps);
-      itemsRef.current = sortedFromProps;
+      setParents(parentsFromProps);
+      setChildMap(childMapFromProps);
+      parentsRef.current = parentsFromProps;
+      childMapRef.current = childMapFromProps;
     }
-  }, [sortedFromProps, isSavingOrder]);
+  }, [parentsFromProps, childMapFromProps, isSavingOrder]);
 
-  const handleReorder = (newOrder: Category[]) => {
-    setItems(newOrder);
-    itemsRef.current = newOrder;
-  };
-
-  const persistOrder = async () => {
-    const newOrder = itemsRef.current;
-    const changed = newOrder
+  const persistOrder = async (list: Category[]) => {
+    const changed = list
       .map((cat, idx) => ({ cat, newOrder: idx + 1 }))
       .filter(({ cat, newOrder }) => (cat.displayOrder ?? 0) !== newOrder);
 
@@ -238,16 +284,30 @@ export default function CategoriesTab({
   };
 
   const handleDelete = (cat: Category) => {
+    const children = childMap[cat.id] || [];
+    if (children.length > 0) {
+      const names = children.map((c) => `"${c.name}"`).join(', ');
+      const ok = confirm(
+        `"${cat.name}" kategorisinin ${children.length} alt kategorisi var: ${names}.\n\n` +
+          `Silerseniz bu alt kategoriler silinmez, ana kategori seviyesine taşınır. Devam edilsin mi?`,
+      );
+      if (ok) {
+        deleteCategoryMutation.mutate({ id: cat.id, promoteChildren: true });
+      }
+      return;
+    }
     if (confirm(`"${cat.name}" kategorisini silmek istediğinize emin misiniz?`)) {
-      deleteCategoryMutation.mutate(cat.id);
+      deleteCategoryMutation.mutate({ id: cat.id });
     }
   };
+
+  const totalCount = categories.length;
 
   return (
     <div data-testid="tab-categories" className="space-y-4 sm:space-y-5">
       <PageHeader
         title="Kategoriler"
-        description={`${categories.length.toLocaleString('tr-TR')} kategori - sürükleyerek sıralayın`}
+        description={`${totalCount.toLocaleString('tr-TR')} kategori - sürükleyerek kendi seviyesinde sıralayın`}
         actions={
           <PrimaryButton
             onClick={() => {
@@ -283,7 +343,7 @@ export default function CategoriesTab({
             <CategoryCardSkeleton key={i} />
           ))}
         </div>
-      ) : items.length === 0 ? (
+      ) : parents.length === 0 ? (
         <Card className="py-2">
           <EmptyState
             icon={FolderTree}
@@ -305,24 +365,59 @@ export default function CategoriesTab({
       ) : (
         <Reorder.Group
           axis="y"
-          values={items}
-          onReorder={handleReorder}
+          values={parents}
+          onReorder={(newOrder: Category[]) => {
+            setParents(newOrder);
+            parentsRef.current = newOrder;
+          }}
           className={`space-y-2 transition-opacity ${
             isSavingOrder ? 'opacity-70 pointer-events-none' : ''
           }`}
           data-testid="list-categories"
         >
-          {items.map((cat, index) => (
-            <SortableCategoryCard
-              key={cat.id}
-              category={cat}
-              index={index}
-              onEdit={() => handleEdit(cat)}
-              onDelete={() => handleDelete(cat)}
-              onCommit={persistOrder}
-              isSaving={isSavingOrder}
-            />
-          ))}
+          {parents.map((cat, index) => {
+            const children = childMap[cat.id] || [];
+            return (
+              <SortableCategoryCard
+                key={cat.id}
+                category={cat}
+                index={index}
+                childCount={children.length}
+                onEdit={() => handleEdit(cat)}
+                onDelete={() => handleDelete(cat)}
+                onCommit={() => persistOrder(parentsRef.current)}
+                isSaving={isSavingOrder}
+                subList={
+                  children.length > 0 ? (
+                    <Reorder.Group
+                      axis="y"
+                      values={children}
+                      onReorder={(newOrder: Category[]) => {
+                        const next = { ...childMapRef.current, [cat.id]: newOrder };
+                        setChildMap(next);
+                        childMapRef.current = next;
+                      }}
+                      className="space-y-2 pl-6 sm:pl-10 mt-2"
+                      data-testid={`list-subcategories-${cat.id}`}
+                    >
+                      {children.map((child, childIndex) => (
+                        <SortableCategoryCard
+                          key={child.id}
+                          category={child}
+                          index={childIndex}
+                          isChild
+                          onEdit={() => handleEdit(child)}
+                          onDelete={() => handleDelete(child)}
+                          onCommit={() => persistOrder(childMapRef.current[cat.id] || [])}
+                          isSaving={isSavingOrder}
+                        />
+                      ))}
+                    </Reorder.Group>
+                  ) : null
+                }
+              />
+            );
+          })}
         </Reorder.Group>
       )}
     </div>

@@ -1,5 +1,5 @@
 import { sql, relations } from "drizzle-orm";
-import { pgTable, text, varchar, integer, decimal, boolean, timestamp, jsonb, uniqueIndex, index } from "drizzle-orm/pg-core";
+import { pgTable, text, varchar, integer, decimal, boolean, timestamp, jsonb, uniqueIndex, index, type AnyPgColumn } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
 import { INVOICE_TYPES, type BillingAddress } from "./billing";
@@ -106,6 +106,9 @@ export const categories = pgTable("categories", {
   seoTitle: text("seo_title"),
   seoDescription: text("seo_description"),
   contentHtml: text("content_html"),
+  // Üst kategori (null = ana kategori). Tek seviye derinlik desteklenir:
+  // alt kategorinin altına kategori eklenemez (API katmanında doğrulanır).
+  parentId: varchar("parent_id").references((): AnyPgColumn => categories.id, { onDelete: "set null" }),
 });
 
 export const insertCategorySchema = createInsertSchema(categories).omit({

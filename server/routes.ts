@@ -14,11 +14,11 @@ import { cache, CACHE_KEYS, CACHE_TTL } from "./cache";
 import { eq, desc, sql } from "drizzle-orm";
 import { insertAdminUserSchema, insertCategorySchema, insertProductSchema, insertProductVariantSchema, insertCartItemSchema, insertOrderSchema, insertOrderItemSchema, insertUserSchema, adminUpdateUserSchema, couponRedemptions, orders, coupons, products, stockAdjustments, productCategories, productVariants } from "@shared/schema";
 import { optimizeImage, optimizeImageBuffer, optimizeUploadedFiles, verifyImageContent } from "./imageOptimizer";
-import { 
-  sendWelcomeEmail, 
-  sendOrderConfirmationEmail, 
+import {
+  sendWelcomeEmail,
+  sendOrderConfirmationEmail,
   sendPreparingNotificationEmail,
-  sendShippingNotificationEmail, 
+  sendShippingNotificationEmail,
   sendAdminOrderNotificationEmail,
   sendPasswordResetEmail,
   sendReviewRequestEmail,
@@ -84,14 +84,14 @@ import {
 
 async function getAuthPayload(req: Request, res: Response): Promise<JwtPayload | null> {
   const accessToken = req.cookies?.access_token;
-  
+
   if (accessToken) {
     const payload = verifyAccessToken(accessToken);
     if (payload) {
       return payload;
     }
   }
-  
+
   const refreshToken = req.cookies?.refresh_token;
   if (refreshToken) {
     // Use rotation to revoke old token and issue new one
@@ -108,7 +108,7 @@ async function getAuthPayload(req: Request, res: Response): Promise<JwtPayload |
       return result.payload;
     }
   }
-  
+
   return null;
 }
 
@@ -286,28 +286,28 @@ async function generateQuotePdfBuffer(quote: any, dealer: any, items: any[]): Pr
     try {
       const chunks: Buffer[] = [];
       const doc = new PDFDocument({ size: 'A4', margin: 50 });
-      
+
       doc.on('data', (chunk) => chunks.push(chunk));
       doc.on('end', () => resolve(Buffer.concat(chunks)));
       doc.on('error', reject);
-      
+
       // Register Inter fonts for Turkish character support
       const fontPath = path.join(process.cwd(), 'public', 'fonts');
       const regularFontPath = path.join(fontPath, 'inter-regular.ttf');
       const boldFontPath = path.join(fontPath, 'inter-bold.ttf');
-      
+
       if (fs.existsSync(regularFontPath) && fs.existsSync(boldFontPath)) {
         doc.registerFont('Inter', regularFontPath);
         doc.registerFont('Inter-Bold', boldFontPath);
       }
-      
+
       const fontRegular = fs.existsSync(regularFontPath) ? 'Inter' : 'Helvetica';
       const fontBold = fs.existsSync(boldFontPath) ? 'Inter-Bold' : 'Helvetica-Bold';
-      
+
       // Header logo - convert SVG to PNG using sharp
       const svgLogoPath = path.join(process.cwd(), 'client', 'public', 'uploads', 'branding', 'polen-logo.svg');
       const pngLogoPath = path.join(process.cwd(), 'client', 'public', 'uploads', 'branding', 'polen-icon.png');
-      
+
       let logoAdded = false;
       if (fs.existsSync(svgLogoPath)) {
         try {
@@ -318,22 +318,22 @@ async function generateQuotePdfBuffer(quote: any, dealer: any, items: any[]): Pr
           console.log('[PDF] SVG to PNG conversion failed:', e);
         }
       }
-      
+
       if (!logoAdded && fs.existsSync(pngLogoPath)) {
         doc.image(pngLogoPath, 50, 40, { width: 60 });
         logoAdded = true;
       }
-      
+
       if (!logoAdded) {
         doc.fontSize(28).font(fontBold).fillColor('#000000').text('Sepetzen', 50, 50);
       }
-      
+
       // Quote title
       doc.fontSize(24).font(fontBold).fillColor('#000000').text('TEKLİF', 350, 50, { align: 'right' });
       doc.fontSize(12).font(fontRegular).fillColor('#666666').text(quote.quoteNumber, 350, 80, { align: 'right' });
-      
+
       doc.moveDown(2);
-      
+
       // Dealer info box
       const yStart = 120;
       doc.rect(50, yStart, 250, 100).fillAndStroke('#f5f5f5', '#e0e0e0');
@@ -348,7 +348,7 @@ async function generateQuotePdfBuffer(quote: any, dealer: any, items: any[]): Pr
       if (dealer?.phone) {
         doc.fontSize(9).text(dealer.phone, 60, yStart + 75);
       }
-      
+
       // Quote details box
       doc.rect(310, yStart, 235, 100).fillAndStroke('#f5f5f5', '#e0e0e0');
       doc.fontSize(10).font(fontBold).fillColor('#333333').text('TEKLİF DETAYLARI', 320, yStart + 10);
@@ -363,11 +363,11 @@ async function generateQuotePdfBuffer(quote: any, dealer: any, items: any[]): Pr
       doc.fillColor('#000000').text(paymentLabel, 420, yStart + 60);
       doc.fillColor('#666666').text('KDV:', 320, yStart + 75);
       doc.fillColor('#000000').text(quote.includesVat ? 'Dahil' : 'Hariç', 420, yStart + 75);
-      
+
       // Products table
       const tableTop = yStart + 130;
       doc.fontSize(12).font(fontBold).fillColor('#000000').text('ÜRÜNLER', 50, tableTop);
-      
+
       // Table header
       const headerY = tableTop + 25;
       doc.rect(50, headerY, 495, 22).fillAndStroke('#333333', '#333333');
@@ -378,61 +378,61 @@ async function generateQuotePdfBuffer(quote: any, dealer: any, items: any[]): Pr
       doc.text('Birim Fiyat', 345, headerY + 7, { width: 55, align: 'right' });
       doc.text('İsk.', 400, headerY + 7, { width: 30, align: 'center' });
       doc.text('Toplam', 430, headerY + 7, { width: 110, align: 'right' });
-      
+
       // Table rows - compact layout
       let currentY = headerY + 22;
       const rowHeight = 22;
-      
+
       for (let itemIdx = 0; itemIdx < items.length; itemIdx++) {
         const item = items[itemIdx];
         if (currentY > 740) {
           doc.addPage();
           currentY = 50;
         }
-        
+
         const bgColor = itemIdx % 2 === 0 ? '#ffffff' : '#f8f8f8';
         doc.rect(50, currentY, 495, rowHeight).fillAndStroke(bgColor, '#e0e0e0');
-        
+
         doc.fontSize(7).font(fontRegular).fillColor('#000000');
         const skuPrefix = item.productSku ? `[${item.productSku}] ` : '';
         doc.text(`${skuPrefix}${item.productName}`, 55, currentY + 7, { width: 220, lineBreak: false, ellipsis: true });
-        
+
         doc.fontSize(7).fillColor('#333333');
         doc.text(item.variantDetails || '-', 275, currentY + 7, { width: 40, align: 'center' });
-        
+
         doc.fillColor('#000000');
         doc.text(item.quantity.toString(), 315, currentY + 7, { width: 30, align: 'center' });
         doc.text(`${parseFloat(item.unitPrice).toLocaleString('tr-TR', { minimumFractionDigits: 2 })} ₺`, 345, currentY + 7, { width: 55, align: 'right' });
-        
+
         if (parseFloat(item.discountPercent) > 0) {
           doc.fillColor('#22c55e').text(`%${item.discountPercent}`, 400, currentY + 7, { width: 30, align: 'center' });
         } else {
           doc.fillColor('#999999').text('-', 400, currentY + 7, { width: 30, align: 'center' });
         }
-        
+
         doc.font(fontBold).fillColor('#000000');
         doc.text(`${parseFloat(item.lineTotal).toLocaleString('tr-TR', { minimumFractionDigits: 2 })} ₺`, 430, currentY + 7, { width: 110, align: 'right' });
-        
+
         currentY += rowHeight;
       }
-      
+
       // Totals section
       currentY += 10;
       doc.rect(350, currentY, 195, 80).fillAndStroke('#f5f5f5', '#e0e0e0');
-      
+
       doc.fontSize(10).font(fontRegular).fillColor('#666666');
       doc.text('Ara Toplam:', 360, currentY + 15);
       doc.fillColor('#000000').text(`${parseFloat(quote.subtotal).toLocaleString('tr-TR', { minimumFractionDigits: 2 })} TL`, 460, currentY + 15, { width: 75, align: 'right' });
-      
+
       if (parseFloat(quote.discountTotal) > 0) {
         doc.fillColor('#22c55e').text('İskonto:', 360, currentY + 35);
         doc.text(`-${parseFloat(quote.discountTotal).toLocaleString('tr-TR', { minimumFractionDigits: 2 })} TL`, 460, currentY + 35, { width: 75, align: 'right' });
       }
-      
+
       doc.fontSize(12).font(fontBold).fillColor('#000000');
       doc.text('GENEL TOPLAM:', 360, currentY + 55);
       doc.text(`${parseFloat(quote.grandTotal).toLocaleString('tr-TR', { minimumFractionDigits: 2 })} TL`, 460, currentY + 55, { width: 75, align: 'right' });
-      
+
       // Notes
       if (quote.notes) {
         currentY += 100;
@@ -443,11 +443,11 @@ async function generateQuotePdfBuffer(quote: any, dealer: any, items: any[]): Pr
         doc.fontSize(10).font(fontBold).fillColor('#333333').text('NOTLAR', 50, currentY);
         doc.fontSize(9).font(fontRegular).fillColor('#666666').text(quote.notes, 50, currentY + 15, { width: 495 });
       }
-      
+
       // Footer
       doc.fontSize(8).font(fontRegular).fillColor('#999999');
       doc.text('Sepetzen Kamp & Outdoor | www.sepetzen.com | sepetzen@gmail.com', 50, 780, { align: 'center', width: 495 });
-      
+
       doc.end();
     } catch (error) {
       reject(error);
@@ -596,7 +596,7 @@ export async function registerRoutes(
 
   const isCrawler = (userAgent: string | undefined): boolean => {
     if (!userAgent) return false;
-    return crawlerPatterns.some(pattern => 
+    return crawlerPatterns.some(pattern =>
       userAgent.toLowerCase().includes(pattern.toLowerCase())
     );
   };
@@ -619,7 +619,7 @@ export async function registerRoutes(
   // Product page crawler middleware
   app.get('/urun/:slug', async (req, res, next) => {
     const userAgent = req.get('user-agent');
-    
+
     if (!isCrawler(userAgent)) {
       return next();
     }
@@ -632,11 +632,11 @@ export async function registerRoutes(
 
       const baseUrl = `${req.protocol}://${req.get('host')}`;
       const pageUrl = `${baseUrl}/urun/${product.slug}`;
-      const mainImage = product.images && product.images.length > 0 
+      const mainImage = product.images && product.images.length > 0
         ? normalizeImageUrl(baseUrl, product.images[0])
         : `${baseUrl}/logo.png`;
       const price = parseFloat(product.basePrice || '0');
-      const description = product.description 
+      const description = product.description
         ? escapeHtml(product.description.substring(0, 200))
         : `${escapeHtml(product.name)} - Sepetzen kamp, outdoor ve bıçak ürünleri`;
 
@@ -647,7 +647,7 @@ export async function registerRoutes(
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>${escapeHtml(product.name)} | Sepetzen</title>
   <meta name="description" content="${description}">
-  
+
   <!-- Open Graph -->
   <meta property="og:type" content="product">
   <meta property="og:title" content="${escapeHtml(product.name)}">
@@ -660,13 +660,13 @@ export async function registerRoutes(
   <meta property="og:locale" content="tr_TR">
   <meta property="product:price:amount" content="${price}">
   <meta property="product:price:currency" content="TRY">
-  
+
   <!-- Twitter Card -->
   <meta name="twitter:card" content="summary_large_image">
   <meta name="twitter:title" content="${escapeHtml(product.name)}">
   <meta name="twitter:description" content="${description}">
   <meta name="twitter:image" content="${mainImage}">
-  
+
   <link rel="canonical" href="${pageUrl}">
 </head>
 <body>
@@ -689,7 +689,7 @@ export async function registerRoutes(
   // Category page crawler middleware
   app.get('/kategori/:slug', async (req, res, next) => {
     const userAgent = req.get('user-agent');
-    
+
     if (!isCrawler(userAgent)) {
       return next();
     }
@@ -702,7 +702,7 @@ export async function registerRoutes(
 
       const baseUrl = `${req.protocol}://${req.get('host')}`;
       const pageUrl = `${baseUrl}/kategori/${category.slug}`;
-      const mainImage = category.image 
+      const mainImage = category.image
         ? normalizeImageUrl(baseUrl, category.image)
         : `${baseUrl}/logo.png`;
       const description = `${escapeHtml(category.name)} koleksiyonu - Sepetzen kamp, outdoor ve bıçak ürünleri`;
@@ -714,7 +714,7 @@ export async function registerRoutes(
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>${escapeHtml(category.name)} | Sepetzen</title>
   <meta name="description" content="${description}">
-  
+
   <!-- Open Graph -->
   <meta property="og:type" content="website">
   <meta property="og:title" content="${escapeHtml(category.name)} | Sepetzen">
@@ -725,13 +725,13 @@ export async function registerRoutes(
   <meta property="og:url" content="${pageUrl}">
   <meta property="og:site_name" content="Sepetzen">
   <meta property="og:locale" content="tr_TR">
-  
+
   <!-- Twitter Card -->
   <meta name="twitter:card" content="summary_large_image">
   <meta name="twitter:title" content="${escapeHtml(category.name)} | Sepetzen">
   <meta name="twitter:description" content="${description}">
   <meta name="twitter:image" content="${mainImage}">
-  
+
   <link rel="canonical" href="${pageUrl}">
 </head>
 <body>
@@ -805,7 +805,7 @@ export async function registerRoutes(
     try {
       const { username, password } = req.body;
       const user = await storage.getAdminUserByUsername(username);
-      
+
       if (!user || !(await bcrypt.compare(password, user.password))) {
         return res.status(401).json({ error: "Invalid credentials" });
       }
@@ -1107,16 +1107,16 @@ export async function registerRoutes(
   }, async (req, res) => {
     try {
       const type = req.params.type;
-      
+
       if (!ALLOWED_UPLOAD_TYPES.includes(type)) {
         return res.status(400).json({ error: "Invalid upload type" });
       }
-      
+
       const files = req.files as Express.Multer.File[];
       if (!files || files.length === 0) {
         return res.status(400).json({ error: "No files uploaded" });
       }
-      
+
       // Optimize uploaded images
       const urls = await optimizeUploadedFiles(files);
       console.log(`[Upload] Optimized ${urls.length} images for ${type}`);
@@ -1131,24 +1131,24 @@ export async function registerRoutes(
   app.delete("/api/admin/upload", requireAdmin, (req, res) => {
     try {
       const { path: filePath } = req.body;
-      
+
       if (!filePath || typeof filePath !== 'string') {
         return res.status(400).json({ error: "Invalid file path" });
       }
-      
+
       if (!filePath.startsWith("/uploads/")) {
         return res.status(400).json({ error: "Invalid file path" });
       }
-      
+
       if (filePath.includes('..') || filePath.includes('//')) {
         return res.status(400).json({ error: "Invalid file path" });
       }
-      
+
       const pathParts = filePath.split('/').filter(Boolean);
       if (pathParts.length < 3 || pathParts[0] !== 'uploads' || !ALLOWED_UPLOAD_TYPES.includes(pathParts[1])) {
         return res.status(400).json({ error: "Invalid file path" });
       }
-      
+
       const fullPath = path.join(process.cwd(), "client/public", filePath);
       if (fs.existsSync(fullPath)) {
         fs.unlinkSync(fullPath);
@@ -1264,7 +1264,7 @@ export async function registerRoutes(
   app.post("/api/auth/register", async (req: Request, res) => {
     try {
       const { email, password, firstName, lastName, phone, address, city, district, postalCode } = req.body;
-      
+
       const existingUser = await storage.getUserByEmail(email);
       if (existingUser) {
         return res.status(400).json({ error: "Bu e-posta adresi zaten kayıtlı" });
@@ -1293,7 +1293,7 @@ export async function registerRoutes(
       );
       const isProduction = process.env.NODE_ENV === 'production';
       setAuthCookies(res, accessToken, refreshToken, isProduction);
-      
+
       // If address info is provided, create a saved address
       if (address && city && district && firstName && lastName && phone) {
         await storage.createUserAddress({
@@ -1309,13 +1309,13 @@ export async function registerRoutes(
           isDefault: true,
         });
       }
-      
+
       // Send welcome email (don't wait)
       sendWelcomeEmail(user).catch(err => console.error('[Email] Welcome email failed:', err));
-      
-      res.status(201).json({ 
-        success: true, 
-        user: { id: user.id, email: user.email, firstName: user.firstName, lastName: user.lastName } 
+
+      res.status(201).json({
+        success: true,
+        user: { id: user.id, email: user.email, firstName: user.firstName, lastName: user.lastName }
       });
     } catch (error) {
       console.error('Registration error:', error);
@@ -1327,7 +1327,7 @@ export async function registerRoutes(
     try {
       const { email, password } = req.body;
       const user = await storage.getUserByEmail(email);
-      
+
       if (!user || !user.password || !(await bcrypt.compare(password, user.password))) {
         return res.status(401).json({ error: "E-posta veya şifre hatalı" });
       }
@@ -1343,9 +1343,9 @@ export async function registerRoutes(
       const isProduction = process.env.NODE_ENV === 'production';
       setAuthCookies(res, accessToken, refreshToken, isProduction);
 
-      res.json({ 
-        success: true, 
-        user: { id: user.id, email: user.email, firstName: user.firstName, lastName: user.lastName } 
+      res.json({
+        success: true,
+        user: { id: user.id, email: user.email, firstName: user.firstName, lastName: user.lastName }
       });
     } catch (error) {
       console.error('User login error:', error);
@@ -1577,7 +1577,7 @@ export async function registerRoutes(
       // Check if this is the first address - if so, make it default
       const existingAddresses = await storage.getUserAddresses(payload.userId);
       const shouldBeDefault = existingAddresses.length === 0 ? true : !!isDefault;
-      
+
       const newAddress = await storage.createUserAddress({
         userId: payload.userId,
         title: title || 'Adresim',
@@ -1719,7 +1719,7 @@ export async function registerRoutes(
   app.get("/api/orders/track", async (req: Request, res) => {
     try {
       const { orderNumber, email } = req.query;
-      
+
       if (!orderNumber || typeof orderNumber !== 'string') {
         return res.status(400).json({ error: "Sipariş numarası gerekli" });
       }
@@ -1735,7 +1735,7 @@ export async function registerRoutes(
       }
 
       const items = await storage.getOrderItems(order.id);
-      
+
       // Return limited info for public tracking
       res.json({
         id: order.id,
@@ -1789,9 +1789,40 @@ export async function registerRoutes(
     }
   });
 
+  // Alt kategori kuralları: tek seviye derinlik (ana kategori + alt kategori).
+  // Geçersizse Türkçe hata mesajı döner, geçerliyse null.
+  async function validateCategoryParent(
+    parentId: string | null | undefined,
+    selfId?: string,
+  ): Promise<string | null> {
+    if (!parentId) return null;
+    if (selfId && parentId === selfId) {
+      return "Bir kategori kendisinin alt kategorisi olamaz.";
+    }
+    const parent = await storage.getCategory(parentId);
+    if (!parent) {
+      return "Seçilen üst kategori bulunamadı.";
+    }
+    if (parent.parentId) {
+      return "Alt kategorinin altına kategori eklenemez. Yalnızca ana kategoriler üst kategori olarak seçilebilir.";
+    }
+    if (selfId) {
+      const all = await storage.getCategories();
+      const hasChildren = all.some((c) => c.parentId === selfId);
+      if (hasChildren) {
+        return "Bu kategorinin alt kategorileri var, bu yüzden kendisi alt kategori yapılamaz. Önce alt kategorilerini taşıyın.";
+      }
+    }
+    return null;
+  }
+
   app.post("/api/admin/categories", requireAdmin, async (req, res) => {
     try {
       const validated = insertCategorySchema.parse(req.body);
+      const parentError = await validateCategoryParent(validated.parentId);
+      if (parentError) {
+        return res.status(400).json({ error: parentError });
+      }
       const category = await storage.createCategory(validated);
       res.status(201).json(category);
     } catch (error) {
@@ -1801,6 +1832,12 @@ export async function registerRoutes(
 
   app.patch("/api/admin/categories/:id", requireAdmin, async (req, res) => {
     try {
+      if ('parentId' in req.body) {
+        const parentError = await validateCategoryParent(req.body.parentId, req.params.id);
+        if (parentError) {
+          return res.status(400).json({ error: parentError });
+        }
+      }
       const category = await storage.updateCategory(req.params.id, req.body);
       if (!category) {
         return res.status(404).json({ error: "Category not found" });
@@ -1813,8 +1850,21 @@ export async function registerRoutes(
 
   app.delete("/api/admin/categories/:id", requireAdmin, async (req, res) => {
     try {
-      await storage.deleteCategory(req.params.id);
-      res.json({ success: true });
+      const all = await storage.getCategories();
+      const children = all.filter((c) => c.parentId === req.params.id);
+      if (children.length > 0 && req.query.promoteChildren !== 'true') {
+        // Sessiz veri kaybını önle: alt kategoriler varken silme, admin
+        // arayüzü onay aldıktan sonra promoteChildren=true ile tekrar çağırır.
+        return res.status(409).json({
+          error: `Bu kategorinin ${children.length} alt kategorisi var. Silerseniz alt kategoriler ana kategori seviyesine taşınır.`,
+          childCount: children.length,
+          childNames: children.map((c) => c.name),
+        });
+      }
+      // Atomik silme: alt kategori taşıma + ürün bağlantısı temizleme + silme
+      // tek transaction'da yapılır; silme başarısız olursa hiyerarşi değişmez.
+      await storage.deleteCategoryWithPromotion(req.params.id);
+      res.json({ success: true, promotedChildren: children.length });
     } catch (error) {
       res.status(500).json({ error: "Failed to delete category" });
     }
@@ -1859,7 +1909,7 @@ export async function registerRoutes(
       const { categoryIds, initialStock, ...productData } = req.body;
       const validated = insertProductSchema.parse(productData);
       const product = await storage.createProduct(validated);
-      
+
       // Set product categories (multi-category support)
       if (categoryIds && Array.isArray(categoryIds) && categoryIds.length > 0) {
         await storage.setProductCategories(product.id, categoryIds);
@@ -1867,7 +1917,7 @@ export async function registerRoutes(
         // Fallback: also add the main categoryId to product_categories for consistency
         await storage.setProductCategories(product.id, [product.categoryId]);
       }
-      
+
       // Auto-create variants — bedensiz mantık (Sepetzen: ev ürünleri)
       const sizes = product.availableSizes || [];
       const colors = product.availableColors || [];
@@ -1942,7 +1992,7 @@ export async function registerRoutes(
       if (!product) {
         return res.status(404).json({ error: "Product not found" });
       }
-      
+
       // Auto-create missing variants
       const sizes = product.availableSizes || [];
       const colors = product.availableColors || [];
@@ -2011,9 +2061,9 @@ export async function registerRoutes(
       if (categoryIds && Array.isArray(categoryIds)) {
         await storage.setProductCategories(product.id, categoryIds);
       }
-      
+
       console.log('Updated product result:', JSON.stringify(product, null, 2));
-      
+
       // Return product with categoryIds
       const productCategoryIds = await storage.getProductCategoryIds(product.id);
       res.json({ ...product, categoryIds: productCategoryIds });
@@ -2037,7 +2087,7 @@ export async function registerRoutes(
   app.post("/api/admin/products/bulk-price", requireAdmin, async (req, res) => {
     try {
       const { categoryId, productIds, action, value, autoBadge, badgeText } = req.body;
-      
+
       if (!action || value === undefined || value === null) {
         return res.status(400).json({ error: "action and value are required" });
       }
@@ -2061,19 +2111,19 @@ export async function registerRoutes(
         // All products
         targetProducts = allProducts;
       }
-      
+
       if (targetProducts.length === 0) {
         return res.status(400).json({ error: "Ürün bulunamadı" });
       }
-      
+
       let updated = 0;
-      
+
       for (const product of targetProducts) {
         const currentPrice = parseFloat(product.basePrice);
         if (isNaN(currentPrice)) continue;
 
         let newPrice: number;
-        
+
         switch (action) {
           case 'set':
             newPrice = numericValue;
@@ -2093,10 +2143,10 @@ export async function registerRoutes(
           default:
             continue;
         }
-        
+
         // Round to 2 decimal places
         newPrice = Math.round(newPrice * 100) / 100;
-        
+
         const updateData: any = { basePrice: String(newPrice) };
         if (autoBadge && badgeText) {
           updateData.discountBadge = badgeText;
@@ -2104,7 +2154,7 @@ export async function registerRoutes(
         await storage.updateProduct(product.id, updateData);
         updated++;
       }
-      
+
       res.json({ success: true, updated });
     } catch (error) {
       console.error('Bulk price update error:', error);
@@ -2115,17 +2165,17 @@ export async function registerRoutes(
   app.post("/api/admin/products/bulk-badge", requireAdmin, async (req, res) => {
     try {
       const { productIds, badge } = req.body;
-      
+
       if (!productIds || !Array.isArray(productIds)) {
         return res.status(400).json({ error: "productIds array is required" });
       }
-      
+
       let updated = 0;
       for (const id of productIds) {
         await storage.updateProduct(id, { discountBadge: badge || null });
         updated++;
       }
-      
+
       res.json({ success: true, updated });
     } catch (error) {
       console.error('Bulk badge update error:', error);
@@ -2137,7 +2187,7 @@ export async function registerRoutes(
   app.delete("/api/admin/products-all", requireAdmin, async (req, res) => {
     try {
       const result = await storage.deleteAllProducts();
-      
+
       // Delete image files
       for (const imagePath of result.imagePaths) {
         try {
@@ -2149,9 +2199,9 @@ export async function registerRoutes(
           console.error(`Failed to delete image: ${imagePath}`, fileError);
         }
       }
-      
-      res.json({ 
-        success: true, 
+
+      res.json({
+        success: true,
         deletedProducts: result.deletedProducts,
         deletedVariants: result.deletedVariants,
         deletedImages: result.imagePaths.length
@@ -2791,7 +2841,7 @@ Bu ürün için 4 bölümlü HTML açıklama üret. Teknik Özellikler bölümü
       const payload = await getAuthPayload(req, res);
       const userId = payload?.type === 'user' ? payload.userId ?? null : null;
       const cartItems = await storage.getCartItems(cartToken);
-      
+
       if (cartItems.length === 0) {
         return res.status(400).json({ error: "Sepet boş" });
       }
@@ -2839,14 +2889,14 @@ Bu ürün için 4 bölümlü HTML açıklama üret. Teknik Özellikler bölümü
       const iyzicoBasketItems: IyzicoBasketItem[] = [];
 
       for (const cartItem of cartItems) {
-        const variant = cartItem.variantId 
+        const variant = cartItem.variantId
           ? await storage.getProductVariant(cartItem.variantId)
           : null;
-        
+
         // If variant exists, get the product from variant's productId to ensure consistency
         const actualProductId = variant?.productId || cartItem.productId;
         const product = await storage.getProduct(actualProductId);
-        
+
         if (product) {
           // Ödeme öncesi son stok kontrolü: sepetteki adet kalan stoğu aşmasın.
           const availableStock = variant?.stock ?? 0;
@@ -2859,7 +2909,7 @@ Bu ürün için 4 bölümlü HTML açıklama üret. Teknik Özellikler bölümü
           }
           const itemPrice = parseFloat(product.basePrice);
           serverSubtotal += itemPrice * cartItem.quantity;
-          
+
           cartItemsForStorage.push({
             productId: product.id,
             variantId: variant?.id || null,
@@ -2887,7 +2937,7 @@ Bu ürün için 4 bölümlü HTML açıklama üret. Teknik Özellikler bölümü
       let validatedCoupon = null;
       let discountAmount = 0;
       let couponFreeShipping = false;
-      
+
       if (couponCode) {
         const couponResult = await storage.validateCoupon(couponCode, serverSubtotal, userId || undefined);
         if (couponResult.valid && couponResult.coupon) {
@@ -2910,13 +2960,13 @@ Bu ürün için 4 bölümlü HTML açıklama üret. Teknik Özellikler bölümü
       const DOMESTIC_SHIPPING_COST = 200;
       const INTERNATIONAL_SHIPPING_COST = 2500;
       const IRAQ_SHIPPING_COST = 5700;
-      
+
       const isDomestic = selectedCountry === 'Türkiye';
       const isIraq = selectedCountry === 'Irak';
-      let shippingCost = isDomestic 
+      let shippingCost = isDomestic
         ? (serverSubtotal >= FREE_SHIPPING_THRESHOLD ? 0 : DOMESTIC_SHIPPING_COST)
         : isIraq ? IRAQ_SHIPPING_COST : INTERNATIONAL_SHIPPING_COST;
-      
+
       if (couponFreeShipping) {
         shippingCost = 0;
       }
@@ -2940,12 +2990,12 @@ Bu ürün için 4 bölümlü HTML açıklama üret. Teknik Özellikler bölümü
       const merchantOid = `PLN${Date.now()}${Math.random().toString(36).substr(2, 5).toUpperCase()}`;
 
       // Get user IP
-      const userIp = req.headers['x-forwarded-for']?.toString().split(',')[0].trim() || 
-                     req.socket.remoteAddress || 
+      const userIp = req.headers['x-forwarded-for']?.toString().split(',')[0].trim() ||
+                     req.socket.remoteAddress ||
                      '127.0.0.1';
 
       // Get base URL for callback - use production domain in prod
-      const baseUrl = process.env.NODE_ENV === 'production' 
+      const baseUrl = process.env.NODE_ENV === 'production'
         ? (process.env.PUBLIC_BASE_URL || 'https://sepetzen.com')
         : `${req.headers['x-forwarded-proto'] || 'https'}://${req.headers.host || 'localhost:5000'}`;
 
@@ -4005,7 +4055,7 @@ Bu ürün için 4 bölümlü HTML açıklama üret. Teknik Özellikler bölümü
         return res.status(404).json({ error: "Order not found" });
       }
       const items = await storage.getOrderItems(order.id);
-      
+
       // Enrich items with SKU, product image and active product slug
       // (productSlug, ürün adına tıklanabilir link için kullanılır)
       const itemsWithDetails = await Promise.all(
@@ -4033,7 +4083,7 @@ Bu ürün için 4 bölümlü HTML açıklama üret. Teknik Özellikler bölümü
           return { ...item, sku, productImage, productSlug };
         })
       );
-      
+
       res.json({ ...order, items: itemsWithDetails });
     } catch (error) {
       res.status(500).json({ error: "Failed to fetch order" });
@@ -4046,18 +4096,18 @@ Bu ürün için 4 bölümlü HTML açıklama üret. Teknik Özellikler bölümü
       const payload = await getAuthPayload(req, res);
       const userId = payload?.type === 'user' ? payload.userId ?? null : null;
       const cartItems = await storage.getCartItems(cartToken);
-      
+
       if (cartItems.length === 0) {
         return res.status(400).json({ error: "Cart is empty" });
       }
 
       // Generate order number
       const orderNumber = `HNK${Date.now()}`;
-      
+
       // Calculate actual subtotal from cart items (server-side verification)
       let serverSubtotal = 0;
       for (const cartItem of cartItems) {
-        const variant = cartItem.variantId 
+        const variant = cartItem.variantId
           ? await storage.getProductVariant(cartItem.variantId)
           : null;
         // Use variant's productId if available to ensure consistency
@@ -4077,21 +4127,21 @@ Bu ürün için 4 bölümlü HTML açıklama üret. Teknik Özellikler bölümü
           serverSubtotal += itemPrice * cartItem.quantity;
         }
       }
-      
+
       // Handle coupon validation and redemption - recalculate discount on server
       let validatedCoupon = null;
       let discountAmount = 0;
-      
+
       if (req.body.couponCode) {
         const couponResult = await storage.validateCoupon(
           req.body.couponCode,
           serverSubtotal,
           userId || undefined
         );
-        
+
         if (couponResult.valid && couponResult.coupon) {
           validatedCoupon = couponResult.coupon;
-          
+
           // Recalculate discount on server to prevent tampering
           if (validatedCoupon.discountType === 'percentage') {
             discountAmount = (serverSubtotal * parseFloat(validatedCoupon.discountValue)) / 100;
@@ -4102,21 +4152,21 @@ Bu ürün için 4 bölümlü HTML açıklama üret. Teknik Özellikler bölümü
           discountAmount = Math.min(discountAmount, serverSubtotal);
         }
       }
-      
+
       // Calculate shipping and total on server
       const FREE_SHIPPING_THRESHOLD = await resolveFreeShippingThreshold();
       const DOMESTIC_SHIPPING_COST = 200;
       const INTERNATIONAL_SHIPPING_COST = 2500;
       const IRAQ_SHIPPING_COST = 5700;
-      
+
       const orderCountry = req.body.shippingAddress?.country || 'Türkiye';
       const isDomestic = orderCountry === 'Türkiye';
       const isIraq = orderCountry === 'Irak';
-      const shippingCost = isDomestic 
+      const shippingCost = isDomestic
         ? (serverSubtotal >= FREE_SHIPPING_THRESHOLD ? 0 : DOMESTIC_SHIPPING_COST)
         : isIraq ? IRAQ_SHIPPING_COST : INTERNATIONAL_SHIPPING_COST;
       const serverTotal = Math.max(0, serverSubtotal - discountAmount + shippingCost);
-      
+
       const validated = insertOrderSchema.parse({
         ...req.body,
         orderNumber,
@@ -4128,15 +4178,15 @@ Bu ürün için 4 bölümlü HTML açıklama üret. Teknik Özellikler bölümü
       });
 
       const order = await storage.createOrder(validated);
-      
+
       // Record coupon redemption and update influencer commission
       if (validatedCoupon) {
         await storage.redeemCoupon(validatedCoupon.id, order.id, userId, discountAmount);
-        
+
         // If it's an influencer code, update their commission
         if (validatedCoupon.isInfluencerCode) {
           let commission = 0;
-          
+
           switch (validatedCoupon.commissionType) {
             case 'percentage':
               // Commission based on order total (after discount and shipping)
@@ -4149,7 +4199,7 @@ Bu ürün için 4 bölümlü HTML açıklama üret. Teknik Özellikler bölümü
               // Fixed total is a one-time payment, tracked separately
               break;
           }
-          
+
           if (commission > 0) {
             const currentCommission = parseFloat(validatedCoupon.totalCommissionEarned || '0');
             await storage.updateCoupon(validatedCoupon.id, {
@@ -4161,7 +4211,7 @@ Bu ürün için 4 bölümlü HTML açıklama üret. Teknik Özellikler bölümü
 
       // Create order items and reduce stock
       for (const cartItem of cartItems) {
-        const variant = cartItem.variantId 
+        const variant = cartItem.variantId
           ? await storage.getProductVariant(cartItem.variantId)
           : null;
         // Use variant's productId if available to ensure consistency
@@ -4184,7 +4234,7 @@ Bu ürün için 4 bölümlü HTML açıklama üret. Teknik Özellikler bölümü
           if (variant && variant.id) {
             const newStock = Math.max(0, variant.stock - cartItem.quantity);
             await storage.updateProductVariant(variant.id, { stock: newStock });
-            
+
             // Log stock adjustment
             await storage.createStockAdjustment({
               variantId: variant.id,
@@ -4199,10 +4249,10 @@ Bu ürün için 4 bölümlü HTML açıklama üret. Teknik Özellikler bölümü
 
       // Clear cart
       await storage.clearCart(cartToken);
-      
+
       // Get order items for email
       const orderItems = await storage.getOrderItems(order.id);
-      
+
       // Send order confirmation emails (don't wait)
       sendOrderConfirmationEmail(order, orderItems).catch(err => console.error('[Email] Order confirmation failed:', err));
       sendAdminOrderNotificationEmail(order, orderItems).catch(err => console.error('[Email] Admin notification failed:', err));
@@ -4221,7 +4271,7 @@ Bu ürün için 4 bölümlü HTML açıklama üret. Teknik Özellikler bölümü
   app.patch("/api/admin/orders/:id/status", requireAdmin, async (req, res) => {
     try {
       const { status, trackingNumber } = req.body;
-      
+
       // If shipped status, update tracking info as well
       let updateData: any = { status };
       if (status === 'shipped' && trackingNumber) {
@@ -4253,14 +4303,14 @@ Bu ürün için 4 bölümlü HTML açıklama üret. Teknik Özellikler bölümü
       if (!order) {
         return res.status(404).json({ error: "Order not found" });
       }
-      
+
       // Send status change emails
       if (status === 'processing') {
-        sendPreparingNotificationEmail(order).catch(err => 
+        sendPreparingNotificationEmail(order).catch(err =>
           console.error('[Email] Preparing notification failed:', err)
         );
       } else if (status === 'shipped') {
-        sendShippingNotificationEmail(order).catch(err => 
+        sendShippingNotificationEmail(order).catch(err =>
           console.error('[Email] Shipping notification failed:', err)
         );
       }
@@ -4298,7 +4348,7 @@ Bu ürün için 4 bölümlü HTML açıklama üret. Teknik Özellikler bölümü
   app.post("/api/admin/init", async (req, res) => {
     try {
       const { username, password } = req.body;
-      
+
       // Check if any admin exists
       const existingAdmin = await storage.getAdminUserByUsername(username);
       if (existingAdmin) {
@@ -4365,44 +4415,44 @@ Bu ürün için 4 bölümlü HTML açıklama üret. Teknik Özellikler bölümü
   app.post("/api/admin/woocommerce/test", requireAdmin, async (req, res) => {
     try {
       const { siteUrl, consumerKey, consumerSecret } = req.body;
-      
+
       // Test connection to WooCommerce API
       const url = new URL('/wp-json/wc/v3/products', siteUrl);
       url.searchParams.set('per_page', '1');
-      
+
       const auth = Buffer.from(`${consumerKey}:${consumerSecret}`).toString('base64');
       const response = await fetch(url.toString(), {
         headers: {
           'Authorization': `Basic ${auth}`,
         },
       });
-      
+
       if (!response.ok) {
         const errorText = await response.text();
-        return res.status(400).json({ 
-          success: false, 
+        return res.status(400).json({
+          success: false,
           error: `WooCommerce API hatası: ${response.status}`,
           details: errorText
         });
       }
-      
+
       const products = await response.json();
-      
+
       // Get total product count from headers
       const totalProducts = response.headers.get('X-WP-Total') || '0';
       const totalCategories = await fetch(new URL('/wp-json/wc/v3/products/categories?per_page=1', siteUrl).toString(), {
         headers: { 'Authorization': `Basic ${auth}` },
       }).then(r => r.headers.get('X-WP-Total') || '0').catch(() => '0');
-      
-      res.json({ 
-        success: true, 
+
+      res.json({
+        success: true,
         productCount: parseInt(totalProducts),
         categoryCount: parseInt(totalCategories),
         message: 'Bağlantı başarılı!'
       });
     } catch (error: any) {
-      res.status(500).json({ 
-        success: false, 
+      res.status(500).json({
+        success: false,
         error: error.message || 'Bağlantı hatası'
       });
     }
@@ -4436,15 +4486,15 @@ Bu ürün için 4 bölümlü HTML açıklama üret. Teknik Özellikler bölümü
 
         try {
           const auth = Buffer.from(`${settings.consumerKey}:${settings.consumerSecret}`).toString('base64');
-          
+
           // Import categories first
           const categoriesUrl = new URL('/wp-json/wc/v3/products/categories', settings.siteUrl);
           categoriesUrl.searchParams.set('per_page', '100');
-          
+
           const catResponse = await fetch(categoriesUrl.toString(), {
             headers: { 'Authorization': `Basic ${auth}` },
           });
-          
+
           if (catResponse.ok) {
             const wooCategories = await catResponse.json();
             for (const wooCat of wooCategories) {
@@ -4472,7 +4522,7 @@ Bu ürün için 4 bölümlü HTML açıklama üret. Teknik Özellikler bölümü
                       errors.push(`Kategori resmi indirilemedi: ${wooCat.name}`);
                     }
                   }
-                  
+
                   await storage.createCategory({
                     name: wooCat.name,
                     slug: wooCat.slug,
@@ -4490,29 +4540,29 @@ Bu ürün için 4 bölümlü HTML açıklama üret. Teknik Özellikler bölümü
           // Import products
           let page = 1;
           let hasMore = true;
-          
+
           while (hasMore) {
             const productsUrl = new URL('/wp-json/wc/v3/products', settings.siteUrl);
             productsUrl.searchParams.set('per_page', '20');
             productsUrl.searchParams.set('page', page.toString());
             productsUrl.searchParams.set('status', 'publish');
-            
+
             const prodResponse = await fetch(productsUrl.toString(), {
               headers: { 'Authorization': `Basic ${auth}` },
             });
-            
+
             if (!prodResponse.ok) {
               errors.push(`Ürünler alınamadı (sayfa ${page})`);
               break;
             }
-            
+
             const wooProducts = await prodResponse.json();
-            
+
             if (wooProducts.length === 0) {
               hasMore = false;
               break;
             }
-            
+
             for (const wooProd of wooProducts) {
               try {
                 const existingProd = await storage.getProductBySlug(wooProd.slug);
@@ -4538,18 +4588,18 @@ Bu ürün için 4 bölümlü HTML açıklama üret. Teknik Özellikler bölümü
                       errors.push(`Ürün resmi indirilemedi: ${wooProd.name}`);
                     }
                   }
-                  
+
                   // Get category ID
                   let categoryId = null;
                   if (wooProd.categories && wooProd.categories.length > 0) {
                     const cat = await storage.getCategoryBySlugOrCreate(wooProd.categories[0].slug);
                     categoryId = cat?.id || null;
                   }
-                  
+
                   // Extract sizes and colors from attributes
                   const availableSizes: string[] = [];
                   const availableColors: { name: string; hex: string }[] = [];
-                  
+
                   for (const attr of (wooProd.attributes || [])) {
                     if (attr.name.toLowerCase().includes('beden') || attr.name.toLowerCase().includes('size')) {
                       availableSizes.push(...(attr.options || []));
@@ -4560,7 +4610,7 @@ Bu ürün için 4 bölümlü HTML açıklama üret. Teknik Özellikler bölümü
                       }
                     }
                   }
-                  
+
                   const newProduct = await storage.createProduct({
                     name: wooProd.name,
                     slug: wooProd.slug,
@@ -4576,24 +4626,24 @@ Bu ürün için 4 bölümlü HTML açıklama üret. Teknik Özellikler bölümü
                     isNew: false,
                   });
                   productsImported++;
-                  
+
                   // Fetch and create variations for variable products
                   if (wooProd.type === 'variable' && newProduct) {
                     try {
                       const variationsUrl = new URL(`/wp-json/wc/v3/products/${wooProd.id}/variations`, settings.siteUrl);
                       variationsUrl.searchParams.set('per_page', '100');
-                      
+
                       const varResponse = await fetch(variationsUrl.toString(), {
                         headers: { 'Authorization': `Basic ${auth}` },
                       });
-                      
+
                       if (varResponse.ok) {
                         const wooVariations = await varResponse.json();
                         for (const wooVar of wooVariations) {
                           let size = '';
                           let color = '';
                           let colorHex = '#000000';
-                          
+
                           for (const attr of (wooVar.attributes || [])) {
                             if (attr.name.toLowerCase().includes('beden') || attr.name.toLowerCase().includes('size')) {
                               size = attr.option || '';
@@ -4602,7 +4652,7 @@ Bu ürün için 4 bölümlü HTML açıklama üret. Teknik Özellikler bölümü
                               color = attr.option || '';
                             }
                           }
-                          
+
                           await storage.createProductVariant({
                             productId: newProduct.id,
                             sku: wooVar.sku || null,
@@ -4680,7 +4730,7 @@ Bu ürün için 4 bölümlü HTML açıklama üret. Teknik Özellikler bölümü
                 errors.push(`Ürün aktarılamadı: ${wooProd.name} - ${prodError.message}`);
               }
             }
-            
+
             page++;
             // Safety limit
             if (page > 50) break;
@@ -4818,7 +4868,7 @@ Bu ürün için 4 bölümlü HTML açıklama üret. Teknik Özellikler bölümü
   app.get("/api/admin/analytics/country-breakdown", requireAdmin, async (req, res) => {
     try {
       const result = await db.execute(sql`
-        SELECT 
+        SELECT
           shipping_address->>'country' as country,
           COUNT(*) as count,
           COALESCE(SUM(CAST(total AS DECIMAL)), 0) as revenue
@@ -5012,7 +5062,7 @@ Bu ürün için 4 bölümlü HTML açıklama üret. Teknik Özellikler bölümü
       const products = await storage.getProducts();
       const allVariants = await storage.getAllVariantsWithProducts();
       const orders = await storage.getOrders();
-      
+
       const issues = {
         productsWithoutVariants: [] as { id: string; name: string; sku: string | null; availableSizes: string[] }[],
         productsWithMissingVariants: [] as { id: string; name: string; definedSizes: string[]; existingVariantSizes: string[] }[],
@@ -5022,7 +5072,7 @@ Bu ürün için 4 bölümlü HTML açıklama üret. Teknik Özellikler bölümü
       // Check for products without any variants
       for (const product of products) {
         const productVariants = allVariants.filter(v => v.productId === product.id);
-        
+
         if (productVariants.length === 0 && product.availableSizes && product.availableSizes.length > 0) {
           issues.productsWithoutVariants.push({
             id: product.id,
@@ -5035,7 +5085,7 @@ Bu ürün için 4 bölümlü HTML açıklama üret. Teknik Özellikler bölümü
           const existingSizes = productVariants.map(v => v.size).filter(Boolean);
           const definedSizes = product.availableSizes as string[];
           const missingSizes = definedSizes.filter(s => !existingSizes.includes(s));
-          
+
           if (missingSizes.length > 0) {
             issues.productsWithMissingVariants.push({
               id: product.id,
@@ -5051,7 +5101,7 @@ Bu ürün için 4 bölümlü HTML açıklama üret. Teknik Özellikler bölümü
       for (const order of orders) {
         const orderItems = await storage.getOrderItems(order.id);
         const itemsWithoutVariant = orderItems.filter(item => !item.variantId);
-        
+
         if (itemsWithoutVariant.length > 0) {
           issues.ordersWithoutVariants.push({
             id: order.id,
@@ -5806,7 +5856,7 @@ window.addEventListener('load', function() {
 
       // Get order items to restore stock
       const orderItems = await storage.getOrderItems(order.id);
-      
+
       // Restore stock for each variant
       for (const item of orderItems) {
         if (item.variantId) {
@@ -5826,7 +5876,7 @@ window.addEventListener('load', function() {
       }
 
       // Update order status to cancelled
-      const updatedOrder = await storage.updateOrder(req.params.id, { 
+      const updatedOrder = await storage.updateOrder(req.params.id, {
         status: 'cancelled',
         paymentStatus: 'refunded',
         cancelledAt: order.cancelledAt || new Date(),
@@ -6330,7 +6380,7 @@ window.addEventListener('load', function() {
     try {
       const user = await storage.getUser(req.params.id);
       if (!user) return res.status(404).json({ error: "User not found" });
-      
+
       const stats = await storage.getUserOrderStats(user.email);
       res.json(stats);
     } catch (error) {
@@ -6398,10 +6448,10 @@ window.addEventListener('load', function() {
   app.get("/api/admin/influencer-analytics", requireAdmin, async (req, res) => {
     try {
       const { startDate, endDate, couponId } = req.query;
-      
+
       // Get all influencer coupons with their redemptions
       const influencerCoupons = await storage.getInfluencerCoupons();
-      
+
       // Get redemption details with order info
       const redemptionsQuery = await db.select({
         redemption: couponRedemptions,
@@ -6431,18 +6481,18 @@ window.addEventListener('load', function() {
 
       // Group by month
       const monthlyData: Record<string, { month: string; count: number; revenue: number; commission: number }> = {};
-      
+
       for (const r of filteredRedemptions) {
         const date = new Date(r.redemption.createdAt);
         const monthKey = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
-        
+
         if (!monthlyData[monthKey]) {
           monthlyData[monthKey] = { month: monthKey, count: 0, revenue: 0, commission: 0 };
         }
-        
+
         monthlyData[monthKey].count += 1;
         monthlyData[monthKey].revenue += parseFloat(r.order?.total || '0');
-        
+
         // Calculate commission
         const coupon = r.coupon;
         if (coupon && coupon.commissionType === 'percentage') {
@@ -6569,13 +6619,13 @@ window.addEventListener('load', function() {
   app.post("/api/admin/update-credentials", requireAdmin, async (req, res) => {
     try {
       const { newUsername, newPassword } = req.body;
-      
+
       if (!newUsername || !newPassword) {
         return res.status(400).json({ error: "Username and password required" });
       }
 
       const hashedPassword = await bcrypt.hash(newPassword, 10);
-      
+
       // Get current admin and update
       const admin = await storage.getAdminUser((req as any).adminId);
       if (!admin) return res.status(404).json({ error: "Admin not found" });
@@ -6880,7 +6930,7 @@ window.addEventListener('load', function() {
   app.post("/api/admin/abandoned-carts/:userId/remind", requireAdmin, async (req, res) => {
     try {
       const { userId } = req.params;
-      
+
       const user = await storage.getUser(userId);
       if (!user) {
         return res.status(404).json({ error: "Kullanıcı bulunamadı" });
@@ -6934,7 +6984,7 @@ window.addEventListener('load', function() {
   app.post("/api/admin/abandoned-carts/remind-all", requireAdmin, async (req, res) => {
     try {
       const users = await storage.getUsersWithCartItems();
-      
+
       if (users.length === 0) {
         return res.json({ success: true, sent: 0, message: "Sepetinde ürün olan kullanıcı yok" });
       }
@@ -6945,7 +6995,7 @@ window.addEventListener('load', function() {
       for (const user of users) {
         try {
           const cartItems = await storage.getCartItems(user.id);
-          
+
           const cartItemsWithDetails = await Promise.all(
             cartItems.map(async (item) => {
               const variant = item.variantId ? await storage.getProductVariant(item.variantId) : null;
@@ -6984,11 +7034,11 @@ window.addEventListener('load', function() {
         }
       }
 
-      res.json({ 
-        success: true, 
-        sent, 
-        failed, 
-        message: `${sent} kullanıcıya e-posta gönderildi${failed > 0 ? `, ${failed} başarısız` : ''}` 
+      res.json({
+        success: true,
+        sent,
+        failed,
+        message: `${sent} kullanıcıya e-posta gönderildi${failed > 0 ? `, ${failed} başarısız` : ''}`
       });
     } catch (error: any) {
       console.error('[Admin] Bulk cart reminder error:', error);
@@ -7001,19 +7051,19 @@ window.addEventListener('load', function() {
     try {
       const { email } = req.body;
       const user = await storage.getUserByEmail(email);
-      
+
       if (!user) {
         // Don't reveal if email exists
         return res.json({ success: true, message: "Eğer bu e-posta kayıtlıysa, şifre sıfırlama bağlantısı gönderildi." });
       }
-      
+
       // Generate secure token
       const token = crypto.randomBytes(32).toString('hex');
       const expiresAt = new Date(Date.now() + 60 * 60 * 1000); // 1 hour
-      
+
       await storage.createPasswordResetToken(user.id, token, expiresAt);
       await sendPasswordResetEmail(user, token);
-      
+
       res.json({ success: true, message: "Şifre sıfırlama bağlantısı e-posta adresinize gönderildi." });
     } catch (error) {
       console.error('[Auth] Forgot password error:', error);
@@ -7024,36 +7074,36 @@ window.addEventListener('load', function() {
   app.post("/api/auth/reset-password", async (req, res) => {
     try {
       const { token, newPassword } = req.body;
-      
+
       if (!token || !newPassword) {
         return res.status(400).json({ error: "Token ve yeni şifre gerekli" });
       }
-      
+
       if (newPassword.length < 6) {
         return res.status(400).json({ error: "Şifre en az 6 karakter olmalı" });
       }
-      
+
       const resetToken = await storage.getPasswordResetToken(token);
-      
+
       if (!resetToken) {
         return res.status(400).json({ error: "Geçersiz veya süresi dolmuş bağlantı" });
       }
-      
+
       if (resetToken.usedAt) {
         return res.status(400).json({ error: "Bu bağlantı zaten kullanılmış" });
       }
-      
+
       if (new Date() > resetToken.expiresAt) {
         return res.status(400).json({ error: "Bağlantının süresi dolmuş" });
       }
-      
+
       // Update password
       const hashedPassword = await bcrypt.hash(newPassword, 10);
       await storage.updateUser(resetToken.userId, { password: hashedPassword });
-      
+
       // Mark token as used
       await storage.markPasswordResetTokenUsed(token);
-      
+
       res.json({ success: true, message: "Şifreniz başarıyla güncellendi" });
     } catch (error) {
       console.error('[Auth] Reset password error:', error);
@@ -7065,11 +7115,11 @@ window.addEventListener('load', function() {
     try {
       const { token } = req.params;
       const resetToken = await storage.getPasswordResetToken(token);
-      
+
       if (!resetToken || resetToken.usedAt || new Date() > resetToken.expiresAt) {
         return res.json({ valid: false });
       }
-      
+
       const user = await storage.getUser(resetToken.userId);
       res.json({ valid: true, email: user?.email || '' });
     } catch (error) {
@@ -7082,7 +7132,7 @@ window.addEventListener('load', function() {
     try {
       const order = await storage.getOrder(req.params.id);
       if (!order) return res.status(404).json({ error: "Sipariş bulunamadı" });
-      
+
       const result = await sendShippingNotificationEmail(order);
       if (result.success) {
         res.json({ success: true, message: "Kargo bildirimi gönderildi" });
@@ -7099,17 +7149,17 @@ window.addEventListener('load', function() {
     try {
       const order = await storage.getOrder(req.params.id);
       if (!order) return res.status(404).json({ error: "Sipariş bulunamadı" });
-      
+
       const items = await storage.getOrderItems(order.id);
       const productNames = items.map(item => item.productName);
-      
+
       const result = await sendReviewRequestEmail(
         order.customerEmail,
         order.customerName,
         order.orderNumber,
         productNames
       );
-      
+
       if (result.success) {
         res.json({ success: true, message: "Değerlendirme talebi gönderildi" });
       } else {
@@ -7126,7 +7176,7 @@ window.addEventListener('load', function() {
       const baseUrl = req.protocol + '://' + req.get('host');
       const products = await storage.getProducts();
       const categories = await storage.getCategories();
-      
+
       const escapeXml = (str: string) => {
         return str
           .replace(/&/g, '&amp;')
@@ -7135,7 +7185,7 @@ window.addEventListener('load', function() {
           .replace(/"/g, '&quot;')
           .replace(/'/g, '&apos;');
       };
-      
+
       const normalizeUrl = (url: string) => {
         if (!url) return '';
         if (url.startsWith('http://') || url.startsWith('https://')) {
@@ -7143,17 +7193,17 @@ window.addEventListener('load', function() {
         }
         return baseUrl + (url.startsWith('/') ? url : '/' + url);
       };
-      
+
       let xml = '<?xml version="1.0" encoding="UTF-8"?>\n';
       xml += '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9" xmlns:image="http://www.google.com/schemas/sitemap-image/1.1">\n';
-      
+
       const staticPages = [
         { loc: '/', priority: '1.0', changefreq: 'daily' },
         { loc: '/giris', priority: '0.5', changefreq: 'monthly' },
         { loc: '/kayit', priority: '0.5', changefreq: 'monthly' },
         { loc: '/sepet', priority: '0.6', changefreq: 'weekly' },
       ];
-      
+
       for (const page of staticPages) {
         xml += '  <url>\n';
         xml += `    <loc>${escapeXml(baseUrl + page.loc)}</loc>\n`;
@@ -7161,7 +7211,7 @@ window.addEventListener('load', function() {
         xml += `    <priority>${page.priority}</priority>\n`;
         xml += '  </url>\n';
       }
-      
+
       for (const category of categories) {
         xml += '  <url>\n';
         xml += `    <loc>${escapeXml(baseUrl + '/kategori/' + category.slug)}</loc>\n`;
@@ -7169,7 +7219,7 @@ window.addEventListener('load', function() {
         xml += '    <priority>0.8</priority>\n';
         xml += '  </url>\n';
       }
-      
+
       for (const product of products) {
         xml += '  <url>\n';
         xml += `    <loc>${escapeXml(baseUrl + '/urun/' + product.slug)}</loc>\n`;
@@ -7184,9 +7234,9 @@ window.addEventListener('load', function() {
         }
         xml += '  </url>\n';
       }
-      
+
       xml += '</urlset>';
-      
+
       res.set('Content-Type', 'application/xml');
       res.send(xml);
     } catch (error) {
@@ -7249,7 +7299,7 @@ Sitemap: ${baseUrl}/sitemap.xml
         storage.getCouponUsageCount(),
         storage.getProductsCount(),
       ]);
-      
+
       res.json({
         orders: ordersCount,
         cartItems: cartItemsCount,
@@ -7268,22 +7318,22 @@ Sitemap: ${baseUrl}/sitemap.xml
     try {
       const { table } = req.params;
       const { confirmCode } = req.body;
-      
+
       // Ürünler için ekstra güvenli onay kodu — yanlışlıkla katalog silinmesin
       const requiredCode = table === 'products' ? 'TUM_URUNLERI_SIL' : 'SIFIRLA';
       if (confirmCode !== requiredCode) {
         return res.status(400).json({ error: `Onay kodu hatalı. '${requiredCode}' yazmalısınız.` });
       }
-      
+
       // List of safe-to-clear tables (NOT users, categories)
       const allowedTables = ['orders', 'order_items', 'cart_items', 'pending_payments', 'reviews', 'review_requests', 'coupon_usage', 'stock_adjustments', 'products'];
-      
+
       if (!allowedTables.includes(table)) {
         return res.status(403).json({ error: "Bu tablo silinemez" });
       }
-      
+
       let deletedCount = 0;
-      
+
       switch (table) {
         case 'orders':
           // First delete order items, then orders
@@ -7337,7 +7387,7 @@ Sitemap: ${baseUrl}/sitemap.xml
         default:
           return res.status(400).json({ error: "Geçersiz tablo adı" });
       }
-      
+
       console.log(`[Database] Table ${table} cleared by admin. ${deletedCount} records deleted.`);
       res.json({ success: true, table, deletedCount });
     } catch (error) {
@@ -7350,11 +7400,11 @@ Sitemap: ${baseUrl}/sitemap.xml
   app.post("/api/admin/database/clear-all-sales", requireAdmin, async (req: Request, res) => {
     try {
       const { confirmCode } = req.body;
-      
+
       if (confirmCode !== 'TUM_SATISLARI_SIL') {
         return res.status(400).json({ error: "Onay kodu hatalı. 'TUM_SATISLARI_SIL' yazmalısınız." });
       }
-      
+
       // Clear in order of dependencies
       await storage.clearOrderItems();
       await storage.clearOrders();
@@ -7362,7 +7412,7 @@ Sitemap: ${baseUrl}/sitemap.xml
       await storage.clearCouponUsage();
       await storage.resetCouponUsageCounts();
       await storage.clearAllCartItems();
-      
+
       console.log('[Database] All sales data cleared by admin');
       res.json({ success: true, message: "Tüm satış verileri silindi" });
     } catch (error) {
@@ -7402,11 +7452,11 @@ Sitemap: ${baseUrl}/sitemap.xml
   app.post("/api/admin/dealers", requireAdmin, async (req, res) => {
     try {
       const { name, email, phone, contactPerson, address, notes, status } = req.body;
-      
+
       if (!name || !email || !phone || !contactPerson) {
         return res.status(400).json({ error: "İsim, e-posta, telefon ve yetkili kişi zorunludur" });
       }
-      
+
       const newDealer = await storage.createDealer({
         name,
         email,
@@ -7416,7 +7466,7 @@ Sitemap: ${baseUrl}/sitemap.xml
         notes: notes || null,
         status: status || 'active'
       });
-      
+
       res.status(201).json(newDealer);
     } catch (error) {
       console.error('[Dealers] Create error:', error);
@@ -7456,14 +7506,14 @@ Sitemap: ${baseUrl}/sitemap.xml
     try {
       const dealerId = req.query.dealerId as string | undefined;
       const quoteList = await storage.getQuotes(dealerId);
-      
+
       // Enrich with dealer info
       const enriched = await Promise.all(quoteList.map(async (quote) => {
         const dealer = await storage.getDealer(quote.dealerId);
         const items = await storage.getQuoteItems(quote.id);
         return { ...quote, dealer, itemCount: items.length };
       }));
-      
+
       res.json(enriched);
     } catch (error) {
       console.error('[Quotes] Get all error:', error);
@@ -7478,10 +7528,10 @@ Sitemap: ${baseUrl}/sitemap.xml
       if (!quote) {
         return res.status(404).json({ error: "Teklif bulunamadı" });
       }
-      
+
       const dealer = await storage.getDealer(quote.dealerId);
       const items = await storage.getQuoteItems(quote.id);
-      
+
       res.json({ ...quote, dealer, items });
     } catch (error) {
       console.error('[Quotes] Get one error:', error);
@@ -7496,34 +7546,34 @@ Sitemap: ${baseUrl}/sitemap.xml
       if (!quote) {
         return res.status(404).json({ error: "Teklif bulunamadı" });
       }
-      
+
       const dealer = await storage.getDealer(quote.dealerId);
       const items = await storage.getQuoteItems(quote.id);
-      
+
       const doc = new PDFDocument({ size: 'A4', margin: 50 });
-      
+
       // Register Inter fonts for Turkish character support
       const fontPath = path.join(process.cwd(), 'public', 'fonts');
       const regularFontPath = path.join(fontPath, 'inter-regular.ttf');
       const boldFontPath = path.join(fontPath, 'inter-bold.ttf');
-      
+
       if (fs.existsSync(regularFontPath) && fs.existsSync(boldFontPath)) {
         doc.registerFont('Inter', regularFontPath);
         doc.registerFont('Inter-Bold', boldFontPath);
       }
-      
+
       const fontRegular = fs.existsSync(regularFontPath) ? 'Inter' : 'Helvetica';
       const fontBold = fs.existsSync(boldFontPath) ? 'Inter-Bold' : 'Helvetica-Bold';
-      
+
       res.setHeader('Content-Type', 'application/pdf');
       res.setHeader('Content-Disposition', `attachment; filename="Teklif-${quote.quoteNumber}.pdf"`);
-      
+
       doc.pipe(res);
-      
+
       // Header logo - convert SVG to PNG using sharp
       const svgLogoPath = path.join(process.cwd(), 'client', 'public', 'uploads', 'branding', 'polen-logo.svg');
       const pngLogoPath = path.join(process.cwd(), 'client', 'public', 'uploads', 'branding', 'polen-icon.png');
-      
+
       let logoAdded = false;
       if (fs.existsSync(svgLogoPath)) {
         try {
@@ -7534,22 +7584,22 @@ Sitemap: ${baseUrl}/sitemap.xml
           console.log('[PDF] SVG to PNG conversion failed:', e);
         }
       }
-      
+
       if (!logoAdded && fs.existsSync(pngLogoPath)) {
         doc.image(pngLogoPath, 50, 40, { width: 60 });
         logoAdded = true;
       }
-      
+
       if (!logoAdded) {
         doc.fontSize(28).font(fontBold).fillColor('#000000').text('Sepetzen', 50, 50);
       }
-      
+
       // Quote title
       doc.fontSize(24).font(fontBold).fillColor('#000000').text('TEKLİF', 350, 50, { align: 'right' });
       doc.fontSize(12).font(fontRegular).fillColor('#666666').text(quote.quoteNumber, 350, 80, { align: 'right' });
-      
+
       doc.moveDown(2);
-      
+
       // Dealer info box
       const yStart = 120;
       doc.rect(50, yStart, 250, 100).fillAndStroke('#f5f5f5', '#e0e0e0');
@@ -7564,7 +7614,7 @@ Sitemap: ${baseUrl}/sitemap.xml
       if (dealer?.phone) {
         doc.fontSize(9).text(dealer.phone, 60, yStart + 75);
       }
-      
+
       // Quote details box
       doc.rect(310, yStart, 235, 100).fillAndStroke('#f5f5f5', '#e0e0e0');
       doc.fontSize(10).font(fontBold).fillColor('#333333').text('TEKLİF DETAYLARI', 320, yStart + 10);
@@ -7579,11 +7629,11 @@ Sitemap: ${baseUrl}/sitemap.xml
       doc.fillColor('#000000').text(paymentLabel, 420, yStart + 60);
       doc.fillColor('#666666').text('KDV:', 320, yStart + 75);
       doc.fillColor('#000000').text(quote.includesVat ? 'Dahil' : 'Hariç', 420, yStart + 75);
-      
+
       // Products table
       const tableTop = yStart + 130;
       doc.fontSize(12).font(fontBold).fillColor('#000000').text('ÜRÜNLER', 50, tableTop);
-      
+
       // Table header
       const headerY = tableTop + 25;
       doc.rect(50, headerY, 495, 22).fillAndStroke('#333333', '#333333');
@@ -7594,28 +7644,28 @@ Sitemap: ${baseUrl}/sitemap.xml
       doc.text('Birim Fiyat', 360, headerY + 7, { width: 55, align: 'right' });
       doc.text('İsk.', 415, headerY + 7, { width: 30, align: 'center' });
       doc.text('Toplam', 445, headerY + 7, { width: 95, align: 'right' });
-      
+
       // Table rows
       let currentY = headerY + 22;
       const rowHeight = 50;
-      
+
       for (let itemIdx = 0; itemIdx < items.length; itemIdx++) {
         const item = items[itemIdx];
         if (currentY > 710) {
           doc.addPage();
           currentY = 50;
         }
-        
+
         const bgColor = itemIdx % 2 === 0 ? '#ffffff' : '#fafafa';
         doc.rect(50, currentY, 495, rowHeight).fillAndStroke(bgColor, '#e0e0e0');
-        
+
         if (item.productImage) {
           try {
             let imageUrl = item.productImage;
             if (imageUrl.startsWith('/uploads/')) {
               imageUrl = `https://sepetzen.com${imageUrl}`;
             }
-            
+
             if (imageUrl.startsWith('http://') || imageUrl.startsWith('https://')) {
               const imageResponse = await fetch(imageUrl);
               if (imageResponse.ok) {
@@ -7627,50 +7677,50 @@ Sitemap: ${baseUrl}/sitemap.xml
             // skip image
           }
         }
-        
+
         doc.fontSize(7).font(fontRegular).fillColor('#000000');
         doc.text(item.productName, 98, currentY + 6, { width: 190, lineBreak: true, height: 20 });
-        
+
         if (item.productSku) {
           doc.fontSize(6).fillColor('#888888').text(`SKU: ${item.productSku}`, 98, currentY + 30, { width: 190 });
         }
-        
+
         doc.fontSize(7).fillColor('#333333');
         doc.text(item.variantDetails || '-', 290, currentY + 18, { width: 40, align: 'center' });
-        
+
         doc.fillColor('#000000');
         doc.text(item.quantity.toString(), 330, currentY + 18, { width: 30, align: 'center' });
         doc.text(`${parseFloat(item.unitPrice).toLocaleString('tr-TR', { minimumFractionDigits: 2 })} ₺`, 360, currentY + 18, { width: 55, align: 'right' });
-        
+
         if (parseFloat(item.discountPercent) > 0) {
           doc.fillColor('#22c55e').text(`%${item.discountPercent}`, 415, currentY + 18, { width: 30, align: 'center' });
         } else {
           doc.fillColor('#999999').text('-', 415, currentY + 18, { width: 30, align: 'center' });
         }
-        
+
         doc.font(fontBold).fillColor('#000000');
         doc.text(`${parseFloat(item.lineTotal).toLocaleString('tr-TR', { minimumFractionDigits: 2 })} ₺`, 445, currentY + 18, { width: 95, align: 'right' });
-        
+
         currentY += rowHeight;
       }
-      
+
       // Totals section
       currentY += 10;
       doc.rect(350, currentY, 195, 80).fillAndStroke('#f5f5f5', '#e0e0e0');
-      
+
       doc.fontSize(10).font(fontRegular).fillColor('#666666');
       doc.text('Ara Toplam:', 360, currentY + 15);
       doc.fillColor('#000000').text(`${parseFloat(quote.subtotal).toLocaleString('tr-TR', { minimumFractionDigits: 2 })} TL`, 460, currentY + 15, { width: 75, align: 'right' });
-      
+
       if (parseFloat(quote.discountTotal) > 0) {
         doc.fillColor('#22c55e').text('İskonto:', 360, currentY + 35);
         doc.text(`-${parseFloat(quote.discountTotal).toLocaleString('tr-TR', { minimumFractionDigits: 2 })} TL`, 460, currentY + 35, { width: 75, align: 'right' });
       }
-      
+
       doc.fontSize(12).font(fontBold).fillColor('#000000');
       doc.text('GENEL TOPLAM:', 360, currentY + 55);
       doc.text(`${parseFloat(quote.grandTotal).toLocaleString('tr-TR', { minimumFractionDigits: 2 })} TL`, 460, currentY + 55, { width: 75, align: 'right' });
-      
+
       // Notes
       if (quote.notes) {
         currentY += 100;
@@ -7681,11 +7731,11 @@ Sitemap: ${baseUrl}/sitemap.xml
         doc.fontSize(10).font(fontBold).fillColor('#333333').text('NOTLAR', 50, currentY);
         doc.fontSize(9).font(fontRegular).fillColor('#666666').text(quote.notes, 50, currentY + 15, { width: 495 });
       }
-      
+
       // Footer
       doc.fontSize(8).font(fontRegular).fillColor('#999999');
       doc.text('Sepetzen Kamp & Outdoor | www.sepetzen.com | sepetzen@gmail.com', 50, 780, { align: 'center', width: 495 });
-      
+
       doc.end();
     } catch (error) {
       console.error('[Quotes] PDF generation error:', error);
@@ -7697,18 +7747,18 @@ Sitemap: ${baseUrl}/sitemap.xml
   app.post("/api/admin/quotes", requireAdmin, async (req, res) => {
     try {
       const { dealerId, validUntil, paymentTerms, notes, includesVat, items } = req.body;
-      
+
       if (!dealerId) {
         return res.status(400).json({ error: "Bayi seçimi zorunludur" });
       }
-      
+
       // Generate quote number
       const quoteNumber = await storage.getNextQuoteNumber();
-      
+
       // Calculate totals from items
       let subtotal = 0;
       let discountTotal = 0;
-      
+
       if (items && items.length > 0) {
         for (const item of items) {
           const lineSubtotal = parseFloat(item.unitPrice) * item.quantity;
@@ -7717,9 +7767,9 @@ Sitemap: ${baseUrl}/sitemap.xml
           discountTotal += discountAmount;
         }
       }
-      
+
       const grandTotal = subtotal - discountTotal;
-      
+
       const newQuote = await storage.createQuote({
         quoteNumber,
         dealerId,
@@ -7732,14 +7782,14 @@ Sitemap: ${baseUrl}/sitemap.xml
         grandTotal: grandTotal.toFixed(2),
         includesVat: includesVat !== false
       });
-      
+
       // Create quote items
       if (items && items.length > 0) {
         for (const item of items) {
           const lineSubtotal = parseFloat(item.unitPrice) * item.quantity;
           const discountAmount = lineSubtotal * (parseFloat(item.discountPercent || 0) / 100);
           const lineTotal = lineSubtotal - discountAmount;
-          
+
           await storage.createQuoteItem({
             quoteId: newQuote.id,
             productId: item.productId,
@@ -7755,7 +7805,7 @@ Sitemap: ${baseUrl}/sitemap.xml
           });
         }
       }
-      
+
       res.status(201).json(newQuote);
     } catch (error) {
       console.error('[Quotes] Create error:', error);
@@ -7767,23 +7817,23 @@ Sitemap: ${baseUrl}/sitemap.xml
   app.put("/api/admin/quotes/:id", requireAdmin, async (req, res) => {
     try {
       const { items, ...quoteData } = req.body;
-      
+
       // If items provided, recalculate totals and update items
       if (items) {
         // Delete existing items
         await storage.deleteQuoteItems(req.params.id);
-        
+
         let subtotal = 0;
         let discountTotal = 0;
-        
+
         for (const item of items) {
           const lineSubtotal = parseFloat(item.unitPrice) * item.quantity;
           const discountAmount = lineSubtotal * (parseFloat(item.discountPercent || 0) / 100);
           const lineTotal = lineSubtotal - discountAmount;
-          
+
           subtotal += lineSubtotal;
           discountTotal += discountAmount;
-          
+
           await storage.createQuoteItem({
             quoteId: req.params.id,
             productId: item.productId,
@@ -7798,17 +7848,17 @@ Sitemap: ${baseUrl}/sitemap.xml
             lineTotal: lineTotal.toFixed(2)
           });
         }
-        
+
         quoteData.subtotal = subtotal.toFixed(2);
         quoteData.discountTotal = discountTotal.toFixed(2);
         quoteData.grandTotal = (subtotal - discountTotal).toFixed(2);
       }
-      
+
       const updated = await storage.updateQuote(req.params.id, quoteData);
       if (!updated) {
         return res.status(404).json({ error: "Teklif bulunamadı" });
       }
-      
+
       res.json(updated);
     } catch (error) {
       console.error('[Quotes] Update error:', error);
@@ -7821,13 +7871,13 @@ Sitemap: ${baseUrl}/sitemap.xml
     try {
       const { status } = req.body;
       const validStatuses = ['draft', 'sent', 'accepted', 'rejected', 'expired'];
-      
+
       if (!validStatuses.includes(status)) {
         return res.status(400).json({ error: "Geçersiz durum" });
       }
-      
+
       const updateData: any = { status };
-      
+
       if (status === 'sent') {
         updateData.sentAt = new Date();
       } else if (status === 'accepted') {
@@ -7835,12 +7885,12 @@ Sitemap: ${baseUrl}/sitemap.xml
       } else if (status === 'rejected') {
         updateData.rejectedAt = new Date();
       }
-      
+
       const updated = await storage.updateQuote(req.params.id, updateData);
       if (!updated) {
         return res.status(404).json({ error: "Teklif bulunamadı" });
       }
-      
+
       if (status === 'accepted') {
         try {
           const quoteItems = await storage.getQuoteItems(req.params.id);
@@ -7865,18 +7915,18 @@ Sitemap: ${baseUrl}/sitemap.xml
           console.error('[Quotes] Stock reduction error:', stockErr);
         }
       }
-      
+
       // Send email with PDF when status is 'sent'
       if (status === 'sent') {
         try {
           const quote = await storage.getQuote(req.params.id);
           const dealer = await storage.getDealer(quote!.dealerId);
           const items = await storage.getQuoteItems(quote!.id);
-          
+
           if (dealer?.email) {
             // Generate PDF buffer
             const pdfBuffer = await generateQuotePdfBuffer(quote!, dealer, items);
-            
+
             // Send email with PDF
             const { sendQuoteEmail } = await import('./emailService');
             await sendQuoteEmail(dealer.email, {
@@ -7887,7 +7937,7 @@ Sitemap: ${baseUrl}/sitemap.xml
               grandTotal: quote!.grandTotal,
               itemCount: items.length
             }, pdfBuffer);
-            
+
             console.log(`[Quotes] Email sent to ${dealer.email} for quote ${quote!.quoteNumber}`);
           } else {
             console.log(`[Quotes] No email for dealer, skipping email send`);
@@ -7897,7 +7947,7 @@ Sitemap: ${baseUrl}/sitemap.xml
           // Don't fail the request, just log the error
         }
       }
-      
+
       res.json(updated);
     } catch (error) {
       console.error('[Quotes] Status update error:', error);
@@ -7928,7 +7978,7 @@ Sitemap: ${baseUrl}/sitemap.xml
   });
 
   // ============= SIZE CHARTS (BEDEN TABLOLARI) =============
-  
+
   // Public: Get size chart by category ID
   app.get("/api/size-charts/category/:categoryId", async (req, res) => {
     try {
@@ -7939,7 +7989,7 @@ Sitemap: ${baseUrl}/sitemap.xml
       res.status(500).json({ error: "Beden tablosu alınamadı" });
     }
   });
-  
+
   // Admin: Get all size charts
   app.get("/api/admin/size-charts", requireAdmin, async (req, res) => {
     try {
@@ -7955,7 +8005,7 @@ Sitemap: ${baseUrl}/sitemap.xml
       res.status(500).json({ error: "Beden tabloları alınamadı" });
     }
   });
-  
+
   // Admin: Get single size chart
   app.get("/api/admin/size-charts/:id", requireAdmin, async (req, res) => {
     try {
@@ -7970,35 +8020,35 @@ Sitemap: ${baseUrl}/sitemap.xml
       res.status(500).json({ error: "Beden tablosu alınamadı" });
     }
   });
-  
+
   // Admin: Create size chart
   app.post("/api/admin/size-charts", requireAdmin, async (req, res) => {
     try {
       const { categoryId, columns, rows } = req.body;
-      
+
       if (!categoryId) {
         return res.status(400).json({ error: "Kategori seçimi zorunludur" });
       }
-      
+
       // Check if category already has a size chart
       const existing = await storage.getSizeChartByCategory(categoryId);
       if (existing) {
         return res.status(400).json({ error: "Bu kategori için zaten bir beden tablosu var" });
       }
-      
+
       const chart = await storage.createSizeChart({
         categoryId,
         columns: columns || ["Beden", "Göğüs (cm)", "Boy (cm)"],
         rows: rows || []
       });
-      
+
       res.status(201).json(chart);
     } catch (error) {
       console.error('[SizeCharts] Create error:', error);
       res.status(500).json({ error: "Beden tablosu oluşturulamadı" });
     }
   });
-  
+
   // Admin: Update size chart
   app.put("/api/admin/size-charts/:id", requireAdmin, async (req, res) => {
     try {
@@ -8013,7 +8063,7 @@ Sitemap: ${baseUrl}/sitemap.xml
       res.status(500).json({ error: "Beden tablosu güncellenemedi" });
     }
   });
-  
+
   // Admin: Delete size chart
   app.delete("/api/admin/size-charts/:id", requireAdmin, async (req, res) => {
     try {
@@ -8031,7 +8081,7 @@ Sitemap: ${baseUrl}/sitemap.xml
     try {
       const items = await storage.getActiveMenuItems();
       const categories = await storage.getCategories();
-      
+
       // Build nested structure with category details
       const menuItemsWithDetails = items.map(item => {
         let categoryDetails = null;
@@ -8073,7 +8123,7 @@ Sitemap: ${baseUrl}/sitemap.xml
       const items = await storage.getMenuItems();
       console.log('[Menu] Admin fetched menu items:', items.length, 'items');
       const categories = await storage.getCategories();
-      
+
       const menuItemsWithDetails = items.map(item => {
         let categoryDetails = null;
         if (item.type === 'category' && item.categoryId) {
@@ -8103,7 +8153,7 @@ Sitemap: ${baseUrl}/sitemap.xml
   app.post("/api/admin/menu-items", requireAdmin, async (req, res) => {
     try {
       const { title, description, type, categoryId, url, parentId, displayOrder, isActive, openInNewTab } = req.body;
-      
+
       if (!title || !type) {
         return res.status(400).json({ error: "Başlık ve tür zorunludur" });
       }
@@ -8139,7 +8189,7 @@ Sitemap: ${baseUrl}/sitemap.xml
   app.put("/api/admin/menu-items/:id", requireAdmin, async (req, res) => {
     try {
       const { title, description, type, categoryId, url, parentId, displayOrder, isActive, openInNewTab } = req.body;
-      
+
       const menuItem = await storage.updateMenuItem(req.params.id, {
         title,
         description: description || null,
@@ -8178,7 +8228,7 @@ Sitemap: ${baseUrl}/sitemap.xml
   app.post("/api/admin/menu-items/reorder", requireAdmin, async (req, res) => {
     try {
       const { items } = req.body;
-      
+
       if (!Array.isArray(items)) {
         return res.status(400).json({ error: "Geçersiz sıralama verisi" });
       }
@@ -8210,6 +8260,9 @@ Sitemap: ${baseUrl}/sitemap.xml
     try {
       const wipeAll = req.body?.wipeAll === true;
       const categories = await storage.getCategories();
+      // Gerçek kategori hiyerarşisi tanımlıysa (parentId kullanılıyorsa) menü
+      // ondan üretilir; yoksa isim bazlı otomatik gruplama devrede kalır.
+      const hasHierarchy = categories.some((c) => c.parentId);
       const plan = buildGroupingPlan(categories);
 
       // 1) Eski kayıtları sil
@@ -8228,12 +8281,58 @@ Sitemap: ${baseUrl}/sitemap.xml
           );
       }
 
-      // 2) Her ana grup için submenu kaydı + altına category çocukları
+      // 2) Menü öğelerini üret
       let createdParents = 0;
       let createdChildren = 0;
       let parentOrder = AUTO_GROUP_DISPLAY_ORDER_BASE; // 1000, 1001, ...
       let childOrder = AUTO_GROUP_DISPLAY_ORDER_BASE + 100; // 1100+
 
+      if (hasHierarchy) {
+        // Gerçek hiyerarşi: ana kategoriler kök öğe olur, alt kategorileri
+        // altına eklenir. Ana kategori öğesi kategoriye link verir.
+        const topLevel = categories
+          .filter((c) => !c.parentId)
+          .sort((a, b) => (a.displayOrder ?? 0) - (b.displayOrder ?? 0));
+        for (const cat of topLevel) {
+          const children = categories
+            .filter((c) => c.parentId === cat.id)
+            .sort((a, b) => (a.displayOrder ?? 0) - (b.displayOrder ?? 0));
+          const parent = await storage.createMenuItem({
+            title: cat.name,
+            type: "category",
+            categoryId: cat.id,
+            url: null,
+            parentId: null,
+            displayOrder: parentOrder++,
+            isActive: true,
+            openInNewTab: false,
+          });
+          createdParents++;
+          for (const child of children) {
+            await storage.createMenuItem({
+              title: child.name,
+              type: "category",
+              categoryId: child.id,
+              url: null,
+              parentId: parent.id,
+              displayOrder: childOrder++,
+              isActive: true,
+              openInNewTab: false,
+            });
+            createdChildren++;
+          }
+        }
+        return res.json({
+          success: true,
+          createdParents,
+          createdChildren,
+          totalCategories: categories.length,
+          unmatchedCount: 0,
+          mode: "hierarchy",
+        });
+      }
+
+      // 2b) Hiyerarşi yoksa: her ana grup için submenu kaydı + altına category çocukları
       for (const group of plan.groups) {
         const parent = await storage.createMenuItem({
           title: group.title,

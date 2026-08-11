@@ -423,6 +423,7 @@ interface HomeCategory {
   slug: string;
   displayOrder: number;
   image?: string | null;
+  parentId?: string | null;
 }
 
 function PopularCategories({ products }: { products: Product[] }) {
@@ -436,16 +437,22 @@ function PopularCategories({ products }: { products: Product[] }) {
     staleTime: 60_000,
   });
 
+  // Vitrin kartlarında yalnızca ana kategoriler gösterilir; alt kategori
+  // ürünleri ana kategorinin sayısına dahildir.
   const visible = cats
-    .filter(c => (c.displayOrder ?? 0) < 100)
+    .filter(c => (c.displayOrder ?? 0) < 100 && !c.parentId)
     .sort((a, b) => (a.displayOrder ?? 0) - (b.displayOrder ?? 0))
     .slice(0, 7);
 
   const fallbackImage = (slug: string) =>
     CATS.find(c => c.slug === slug)?.image ?? null;
 
-  const countFor = (id: string) =>
-    products.filter(p => (p as any).categoryIds?.includes(id) || p.categoryId === id).length;
+  const countFor = (id: string) => {
+    const ids = [id, ...cats.filter(c => c.parentId === id).map(c => c.id)];
+    return products.filter(p =>
+      ids.some(cid => (p as any).categoryIds?.includes(cid) || p.categoryId === cid),
+    ).length;
+  };
 
   if (!visible.length) return null;
 

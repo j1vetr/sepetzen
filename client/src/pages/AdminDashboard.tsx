@@ -239,12 +239,14 @@ export default function AdminDashboard() {
       {showCategoryModal && (
         <CategoryModal
           category={editingCategory}
+          categories={categories}
           onClose={() => {
             setShowCategoryModal(false);
             setEditingCategory(null);
           }}
           onSave={(category) => saveCategoryMutation.mutate(category)}
           isSaving={saveCategoryMutation.isPending}
+          saveError={saveCategoryMutation.error instanceof Error ? saveCategoryMutation.error.message : null}
         />
       )}
       {viewingUser && (

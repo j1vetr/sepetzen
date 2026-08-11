@@ -1,9 +1,9 @@
 import { db } from "./db";
-import { 
-  adminUsers, 
-  categories, 
-  products, 
-  productVariants, 
+import {
+  adminUsers,
+  categories,
+  products,
+  productVariants,
   productCategories,
   cartItems,
   orders,
@@ -188,11 +188,12 @@ export interface IStorage {
   createCategory(category: InsertCategory): Promise<Category>;
   updateCategory(id: string, category: Partial<InsertCategory>): Promise<Category | undefined>;
   deleteCategory(id: string): Promise<void>;
+  deleteCategoryWithPromotion(id: string): Promise<void>;
 
-  getProducts(filters?: { 
-    categoryId?: string; 
-    isFeatured?: boolean; 
-    isNew?: boolean; 
+  getProducts(filters?: {
+    categoryId?: string;
+    isFeatured?: boolean;
+    isNew?: boolean;
     search?: string;
     minPrice?: number;
     maxPrice?: number;
@@ -255,7 +256,7 @@ export interface IStorage {
   createOrder(order: InsertOrder): Promise<Order>;
   updateOrderStatus(id: string, status: string): Promise<Order | undefined>;
   updateOrder(id: string, data: Partial<Order>): Promise<Order | undefined>;
-  
+
   getOrderItems(orderId: string): Promise<OrderItem[]>;
   createOrderItem(item: InsertOrderItem): Promise<OrderItem>;
 
@@ -569,7 +570,7 @@ export class DbStorage implements IStorage {
     const [userCount] = await db.select({ count: sql<number>`count(*)` }).from(users);
     const [pendingCount] = await db.select({ count: sql<number>`count(*)` }).from(orders).where(eq(orders.status, 'pending'));
     const [revenue] = await db.select({ total: sql<number>`COALESCE(SUM(CAST(total AS DECIMAL)), 0)` }).from(orders);
-    
+
     return {
       totalProducts: Number(productCount.count),
       totalCategories: Number(categoryCount.count),
@@ -612,10 +613,26 @@ export class DbStorage implements IStorage {
     await db.delete(categories).where(eq(categories.id, id));
   }
 
-  async getProducts(filters?: { 
-    categoryId?: string; 
-    isFeatured?: boolean; 
-    isNew?: boolean; 
+  /**
+   * Kategoriyi tek bir transaction içinde siler:
+   * - alt kategoriler ana seviyeye taşınır,
+   * - kategoriye birincil bağlı ürünlerin categoryId'si null'lanır
+   *   (junction satırları FK cascade ile temizlenir),
+   * - kategori silinir.
+   * Böylece silme başarısız olursa hiyerarşi kısmen değişmiş olmaz.
+   */
+  async deleteCategoryWithPromotion(id: string): Promise<void> {
+    await db.transaction(async (tx) => {
+      await tx.update(categories).set({ parentId: null }).where(eq(categories.parentId, id));
+      await tx.update(products).set({ categoryId: null }).where(eq(products.categoryId, id));
+      await tx.delete(categories).where(eq(categories.id, id));
+    });
+  }
+
+  async getProducts(filters?: {
+    categoryId?: string;
+    isFeatured?: boolean;
+    isNew?: boolean;
     search?: string;
     minPrice?: number;
     maxPrice?: number;
@@ -625,17 +642,23 @@ export class DbStorage implements IStorage {
     sort?: 'price_asc' | 'price_desc' | 'newest' | 'popular';
   }): Promise<Product[]> {
     const conditions = [eq(products.isActive, true)];
-    
+
     // Handle category filter with multi-category support
     let categoryProductIds: string[] | null = null;
+    let categoryIdSet: string[] = [];
     if (filters?.categoryId) {
-      // Get products that have this category in their categoryIds (via product_categories table)
+      // Ana kategori seçildiğinde alt kategorilerin ürünleri de kapsanır
+      const childRows = await db.select({ id: categories.id })
+        .from(categories)
+        .where(eq(categories.parentId, filters.categoryId));
+      categoryIdSet = [filters.categoryId, ...childRows.map(r => r.id)];
+      // Get products that have any of these categories (via product_categories table)
       const productIdsResult = await db.selectDistinct({ productId: productCategories.productId })
         .from(productCategories)
-        .where(eq(productCategories.categoryId, filters.categoryId));
+        .where(inArray(productCategories.categoryId, categoryIdSet));
       categoryProductIds = productIdsResult.map(r => r.productId);
     }
-    
+
     if (filters?.isFeatured !== undefined) {
       conditions.push(eq(products.isFeatured, filters.isFeatured));
     }
@@ -678,11 +701,14 @@ export class DbStorage implements IStorage {
     }
 
     let result = await query;
-    
-    // Filter by category (includes products from both primary categoryId and product_categories table)
+
+    // Filter by category (includes products from both primary categoryId and product_categories table).
+    // Birincil categoryId bir ALT kategori olsa bile (junction satırı eksikse)
+    // ürün, ana kategori sayfasında kaybolmasın diye tüm genişletilmiş küme
+    // üzerinden eşleştirilir.
     if (filters?.categoryId && categoryProductIds !== null) {
-      result = result.filter(p => 
-        p.categoryId === filters.categoryId || 
+      result = result.filter(p =>
+        (p.categoryId !== null && categoryIdSet.indexOf(p.categoryId) !== -1) ||
         categoryProductIds!.includes(p.id)
       );
     }
@@ -696,7 +722,7 @@ export class DbStorage implements IStorage {
       .groupBy(productVariants.productId);
     const inStockSet = new Set(inStockRows.map(r => r.productId));
     result = result.filter(p => inStockSet.has(p.id));
-    
+
     return result;
   }
 
@@ -753,10 +779,10 @@ export class DbStorage implements IStorage {
 
     // Delete favorites referencing products
     await db.delete(favorites);
-    
+
     // Delete reviews referencing products
     await db.delete(productReviews);
-    
+
     // Delete cart items referencing products
     await db.delete(cartItems);
 
@@ -813,7 +839,7 @@ export class DbStorage implements IStorage {
   async setProductCategories(productId: string, categoryIds: string[]): Promise<void> {
     // Delete existing categories for this product
     await db.delete(productCategories).where(eq(productCategories.productId, productId));
-    
+
     // Insert new categories
     if (categoryIds.length > 0) {
       await db.insert(productCategories).values(
@@ -824,16 +850,16 @@ export class DbStorage implements IStorage {
 
   async getProductsByCategoryIds(categoryIds: string[]): Promise<Product[]> {
     if (categoryIds.length === 0) return [];
-    
+
     // Get products that are in any of the specified categories (via product_categories table)
     const productIdsResult = await db.selectDistinct({ productId: productCategories.productId })
       .from(productCategories)
       .where(inArray(productCategories.categoryId, categoryIds));
-    
+
     const productIds = productIdsResult.map(r => r.productId);
-    
+
     if (productIds.length === 0) return [];
-    
+
     return db.select().from(products)
       .where(and(
         inArray(products.id, productIds),
@@ -843,7 +869,7 @@ export class DbStorage implements IStorage {
 
   async getCartItems(sessionId: string): Promise<any[]> {
     const items = await db.select().from(cartItems).where(eq(cartItems.sessionId, sessionId));
-    
+
     const itemsWithDetails = await Promise.all(items.map(async (item) => {
       const [product] = await db.select({
         id: products.id,
@@ -852,7 +878,7 @@ export class DbStorage implements IStorage {
         basePrice: products.basePrice,
         images: products.images,
       }).from(products).where(eq(products.id, item.productId));
-      
+
       let variant = null;
       if (item.variantId) {
         const [v] = await db.select({
@@ -863,10 +889,10 @@ export class DbStorage implements IStorage {
         }).from(productVariants).where(eq(productVariants.id, item.variantId));
         variant = v || null;
       }
-      
+
       return { ...item, product, variant };
     }));
-    
+
     return itemsWithDetails;
   }
 
@@ -912,7 +938,7 @@ export class DbStorage implements IStorage {
 
   async getUsersWithCartItems(): Promise<User[]> {
     const result = await db
-      .selectDistinct({ 
+      .selectDistinct({
         id: users.id,
         email: users.email,
         firstName: users.firstName,
@@ -1028,7 +1054,7 @@ export class DbStorage implements IStorage {
   async getFavoriteProducts(userId: string): Promise<Product[]> {
     const userFavorites = await db.select().from(favorites).where(eq(favorites.userId, userId));
     if (userFavorites.length === 0) return [];
-    
+
     const productIds = userFavorites.map(f => f.productId);
     const result = await db.select().from(products).where(
       and(
@@ -1289,7 +1315,7 @@ export class DbStorage implements IStorage {
     let interval: string;
     let format: string;
     let limit: number;
-    
+
     switch (period) {
       case 'day':
         interval = '1 day';
@@ -1314,7 +1340,7 @@ export class DbStorage implements IStorage {
     }
 
     const result = await db.execute(sql`
-      SELECT 
+      SELECT
         TO_CHAR(created_at, ${format}) as label,
         COALESCE(SUM(CAST(total AS DECIMAL)), 0) as revenue,
         COUNT(*) as order_count
@@ -1339,7 +1365,7 @@ export class DbStorage implements IStorage {
     revenue: number;
   }[]> {
     const result = await db.execute(sql`
-      SELECT 
+      SELECT
         p.*,
         COALESCE(SUM(oi.quantity), 0) as total_sold,
         COALESCE(SUM(CAST(oi.subtotal AS DECIMAL)), 0) as revenue
@@ -1383,7 +1409,7 @@ export class DbStorage implements IStorage {
     averageOrderValue: number;
   }> {
     const result = await db.execute(sql`
-      SELECT 
+      SELECT
         COALESCE(SUM(CAST(total AS DECIMAL)), 0) as total_revenue,
         COUNT(*) as order_count
       FROM orders
@@ -1579,7 +1605,7 @@ export class DbStorage implements IStorage {
 
     const totalSpent = userOrders.reduce((sum, order) => sum + parseFloat(order.total), 0);
     const lastOrderDate = userOrders[0].createdAt;
-    
+
     // Get all order items for these orders
     const allProducts: string[] = [];
     for (const order of userOrders) {
@@ -1646,8 +1672,8 @@ export class DbStorage implements IStorage {
         amount: commissionAmount,
       });
     }
-    const [updated] = await db.update(coupons).set({ 
-      isPaid: true, 
+    const [updated] = await db.update(coupons).set({
+      isPaid: true,
       paidAt: new Date(),
       totalCommissionEarned: '0',
       updatedAt: new Date()

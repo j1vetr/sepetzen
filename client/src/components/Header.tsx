@@ -55,6 +55,7 @@ interface CategoryData {
   slug: string;
   displayOrder: number;
   image?: string | null;
+  parentId?: string | null;
 }
 
 const stagger: { container: Variants; item: Variants } = {
@@ -207,9 +208,28 @@ export function Header() {
     staleTime: 60000,
   });
 
-  const visibleCategories = categoriesData
-    .filter(c => (c.displayOrder ?? 0) < 100)
-    .sort((a, b) => (a.displayOrder ?? 0) - (b.displayOrder ?? 0));
+  // Hiyerarşik sıralama: ana kategoriler displayOrder'a göre, her birinin
+  // hemen ardından kendi alt kategorileri (girintili gösterilir).
+  const visibleCategories = (() => {
+    const eligible = categoriesData.filter(c => (c.displayOrder ?? 0) < 100);
+    const byOrder = (a: CategoryData, b: CategoryData) => (a.displayOrder ?? 0) - (b.displayOrder ?? 0);
+    const tops = eligible.filter(c => !c.parentId).sort(byOrder);
+    const topIds = tops.map(t => t.id);
+    const result: (CategoryData & { isChild?: boolean })[] = [];
+    for (const top of tops) {
+      result.push(top);
+      eligible
+        .filter(c => c.parentId === top.id)
+        .sort(byOrder)
+        .forEach(child => result.push({ ...child, isChild: true }));
+    }
+    // Üst kategorisi görünür listede olmayan alt kategoriler kaybolmasın
+    eligible
+      .filter(c => c.parentId && topIds.indexOf(c.parentId) === -1)
+      .sort(byOrder)
+      .forEach(c => result.push(c));
+    return result;
+  })();
 
   // "Tüm Kategoriler" açılır menüsü: ilk açılışta en fazla 8 kategori, "Tümünü Gör" ile tamamı
   const ALL_CATS_PREVIEW = 8;
@@ -562,7 +582,11 @@ export function Header() {
                             className={`text-[11px] tracking-[0.12em] uppercase text-white/75 hover:bg-white/5 hover:text-white cursor-pointer py-3 px-3 rounded-none transition-colors ${isLastRow ? '' : 'border-b border-white/[0.07]'}`}
                             data-testid={`link-allcat-${c.slug}`}
                           >
-                            {c.name}
+                            {(c as any).isChild ? (
+                              <span className="pl-3 text-white/60">└ {c.name}</span>
+                            ) : (
+                              c.name
+                            )}
                           </DropdownMenuItem>
                         );
                       })}
@@ -592,7 +616,10 @@ export function Header() {
                   const children = (root.children || []).filter(c => c.isActive);
                   const isActiveMega = megaMenuId === root.id;
 
-                  if (root.type === 'submenu') {
+                  {/* Alt öğesi olan her kök (submenu veya alt kategorili
+                      kategori) mega menü açar; kategori linki mega paneldeki
+                      "Tümünü Keşfet" ile erişilebilir kalır. */}
+                  if (root.type === 'submenu' || children.length > 0) {
                     return (
                       <div
                         key={root.id}
@@ -650,10 +677,19 @@ export function Header() {
                     >
                       {menuRoots.slice(7).map((root) => {
                         const children = (root.children || []).filter(c => c.isActive);
-                        if (root.type === 'submenu' && children.length > 0) {
+                        if (children.length > 0) {
                           return (
                             <div key={root.id} className="mb-1 last:mb-0">
                               <div className="px-3 pt-2 pb-1 text-[9px] tracking-[0.2em] uppercase text-white/35 font-bold">{root.title}</div>
+                              {root.type === 'category' && root.category && (
+                                <DropdownMenuItem
+                                  onClick={() => navigate(hrefForMenu(root))}
+                                  className="text-[11px] tracking-[0.10em] uppercase text-white hover:bg-white/5 cursor-pointer py-2 px-3 rounded-md transition-colors font-semibold"
+                                  data-testid={`link-nav-more-all-${root.id}`}
+                                >
+                                  Tümü — {root.title}
+                                </DropdownMenuItem>
+                              )}
                               {children.map((child) => (
                                 <DropdownMenuItem
                                   key={child.id}
@@ -718,7 +754,11 @@ export function Header() {
                             className="text-[11px] tracking-[0.16em] uppercase text-white/75 hover:bg-white/5 hover:text-white cursor-pointer py-2.5 px-3 rounded-md transition-colors"
                             data-testid={`link-cat-${c.slug}`}
                           >
-                            {c.name}
+                            {(c as any).isChild ? (
+                              <span className="pl-3 text-white/60">└ {c.name}</span>
+                            ) : (
+                              c.name
+                            )}
                           </DropdownMenuItem>
                         ))}
                       </div>
@@ -778,7 +818,8 @@ export function Header() {
         </div>
       {/* ── MEGA MENU PANEL ── (header'a göre absolute, tam genişlik) */}
       <AnimatePresence>
-        {megaMenuId && activeMegaRoot && activeMegaRoot.type === 'submenu' && activeMegaChildren.length > 0 && (
+        {/* Alt öğesi olan her kök (submenu veya kategori) mega panel açar. */}
+        {megaMenuId && activeMegaRoot && activeMegaChildren.length > 0 && (
           <motion.div
             key={megaMenuId}
             initial={{ opacity: 0, y: -6 }}
@@ -1027,7 +1068,10 @@ export function Header() {
                   {useMenuTree ? (
                     menuRoots.map((root) => {
                       const children = (root.children || []).filter(c => c.isActive);
-                      const isSubmenu = root.type === 'submenu';
+                      // Alt öğesi olan kategori kökleri de akordeon açar;
+                      // kategorinin kendisi listenin başındaki "Tümünü Gör"
+                      // linkiyle erişilebilir kalır.
+                      const isSubmenu = root.type === 'submenu' || children.length > 0;
                       const isOpen = !!mobileSubOpen[root.id];
 
                       if (isSubmenu) {
@@ -1073,6 +1117,21 @@ export function Header() {
                                   transition={{ duration: 0.32, ease: [0.16, 1, 0.3, 1] }}
                                   className="overflow-hidden pl-5 border-l border-white/15 ml-[2px] mb-3"
                                 >
+                                  {root.type === 'category' && root.category && (
+                                    <li>
+                                      <Link
+                                        href={hrefForMenu(root)}
+                                        onClick={() => setMobileOpen(false)}
+                                        className="group flex items-center gap-2.5 py-2 text-white hover:text-white transition-colors"
+                                        data-testid={`link-mobile-mega-all-${root.id}`}
+                                      >
+                                        <span className="w-1 h-1 rounded-full bg-white/60" />
+                                        <span className="text-[11.5px] tracking-[0.14em] uppercase font-semibold">
+                                          Tümünü Gör
+                                        </span>
+                                      </Link>
+                                    </li>
+                                  )}
                                   {children.length === 0 ? (
                                     <li className="text-[10px] text-white/40 py-1.5">Henüz alt kategori yok</li>
                                   ) : children.map(child => {

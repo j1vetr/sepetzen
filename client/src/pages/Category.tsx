@@ -41,6 +41,12 @@ export default function Category() {
 
   const { data: categories = [], isLoading: categoriesLoading } = useCategories();
   const category = categories.find(c => c.slug === slug);
+  // Hiyerarşi: ana kategori sayfasında alt kategoriler listelenir, alt
+  // kategori sayfasında üst kategoriye dönüş linki gösterilir.
+  const childCategories = categories.filter(c => c.parentId && c.parentId === category?.id);
+  const parentCategory = category?.parentId
+    ? categories.find(c => c.id === category.parentId)
+    : undefined;
 
   const parsed = useMemo(() => parseSearchParams(search), [search]);
 
@@ -180,6 +186,9 @@ export default function Category() {
         url={`/kategori/${slug}`}
         breadcrumbs={[
           { name: 'Ana Sayfa', url: '/' },
+          ...(parentCategory
+            ? [{ name: parentCategory.name, url: `/kategori/${parentCategory.slug}` }]
+            : []),
           { name: category?.name || 'Kategori', url: `/kategori/${slug}` },
         ]}
       />
@@ -218,6 +227,19 @@ export default function Category() {
             >
               <Link href="/"><span className="hover:text-white transition-colors">Ana Sayfa</span></Link>
               <ChevronRight className="w-3 h-3" />
+              {parentCategory && (
+                <>
+                  <Link href={`/kategori/${parentCategory.slug}`}>
+                    <span
+                      className="hover:text-white transition-colors"
+                      data-testid="link-parent-category"
+                    >
+                      {parentCategory.name}
+                    </span>
+                  </Link>
+                  <ChevronRight className="w-3 h-3" />
+                </>
+              )}
               <span className="text-white/75">{category?.name}</span>
             </motion.nav>
 
@@ -392,6 +414,29 @@ export default function Category() {
         )}
       </AnimatePresence>
 
+      {/* ─── SUBCATEGORIES ─── */}
+      {childCategories.length > 0 && (
+        <section className="pt-8 px-5 lg:px-8" data-testid="section-subcategories">
+          <div className="max-w-[1400px] mx-auto">
+            <h2 className="text-[10px] tracking-[0.3em] uppercase text-white/40 font-medium mb-4">
+              Alt Kategoriler
+            </h2>
+            <div className="flex flex-wrap gap-2">
+              {childCategories.map(child => (
+                <Link key={child.id} href={`/kategori/${child.slug}`}>
+                  <span
+                    className="inline-block border border-white/20 text-white text-[11px] tracking-[0.12em] uppercase px-4 py-2.5 cursor-pointer transition-colors hover:border-white hover:bg-white hover:text-black"
+                    data-testid={`link-subcategory-${child.slug}`}
+                  >
+                    {child.name}
+                  </span>
+                </Link>
+              ))}
+            </div>
+          </div>
+        </section>
+      )}
+
       {/* ─── PRODUCT GRID ─── */}
       <main className="py-10 lg:py-14 px-5 lg:px-8">
         <div className="max-w-[1400px] mx-auto">
@@ -465,7 +510,7 @@ export default function Category() {
           <div className="max-w-[1400px] mx-auto">
             <h3 className="text-[10px] tracking-[0.3em] uppercase text-white/40 font-medium mb-6">Diğer Kategoriler</h3>
             <div className="flex flex-wrap gap-2">
-              {categories.filter(c => c.slug !== slug).map(cat => (
+              {categories.filter(c => c.slug !== slug && !c.parentId).map(cat => (
                 <Link key={cat.id} href={`/kategori/${cat.slug}`}>
                   <motion.span
                     whileHover={{ backgroundColor: '#000', color: '#fff' }}

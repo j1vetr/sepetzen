@@ -129,8 +129,13 @@ export function useAdminDashboardData({
   });
 
   const deleteCategoryMutation = useMutation({
-    mutationFn: async (id: string) =>
-      (await fetch(`/api/admin/categories/${id}`, { method: 'DELETE' })).json(),
+    mutationFn: async ({ id, promoteChildren }: { id: string; promoteChildren?: boolean }) => {
+      const url = `/api/admin/categories/${id}${promoteChildren ? '?promoteChildren=true' : ''}`;
+      const response = await fetch(url, { method: 'DELETE', credentials: 'include' });
+      const result = await response.json();
+      if (!response.ok) throw new Error(result.error || 'Kategori silinemedi');
+      return result;
+    },
     onSuccess: invalidateCategoryRelated,
   });
 
@@ -177,13 +182,15 @@ export function useAdminDashboardData({
     mutationFn: async (category: Partial<Category>) => {
       const method = category.id ? 'PATCH' : 'POST';
       const url = category.id ? `/api/admin/categories/${category.id}` : '/api/admin/categories';
-      return (
-        await fetch(url, {
-          method,
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(category),
-        })
-      ).json();
+      const response = await fetch(url, {
+        method,
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify(category),
+      });
+      const result = await response.json();
+      if (!response.ok) throw new Error(result.error || 'Kategori kaydedilemedi');
+      return result;
     },
     onSuccess: () => {
       invalidateCategoryRelated();

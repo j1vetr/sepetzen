@@ -28,6 +28,8 @@ export interface Category {
   seoTitle?: string | null;
   seoDescription?: string | null;
   contentHtml?: string | null;
+  /** Üst kategori kimliği; null/undefined ise ana kategoridir. */
+  parentId?: string | null;
 }
 
 export interface Order {
