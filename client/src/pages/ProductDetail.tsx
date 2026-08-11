@@ -1219,11 +1219,11 @@ export default function ProductDetail() {
                   </div>
                 </div>
 
-                {/* Mobile gallery — full-bleed main image + thumbnail strip + dots */}
-                <div className="sm:hidden">
-                  {/* ── Main swipe carousel ── */}
+                {/* Mobile gallery — card style matching reference design */}
+                <div className="sm:hidden px-4">
+                  {/* ── Main swipe carousel — padded card with rounded corners ── */}
                   <div
-                    className="relative overflow-hidden bg-zinc-900"
+                    className="relative overflow-hidden rounded-2xl bg-zinc-900 border border-white/10"
                     style={{ aspectRatio: '3/4' }}
                     ref={emblaRef}
                   >
@@ -1263,19 +1263,27 @@ export default function ProductDetail() {
                       productPrice={price}
                       threshold={freeShippingThreshold}
                     />
-
-                    {/* Slide counter */}
-                    {images.length > 1 && (
-                      <span className="absolute bottom-4 right-4 z-10 text-[10px] font-mono text-white/50 bg-black/30 backdrop-blur-sm px-2 py-0.5">
-                        {selectedImage + 1} / {images.length}
-                      </span>
-                    )}
                   </div>
+
+                  {/* ── Scroll progress bar (swipe position indicator) ── */}
+                  {images.length > 1 && (
+                    <div className="mt-3 flex justify-center">
+                      <div className="relative h-[3px] w-20 overflow-hidden rounded-full bg-white/15">
+                        <div
+                          className="absolute left-0 top-0 h-full rounded-full bg-white transition-transform duration-300 ease-out"
+                          style={{
+                            width: `${100 / images.length}%`,
+                            transform: `translateX(${selectedImage * 100}%)`,
+                          }}
+                        />
+                      </div>
+                    </div>
+                  )}
 
                   {/* ── Thumbnail strip + dots ── */}
                   {images.length > 1 && (
-                    <div className="mt-4 space-y-3 px-4">
-                      {/* Thumbnails */}
+                    <div className="mt-4 space-y-3">
+                      {/* Square thumbnails */}
                       <div className="flex justify-center gap-2 overflow-x-auto py-1 [scrollbar-width:none] [-webkit-overflow-scrolling:touch]">
                         {images.map((img, i) => (
                           <button
@@ -1283,12 +1291,12 @@ export default function ProductDetail() {
                             type="button"
                             onClick={() => setSelectedImage(i)}
                             aria-label={`Görsel ${i + 1}`}
-                            className={`relative shrink-0 overflow-hidden rounded-lg border-2 bg-zinc-900 transition-all duration-200 ${
+                            className={`relative shrink-0 overflow-hidden rounded-xl border-2 bg-zinc-900 transition-all duration-200 ${
                               i === selectedImage
-                                ? 'border-white opacity-100 scale-[1.06]'
-                                : 'border-transparent opacity-45 hover:opacity-70'
+                                ? 'border-white opacity-100'
+                                : 'border-transparent opacity-40 hover:opacity-65'
                             }`}
-                            style={{ width: 58, height: 72 }}
+                            style={{ width: 74, height: 74 }}
                           >
                             <img
                               src={img}
@@ -1300,7 +1308,7 @@ export default function ProductDetail() {
                         ))}
                       </div>
 
-                      {/* Dot indicators — always visible */}
+                      {/* Dot indicators */}
                       <div className="flex justify-center gap-1.5 pb-1">
                         {images.map((_, i) => (
                           <button
