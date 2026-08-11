@@ -11,6 +11,7 @@ import { Loader2 } from "lucide-react";
 import { ScrollToTop } from "@/components/ScrollToTop";
 import { MobileBottomNav } from "@/components/MobileBottomNav";
 import { GoogleAuthNotice } from "@/components/GoogleAuthNotice";
+import { CookieConsent } from "@/components/CookieConsent";
 
 const Home = lazy(() => import("@/pages/Home"));
 const Category = lazy(() => import("@/pages/Category"));
@@ -115,6 +116,7 @@ function App() {
                 <GoogleAuthNotice />
                 <Toaster />
                 <Router />
+                <CookieConsent />
                 <MobileBottomNav />
               </div>
             </TooltipProvider>
