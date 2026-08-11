@@ -33,15 +33,33 @@ export interface GeliverCredentials {
   enabled: boolean;
 }
 
-export async function getGeliverCredentials(): Promise<GeliverCredentials> {
+/** Maskeli değer ('••••••••') gerçek bir kimlik bilgisi değildir, kayıtlı değer kullanılmalıdır. */
+function isMaskedValue(value: string): boolean {
+  const trimmed = value.trim();
+  return trimmed.length > 0 && /^•+$/.test(trimmed);
+}
+
+/**
+ * Kayıtlı ayarlardan kimlik bilgilerini okur. `overrides` verilirse (admin
+ * ekranındaki kaydedilmemiş form değerleri) bunlar kayıtlı değerlerin önüne
+ * geçer; maskeli token gönderilmişse kayıtlı token kullanılır. Token'daki
+ * baş/son boşluklar (kopyala-yapıştır hatası) her durumda temizlenir.
+ */
+export async function getGeliverCredentials(overrides?: Record<string, string>): Promise<GeliverCredentials> {
   const s = await storage.getSiteSettings();
+  const o = overrides || {};
+  const pick = (key: string): string | undefined => {
+    const candidate = o[key];
+    if (typeof candidate === 'string' && !isMaskedValue(candidate)) return candidate;
+    return (s as Record<string, string | undefined>)[key];
+  };
   return {
-    token: s.geliver_api_token || '',
-    senderAddressId: s.geliver_sender_address_id || '',
-    serviceCode: s.geliver_service_code || 'GELIVER_STANDART',
-    storeUrl: s.geliver_store_url || s.site_url || '',
-    testMode: s.geliver_test_mode === 'true',
-    enabled: s.geliver_enabled === 'true',
+    token: (pick('geliver_api_token') || '').trim(),
+    senderAddressId: (pick('geliver_sender_address_id') || '').trim(),
+    serviceCode: (pick('geliver_service_code') || '').trim() || 'GELIVER_STANDART',
+    storeUrl: pick('geliver_store_url') || s.site_url || '',
+    testMode: (pick('geliver_test_mode') ?? '') === 'true',
+    enabled: (pick('geliver_enabled') ?? '') === 'true',
   };
 }
 
@@ -305,14 +323,39 @@ export const geliverProvider: CargoProvider = {
     }
   },
 
-  async testConnection(): Promise<TestConnectionResult> {
-    const creds = await getGeliverCredentials();
-    if (!creds.token) return { success: false, error: 'Geliver API token girilmemiş.' };
+  async testConnection(overrides?: Record<string, string>): Promise<TestConnectionResult> {
+    const creds = await getGeliverCredentials(overrides);
+    if (!creds.token) {
+      return {
+        success: false,
+        error: 'Geliver API token girilmemiş. Geliver panelinde Ayarlar > API bölümünden token oluşturup API Token alanına yapıştırın.',
+      };
+    }
     try {
       const res = await request(creds, '/addresses?isRecipientAddress=false&limit=1&page=1');
-      if (!res.ok) return { success: false, error: `Geliver bağlantısı doğrulanamadı: ${res.error}` };
-      return { success: true, message: 'Geliver bağlantısı başarılı.' };
+      if (!res.ok) {
+        if (res.status === 401 || res.status === 403) {
+          return {
+            success: false,
+            error:
+              'Geliver bağlantısı doğrulanamadı: Token geçersiz veya yetkisi yetersiz. ' +
+              'Geliver panelinde (geliver.io) API bölümünden TAM YETKİLİ yeni bir token oluşturun ve eksiksiz kopyalayıp buraya yapıştırın. ' +
+              `Geliver yanıtı: ${res.error}`,
+          };
+        }
+        if (res.status >= 500) {
+          return {
+            success: false,
+            error: `Geliver bağlantısı doğrulanamadı: Geliver sunucusunda geçici bir sorun var (HTTP ${res.status}). Birkaç dakika sonra tekrar deneyin. Geliver yanıtı: ${res.error}`,
+          };
+        }
+        return { success: false, error: `Geliver bağlantısı doğrulanamadı: ${res.error}` };
+      }
+      return { success: true, message: 'Geliver bağlantısı başarılı, token doğrulandı.' };
     } catch (error: any) {
+      if (error?.name === 'TimeoutError' || error?.name === 'AbortError') {
+        return { success: false, error: 'Geliver bağlantısı doğrulanamadı: Geliver sunucusu yanıt vermedi (zaman aşımı). İnternet bağlantınızı kontrol edip tekrar deneyin.' };
+      }
       return { success: false, error: providerError(LABEL, error) };
     }
   },

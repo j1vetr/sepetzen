@@ -103,8 +103,12 @@ const WHATSAPP_VARIABLES = [
 ];
 
 // ── Aras Sender Address Picker ─────────────────────────────────────────────
-/** Seçili kargo sağlayıcısı için bağlantı testi yapar. */
-function ShippingTestButton({ provider, label }: { provider: string; label: string }) {
+/**
+ * Seçili kargo sağlayıcısı için bağlantı testi yapar.
+ * `values` verilirse test, ekranda görünen (henüz kaydedilmemiş) form
+ * değerleriyle yapılır; verilmezse kayıtlı ayarlar kullanılır.
+ */
+function ShippingTestButton({ provider, label, values }: { provider: string; label: string; values?: Record<string, string> }) {
   const [testing, setTesting] = useState(false);
   const [result, setResult] = useState<{ ok: boolean; text: string } | null>(null);
 
@@ -116,7 +120,7 @@ function ShippingTestButton({ provider, label }: { provider: string; label: stri
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         credentials: 'include',
-        body: JSON.stringify({ provider }),
+        body: JSON.stringify({ provider, ...(values ? { overrides: values } : {}) }),
       });
       const data = await res.json();
       setResult({ ok: !!data.success, text: data.success ? (data.message || 'Bağlantı başarılı.') : (data.error || 'Bağlantı kurulamadı.') });
@@ -147,7 +151,11 @@ function ShippingTestButton({ provider, label }: { provider: string; label: stri
           {result.text}
         </span>
       )}
-      <span className="text-xs text-neutral-400">Testten önce ayarları kaydedin.</span>
+      <span className="text-xs text-neutral-400">
+        {values
+          ? 'Test, ekranda görünen değerlerle yapılır. Kalıcı olması için kaydetmeyi unutmayın.'
+          : 'Testten önce ayarları kaydedin.'}
+      </span>
     </div>
   );
 }
@@ -2151,7 +2159,7 @@ export default function SettingsPanel({ initialSection = 'genel', contentOnly = 
           <span className="text-sm text-neutral-700">Test gönderisi oluştur (canlıda kapatın)</span>
         </label>
 
-        <ShippingTestButton provider="geliver" label="Geliver" />
+        <ShippingTestButton provider="geliver" label="Geliver" values={settings} />
       </div>
 
       {/* ShipEntegra */}

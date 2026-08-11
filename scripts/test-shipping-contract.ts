@@ -10,7 +10,7 @@
 import { storage } from '../server/storage';
 import type { CreateShipmentInput } from '../server/shipping/types';
 
-type Call = { url: string; method: string; body: any };
+type Call = { url: string; method: string; body: any; headers: Record<string, string> };
 
 let calls: Call[] = [];
 let handler: (call: Call) => { status?: number; json: any } = () => ({ json: {} });
@@ -23,6 +23,7 @@ function installMockFetch() {
       url,
       method: init.method || 'GET',
       body: init.body ? JSON.parse(init.body) : undefined,
+      headers: (init.headers || {}) as Record<string, string>,
     };
     calls.push(call);
     const { status = 200, json } = handler(call);
@@ -219,6 +220,70 @@ async function testGeliver() {
   });
 }
 
+async function testGeliverConnection() {
+  console.log('\nGeliver bağlantı doğrulaması');
+  const { geliverProvider } = await import('../server/shipping/geliver');
+
+  // Token baş/son boşluklarla kaydedilmiş olsa bile temizlenerek gönderilir.
+  await withSettings({ geliver_api_token: '  gtoken\n' }, async () => {
+    calls = [];
+    handler = () => ({ json: { result: true, data: [] } });
+    const ok = await geliverProvider.testConnection();
+    check('doğrulama GET /addresses?isRecipientAddress=false&limit=1&page=1 ile yapılır',
+      calls[0]?.method === 'GET'
+        && calls[0]?.url === 'https://api.geliver.io/api/v1/addresses?isRecipientAddress=false&limit=1&page=1',
+      calls[0]?.url);
+    check('token boşluklardan arındırılıp Bearer başlığıyla gönderilir',
+      calls[0]?.headers?.['Authorization'] === 'Bearer gtoken', calls[0]?.headers);
+    check('başarılı yanıt başarı mesajı döndürür', ok.success === true && !!ok.message, ok);
+
+    // 403: Geliver'ın "Bu işlem için yetkiniz yok" yanıtı eyleme dönük mesaja çevrilir,
+    // ham yanıt ayrıntı olarak korunur.
+    calls = [];
+    handler = () => ({ status: 403, json: { message: 'Bu işlem için yetkiniz yok.' } });
+    const forbidden = await geliverProvider.testConnection();
+    check('403 yanıtı yetki yönergesi içeren Türkçe mesaja eşlenir',
+      forbidden.success === false
+        && /yetkisi yetersiz/i.test(forbidden.error || '')
+        && /tam yetk/i.test(forbidden.error || '')
+        && (forbidden.error || '').includes('Bu işlem için yetkiniz yok.'),
+      forbidden.error);
+
+    // 401 de aynı yönergeyle eşlenir.
+    handler = () => ({ status: 401, json: { message: 'Unauthorized' } });
+    const unauthorized = await geliverProvider.testConnection();
+    check('401 yanıtı da token yönergesine eşlenir',
+      unauthorized.success === false && /Token geçersiz/i.test(unauthorized.error || ''), unauthorized.error);
+
+    // 5xx geçici sorun olarak raporlanır.
+    handler = () => ({ status: 502, json: { message: 'Bad Gateway' } });
+    const serverErr = await geliverProvider.testConnection();
+    check('5xx yanıtı geçici sunucu sorunu olarak raporlanır',
+      serverErr.success === false && /geçici bir sorun/i.test(serverErr.error || ''), serverErr.error);
+
+    // Formdan gelen (kaydedilmemiş) token kayıtlı tokenın önüne geçer.
+    calls = [];
+    handler = () => ({ json: { result: true, data: [] } });
+    await geliverProvider.testConnection({ geliver_api_token: ' formtoken ' });
+    check('form değerleri kayıtlı tokenın önüne geçer (boşluklar temizlenir)',
+      calls[0]?.headers?.['Authorization'] === 'Bearer formtoken', calls[0]?.headers);
+
+    // Maskeli token gönderilirse kayıtlı token kullanılır.
+    calls = [];
+    await geliverProvider.testConnection({ geliver_api_token: '••••••••' });
+    check('maskeli token yok sayılır, kayıtlı token kullanılır',
+      calls[0]?.headers?.['Authorization'] === 'Bearer gtoken', calls[0]?.headers);
+  });
+
+  // Token hiç yoksa istek atılmadan yönerge döner.
+  await withSettings({}, async () => {
+    calls = [];
+    const missing = await geliverProvider.testConnection();
+    check('token yokken istek atılmaz ve yönerge gösterilir',
+      missing.success === false && calls.length === 0 && /token girilmemiş/i.test(missing.error || ''), missing.error);
+  });
+}
+
 async function testProviderSelection() {
   console.log('\nSağlayıcı seçimi');
   const { getProviderForOrder, getProviderStatuses } = await import('../server/shipping/index');
@@ -244,6 +309,7 @@ async function testProviderSelection() {
   try {
     await testShipEntegra();
     await testGeliver();
+    await testGeliverConnection();
     await testProviderSelection();
   } finally {
     globalThis.fetch = realFetch;

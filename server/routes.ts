@@ -5967,8 +5967,24 @@ window.addEventListener('load', function() {
       const requested = String(req.body?.provider || '');
       const id = isProviderId(requested) ? requested : await getActiveProviderId();
       const provider = getProvider(id);
-      const result = await provider.testConnection();
-      res.json({ provider: id, providerLabel: provider.label, ...result });
+      // Formdaki (henüz kaydedilmemiş) değerlerle test: yalnızca ilgili
+      // sağlayıcının ayar anahtarları kabul edilir, maskeli değerler atlanır
+      // (kayıtlı değer kullanılır).
+      const prefixes: Record<string, string> = { geliver: 'geliver_', aras: 'aras_kargo_', shipentegra: 'shipentegra_' };
+      const prefix = prefixes[id];
+      let overrides: Record<string, string> | undefined;
+      const rawOverrides = req.body?.overrides;
+      if (prefix && rawOverrides && typeof rawOverrides === 'object' && !Array.isArray(rawOverrides)) {
+        overrides = {};
+        for (const [key, value] of Object.entries(rawOverrides)) {
+          if (!key.startsWith(prefix)) continue;
+          if (typeof value !== 'string') continue;
+          overrides[key] = value;
+        }
+        if (Object.keys(overrides).length === 0) overrides = undefined;
+      }
+      const result = await provider.testConnection(overrides);
+      res.json({ provider: id, providerLabel: provider.label, usedFormValues: !!overrides, ...result });
     } catch (error: any) {
       console.error('[Shipping] Test connection error:', error);
       res.status(500).json({ success: false, error: error.message || 'Bağlantı testi yapılamadı' });
@@ -6774,6 +6790,10 @@ window.addEventListener('load', function() {
       }
       if (settings.geliver_api_token === '••••••••') {
         delete settings.geliver_api_token;
+      }
+      // Kopyala-yapıştır kaynaklı baş/son boşlukları token kaydedilirken temizle
+      if (typeof settings.geliver_api_token === 'string') {
+        settings.geliver_api_token = settings.geliver_api_token.trim();
       }
       if (settings.shipentegra_client_secret === '••••••••') {
         delete settings.shipentegra_client_secret;

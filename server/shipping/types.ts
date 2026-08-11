@@ -117,7 +117,12 @@ export interface CargoProvider {
   createShipment(input: CreateShipmentInput): Promise<CreateShipmentResult>;
   track(ref: ShipmentRef): Promise<TrackShipmentResult>;
   getLabel(ref: ShipmentRef): Promise<LabelResult>;
-  testConnection(): Promise<TestConnectionResult>;
+  /**
+   * Bağlantıyı doğrular. `overrides` verilirse (admin ekranındaki
+   * kaydedilmemiş form değerleri, ayar anahtarlarıyla) sağlayıcı bunları
+   * kayıtlı ayarların önünde kullanabilir; desteklemeyen sağlayıcılar yok sayar.
+   */
+  testConnection(overrides?: Record<string, string>): Promise<TestConnectionResult>;
   cancelShipment(ref: ShipmentRef, reason?: string): Promise<CancelShipmentResult>;
 }
 
