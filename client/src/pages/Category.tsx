@@ -8,7 +8,7 @@ import { ChevronRight, X, SlidersHorizontal } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useProducts, useCategories, type ProductFilters } from '@/hooks/useProducts';
 import { sanitizeAdminHtml } from '@/lib/sanitizeHtml';
-import { Slider } from '@/components/ui/slider';
+import { PriceRangeFilter } from '@/components/PriceRangeFilter';
 import {
   Select,
   SelectContent,
@@ -352,19 +352,10 @@ export default function Category() {
                 {/* Price range */}
                 <div>
                   <h4 className="text-[10px] font-semibold tracking-[0.25em] uppercase text-white/50 mb-5">Fiyat Aralığı</h4>
-                  <Slider
+                  <PriceRangeFilter
                     value={priceRange}
-                    onValueChange={handlePriceChange}
-                    min={0}
-                    max={10000}
-                    step={100}
-                    className="mb-3"
-                    data-testid="slider-price-range"
+                    onChange={(range: [number, number]) => handlePriceChange(range)}
                   />
-                  <div className="flex justify-between text-xs text-white/55">
-                    <span data-testid="text-price-min">{priceRange[0].toLocaleString('tr-TR')} ₺</span>
-                    <span data-testid="text-price-max">{priceRange[1].toLocaleString('tr-TR')} ₺</span>
-                  </div>
                 </div>
 
                 {/* Quick filters */}

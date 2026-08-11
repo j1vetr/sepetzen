@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import { Header } from '@/components/Header';
 import { Footer } from '@/components/Footer';
 import { SEO } from '@/components/SEO';
@@ -7,7 +7,8 @@ import { Link } from 'wouter';
 import { ChevronRight, X, SlidersHorizontal, LayoutGrid, Grid3X3, ArrowUpRight, ChevronDown } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useProducts, useCategories, type ProductFilters } from '@/hooks/useProducts';
-import { Slider } from '@/components/ui/slider';
+import { PriceRangeFilter } from '@/components/PriceRangeFilter';
+import { useFreeShippingThreshold } from '@/hooks/useShippingSettings';
 import {
   Select,
   SelectContent,
@@ -74,6 +75,9 @@ export default function Store() {
   const [priceRange, setPriceRange] = useState<[number, number]>([0, 10000]);
   const [filterOpen, setFilterOpen] = useState(false);
   const [gridCols, setGridCols] = useState<3 | 4>(4);
+  const [showAllCategories, setShowAllCategories] = useState(false);
+  const [statusFilters, setStatusFilters] = useState<string[]>([]);
+  const freeShippingThreshold = useFreeShippingThreshold();
 
   const filters: ProductFilters = {
     categoryId: selectedCategory,
@@ -82,17 +86,41 @@ export default function Store() {
     maxPrice: priceRange[1] < 10000 ? priceRange[1] : undefined,
   };
 
-  const { data: filteredProducts = [], isLoading } = useProducts(filters);
+  const { data: fetchedProducts = [], isLoading } = useProducts(filters);
+
+  const filteredProducts = useMemo(() => {
+    let result = fetchedProducts;
+    if (statusFilters.includes('free-shipping')) {
+      result = result.filter(p => (parseFloat(p.basePrice || '0') || 0) >= freeShippingThreshold);
+    }
+    if (statusFilters.includes('new')) result = result.filter(p => p.isNew);
+    if (statusFilters.includes('discounted')) result = result.filter(p => !!p.discountBadge);
+    return result;
+  }, [fetchedProducts, statusFilters, freeShippingThreshold]);
+
+  const toggleStatusFilter = (value: string) => {
+    setStatusFilters(prev =>
+      prev.includes(value) ? prev.filter(v => v !== value) : [...prev, value]
+    );
+  };
 
   const clearFilters = () => {
     setSelectedCategory(undefined);
     setSortBy('newest');
     setPriceRange([0, 10000]);
+    setStatusFilters([]);
   };
 
-  const hasActiveFilters = priceRange[0] > 0 || priceRange[1] < 10000 || !!selectedCategory;
+  const hasActiveFilters =
+    priceRange[0] > 0 || priceRange[1] < 10000 || !!selectedCategory || statusFilters.length > 0;
 
-  const SidebarContent = () => (
+  const VISIBLE_CATEGORY_COUNT = 5;
+  const visibleCategories = showAllCategories ? categories : categories.slice(0, VISIBLE_CATEGORY_COUNT);
+  const hiddenCategoryCount = categories.length - VISIBLE_CATEGORY_COUNT;
+
+  // JSX değişkeni (bileşen değil): her render'da remount olup bölüm açık/kapalı
+  // durumlarının ve input odaklarının sıfırlanmasını önler.
+  const sidebarContent = (
     <div>
       <FilterSection title="Kategori">
         <div className="space-y-0.5">
@@ -110,7 +138,7 @@ export default function Store() {
               <span className="w-1.5 h-1.5 rounded-full bg-white" />
             )}
           </button>
-          {categories.map(cat => (
+          {visibleCategories.map(cat => (
             <button
               key={cat.id}
               onClick={() => setSelectedCategory(cat.id)}
@@ -127,51 +155,63 @@ export default function Store() {
               )}
             </button>
           ))}
+          {hiddenCategoryCount > 0 && (
+            <button
+              onClick={() => setShowAllCategories(v => !v)}
+              className="flex items-center gap-1.5 w-full px-2.5 py-2 text-[12px] text-white/50 hover:text-white transition-colors rounded-sm"
+              data-testid="button-toggle-categories"
+            >
+              <ChevronDown
+                className={`w-3.5 h-3.5 transition-transform duration-200 ${showAllCategories ? 'rotate-180' : ''}`}
+                strokeWidth={2}
+              />
+              <span>{showAllCategories ? 'Daha Az Göster' : `Daha Fazla Göster (${hiddenCategoryCount})`}</span>
+            </button>
+          )}
         </div>
       </FilterSection>
 
       <FilterSection title="Fiyat Aralığı">
-        <div className="px-1">
-          <Slider
-            value={priceRange}
-            min={0}
-            max={10000}
-            step={100}
-            onValueChange={(value) => setPriceRange(value as [number, number])}
-            className="mb-4"
-          />
-          <div className="flex items-center justify-between gap-2">
-            <div className="flex-1 border border-white/12 rounded-sm px-2.5 py-1.5 text-center">
-              <p className="text-[9px] uppercase tracking-widest text-white/40 leading-none mb-0.5">Min</p>
-              <p className="text-[12px] font-semibold text-white tabular-nums">
-                {priceRange[0].toLocaleString('tr-TR')} ₺
-              </p>
-            </div>
-            <span className="text-white/30 text-sm">-</span>
-            <div className="flex-1 border border-white/12 rounded-sm px-2.5 py-1.5 text-center">
-              <p className="text-[9px] uppercase tracking-widest text-white/40 leading-none mb-0.5">Maks</p>
-              <p className="text-[12px] font-semibold text-white tabular-nums">
-                {priceRange[1].toLocaleString('tr-TR')} ₺
-              </p>
-            </div>
-          </div>
-        </div>
+        <PriceRangeFilter
+          value={priceRange}
+          onChange={setPriceRange}
+          className="px-1"
+        />
       </FilterSection>
 
-      <FilterSection title="Durum" defaultOpen={false}>
+      <FilterSection title="Durum">
         <div className="space-y-0.5">
           {[
             { label: 'Ücretsiz Kargo', value: 'free-shipping' },
             { label: 'Yeni Ürünler', value: 'new' },
             { label: 'İndirimli', value: 'discounted' },
-          ].map(opt => (
-            <label key={opt.value} className="flex items-center gap-2.5 px-2 py-2 cursor-pointer group hover:bg-black/[0.03] rounded-sm">
-              <span className="w-4 h-4 border border-white/20 rounded-sm flex items-center justify-center shrink-0 group-hover:border-white transition-colors">
-                <span className="w-2 h-2 rounded-sm bg-transparent" />
-              </span>
-              <span className="text-[13px] text-white/65 group-hover:text-white transition-colors">{opt.label}</span>
-            </label>
-          ))}
+          ].map(opt => {
+            const checked = statusFilters.includes(opt.value);
+            return (
+              <label
+                key={opt.value}
+                className="flex items-center gap-2.5 px-2 py-2 cursor-pointer group hover:bg-white/5 rounded-sm"
+              >
+                <input
+                  type="checkbox"
+                  className="sr-only"
+                  checked={checked}
+                  onChange={() => toggleStatusFilter(opt.value)}
+                  data-testid={`filter-status-${opt.value}`}
+                />
+                <span
+                  className={`w-4 h-4 border rounded-sm flex items-center justify-center shrink-0 transition-colors ${
+                    checked ? 'border-white' : 'border-white/20 group-hover:border-white'
+                  }`}
+                >
+                  <span className={`w-2 h-2 rounded-sm ${checked ? 'bg-white' : 'bg-transparent'}`} />
+                </span>
+                <span className={`text-[13px] transition-colors ${checked ? 'text-white' : 'text-white/65 group-hover:text-white'}`}>
+                  {opt.label}
+                </span>
+              </label>
+            );
+          })}
         </div>
       </FilterSection>
 
@@ -248,7 +288,7 @@ export default function Store() {
                   </button>
                 )}
               </div>
-              <SidebarContent />
+              {sidebarContent}
             </div>
           </aside>
 
@@ -282,7 +322,7 @@ export default function Store() {
                       </SheetTitle>
                     </SheetHeader>
                     <div className="mt-6 min-h-0 flex-1 overflow-y-auto overscroll-contain pr-1 pb-[calc(var(--mobile-nav-total,58px)+1rem)]">
-                      <SidebarContent />
+                      {sidebarContent}
                     </div>
                   </SheetContent>
                 </Sheet>
