@@ -4,15 +4,20 @@ import { SEO } from '@/components/SEO';
 import { Link } from 'wouter';
 import { motion } from 'framer-motion';
 import { ChevronRight, Truck, Package, Clock, MapPin } from 'lucide-react';
-
-const highlights = [
-  { icon: Package, label: 'Hazırlık & Kargo', desc: '1-3 iş günü içinde kargoya verilir' },
-  { icon: Truck, label: 'Ücretsiz Kargo', desc: '2.500₺ ve üzeri siparişlerde' },
-  { icon: Clock, label: 'Teslimat Süresi', desc: 'İstanbul içi 1-2, diğer iller 2-5 iş günü' },
-  { icon: MapPin, label: 'Kargo Takibi', desc: 'E-posta ve SMS ile takip numarası' },
-];
+import { useFreeShippingThreshold } from '@/hooks/useShippingSettings';
+import { formatShippingThreshold } from '@shared/shipping';
 
 export default function DeliveryTerms() {
+  const freeShippingThreshold = useFreeShippingThreshold();
+  const thresholdText = formatShippingThreshold(freeShippingThreshold);
+
+  const highlights = [
+    { icon: Package, label: 'Hazırlık & Kargo', desc: '1-3 iş günü içinde kargoya verilir' },
+    { icon: Truck, label: 'Ücretsiz Kargo', desc: `${thresholdText} ₺ ve üzeri siparişlerde` },
+    { icon: Clock, label: 'Teslimat Süresi', desc: 'İstanbul içi 1-2, diğer iller 2-5 iş günü' },
+    { icon: MapPin, label: 'Kargo Takibi', desc: 'E-posta ve SMS ile takip numarası' },
+  ];
+
   return (
     <div className="min-h-screen bg-[#0A0A0A]">
       <SEO
@@ -101,7 +106,7 @@ export default function DeliveryTerms() {
 
                 <h2>5) Ücretsiz Kargo</h2>
                 <p>
-                  <strong>2.500 ₺ ve üzeri</strong> siparişlerde kargo ücretsizdir. Bu tutarın altındaki
+                  <strong>{thresholdText} ₺ ve üzeri</strong> siparişlerde kargo ücretsizdir. Bu tutarın altındaki
                   siparişlerde standart kargo ücreti uygulanır.
                 </p>
 

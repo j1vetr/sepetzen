@@ -66,6 +66,7 @@ import { ProductCard } from '@/components/ProductCard';
 import { FreeShippingBadge } from '@/components/FreeShippingBadge';
 import { isFreeShippingPromotion } from '@/lib/promotionBadge';
 import { useFreeShippingThreshold } from '@/hooks/useShippingSettings';
+import { formatShippingThreshold } from '@shared/shipping';
 
 import { getOriginalPrice } from '@/lib/discountPrice';
 import { useProduct, useProducts, useCategories } from '@/hooks/useProducts';
@@ -440,6 +441,8 @@ function ProductTabs({
   const reduceMotion = useReducedMotion();
   const [active, setActive] = useState<'desc' | 'installments' | 'delivery' | 'faq'>('desc');
   const [descriptionExpanded, setDescriptionExpanded] = useState(false);
+  const freeShippingThreshold = useFreeShippingThreshold();
+  const thresholdText = formatShippingThreshold(freeShippingThreshold);
 
   const specRows = SPEC_ROWS
     .map(([key, label]) => [label, (specs?.[key] || '').trim()] as [string, string])
@@ -566,7 +569,7 @@ function ProductTabs({
               <dl className="divide-y divide-white/8">
                 {[
                   ['Kargo Süresi', '1–3 iş günü'],
-                  ['Ücretsiz Kargo', '1.500 ₺ ve üzeri siparişlerde'],
+                  ['Ücretsiz Kargo', `${thresholdText} ₺ ve üzeri siparişlerde`],
                   ['Kargo Firması', 'MNG Kargo / Yurtiçi Kargo'],
                   ['Aynı Gün Kargo', 'Hafta içi 14:00\'a kadar verilen siparişler'],
                 ].map(([k, v]) => (
@@ -604,7 +607,7 @@ function ProductTabs({
             {(
               [
                 ['Ürünün garantisi var mı?', 'Evet, tüm ürünlerimiz 2 yıl üretici garantisi kapsamındadır.'],
-                ['Kargo ücreti ne kadar?', '1.500 ₺ ve üzeri siparişlerde kargo tamamen ücretsizdir. Altındaki siparişlerde kargo ücreti sepette hesaplanır.'],
+                ['Kargo ücreti ne kadar?', `${thresholdText} ₺ ve üzeri siparişlerde kargo tamamen ücretsizdir. Altındaki siparişlerde kargo ücreti sepette hesaplanır.`],
                 ['Havale/EFT ile ödeme yapabilir miyim?', 'Evet. Havale/EFT ile ödeme seçeneğinde sipariş toplamından %3 indirim uygulanır.'],
                 ['Ürünü iade edebilir miyim?', 'Teslim tarihinden itibaren 14 gün içinde, kullanılmamış ve orijinal ambalajında iade edilebilir.'],
                 ['Fatura kesilecek mi?', 'Evet, tüm siparişlerinize e-fatura kesilmektedir.'],
@@ -1211,17 +1214,19 @@ export default function ProductDetail() {
                           />
                         </motion.div>
                       </AnimatePresence>
-                      {visibleDiscountBadge && (
-                        <span className="absolute top-4 left-4 lg:top-3 lg:left-3 z-10 bg-red-500 text-black text-[10px] font-extrabold tracking-[0.16em] px-3 py-1.5 uppercase">{visibleDiscountBadge}</span>
-                      )}
-                      {product.isNew && !visibleDiscountBadge && (
-                        <span className="storefront-new-badge absolute top-4 left-4 lg:top-3 lg:left-3 z-10">Yeni</span>
-                      )}
-                      <FreeShippingBadge
-                        className="absolute bottom-4 left-4 lg:bottom-3 lg:left-3 z-10"
-                        productPrice={price}
-                        threshold={freeShippingThreshold}
-                      />
+                      {/* Badges — sol üstte dikey yığın */}
+                      <div className="absolute top-4 left-4 lg:top-3 lg:left-3 z-10 flex flex-col items-start gap-2">
+                        {visibleDiscountBadge && (
+                          <span className="bg-red-500 text-black text-[10px] font-extrabold tracking-[0.16em] px-3 py-1.5 uppercase">{visibleDiscountBadge}</span>
+                        )}
+                        {product.isNew && (
+                          <span className="storefront-new-badge">Yeni</span>
+                        )}
+                        <FreeShippingBadge
+                          productPrice={price}
+                          threshold={freeShippingThreshold}
+                        />
+                      </div>
                       <div className="absolute bottom-4 right-4 lg:bottom-3 lg:right-3 text-[10px] text-white/50 bg-black/25 px-2 py-1 backdrop-blur-sm font-mono">
                         {selectedImage + 1} / {images.length}
                       </div>
@@ -1257,20 +1262,21 @@ export default function ProductDetail() {
                           </div>
                         ))}
                       </div>
-                      {/* Badges */}
-                      {visibleDiscountBadge && (
-                        <span className="absolute top-4 left-4 z-10 bg-red-500 text-black text-[10px] font-extrabold tracking-[0.16em] px-3 py-1.5 uppercase">
-                          {visibleDiscountBadge}
-                        </span>
-                      )}
-                      {product.isNew && !visibleDiscountBadge && (
-                        <span className="storefront-new-badge absolute top-4 left-4 z-10">Yeni</span>
-                      )}
-                      <FreeShippingBadge
-                        className="absolute bottom-4 left-4 z-10"
-                        productPrice={price}
-                        threshold={freeShippingThreshold}
-                      />
+                      {/* Badges — sol üstte dikey yığın */}
+                      <div className="absolute top-4 left-4 z-10 flex flex-col items-start gap-2">
+                        {visibleDiscountBadge && (
+                          <span className="bg-red-500 text-black text-[10px] font-extrabold tracking-[0.16em] px-3 py-1.5 uppercase">
+                            {visibleDiscountBadge}
+                          </span>
+                        )}
+                        {product.isNew && (
+                          <span className="storefront-new-badge">Yeni</span>
+                        )}
+                        <FreeShippingBadge
+                          productPrice={price}
+                          threshold={freeShippingThreshold}
+                        />
+                      </div>
                     </div>
                   </div>
                 </div>
@@ -1576,7 +1582,7 @@ export default function ProductDetail() {
                 {/* Trust strip */}
                 <div className="grid grid-cols-3 gap-2 pt-4 border-t border-white/6">
                   {[
-                    { icon: Truck, title: 'Ücretsiz Kargo', sub: '1.500 ₺ üzeri' },
+                    { icon: Truck, title: 'Ücretsiz Kargo', sub: `${formatShippingThreshold(freeShippingThreshold)} ₺ üzeri` },
                     { icon: RotateCcw, title: 'Kolay İade', sub: '14 gün içinde' },
                     { icon: Shield, title: 'Güvenli Ödeme', sub: 'SSL korumalı' },
                   ].map((it) => (

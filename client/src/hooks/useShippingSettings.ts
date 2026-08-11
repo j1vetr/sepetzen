@@ -1,6 +1,5 @@
 import { useQuery } from '@tanstack/react-query';
-
-const DEFAULT_FREE_SHIPPING_THRESHOLD = 1500;
+import { DEFAULT_FREE_SHIPPING_THRESHOLD } from '@shared/shipping';
 
 interface ShippingSettingsResponse {
   freeShippingThreshold?: number;

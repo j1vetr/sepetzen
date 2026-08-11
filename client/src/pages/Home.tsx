@@ -10,6 +10,7 @@ import { useProducts, type Product } from '@/hooks/useProducts';
 import { useQuery } from '@tanstack/react-query';
 import { FreeShippingBadge } from '@/components/FreeShippingBadge';
 import { useFreeShippingThreshold } from '@/hooks/useShippingSettings';
+import { bindShippingThresholdText } from '@shared/shipping';
 import { isFreeShippingPromotion } from '@/lib/promotionBadge';
 import {
   DEFAULT_HOMEPAGE_CONTENT,
@@ -209,17 +210,24 @@ function HeroSlider({ products, slides }: { products: Product[]; slides: HeroSli
                         )}
                         {/* Gradient overlay at bottom */}
                         <div className="absolute inset-x-0 bottom-0 h-20 bg-gradient-to-t from-black/70 to-transparent pointer-events-none" />
-                        <FreeShippingBadge
-                          className="absolute top-2 left-2 z-10"
-                          size="compact"
-                          productPrice={price}
-                          threshold={freeShippingThreshold}
-                        />
-                        {(p.isNew || (p.discountBadge && !isFreeShippingPromotion(p.discountBadge))) && (
-                          <span className="absolute top-2 right-2 text-[7.5px] tracking-[0.18em] uppercase text-white bg-[#141414] px-2 py-0.5 font-bold">
-                            {p.isNew ? 'Yeni' : p.discountBadge}
-                          </span>
-                        )}
+                        {/* Badges — sol üstte dikey yığın */}
+                        <div className="absolute top-2 left-2 z-10 flex flex-col items-start gap-1">
+                          {p.discountBadge && !isFreeShippingPromotion(p.discountBadge) && (
+                            <span className="text-[7.5px] tracking-[0.18em] uppercase text-white bg-[#141414] px-2 py-0.5 font-bold">
+                              {p.discountBadge}
+                            </span>
+                          )}
+                          {p.isNew && (
+                            <span className="text-[7.5px] tracking-[0.18em] uppercase text-white bg-[#141414] px-2 py-0.5 font-bold">
+                              Yeni
+                            </span>
+                          )}
+                          <FreeShippingBadge
+                            size="compact"
+                            productPrice={price}
+                            threshold={freeShippingThreshold}
+                          />
+                        </div>
                       </div>
                       {/* Info — fixed height at bottom */}
                       <div className="p-2.5 shrink-0 bg-black/30">
@@ -565,23 +573,24 @@ function NewArrivals({ products }: { products: Product[] }) {
                       loading="lazy"
                       className="absolute inset-0 w-full h-full object-cover transition-transform duration-700 ease-out group-hover:scale-105"
                     />
-                    {/* Badge */}
-                    <FreeShippingBadge
-                      className="absolute bottom-2.5 left-2.5 z-10"
-                      size="compact"
-                      productPrice={price}
-                      threshold={freeShippingThreshold}
-                    />
-                    {!isFreeShippingPromotion(p.discountBadge) && p.discountBadge && (
-                      <div className="absolute top-2.5 left-2.5 bg-[#141414] text-white text-[9px] font-bold tracking-[0.16em] uppercase px-2 py-1">
-                        {p.discountBadge}
-                      </div>
-                    )}
-                    {p.isNew && !p.discountBadge && (
-                      <div className="storefront-new-badge storefront-new-badge--compact absolute top-2.5 left-2.5">
-                        Yeni
-                      </div>
-                    )}
+                    {/* Badges — sol üstte dikey yığın */}
+                    <div className="absolute top-2.5 left-2.5 z-10 flex flex-col items-start gap-1.5">
+                      {!isFreeShippingPromotion(p.discountBadge) && p.discountBadge && (
+                        <div className="bg-[#141414] text-white text-[9px] font-bold tracking-[0.16em] uppercase px-2 py-1">
+                          {p.discountBadge}
+                        </div>
+                      )}
+                      {p.isNew && (
+                        <div className="storefront-new-badge storefront-new-badge--compact">
+                          Yeni
+                        </div>
+                      )}
+                      <FreeShippingBadge
+                        size="compact"
+                        productPrice={price}
+                        threshold={freeShippingThreshold}
+                      />
+                    </div>
                     {/* Hover overlay */}
                     <div className="absolute inset-0 bg-black/0 group-hover:bg-black/25 transition-colors duration-300 flex items-center justify-center">
                       <span className="opacity-0 group-hover:opacity-100 transition-opacity duration-300 text-[10px] tracking-[0.22em] uppercase font-bold text-white border border-white px-4 py-2">
@@ -729,9 +738,16 @@ function VideoSection({ content }: { content: HomepageContent }) {
 const TRUST_ICONS = { truck: Truck, shield: ShieldCheck, star: Star } as const;
 
 function TrustStrip({ items: rawItems }: { items: TrustItem[] }) {
+  const freeShippingThreshold = useFreeShippingThreshold();
   const items = (rawItems.length ? rawItems : DEFAULT_HOMEPAGE_CONTENT.trustItems)
     .filter(i => i.isActive !== false)
-    .map(i => ({ ...i, iconComp: TRUST_ICONS[i.icon] ?? Star }));
+    .map(i => ({
+      ...i,
+      // Kargo metinlerindeki tutar admin'deki eşik ayarına bağlıdır
+      title: bindShippingThresholdText(i.title, freeShippingThreshold),
+      desc: bindShippingThresholdText(i.desc, freeShippingThreshold),
+      iconComp: TRUST_ICONS[i.icon] ?? Star,
+    }));
 
   if (!items.length) return null;
 

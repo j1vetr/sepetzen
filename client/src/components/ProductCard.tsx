@@ -93,34 +93,28 @@ export const ProductCard = memo(function ProductCard({ product }: ProductCardPro
               </div>
             )}
 
-            {/* Badges */}
-            {visibleDiscountBadge && !isOutOfStock && (
-              <div
-                className="absolute top-3 left-3 z-10"
-                data-testid={`badge-discount-${product.id}`}
-              >
-                <span className="bg-white text-black text-[10px] font-bold tracking-wider px-2.5 py-1 uppercase">
-                  {visibleDiscountBadge}
-                </span>
-              </div>
-            )}
-
-            {product.isNew && !isOutOfStock && !visibleDiscountBadge && (
-              <span
-                className="storefront-new-badge absolute top-3 left-3 z-10"
-                data-testid={`badge-new-${product.id}`}
-              >
-                Yeni
-              </span>
-            )}
-
+            {/* Badges — sol üstte dikey yığın */}
             {!isOutOfStock && (
-              <FreeShippingBadge
-                className="absolute bottom-3 left-3 z-10"
-                size="compact"
-                productPrice={price}
-                threshold={freeShippingThreshold}
-              />
+              <div className="absolute top-3 left-3 z-10 flex flex-col items-start gap-1.5">
+                {visibleDiscountBadge && (
+                  <span
+                    className="bg-white text-black text-[10px] font-bold tracking-wider px-2.5 py-1 uppercase"
+                    data-testid={`badge-discount-${product.id}`}
+                  >
+                    {visibleDiscountBadge}
+                  </span>
+                )}
+                {product.isNew && (
+                  <span className="storefront-new-badge" data-testid={`badge-new-${product.id}`}>
+                    Yeni
+                  </span>
+                )}
+                <FreeShippingBadge
+                  size="compact"
+                  productPrice={price}
+                  threshold={freeShippingThreshold}
+                />
+              </div>
             )}
 
             {/* Favorite button */}

@@ -24,6 +24,8 @@ import { useQuery } from '@tanstack/react-query';
 import { useCart } from '@/hooks/useCart';
 import { useAuth } from '@/hooks/useAuth';
 import { useSiteIdentity } from '@/hooks/useSiteIdentity';
+import { useFreeShippingThreshold } from '@/hooks/useShippingSettings';
+import { bindShippingThresholdText } from '@shared/shipping';
 import { SearchOverlay } from '@/components/SearchOverlay';
 import {
   DropdownMenu,
@@ -141,6 +143,9 @@ export function Header() {
   const [allCatsOpen, setAllCatsOpen] = useState(false);
   const { totalItems, subtotal } = useCart();
   const siteIdentity = useSiteIdentity();
+  const freeShippingThreshold = useFreeShippingThreshold();
+  // Kayan yazıdaki ücretsiz kargo tutarı admin'deki eşik ayarına bağlıdır
+  const announcements = siteIdentity.announcements.map(m => bindShippingThresholdText(m, freeShippingThreshold));
   const { user, logout } = useAuth();
   const { scrollY } = useScroll();
 
@@ -274,7 +279,7 @@ export function Header() {
             <div className="marquee-track motion-reduce:animate-none text-[11px] tracking-[0.04em] font-medium" style={{ animationDuration: '28s' }}>
               {[0, 1].map((copy) => (
                 <div key={copy} className="flex shrink-0 items-center" aria-hidden={copy === 1}>
-                  {siteIdentity.announcements.map((msg) => (
+                  {announcements.map((msg) => (
                     <span key={msg} className="flex items-center whitespace-nowrap">
                       <span className="px-5 text-white/70">{msg}</span>
                       <span className="text-white/30">✦</span>
@@ -303,7 +308,7 @@ export function Header() {
         <div className="marquee-track motion-reduce:animate-none" style={{ animationDuration: '28s' }} aria-hidden={false}>
           {[0, 1].map((copy) => (
             <div key={copy} className="flex shrink-0 items-center" aria-hidden={copy === 1}>
-              {siteIdentity.announcements.map((msg) => (
+              {announcements.map((msg) => (
                 <span key={msg} className="flex items-center whitespace-nowrap">
                   <span className="px-5">{msg}</span>
                   <span className="text-white/30">✦</span>

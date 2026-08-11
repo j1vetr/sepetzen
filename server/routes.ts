@@ -1,6 +1,7 @@
 import type { Express, Request, Response, NextFunction } from "express";
 import { createServer, type Server } from "http";
 import { storage, db } from "./storage";
+import { DEFAULT_FREE_SHIPPING_THRESHOLD } from "@shared/shipping";
 import { z } from "zod";
 import bcrypt from "bcrypt";
 import crypto from "crypto";
@@ -164,6 +165,13 @@ const upload = multer({
     }
   },
 });
+
+// Ücretsiz kargo eşiği: admin ayarı geçersiz/eksikse tek merkezi fallback kullanılır.
+async function resolveFreeShippingThreshold(): Promise<number> {
+  const raw = await storage.getSiteSetting('free_shipping_threshold');
+  const value = Number.parseFloat(raw ?? '');
+  return Number.isFinite(value) && value > 0 ? value : DEFAULT_FREE_SHIPPING_THRESHOLD;
+}
 
 function sanitizeStoredHtml(rawHtml: string): string {
   return rawHtml
@@ -2754,10 +2762,7 @@ Bu ürün için 4 bölümlü HTML açıklama üret. Teknik Özellikler bölümü
       }
 
       // Calculate shipping and total
-      const configuredShippingThreshold = Number.parseFloat((await storage.getSiteSetting('free_shipping_threshold')) ?? '1500');
-      const FREE_SHIPPING_THRESHOLD = Number.isFinite(configuredShippingThreshold) && configuredShippingThreshold > 0
-        ? configuredShippingThreshold
-        : 1500;
+      const FREE_SHIPPING_THRESHOLD = await resolveFreeShippingThreshold();
       const DOMESTIC_SHIPPING_COST = 200;
       const INTERNATIONAL_SHIPPING_COST = 2500;
       const IRAQ_SHIPPING_COST = 5700;
@@ -3093,10 +3098,7 @@ Bu ürün için 4 bölümlü HTML açıklama üret. Teknik Özellikler bölümü
       }
 
       // Shipping
-      const configuredShippingThreshold = Number.parseFloat((await storage.getSiteSetting('free_shipping_threshold')) ?? '1500');
-      const FREE_SHIPPING_THRESHOLD = Number.isFinite(configuredShippingThreshold) && configuredShippingThreshold > 0
-        ? configuredShippingThreshold
-        : 1500;
+      const FREE_SHIPPING_THRESHOLD = await resolveFreeShippingThreshold();
       const DOMESTIC_SHIPPING_COST = 200;
       const INTERNATIONAL_SHIPPING_COST = 2500;
       const IRAQ_SHIPPING_COST = 5700;
@@ -3958,10 +3960,7 @@ Bu ürün için 4 bölümlü HTML açıklama üret. Teknik Özellikler bölümü
       }
       
       // Calculate shipping and total on server
-      const configuredShippingThreshold = Number.parseFloat((await storage.getSiteSetting('free_shipping_threshold')) ?? '1500');
-      const FREE_SHIPPING_THRESHOLD = Number.isFinite(configuredShippingThreshold) && configuredShippingThreshold > 0
-        ? configuredShippingThreshold
-        : 1500;
+      const FREE_SHIPPING_THRESHOLD = await resolveFreeShippingThreshold();
       const DOMESTIC_SHIPPING_COST = 200;
       const INTERNATIONAL_SHIPPING_COST = 2500;
       const IRAQ_SHIPPING_COST = 5700;
@@ -6569,10 +6568,8 @@ window.addEventListener('load', function() {
 
   app.get("/api/shipping/settings", async (_req, res) => {
     try {
-      const settings = await storage.getSiteSettings();
-      const value = Number.parseFloat(settings.free_shipping_threshold ?? '1500');
       res.json({
-        freeShippingThreshold: Number.isFinite(value) && value > 0 ? value : 1500,
+        freeShippingThreshold: await resolveFreeShippingThreshold(),
       });
     } catch {
       res.status(500).json({ error: "Failed to fetch shipping settings" });
