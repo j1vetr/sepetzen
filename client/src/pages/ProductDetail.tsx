@@ -1219,44 +1219,101 @@ export default function ProductDetail() {
                   </div>
                 </div>
 
-                {/* Mobile carousel */}
-                <div className="sm:hidden px-1">
-                  <div className="relative aspect-[4/5] rounded-xl bg-zinc-900 overflow-hidden border border-white/15 ring-1 ring-white/5 ring-offset-4 ring-offset-[#0A0A0A]" ref={emblaRef}>
+                {/* Mobile gallery — full-bleed main image + thumbnail strip + dots */}
+                <div className="sm:hidden">
+                  {/* ── Main swipe carousel ── */}
+                  <div
+                    className="relative overflow-hidden bg-zinc-900"
+                    style={{ aspectRatio: '3/4' }}
+                    ref={emblaRef}
+                  >
                     <div className="flex h-full">
                       {images.map((img, i) => (
-                        <button type="button" key={i} className="flex-[0_0_100%] min-w-0 h-full" onClick={() => setLightboxOpen(true)} aria-label={`Görsel ${i + 1} - büyüt`}>
-                          <img src={img} alt={product.name} loading={i === 0 ? 'eager' : 'lazy'} fetchPriority={i === 0 ? 'high' : 'auto'} decoding="async" className="w-full h-full object-cover" draggable={false} />
+                        <button
+                          type="button"
+                          key={i}
+                          className="flex-[0_0_100%] min-w-0 h-full"
+                          onClick={() => setLightboxOpen(true)}
+                          aria-label={`Görsel ${i + 1} - büyüt`}
+                        >
+                          <img
+                            src={img}
+                            alt={product.name}
+                            loading={i === 0 ? 'eager' : 'lazy'}
+                            fetchPriority={i === 0 ? 'high' : 'auto'}
+                            decoding="async"
+                            className="w-full h-full object-cover"
+                            draggable={false}
+                          />
                         </button>
                       ))}
                     </div>
-                    {visibleDiscountBadge && <span className="absolute top-4 left-4 z-10 bg-red-500 text-black text-[10px] font-extrabold tracking-[0.16em] px-3 py-1.5 uppercase">{visibleDiscountBadge}</span>}
-                    {product.isNew && !visibleDiscountBadge && <span className="storefront-new-badge absolute top-4 left-4 z-10">Yeni</span>}
+
+                    {/* Badges */}
+                    {visibleDiscountBadge && (
+                      <span className="absolute top-4 left-4 z-10 bg-red-500 text-black text-[10px] font-extrabold tracking-[0.16em] px-3 py-1.5 uppercase">
+                        {visibleDiscountBadge}
+                      </span>
+                    )}
+                    {product.isNew && !visibleDiscountBadge && (
+                      <span className="storefront-new-badge absolute top-4 left-4 z-10">Yeni</span>
+                    )}
                     <FreeShippingBadge
                       className="absolute bottom-4 left-4 z-10"
                       productPrice={price}
                       threshold={freeShippingThreshold}
                     />
+
+                    {/* Slide counter */}
+                    {images.length > 1 && (
+                      <span className="absolute bottom-4 right-4 z-10 text-[10px] font-mono text-white/50 bg-black/30 backdrop-blur-sm px-2 py-0.5">
+                        {selectedImage + 1} / {images.length}
+                      </span>
+                    )}
                   </div>
+
+                  {/* ── Thumbnail strip + dots ── */}
                   {images.length > 1 && (
-                    <div className="mt-3 space-y-3">
-                      <div className="flex justify-center gap-2 overflow-x-auto px-3 py-1 [scrollbar-width:none]">
+                    <div className="mt-4 space-y-3 px-4">
+                      {/* Thumbnails */}
+                      <div className="flex justify-center gap-2 overflow-x-auto py-1 [scrollbar-width:none] [-webkit-overflow-scrolling:touch]">
                         {images.map((img, i) => (
-                          <button key={i} type="button" onClick={() => setSelectedImage(i)}
-                            className={`relative h-12 w-9 shrink-0 overflow-hidden rounded-md bg-zinc-900 border-2 transition-opacity ${i === selectedImage ? 'border-white' : 'border-transparent opacity-50'}`}
-                            aria-label={`Görsel ${i + 1}`}>
-                            <img src={img} alt="" className="h-full w-full object-cover" loading="lazy" />
+                          <button
+                            key={i}
+                            type="button"
+                            onClick={() => setSelectedImage(i)}
+                            aria-label={`Görsel ${i + 1}`}
+                            className={`relative shrink-0 overflow-hidden rounded-lg border-2 bg-zinc-900 transition-all duration-200 ${
+                              i === selectedImage
+                                ? 'border-white opacity-100 scale-[1.06]'
+                                : 'border-transparent opacity-45 hover:opacity-70'
+                            }`}
+                            style={{ width: 58, height: 72 }}
+                          >
+                            <img
+                              src={img}
+                              alt=""
+                              className="h-full w-full object-cover"
+                              loading="lazy"
+                            />
                           </button>
                         ))}
                       </div>
-                      {images.length > 5 && (
-                        <div className="flex justify-center gap-1.5">
-                          {images.map((_, i) => (
-                            <button key={i} type="button" onClick={() => setSelectedImage(i)}
-                              className={`h-1.5 rounded-full transition-all ${i === selectedImage ? 'bg-white w-5' : 'bg-white/30 w-1.5'}`}
-                              aria-label={`Görsel ${i + 1}`} />
-                          ))}
-                        </div>
-                      )}
+
+                      {/* Dot indicators — always visible */}
+                      <div className="flex justify-center gap-1.5 pb-1">
+                        {images.map((_, i) => (
+                          <button
+                            key={i}
+                            type="button"
+                            onClick={() => setSelectedImage(i)}
+                            aria-label={`Görsel ${i + 1}`}
+                            className={`h-1.5 rounded-full transition-all duration-300 ${
+                              i === selectedImage ? 'bg-white w-5' : 'bg-white/30 w-1.5'
+                            }`}
+                          />
+                        ))}
+                      </div>
                     </div>
                   )}
                 </div>
