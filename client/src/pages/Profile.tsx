@@ -427,7 +427,7 @@ export default function Profile() {
                   <h3 className="font-display text-base tracking-[0.04em] text-white">
                     {user.firstName} {user.lastName}
                   </h3>
-                  <p className="text-[11px] tracking-[0.18em] uppercase text-white/45 mt-1">{user.email}</p>
+                  <p className="text-[11px] tracking-[0.18em] lowercase text-white/45 mt-1" data-testid="text-profile-email">{user.email.toLowerCase()}</p>
                 </div>
 
                 <nav className="-mx-6">
@@ -1054,7 +1054,7 @@ export default function Profile() {
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            className="fixed inset-0 bg-white text-black/80 flex items-center justify-center z-50 p-4"
+            className="fixed inset-0 bg-black/70 backdrop-blur-sm flex items-center justify-center z-50 p-4"
             onClick={() => setSelectedOrder(null)}
           >
             <motion.div
@@ -1075,7 +1075,7 @@ export default function Profile() {
                 </div>
                 <button
                   onClick={() => setSelectedOrder(null)}
-                  className="p-2 hover:bg-[#151515] rounded-lg transition-colors"
+                  className="p-2 text-white/60 hover:text-white hover:bg-[#151515] rounded-lg transition-colors"
                   data-testid="button-close-order-modal"
                 >
                   <X className="w-5 h-5" />
