@@ -1178,11 +1178,11 @@ export default function ProductDetail() {
               <div className="flex-1 min-w-0">
 
                 {/* ── Desktop: orbit animation + hover zoom ── */}
-                <div className="hidden sm:block">
-                  <div className="product-gallery-orbit rounded-xl">
+                <div className="hidden sm:flex h-full">
+                  <div className="product-gallery-orbit rounded-xl w-full h-full">
                     <div
                       ref={heroImageRef}
-                      className="relative aspect-[3/4] rounded-[11px] bg-zinc-900 overflow-hidden cursor-zoom-in border border-white/15"
+                      className="relative w-full h-full rounded-[11px] bg-zinc-900 overflow-hidden cursor-zoom-in border border-white/15"
                       onMouseEnter={() => setIsZooming(true)}
                       onMouseLeave={() => setIsZooming(false)}
                       onMouseMove={handleHeroMove}
