@@ -1104,7 +1104,7 @@ export default function ProductDetail() {
           </nav>
 
           {/* ── Product grid: Gallery + Info ── */}
-          <div className="grid lg:grid-cols-[minmax(0,1fr)_400px] xl:grid-cols-[minmax(0,1fr)_440px] gap-8 lg:gap-8 xl:gap-10 items-start">
+          <div className="grid lg:grid-cols-[minmax(0,1fr)_520px] xl:grid-cols-[minmax(0,1fr)_560px] gap-8 lg:gap-8 xl:gap-10 items-start">
 
             {/* LEFT — Sticky Gallery (only sticky when right column has enough content) */}
             <motion.div
