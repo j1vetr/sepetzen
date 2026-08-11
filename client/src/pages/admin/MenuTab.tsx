@@ -10,6 +10,7 @@ interface MenuManagementPanelProps {
 interface MenuItemData {
   id: string;
   title: string;
+  description: string | null;
   type: 'category' | 'link' | 'submenu';
   categoryId: string | null;
   url: string | null;
@@ -30,6 +31,7 @@ export default function MenuManagementPanel({ categories }: MenuManagementPanelP
   const [editingItem, setEditingItem] = useState<MenuItemData | null>(null);
   const [formData, setFormData] = useState({
     title: '',
+    description: '',
     type: 'category' as 'category' | 'link' | 'submenu',
     categoryId: '',
     url: '',
@@ -201,6 +203,7 @@ export default function MenuManagementPanel({ categories }: MenuManagementPanelP
     setEditingItem(null);
     setFormData({
       title: '',
+      description: '',
       type: 'category',
       categoryId: '',
       url: '',
@@ -214,6 +217,7 @@ export default function MenuManagementPanel({ categories }: MenuManagementPanelP
     setEditingItem(item);
     setFormData({
       title: item.title,
+      description: item.description || '',
       type: item.type,
       categoryId: item.categoryId || '',
       url: item.url || '',
@@ -527,11 +531,25 @@ export default function MenuManagementPanel({ categories }: MenuManagementPanelP
               )}
 
               {formData.type === 'submenu' && (
-                <div className="p-4 bg-blue-500/10 border border-blue-500/30 rounded-lg">
-                  <p className="text-sm text-blue-400">
-                    Alt Menü türü bir dropdown oluşturur. Bu öğeyi oluşturduktan sonra, diğer öğeleri bu alt menünün altına ekleyebilirsiniz.
-                  </p>
-                </div>
+                <>
+                  <div className="p-4 bg-blue-500/10 border border-blue-500/30 rounded-lg">
+                    <p className="text-sm text-blue-400">
+                      Alt Menü türü bir dropdown oluşturur. Bu öğeyi oluşturduktan sonra, diğer öğeleri bu alt menünün altına ekleyebilirsiniz.
+                    </p>
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-neutral-500 mb-2">Mega Menü Açıklaması (Opsiyonel)</label>
+                    <textarea
+                      value={formData.description}
+                      onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+                      rows={3}
+                      className="w-full px-4 py-3 bg-neutral-50 border border-neutral-200 rounded-lg text-neutral-900 focus:border-white focus:ring-1 focus:ring-white resize-none"
+                      placeholder="Mega menünün sol panelinde başlığın altında görünen kısa açıklama"
+                      data-testid="input-menu-description"
+                    />
+                    <p className="text-xs text-neutral-500 mt-1">Boş bırakılırsa otomatik açıklama kullanılır</p>
+                  </div>
+                </>
               )}
 
               {formData.type !== 'submenu' && submenuParents.length > 0 && (

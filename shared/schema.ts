@@ -773,6 +773,7 @@ export type SizeChart = typeof sizeCharts.$inferSelect;
 export const menuItems = pgTable("menu_items", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
   title: text("title").notNull(),
+  description: text("description"), // mega menü sol panel açıklaması (submenu kökleri için)
   type: text("type").notNull(), // "category", "link", "submenu"
   categoryId: varchar("category_id").references(() => categories.id, { onDelete: "set null" }),
   url: text("url"), // for type "link"

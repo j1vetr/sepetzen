@@ -35,6 +35,7 @@ import {
 interface MenuItemData {
   id: string;
   title: string;
+  description?: string | null;
   type: 'category' | 'link' | 'submenu';
   categoryId: string | null;
   url: string | null;
@@ -124,7 +125,6 @@ function getCategoryDesc(title: string): string {
   return 'Sepetzen kalitesinde seçilmiş ürün koleksiyonu';
 }
 
-const scrollToTop = () => window.scrollTo({ top: 0, left: 0, behavior: 'auto' });
 
 export function Header() {
   const [location, navigate] = useLocation();
@@ -318,20 +318,20 @@ export function Header() {
       <div className="hidden lg:block bg-[#0A0A0A] border-b border-white/8">
         <div className="max-w-[1400px] mx-auto px-8 py-4 grid grid-cols-[auto_1fr_auto] items-center gap-8">
           {/* Sol: Logo */}
-          <Link href="/" onClick={scrollToTop} data-testid="link-logo" className="justify-self-start block">
+          <a href="/" data-testid="link-logo" className="justify-self-start block">
             <img
               src={siteIdentity.logoUrl}
               alt="Sepetzen – Kamp, Outdoor, Bıçak ve Bağ Bahçe"
               data-testid="img-logo"
               className="h-20 w-auto object-contain"
             />
-          </Link>
+          </a>
 
           {/* Orta: Arama */}
           <div className="justify-self-center w-full max-w-[560px]">
             <button
               onClick={() => setSearchOpen(true)}
-              className="group flex items-center justify-between gap-3 w-full bg-white/[0.06] hover:bg-white/[0.10] border border-white/10 hover:border-white/25 transition-colors px-5 py-3 cursor-text"
+              className="group flex items-center justify-between gap-3 w-full rounded-[15px] bg-white/[0.06] hover:bg-white/[0.10] border border-white/10 hover:border-white/25 transition-colors px-5 py-3 cursor-text"
               data-testid="button-search"
               aria-label="Ara"
             >
@@ -409,7 +409,11 @@ export function Header() {
       <header
         className={`sticky top-0 left-0 right-0 z-[100] flex items-center h-16 lg:h-auto overflow-visible transition-all duration-300 ${
           scrolled
-            ? 'surface-glass-dark border-b border-white/10 shadow-[0_4px_24px_-8px_rgba(0,0,0,0.45)]'
+            ? megaMenuId
+              // Mega panel açıkken header'dan backdrop-filter kaldırılır: ata elemandaki
+              // backdrop-filter, altındaki panelin kendi blur'unu bozar (backdrop root).
+              ? 'bg-[#050505]/95 border-b border-white/10 shadow-[0_4px_24px_-8px_rgba(0,0,0,0.45)]'
+              : 'surface-glass-dark border-b border-white/10 shadow-[0_4px_24px_-8px_rgba(0,0,0,0.45)]'
             : 'bg-[#0A0A0A] border-b border-white/8'
         }`}
       >
@@ -427,14 +431,14 @@ export function Header() {
               <span className="block h-px w-6 bg-white" />
             </button>
 
-            <Link href="/" onClick={scrollToTop} data-testid="link-logo-mobile-header" className="justify-self-center block">
+            <a href="/" data-testid="link-logo-mobile-header" className="justify-self-center block">
               <img
                 src={siteIdentity.logoUrl}
                 alt="Sepetzen"
                 data-testid="img-logo-mobile-header"
                 className="h-14 w-auto object-contain"
               />
-            </Link>
+            </a>
 
             <div className="justify-self-end flex items-center gap-0.5">
               <motion.button
@@ -486,12 +490,8 @@ export function Header() {
                     transition={{ duration: 0.3, ease: [0.33, 1, 0.68, 1] }}
                     className="shrink-0"
                   >
-                    <Link
+                    <a
                       href="/"
-                      onClick={(e) => {
-                        if (location === '/') e.preventDefault();
-                        requestAnimationFrame(scrollToTop);
-                      }}
                       data-testid="link-logo-compact"
                       className="block"
                     >
@@ -500,7 +500,7 @@ export function Header() {
                         alt="Sepetzen"
                         className="h-12 w-auto object-contain"
                       />
-                    </Link>
+                    </a>
                   </motion.div>
                 )}
               </AnimatePresence>
@@ -516,14 +516,14 @@ export function Header() {
               >
                 <DropdownMenuTrigger asChild>
                   <button
-                    className="flex items-center gap-2 bg-white/[0.07] hover:bg-white/[0.12] border border-white/10 hover:border-white/25 transition-colors px-3 2xl:px-4 py-2.5 text-[10px] tracking-[0.10em] 2xl:tracking-[0.14em] uppercase font-bold text-white whitespace-nowrap"
+                    className="all-cats-gold flex items-center gap-2 px-3 2xl:px-4 py-2.5 text-[10px] tracking-[0.10em] 2xl:tracking-[0.14em] uppercase font-bold whitespace-nowrap"
                     data-testid="button-all-categories"
                     onMouseEnter={openAllCats}
                     onMouseLeave={closeAllCats}
                   >
                     <LayoutGrid className="w-3.5 h-3.5" strokeWidth={1.75} />
                     Tüm Kategoriler
-                    <ChevronDown className="w-3 h-3 text-white/50" />
+                    <ChevronDown className="w-3 h-3 opacity-60" />
                   </button>
                 </DropdownMenuTrigger>
                 <DropdownMenuContent
@@ -618,11 +618,12 @@ export function Header() {
                   const isActive =
                     (root.type === 'category' && root.category && location === `/kategori/${root.category.slug}`) ||
                     (root.type === 'link' && root.url && location === root.url) || false;
+                  const isAllProducts = root.title.trim().toLocaleLowerCase('tr') === 'tüm ürünler';
                   return (
                     <Link
                       key={root.id}
                       href={href}
-                      className={navLinkCls(isActive)}
+                      className={`${navLinkCls(isActive)} ${isAllProducts ? '!text-[#f4c96d] hover:!text-[#f4c96d]' : ''}`}
                       data-testid={`link-nav-root-${root.id}`}
                     >
                                             {root.title}
@@ -804,7 +805,7 @@ export function Header() {
                       {activeMegaRoot.title}
                     </h3>
                     <p className="text-white/50 text-[11.5px] leading-relaxed">
-                      {getCategoryDesc(activeMegaRoot.title)}
+                      {activeMegaRoot.description?.trim() || getCategoryDesc(activeMegaRoot.title)}
                     </p>
                   </div>
 
@@ -976,14 +977,14 @@ export function Header() {
                   <X className="relative w-3.5 h-3.5" strokeWidth={1.75} />
                 </motion.button>
 
-                <Link href="/" onClick={() => { setMobileOpen(false); scrollToTop(); }} data-testid="link-logo-mobile-drawer" className="block">
+                <a href="/" data-testid="link-logo-mobile-drawer" className="block">
                   <img
                     src={siteIdentity.logoUrl}
                     alt="Sepetzen"
                     data-testid="img-logo-mobile-drawer"
                     className="h-16 w-auto object-contain"
                   />
-                </Link>
+                </a>
               </div>
 
               {/* ── Scrollable nav ── */}

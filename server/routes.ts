@@ -7941,7 +7941,7 @@ Sitemap: ${baseUrl}/sitemap.xml
   // Admin: Create menu item
   app.post("/api/admin/menu-items", requireAdmin, async (req, res) => {
     try {
-      const { title, type, categoryId, url, parentId, displayOrder, isActive, openInNewTab } = req.body;
+      const { title, description, type, categoryId, url, parentId, displayOrder, isActive, openInNewTab } = req.body;
       
       if (!title || !type) {
         return res.status(400).json({ error: "Başlık ve tür zorunludur" });
@@ -7957,6 +7957,7 @@ Sitemap: ${baseUrl}/sitemap.xml
 
       const menuItem = await storage.createMenuItem({
         title,
+        description: description || null,
         type,
         categoryId: categoryId || null,
         url: url || null,
@@ -7976,10 +7977,11 @@ Sitemap: ${baseUrl}/sitemap.xml
   // Admin: Update menu item
   app.put("/api/admin/menu-items/:id", requireAdmin, async (req, res) => {
     try {
-      const { title, type, categoryId, url, parentId, displayOrder, isActive, openInNewTab } = req.body;
+      const { title, description, type, categoryId, url, parentId, displayOrder, isActive, openInNewTab } = req.body;
       
       const menuItem = await storage.updateMenuItem(req.params.id, {
         title,
+        description: description || null,
         type,
         categoryId: categoryId || null,
         url: url || null,
