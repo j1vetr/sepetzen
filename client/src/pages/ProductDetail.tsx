@@ -48,6 +48,7 @@ import {
   Target,
   Gift,
   Info,
+  ImagePlus,
   type LucideIcon,
 } from 'lucide-react';
 
@@ -714,6 +715,11 @@ export default function ProductDetail() {
   const [reviewGuestEmail, setReviewGuestEmail] = useState('');
   const [captchaToken, setCaptchaToken] = useState<string | null>(null);
   const [reviewSubmitted, setReviewSubmitted] = useState(false);
+  // Yorum görselleri: seçilen dosyalar + yerel önizleme URL'leri
+  const [reviewImageItems, setReviewImageItems] = useState<{ file: File; preview: string }[]>([]);
+  const [uploadingReviewImages, setUploadingReviewImages] = useState(false);
+  const [lightboxSrc, setLightboxSrc] = useState<string | null>(null);
+  const reviewFileInputRef = useRef<HTMLInputElement | null>(null);
   const turnstileContainerRef = useRef<HTMLDivElement | null>(null);
   const turnstileWidgetIdRef = useRef<string | null>(null);
 
@@ -849,6 +855,58 @@ export default function ProductDetail() {
     }
   }, []);
 
+  const REVIEW_IMAGE_LIMIT = 4;
+  const REVIEW_IMAGE_MAX_BYTES = 5 * 1024 * 1024;
+  const REVIEW_IMAGE_TYPES = new Set(['image/jpeg', 'image/png', 'image/webp', 'image/gif']);
+
+  const handleReviewFilesSelected = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = Array.from(e.target.files || []);
+    e.target.value = '';
+    if (files.length === 0) return;
+
+    setReviewImageItems((prev) => {
+      const next = [...prev];
+      for (const file of files) {
+        if (next.length >= REVIEW_IMAGE_LIMIT) {
+          toast({ title: 'Sınır aşıldı', description: `En fazla ${REVIEW_IMAGE_LIMIT} görsel ekleyebilirsiniz.`, variant: 'destructive' });
+          break;
+        }
+        if (!REVIEW_IMAGE_TYPES.has(file.type.toLowerCase())) {
+          toast({ title: 'Geçersiz dosya', description: `${file.name}: Yalnızca JPG, PNG, WebP veya GIF yükleyebilirsiniz.`, variant: 'destructive' });
+          continue;
+        }
+        if (file.size > REVIEW_IMAGE_MAX_BYTES) {
+          toast({ title: 'Dosya çok büyük', description: `${file.name}: Görsel boyutu 5MB'ı geçemez.`, variant: 'destructive' });
+          continue;
+        }
+        next.push({ file, preview: URL.createObjectURL(file) });
+      }
+      return next;
+    });
+  };
+
+  const removeReviewImage = (index: number) => {
+    setReviewImageItems((prev) => {
+      const item = prev[index];
+      if (item) URL.revokeObjectURL(item.preview);
+      return prev.filter((_, i) => i !== index);
+    });
+  };
+
+  const clearReviewImages = () => {
+    setReviewImageItems((prev) => {
+      prev.forEach((item) => URL.revokeObjectURL(item.preview));
+      return [];
+    });
+  };
+
+  // Bileşen kaldırılırken kalan önizleme URL'lerini serbest bırak (bellek sızıntısı önlemi)
+  const reviewImageItemsRef = useRef(reviewImageItems);
+  reviewImageItemsRef.current = reviewImageItems;
+  useEffect(() => () => {
+    reviewImageItemsRef.current.forEach((item) => URL.revokeObjectURL(item.preview));
+  }, []);
+
   const handleSubmitReview = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!product) return;
@@ -864,11 +922,34 @@ export default function ProductDetail() {
       }
     }
     try {
+      // Önce görselleri yükle (varsa), sonra yorumu yol listesiyle gönder
+      let uploadedImageUrls: string[] | undefined;
+      if (reviewImageItems.length > 0) {
+        setUploadingReviewImages(true);
+        try {
+          const formData = new FormData();
+          reviewImageItems.forEach((item) => formData.append('images', item.file));
+          const uploadRes = await fetch('/api/reviews/upload', {
+            method: 'POST',
+            credentials: 'include',
+            body: formData,
+          });
+          const uploadData = await uploadRes.json().catch(() => null);
+          if (!uploadRes.ok) {
+            throw new Error(uploadData?.error || 'Görseller yüklenemedi. Lütfen tekrar deneyin.');
+          }
+          uploadedImageUrls = uploadData?.urls;
+        } finally {
+          setUploadingReviewImages(false);
+        }
+      }
+
       await createReviewMutation.mutateAsync({
         productId: product.id,
         rating: reviewRating,
         title: reviewTitle || undefined,
         content: reviewContent || undefined,
+        images: uploadedImageUrls,
         guestName: !user ? reviewGuestName.trim() : undefined,
         guestEmail: !user ? reviewGuestEmail.trim() : undefined,
         captchaToken: !user ? captchaToken || undefined : undefined,
@@ -876,6 +957,7 @@ export default function ProductDetail() {
       toast({ title: 'Yorumunuz alındı', description: 'Onay sonrası ürün sayfasında görünecektir.' });
       setReviewTitle(''); setReviewContent(''); setReviewRating(5);
       setReviewGuestName(''); setReviewGuestEmail('');
+      clearReviewImages();
       setReviewSubmitted(true); setShowReviewForm(false);
       resetTurnstile();
     } catch (err: any) {
@@ -1712,6 +1794,48 @@ export default function ProductDetail() {
                       <textarea placeholder="Yorumunuz (isteğe bağlı)" value={reviewContent} onChange={(e) => setReviewContent(e.target.value)} rows={4} maxLength={4000}
                         className="w-full px-4 py-3 bg-[#141414] border border-white/10 text-white placeholder:text-white/28 focus:outline-none focus:border-white/30 transition-colors resize-none text-sm"
                         data-testid="input-review-content" />
+                      <div>
+                        <label className="block text-[11px] text-white/40 mb-2 uppercase tracking-wider">
+                          Fotoğraflar (isteğe bağlı, en fazla 4)
+                        </label>
+                        <div className="flex flex-wrap gap-2">
+                          {reviewImageItems.map((item, i) => (
+                            <div key={item.preview} className="relative w-16 h-16 border border-white/10 overflow-hidden" data-testid={`preview-review-image-${i}`}>
+                              <img src={item.preview} alt={`Görsel ${i + 1}`} className="w-full h-full object-cover" />
+                              <button
+                                type="button"
+                                onClick={() => removeReviewImage(i)}
+                                className="absolute top-0.5 right-0.5 w-5 h-5 bg-black/75 hover:bg-black flex items-center justify-center transition-colors p-0.5"
+                                aria-label="Görseli kaldır"
+                                data-testid={`button-remove-review-image-${i}`}
+                              >
+                                <X className="w-3 h-3 text-white" />
+                              </button>
+                            </div>
+                          ))}
+                          {reviewImageItems.length < REVIEW_IMAGE_LIMIT && (
+                            <button
+                              type="button"
+                              onClick={() => reviewFileInputRef.current?.click()}
+                              className="w-16 h-16 border border-dashed border-white/20 hover:border-white/50 flex flex-col items-center justify-center gap-1 text-white/40 hover:text-white transition-colors"
+                              data-testid="button-add-review-images"
+                            >
+                              <ImagePlus className="w-4 h-4" />
+                              <span className="text-[9px] uppercase tracking-wider">Ekle</span>
+                            </button>
+                          )}
+                        </div>
+                        <input
+                          ref={reviewFileInputRef}
+                          type="file"
+                          accept="image/jpeg,image/png,image/webp,image/gif"
+                          multiple
+                          className="hidden"
+                          onChange={handleReviewFilesSelected}
+                          data-testid="input-review-images"
+                        />
+                        <p className="text-[10px] text-white/30 mt-1.5">JPG, PNG, WebP veya GIF · dosya başına en fazla 5MB</p>
+                      </div>
                       {!user && turnstileSiteKey && (
                         <div ref={turnstileContainerRef} data-testid="turnstile-container" className="min-h-[65px]" />
                       )}
@@ -1720,11 +1844,11 @@ export default function ProductDetail() {
                           E-postanız sadece yorum doğrulama için kullanılır, yayınlanmaz. Yorumlar yönetici onayından geçer.
                         </p>
                       )}
-                      <button type="submit" disabled={createReviewMutation.isPending}
+                      <button type="submit" disabled={createReviewMutation.isPending || uploadingReviewImages}
                         className="px-6 py-2.5 bg-white text-black font-semibold hover:bg-white/85 transition-colors disabled:opacity-50 flex items-center gap-2 text-[11px] tracking-[0.18em] uppercase"
                         data-testid="button-submit-review">
-                        {createReviewMutation.isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : <Send className="w-3.5 h-3.5" />}
-                        Gönder
+                        {createReviewMutation.isPending || uploadingReviewImages ? <Loader2 className="w-4 h-4 animate-spin" /> : <Send className="w-3.5 h-3.5" />}
+                        {uploadingReviewImages ? 'Görseller yükleniyor…' : 'Gönder'}
                       </button>
                     </form>
                   </div>
@@ -1747,6 +1871,17 @@ export default function ProductDetail() {
                 </div>
                 {userReview.title && <h4 className="font-semibold text-[14px] text-white">{userReview.title}</h4>}
                 {userReview.content && <p className="text-white/55 mt-1 text-[13px] leading-relaxed">{userReview.content}</p>}
+                {userReview.images && userReview.images.length > 0 && (
+                  <div className="flex flex-wrap gap-2 mt-3">
+                    {userReview.images.map((src) => (
+                      <button key={src} type="button" onClick={() => setLightboxSrc(src)}
+                        className="w-16 h-16 border border-white/10 overflow-hidden hover:opacity-80 transition-opacity cursor-zoom-in"
+                        data-testid="thumb-user-review-image">
+                        <img src={src} alt="Yorum görseli" className="w-full h-full object-cover" loading="lazy" />
+                      </button>
+                    ))}
+                  </div>
+                )}
                 {userReview.rejectionReason && (
                   <p className="text-[12px] text-red-700 mt-2"><strong>Reddetme nedeni:</strong> {userReview.rejectionReason}</p>
                 )}
@@ -1778,6 +1913,17 @@ export default function ProductDetail() {
                       </div>
                       {review.title && <h4 className="font-semibold text-[13px] text-white mb-1">{review.title}</h4>}
                       {review.content && <p className="text-white/55 text-[13px] leading-relaxed">{review.content}</p>}
+                      {review.images && review.images.length > 0 && (
+                        <div className="flex flex-wrap gap-2 mt-3">
+                          {review.images.map((src) => (
+                            <button key={src} type="button" onClick={() => setLightboxSrc(src)}
+                              className="w-16 h-16 border border-white/10 overflow-hidden hover:opacity-80 transition-opacity cursor-zoom-in"
+                              data-testid="thumb-review-image">
+                              <img src={src} alt="Yorum görseli" className="w-full h-full object-cover" loading="lazy" />
+                            </button>
+                          ))}
+                        </div>
+                      )}
                     </div>
                   );
                 })}
@@ -1818,6 +1964,37 @@ export default function ProductDetail() {
       </main>
 
       <Footer />
+
+      {/* ── Review image lightbox ── */}
+      <AnimatePresence>
+        {lightboxSrc && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: reduceMotion ? 0 : 0.18 }}
+            className="fixed inset-0 z-[150] bg-black/85 backdrop-blur-sm flex items-center justify-center p-4 cursor-zoom-out"
+            onClick={() => setLightboxSrc(null)}
+            data-testid="lightbox-review-image"
+          >
+            <button
+              type="button"
+              onClick={() => setLightboxSrc(null)}
+              className="absolute top-4 right-4 w-10 h-10 flex items-center justify-center text-white/70 hover:text-white transition-colors"
+              aria-label="Kapat"
+              data-testid="button-close-lightbox"
+            >
+              <X className="w-6 h-6" />
+            </button>
+            <img
+              src={lightboxSrc}
+              alt="Yorum görseli"
+              className="max-w-full max-h-[85vh] object-contain"
+              onClick={(e) => e.stopPropagation()}
+            />
+          </motion.div>
+        )}
+      </AnimatePresence>
 
       {/* ── Mobile sticky CTA ── */}
       <AnimatePresence>

@@ -171,6 +171,24 @@ function ReviewCard({ review }: { review: AdminReview }) {
         </div>
       )}
 
+      {review.images && review.images.length > 0 && (
+        <div className="flex flex-wrap gap-2">
+          {review.images.map((src) => (
+            <a
+              key={src}
+              href={src}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="block w-16 h-16 rounded border border-neutral-200 overflow-hidden hover:opacity-80 transition-opacity"
+              title="Yorum görselini yeni sekmede aç"
+              data-testid="admin-review-image"
+            >
+              <img src={src} alt="Yorum görseli" className="w-full h-full object-cover" loading="lazy" />
+            </a>
+          ))}
+        </div>
+      )}
+
       {review.rejectionReason && (
         <div className="bg-red-50 border border-red-100 rounded p-3 text-[12px]">
           <p className="font-semibold text-red-800 mb-1">Reddetme nedeni:</p>

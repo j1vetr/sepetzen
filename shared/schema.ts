@@ -389,6 +389,8 @@ export const productReviews = pgTable("product_reviews", {
   rating: integer("rating").notNull(), // 1-5
   title: text("title"),
   content: text("content"),
+  // Yorum görselleri (JPG/PNG/WebP/GIF) — /uploads/reviews/ altındaki yollar
+  images: jsonb("images").$type<string[]>().default([]).notNull(),
   isApproved: boolean("is_approved").default(false).notNull(),
   rejectionReason: text("rejection_reason"),
   approvedAt: timestamp("approved_at"),
@@ -403,6 +405,9 @@ export const insertProductReviewSchema = createInsertSchema(productReviews).omit
   approvedAt: true,
   approvedBy: true,
   createdAt: true,
+}).extend({
+  // createInsertSchema jsonb $type bilgisini kaybettiği için yeniden tanımlanır
+  images: z.array(z.string()).optional(),
 });
 
 export type InsertProductReview = z.infer<typeof insertProductReviewSchema>;

@@ -7,6 +7,7 @@ export interface Review {
   rating: number;
   title: string | null;
   content: string | null;
+  images?: string[] | null;
   createdAt: string;
   isGuest: boolean;
   isApproved?: boolean;
@@ -37,6 +38,7 @@ export interface AdminReview {
   rating: number;
   title: string | null;
   content: string | null;
+  images?: string[] | null;
   isApproved: boolean;
   rejectionReason: string | null;
   approvedAt: string | null;
@@ -51,6 +53,7 @@ export interface CreateReviewPayload {
   rating: number;
   title?: string;
   content?: string;
+  images?: string[];
   guestName?: string;
   guestEmail?: string;
   captchaToken?: string;
@@ -107,6 +110,7 @@ export function useCreateReview() {
           rating: data.rating,
           title: data.title,
           content: data.content,
+          images: data.images,
           guestName: data.guestName,
           guestEmail: data.guestEmail,
           captchaToken: data.captchaToken,

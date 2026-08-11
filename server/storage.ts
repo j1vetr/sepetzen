@@ -114,6 +114,7 @@ export interface PublicProductReview {
   rating: number;
   title: string | null;
   content: string | null;
+  images: string[];
   createdAt: Date;
   isGuest: boolean;
   user: {
@@ -137,6 +138,7 @@ export interface ReviewAdminRow {
   rating: number;
   title: string | null;
   content: string | null;
+  images: string[];
   isApproved: boolean;
   rejectionReason: string | null;
   approvedAt: Date | null;
@@ -223,6 +225,7 @@ export interface IStorage {
   getRecentGuestReview(email: string, productId: string, sinceMs: number): Promise<ProductReview | undefined>;
   getReviewById(id: string): Promise<ProductReview | undefined>;
   getAdminReviews(filter: 'pending' | 'approved' | 'rejected' | 'all'): Promise<ReviewAdminRow[]>;
+  isReviewImageReferenced(imagePath: string): Promise<boolean>;
   approveReview(id: string, adminId: string): Promise<ProductReview | undefined>;
   rejectReview(id: string, reason: string, adminId: string): Promise<ProductReview | undefined>;
   getPendingReviewsCount(): Promise<number>;
@@ -1076,6 +1079,7 @@ export class DbStorage implements IStorage {
         rating: productReviews.rating,
         title: productReviews.title,
         content: productReviews.content,
+        images: productReviews.images,
         createdAt: productReviews.createdAt,
         userFirstName: users.firstName,
         userLastName: users.lastName,
@@ -1097,6 +1101,7 @@ export class DbStorage implements IStorage {
         rating: r.rating,
         title: r.title,
         content: r.content,
+        images: r.images || [],
         createdAt: r.createdAt,
         isGuest: !r.userId,
         user: {
@@ -1132,6 +1137,16 @@ export class DbStorage implements IStorage {
 
   async deleteReview(id: string): Promise<void> {
     await db.delete(productReviews).where(eq(productReviews.id, id));
+  }
+
+  // Öksüz yorum görseli temizliği için: yol herhangi bir yorumda kayıtlı mı?
+  async isReviewImageReferenced(imagePath: string): Promise<boolean> {
+    const [row] = await db
+      .select({ id: productReviews.id })
+      .from(productReviews)
+      .where(sql`${productReviews.images} @> ${JSON.stringify([imagePath])}::jsonb`)
+      .limit(1);
+    return !!row;
   }
 
   async getUserReview(userId: string, productId: string): Promise<ProductReview | undefined> {
@@ -1172,6 +1187,7 @@ export class DbStorage implements IStorage {
       rating: productReviews.rating,
       title: productReviews.title,
       content: productReviews.content,
+      images: productReviews.images,
       isApproved: productReviews.isApproved,
       rejectionReason: productReviews.rejectionReason,
       approvedAt: productReviews.approvedAt,
@@ -1219,6 +1235,7 @@ export class DbStorage implements IStorage {
       rating: r.rating,
       title: r.title,
       content: r.content,
+      images: r.images || [],
       isApproved: r.isApproved,
       rejectionReason: r.rejectionReason,
       approvedAt: r.approvedAt,

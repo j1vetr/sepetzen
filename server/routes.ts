@@ -13,7 +13,7 @@ import sharp from "sharp";
 import { cache, CACHE_KEYS, CACHE_TTL } from "./cache";
 import { eq, desc, sql } from "drizzle-orm";
 import { insertAdminUserSchema, insertCategorySchema, insertProductSchema, insertProductVariantSchema, insertCartItemSchema, insertOrderSchema, insertOrderItemSchema, insertUserSchema, adminUpdateUserSchema, couponRedemptions, orders, coupons, products, stockAdjustments, productCategories, productVariants } from "@shared/schema";
-import { optimizeImage, optimizeImageBuffer, optimizeUploadedFiles } from "./imageOptimizer";
+import { optimizeImage, optimizeImageBuffer, optimizeUploadedFiles, verifyImageContent } from "./imageOptimizer";
 import { 
   sendWelcomeEmail, 
   sendOrderConfirmationEmail, 
@@ -125,6 +125,7 @@ ensureDir(path.join(uploadDir, "products"));
 ensureDir(path.join(uploadDir, "categories"));
 ensureDir(path.join(uploadDir, "hero"));
 ensureDir(path.join(uploadDir, "blog"));
+ensureDir(path.join(uploadDir, "reviews"));
 
 const VALID_UPLOAD_TYPES = ['products', 'categories', 'hero', 'branding', 'blog'];
 
@@ -165,6 +166,104 @@ const upload = multer({
     }
   },
 });
+
+// Yorum görselleri — herkese açık uçta kullanıldığı için daha sıkı limitler
+const REVIEW_IMAGE_MAX_COUNT = 4;
+const REVIEW_IMAGE_MAX_SIZE = 5 * 1024 * 1024; // 5MB
+
+const reviewUpload = multer({
+  storage: multer.diskStorage({
+    destination: (_req, _file, cb) => {
+      const dest = path.join(uploadDir, "reviews");
+      ensureDir(dest);
+      cb(null, dest);
+    },
+    filename: (_req, file, cb) => {
+      const uniqueSuffix = Date.now() + "-" + Math.round(Math.random() * 1e9);
+      const ext = path.extname(file.originalname).toLowerCase();
+      cb(null, `${uniqueSuffix}${ext}`);
+    },
+  }),
+  limits: { fileSize: REVIEW_IMAGE_MAX_SIZE, files: REVIEW_IMAGE_MAX_COUNT },
+  fileFilter: (_req, file, cb) => {
+    const allowedExtensions = new Set(['.jpeg', '.jpg', '.png', '.gif', '.webp']);
+    const allowedMimeTypes = new Set(['image/jpeg', 'image/png', 'image/gif', 'image/webp']);
+    const extOk = allowedExtensions.has(path.extname(file.originalname).toLowerCase());
+    const mimeOk = allowedMimeTypes.has(file.mimetype.toLowerCase());
+    if (extOk && mimeOk) {
+      cb(null, true);
+    } else {
+      cb(new Error("INVALID_REVIEW_IMAGE_TYPE"));
+    }
+  },
+});
+
+// Yorum isteğindeki görsel yollarını süzer: yalnızca /uploads/reviews/ altındaki
+// güvenli dosya adları, en fazla REVIEW_IMAGE_MAX_COUNT adet ve diskte gerçekten
+// var olan (yani bu yükleme akışından çıkmış) dosyalar.
+function sanitizeReviewImages(raw: unknown): string[] {
+  if (!Array.isArray(raw)) return [];
+  return raw
+    .filter((p): p is string => typeof p === 'string')
+    .map(p => p.trim())
+    .filter(p => /^\/uploads\/reviews\/[A-Za-z0-9._-]+\.(jpe?g|png|webp|gif)$/i.test(p) && !p.includes('..'))
+    .filter(p => fs.existsSync(path.join(process.cwd(), 'client/public', p)))
+    .slice(0, REVIEW_IMAGE_MAX_COUNT);
+}
+
+// Basit bellek-içi IP oran sınırı: herkese açık yükleme ucunun kötüye
+// kullanımını (sınırsız dosya barındırma / disk doldurma) frenler.
+const REVIEW_UPLOAD_WINDOW_MS = 15 * 60 * 1000;
+const REVIEW_UPLOAD_MAX_PER_WINDOW = 10;
+const reviewUploadHits = new Map<string, { count: number; resetAt: number }>();
+function allowReviewUpload(ip: string): boolean {
+  const now = Date.now();
+  if (reviewUploadHits.size > 5000) {
+    reviewUploadHits.forEach((entry, key) => {
+      if (now > entry.resetAt) reviewUploadHits.delete(key);
+    });
+  }
+  const entry = reviewUploadHits.get(ip);
+  if (!entry || now > entry.resetAt) {
+    reviewUploadHits.set(ip, { count: 1, resetAt: now + REVIEW_UPLOAD_WINDOW_MS });
+    return true;
+  }
+  if (entry.count >= REVIEW_UPLOAD_MAX_PER_WINDOW) return false;
+  entry.count++;
+  return true;
+}
+
+// Hiçbir yoruma bağlanmamış (terk edilmiş) yorum görsellerini temizler.
+// 24 saatten eski ve hiçbir product_reviews.images kaydında geçmeyen dosyalar silinir.
+async function cleanupOrphanReviewImages(): Promise<void> {
+  const dir = path.join(uploadDir, 'reviews');
+  let names: string[] = [];
+  try {
+    names = await fs.promises.readdir(dir);
+  } catch {
+    return;
+  }
+  const cutoff = Date.now() - 24 * 60 * 60 * 1000;
+  let removed = 0;
+  for (const name of names) {
+    try {
+      const full = path.join(dir, name);
+      const stat = await fs.promises.stat(full);
+      if (!stat.isFile() || stat.mtimeMs > cutoff) continue;
+      const referenced = await storage.isReviewImageReferenced(`/uploads/reviews/${name}`);
+      if (!referenced) {
+        await fs.promises.unlink(full);
+        removed++;
+      }
+    } catch {
+      // tek dosya hatası temizliği durdurmasın
+    }
+  }
+  if (removed > 0) console.log(`[Reviews] Removed ${removed} orphan review image(s)`);
+}
+// Açılıştan kısa süre sonra bir kez, sonra 6 saatte bir
+setTimeout(() => { cleanupOrphanReviewImages().catch(() => {}); }, 5 * 60 * 1000);
+setInterval(() => { cleanupOrphanReviewImages().catch(() => {}); }, 6 * 60 * 60 * 1000);
 
 // Ücretsiz kargo eşiği: admin ayarı geçersiz/eksikse tek merkezi fallback kullanılır.
 async function resolveFreeShippingThreshold(): Promise<number> {
@@ -2406,12 +2505,55 @@ Bu ürün için 4 bölümlü HTML açıklama üret. Teknik Özellikler bölümü
     }
   });
 
+  // Yorum görseli yükleme — üyeler ve misafirler için (yorum gönderiminden önce çağrılır)
+  app.post("/api/reviews/upload", (req, res, next) => {
+    if (!allowReviewUpload(getClientIp(req) || 'unknown')) {
+      return res.status(429).json({ error: "Çok fazla yükleme denemesi yaptınız. Lütfen daha sonra tekrar deneyin." });
+    }
+    reviewUpload.array("images", REVIEW_IMAGE_MAX_COUNT)(req, res, (err) => {
+      if (err) {
+        if (err.code === 'LIMIT_FILE_SIZE') {
+          return res.status(400).json({ error: "Görsel boyutu 5MB'ı geçemez." });
+        }
+        if (err.code === 'LIMIT_FILE_COUNT' || err.code === 'LIMIT_UNEXPECTED_FILE') {
+          return res.status(400).json({ error: `En fazla ${REVIEW_IMAGE_MAX_COUNT} görsel yükleyebilirsiniz.` });
+        }
+        return res.status(400).json({ error: "Yalnızca JPG, PNG, WebP veya GIF dosyaları yükleyebilirsiniz." });
+      }
+      next();
+    });
+  }, async (req, res) => {
+    try {
+      const files = req.files as Express.Multer.File[];
+      if (!files || files.length === 0) {
+        return res.status(400).json({ error: "Görsel seçilmedi." });
+      }
+
+      // Uzantı/mimetype istemci kontrolünde — baytların gerçekten görsel olduğunu doğrula.
+      // Tek bir geçersiz dosya bile tüm isteği reddettirir ve yüklenenler silinir.
+      const validations = await Promise.all(files.map(f => verifyImageContent(f.path)));
+      if (validations.some(ok => !ok)) {
+        await Promise.all(files.map(f => fs.promises.unlink(f.path).catch(() => {})));
+        return res.status(400).json({ error: "Dosya içeriği geçerli bir görsel değil. Yalnızca JPG, PNG, WebP veya GIF yükleyebilirsiniz." });
+      }
+
+      const urls = await optimizeUploadedFiles(files);
+      res.json({ urls });
+    } catch (error) {
+      console.error('[Reviews] image upload failed:', error);
+      const files = (req.files as Express.Multer.File[]) || [];
+      await Promise.all(files.map(f => fs.promises.unlink(f.path).catch(() => {})));
+      res.status(500).json({ error: "Görsel yüklenemedi. Lütfen tekrar deneyin." });
+    }
+  });
+
   app.post("/api/products/:productId/reviews", async (req: Request, res) => {
     try {
       const payload = await getAuthPayload(req, res);
       const userId = payload?.type === 'user' ? payload.userId : null;
 
       const { rating, title, content, guestName, guestEmail, captchaToken } = req.body || {};
+      const cleanImages = sanitizeReviewImages(req.body?.images);
 
       if (typeof rating !== 'number' || !Number.isInteger(rating) || rating < 1 || rating > 5) {
         return res.status(400).json({ error: "Lütfen 1 ile 5 arasında bir puan seçin." });
@@ -2441,6 +2583,7 @@ Bu ürün için 4 bölümlü HTML açıklama üret. Teknik Özellikler bölümü
           rating,
           title: cleanTitle || null,
           content: cleanContent || null,
+          images: cleanImages,
         });
 
         // Bildirim — admin'e yeni yorum bekliyor
@@ -2503,6 +2646,7 @@ Bu ürün için 4 bölümlü HTML açıklama üret. Teknik Özellikler bölümü
         rating,
         title: cleanTitle || null,
         content: cleanContent || null,
+        images: cleanImages,
       });
 
       // Bildirim — admin'e yeni misafir yorumu bekliyor

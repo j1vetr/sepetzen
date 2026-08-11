@@ -144,6 +144,18 @@ function formatBytes(bytes: number): string {
   return parseFloat((bytes / Math.pow(k, i)).toFixed(1)) + ' ' + sizes[i];
 }
 
+// Dosya içeriğinin gerçekten desteklenen bir görsel olduğunu doğrular.
+// Uzantı ve mimetype istemci kontrolünde olduğu için baytların kendisi decode edilir.
+const VERIFIED_IMAGE_FORMATS = new Set(['jpeg', 'png', 'webp', 'gif']);
+export async function verifyImageContent(filePath: string): Promise<boolean> {
+  try {
+    const metadata = await sharp(filePath).metadata();
+    return !!metadata.format && VERIFIED_IMAGE_FORMATS.has(metadata.format);
+  } catch {
+    return false;
+  }
+}
+
 export async function optimizeUploadedFiles(files: Express.Multer.File[]): Promise<string[]> {
   const optimizedPaths: string[] = [];
   
