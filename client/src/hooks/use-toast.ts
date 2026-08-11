@@ -6,7 +6,9 @@ import type {
 } from "@/components/ui/toast"
 
 const TOAST_LIMIT = 1
-const TOAST_REMOVE_DELAY = 1000000
+// Toast kapandıktan (open=false) sonra DOM'dan kaldırılma gecikmesi.
+// Çıkış animasyonuna yetecek kadar kısa tutulur; eskiden ~16 dk idi.
+const TOAST_REMOVE_DELAY = 1000
 
 type ToasterToast = ToastProps & {
   id: string
