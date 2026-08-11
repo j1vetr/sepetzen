@@ -689,7 +689,6 @@ export default function ProductDetail() {
 
   // UI state
   const [selectedImage, setSelectedImage] = useState(0);
-  const [desktopThumbnailStart, setDesktopThumbnailStart] = useState(0);
   const [quantity, setQuantity] = useState(1);
   const [isAdding, setIsAdding] = useState(false);
   const [justAdded, setJustAdded] = useState(false);
@@ -808,15 +807,9 @@ export default function ProductDetail() {
 
   useEffect(() => {
     setSelectedImage(0);
-    setDesktopThumbnailStart(0);
     setQuantity(1);
     setShowReviewForm(false);
   }, [product?.id]);
-
-  useEffect(() => {
-    const selectedPageStart = Math.floor(selectedImage / DESKTOP_THUMBNAIL_PAGE_SIZE) * DESKTOP_THUMBNAIL_PAGE_SIZE;
-    setDesktopThumbnailStart((current) => current === selectedPageStart ? current : selectedPageStart);
-  }, [selectedImage]);
 
   const handleHeroMove = (e: React.MouseEvent<HTMLDivElement>) => {
     if (!heroImageRef.current || reduceMotion) return;
@@ -959,11 +952,6 @@ export default function ProductDetail() {
   // ─── Derived values ───────────────────────────────────────────────────────
 
   const images = renderedImages;
-  const desktopThumbnailImages = images.slice(
-    desktopThumbnailStart,
-    desktopThumbnailStart + DESKTOP_THUMBNAIL_PAGE_SIZE,
-  );
-  const hasMoreDesktopThumbnails = images.length > DESKTOP_THUMBNAIL_PAGE_SIZE;
   const price = parseFloat(product.basePrice || '0');
   const originalPrice = getOriginalPrice(price, product.discountBadge);
   const visibleDiscountBadge = !isFreeShippingPromotion(product.discountBadge)
@@ -1125,41 +1113,62 @@ export default function ProductDetail() {
               transition={{ duration: 0.5, ease: [0.33, 1, 0.68, 1] }}
               className={`flex flex-col sm:flex-row sm:gap-4 lg:gap-3${product.description ? ' lg:sticky lg:top-24 lg:self-start' : ''}`}>
 
-              {/* Thumbnail strip (desktop) */}
+              {/* Thumbnail strip (desktop) — sliding-window, ref implementation */}
               {images.length > 1 && (
-                <div className="hidden sm:flex flex-col gap-2 w-[68px] h-[372px] lg:w-14 lg:h-[440px] xl:w-16 xl:h-[480px] shrink-0">
-                  <div className={`grid min-h-0 flex-1 gap-2 ${hasMoreDesktopThumbnails ? 'grid-rows-5' : ''}`}>
-                    {desktopThumbnailImages.map((img, offset) => {
-                      const imageIndex = desktopThumbnailStart + offset;
-                      return (
-                        <motion.button
-                          key={imageIndex}
-                          type="button"
-                          onClick={() => setSelectedImage(imageIndex)}
-                          whileTap={reduceMotion ? undefined : { scale: 0.94 }}
-                          className={`relative min-h-0 w-full overflow-hidden rounded-md bg-zinc-900 border-2 transition-opacity duration-200 ${
-                            imageIndex === selectedImage ? 'border-white' : 'border-transparent opacity-50 hover:opacity-85'
-                          }`}
-                          data-testid={`button-thumbnail-${imageIndex}`}
-                          aria-label={`Görsel ${imageIndex + 1}`}
-                        >
-                          <img src={img} alt="" className="w-full h-full object-cover" loading="lazy" />
-                        </motion.button>
-                      );
-                    })}
-                  </div>
-                  {hasMoreDesktopThumbnails && (
+                <div className="hidden sm:flex flex-col gap-2 w-20 shrink-0">
+                  {/* Up arrow — only when >5 images and not at first */}
+                  {images.length > 5 && selectedImage > 0 && (
                     <button
                       type="button"
-                      onClick={() => setDesktopThumbnailStart((current) => {
-                        const next = current + DESKTOP_THUMBNAIL_PAGE_SIZE;
-                        return next >= images.length ? 0 : next;
-                      })}
-                      className="flex h-9 shrink-0 items-center justify-center rounded-md border border-white/12 bg-white/[0.04] text-white/80 transition-colors hover:border-white/35 hover:bg-white/10 hover:text-white"
-                      aria-label="Sonraki ürün görsellerini göster"
-                      title="Sonraki görseller"
+                      onClick={() => setSelectedImage(prev => Math.max(0, prev - 1))}
+                      className="w-full h-8 flex items-center justify-center bg-zinc-800/50 hover:bg-zinc-700/50 rounded-lg transition-colors"
+                      aria-label="Önceki görsel"
                     >
-                      <ChevronDown className="h-4 w-4" aria-hidden="true" />
+                      <ChevronDown className="w-4 h-4 rotate-180" />
+                    </button>
+                  )}
+
+                  <div className="flex flex-col gap-2">
+                    {(() => {
+                      const windowStart = images.length <= 5
+                        ? 0
+                        : Math.max(0, Math.min(selectedImage - 2, images.length - 5));
+                      const slice = images.length <= 5
+                        ? images
+                        : images.slice(windowStart, windowStart + 5);
+                      return slice.map((img, idx) => {
+                        const actualIndex = images.length <= 5 ? idx : windowStart + idx;
+                        return (
+                          <motion.button
+                            key={actualIndex}
+                            type="button"
+                            onClick={() => setSelectedImage(actualIndex)}
+                            whileHover={reduceMotion ? undefined : { scale: 1.05 }}
+                            whileTap={reduceMotion ? undefined : { scale: 0.95 }}
+                            data-testid={`button-thumbnail-${actualIndex}`}
+                            aria-label={`Görsel ${actualIndex + 1}`}
+                            className={`relative aspect-[3/4] rounded-lg overflow-hidden transition-all flex-shrink-0 ${
+                              actualIndex === selectedImage
+                                ? 'ring-2 ring-white'
+                                : 'opacity-50 hover:opacity-100'
+                            }`}
+                          >
+                            <img src={img} alt="" className="w-full h-full object-cover" loading="lazy" />
+                          </motion.button>
+                        );
+                      });
+                    })()}
+                  </div>
+
+                  {/* Down arrow — only when >5 images and not at last */}
+                  {images.length > 5 && selectedImage < images.length - 1 && (
+                    <button
+                      type="button"
+                      onClick={() => setSelectedImage(prev => Math.min(images.length - 1, prev + 1))}
+                      className="w-full h-8 flex items-center justify-center bg-zinc-800/50 hover:bg-zinc-700/50 rounded-lg transition-colors"
+                      aria-label="Sonraki görsel"
+                    >
+                      <ChevronDown className="w-4 h-4" />
                     </button>
                   )}
                 </div>
