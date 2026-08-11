@@ -1182,7 +1182,7 @@ export default function ProductDetail() {
                   <div className="product-gallery-orbit rounded-xl">
                     <div
                       ref={heroImageRef}
-                      className="relative aspect-[3/4] lg:aspect-auto lg:h-[440px] xl:h-[480px] rounded-[11px] bg-zinc-900 overflow-hidden cursor-zoom-in border border-white/15"
+                      className="relative aspect-[3/4] rounded-[11px] bg-zinc-900 overflow-hidden cursor-zoom-in border border-white/15"
                       onMouseEnter={() => setIsZooming(true)}
                       onMouseLeave={() => setIsZooming(false)}
                       onMouseMove={handleHeroMove}
