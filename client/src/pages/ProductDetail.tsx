@@ -1221,35 +1221,37 @@ export default function ProductDetail() {
 
                 {/* Mobile gallery — card style matching reference design */}
                 <div className="sm:hidden px-4">
-                  {/* ── Main swipe carousel — padded card with rounded corners ── */}
+                  {/* ── Main swipe carousel — outer rounded card, inner embla viewport ── */}
                   <div
-                    className="relative overflow-hidden rounded-2xl bg-zinc-900 border border-white/10"
+                    className="relative rounded-2xl bg-zinc-900 border border-white/10"
                     style={{ aspectRatio: '3/4' }}
-                    ref={emblaRef}
                   >
-                    <div className="flex h-full">
-                      {images.map((img, i) => (
-                        <button
-                          type="button"
-                          key={i}
-                          className="flex-[0_0_100%] min-w-0 h-full"
-                          onClick={() => setLightboxOpen(true)}
-                          aria-label={`Görsel ${i + 1} - büyüt`}
-                        >
-                          <img
-                            src={img}
-                            alt={product.name}
-                            loading={i === 0 ? 'eager' : 'lazy'}
-                            fetchPriority={i === 0 ? 'high' : 'auto'}
-                            decoding="async"
-                            className="w-full h-full object-cover"
-                            draggable={false}
-                          />
-                        </button>
-                      ))}
+                    {/* emblaRef on inner div so border doesn't affect slide width calc */}
+                    <div className="absolute inset-0 overflow-hidden rounded-2xl" ref={emblaRef}>
+                      <div className="flex h-full">
+                        {images.map((img, i) => (
+                          <button
+                            type="button"
+                            key={i}
+                            className="flex-[0_0_100%] min-w-0 h-full"
+                            onClick={() => setLightboxOpen(true)}
+                            aria-label={`Görsel ${i + 1} - büyüt`}
+                          >
+                            <img
+                              src={img}
+                              alt={product.name}
+                              loading={i === 0 ? 'eager' : 'lazy'}
+                              fetchPriority={i === 0 ? 'high' : 'auto'}
+                              decoding="async"
+                              className="w-full h-full object-cover"
+                              draggable={false}
+                            />
+                          </button>
+                        ))}
+                      </div>
                     </div>
 
-                    {/* Badges */}
+                    {/* Badges (above embla layer) */}
                     {visibleDiscountBadge && (
                       <span className="absolute top-4 left-4 z-10 bg-red-500 text-black text-[10px] font-extrabold tracking-[0.16em] px-3 py-1.5 uppercase">
                         {visibleDiscountBadge}
@@ -1264,21 +1266,6 @@ export default function ProductDetail() {
                       threshold={freeShippingThreshold}
                     />
                   </div>
-
-                  {/* ── Scroll progress bar (swipe position indicator) ── */}
-                  {images.length > 1 && (
-                    <div className="mt-3 flex justify-center">
-                      <div className="relative h-[3px] w-20 overflow-hidden rounded-full bg-white/15">
-                        <div
-                          className="absolute left-0 top-0 h-full rounded-full bg-white transition-transform duration-300 ease-out"
-                          style={{
-                            width: `${100 / images.length}%`,
-                            transform: `translateX(${selectedImage * 100}%)`,
-                          }}
-                        />
-                      </div>
-                    </div>
-                  )}
 
                   {/* ── Thumbnail strip + dots ── */}
                   {images.length > 1 && (
