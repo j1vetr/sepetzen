@@ -1,0 +1,314 @@
+Paketler : npm install embla-carousel-react framer-motion
+
+State & Refs
+
+const [selectedImage, setSelectedImage] = useState(0);
+const [isZooming, setIsZooming]         = useState(false);
+const [mousePosition, setMousePosition] = useState({ x: 0, y: 0 });
+const [lightboxOpen, setLightboxOpen]   = useState(false);
+const imageRef = useRef<HTMLDivElement>(null);
+
+const [emblaRef, emblaApi]               = useEmblaCarousel({ loop: true, dragFree: false });
+const [lightboxEmblaRef, lightboxEmblaApi] = useEmblaCarousel({ loop: true, dragFree: false });
+
+// Carousel ↔ selectedImage senkronizasyonu
+const onSelect = useCallback(() => {
+  if (!emblaApi) return;
+  setSelectedImage(emblaApi.selectedScrollSnap());
+}, [emblaApi]);
+
+useEffect(() => {
+  if (!emblaApi) return;
+  emblaApi.on('select', onSelect);
+  return () => { emblaApi.off('select', onSelect); };
+}, [emblaApi, onSelect]);
+
+useEffect(() => {
+  if (emblaApi && emblaApi.selectedScrollSnap() !== selectedImage)
+    emblaApi.scrollTo(selectedImage);
+}, [selectedImage, emblaApi]);
+
+useEffect(() => {
+  if (lightboxEmblaApi && lightboxOpen)
+    lightboxEmblaApi.scrollTo(selectedImage, true);
+}, [lightboxOpen, selectedImage, lightboxEmblaApi]);
+
+// Zoom: mouse pozisyonunu 0-100 aralığına normalize et
+const handleMouseMove = (e: React.MouseEvent<HTMLDivElement>) => {
+  if (!imageRef.current) return;
+  const rect = imageRef.current.getBoundingClientRect();
+  setMousePosition({
+    x: ((e.clientX - rect.left) / rect.width) * 100,
+    y: ((e.clientY - rect.top)  / rect.height) * 100,
+  });
+};
+
+
+
+CSS Animasyonu : @keyframes border-dash {
+  0%   { stroke-dashoffset: 0; }
+  100% { stroke-dashoffset: -466; }
+}
+.animate-border-dash {
+  stroke-dasharray: 40 426;
+  animation: border-dash 6s linear infinite;
+}
+
+Gallery JSX 
+
+{/* Galeri wrapper — soldan kayarak girer */}
+<motion.div
+  initial={{ opacity: 0, x: -30 }}
+  animate={{ opacity: 1, x: 0 }}
+  transition={{ duration: 0.5 }}
+  className="flex gap-3 sm:gap-4 w-full"
+>
+
+  {/* ── MASAÜSTÜ: sol dikey thumbnail rail (sm+ görünür) ── */}
+  <div className="hidden sm:flex flex-col gap-2 w-20 shrink-0">
+
+    {/* Yukarı ok — 5'ten fazla görselde, ilk değilse göster */}
+    {images.length > 5 && selectedImage > 0 && (
+      <button
+        onClick={() => setSelectedImage(prev => Math.max(0, prev - 1))}
+        className="w-full h-8 flex items-center justify-center bg-zinc-800/50 hover:bg-zinc-700/50 rounded-lg transition-colors"
+      >
+        <ChevronLeft className="w-4 h-4 rotate-90" />
+      </button>
+    )}
+
+    <div className="flex flex-col gap-2">
+      {(images.length <= 5 ? images : images.slice(
+        Math.max(0, Math.min(selectedImage - 2, images.length - 5)),
+        Math.max(0, Math.min(selectedImage - 2, images.length - 5)) + 5
+      )).map((image, idx) => {
+        const actualIndex = images.length <= 5 ? idx
+          : Math.max(0, Math.min(selectedImage - 2, images.length - 5)) + idx;
+        return (
+          <motion.button
+            key={actualIndex}
+            onClick={() => setSelectedImage(actualIndex)}
+            whileHover={{ scale: 1.05 }}
+            whileTap={{ scale: 0.95 }}
+            className={`relative aspect-[3/4] rounded-lg overflow-hidden transition-all flex-shrink-0 ${
+              actualIndex === selectedImage
+                ? 'ring-2 ring-white'
+                : 'opacity-50 hover:opacity-100'
+            }`}
+          >
+            <img src={image} alt="" className="w-full h-full object-cover" loading="lazy" />
+          </motion.button>
+        );
+      })}
+    </div>
+
+    {/* Aşağı ok */}
+    {images.length > 5 && selectedImage < images.length - 1 && (
+      <button
+        onClick={() => setSelectedImage(prev => Math.min(images.length - 1, prev + 1))}
+        className="w-full h-8 flex items-center justify-center bg-zinc-800/50 hover:bg-zinc-700/50 rounded-lg transition-colors"
+      >
+        <ChevronLeft className="w-4 h-4 -rotate-90" />
+      </button>
+    )}
+  </div>
+
+  {/* ── Ana görsel alanı ── */}
+  <div className="flex-1 min-w-0">
+    <div className="relative">
+
+      {/* Dönen dashed SVG border */}
+      <div className="absolute -inset-[1px] rounded-xl pointer-events-none overflow-hidden z-10">
+        <svg className="absolute inset-0 w-full h-full" viewBox="0 0 100 133" preserveAspectRatio="none">
+          <rect
+            x="0.5" y="0.5" width="99" height="132" rx="6"
+            fill="none" stroke="white" strokeWidth="1.5"
+            className="animate-border-dash"
+          />
+        </svg>
+      </div>
+
+      {/* MASAÜSTÜ: hover zoom + click lightbox (sm+ görünür) */}
+      <div className="hidden sm:block">
+        <motion.div
+          ref={imageRef}
+          className="relative aspect-[3/4] bg-zinc-900 rounded-xl overflow-hidden cursor-zoom-in w-full"
+          onMouseEnter={() => setIsZooming(true)}
+          onMouseLeave={() => setIsZooming(false)}
+          onMouseMove={handleMouseMove}
+          onClick={() => setLightboxOpen(true)}
+        >
+          <AnimatePresence mode="wait">
+            <motion.div
+              key={selectedImage}
+              initial={{ opacity: 0 }}
+              animate={{
+                opacity: 1,
+                scale: isZooming ? 2 : 1,
+                x: isZooming ? (50 - mousePosition.x) * 4 : 0,
+                y: isZooming ? (50 - mousePosition.y) * 4 : 0,
+              }}
+              exit={{ opacity: 0 }}
+              className="w-full h-full"
+            >
+              <img
+                src={images[selectedImage]}
+                alt="product"
+                className="w-full h-full object-cover"
+                draggable={false}
+              />
+            </motion.div>
+          </AnimatePresence>
+        </motion.div>
+      </div>
+
+      {/* MOBİL: Embla swipe carousel (sm altı görünür) */}
+      <div className="sm:hidden">
+        <div
+          className="relative aspect-[3/4] bg-zinc-900 rounded-xl overflow-hidden w-full"
+          ref={emblaRef}
+        >
+          <div className="flex h-full">
+            {images.map((image, index) => (
+              <div
+                key={index}
+                className="flex-[0_0_100%] min-w-0 h-full"
+                onClick={() => setLightboxOpen(true)}
+              >
+                <img src={image} alt="product" className="w-full h-full object-cover" draggable={false} />
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
+
+    </div>{/* /relative */}
+
+    {/* MOBİL: thumbnail strip + pagination dots */}
+    <div className="sm:hidden mt-4">
+      {images.length <= 5 ? (
+        // 5 veya daha az → hepsini göster
+        <div className="flex gap-2 justify-center">
+          {images.map((image, index) => (
+            <button
+              key={index}
+              onClick={() => setSelectedImage(index)}
+              className={`shrink-0 w-14 aspect-[3/4] rounded-lg overflow-hidden transition-all ${
+                index === selectedImage
+                  ? 'ring-2 ring-white ring-offset-2 ring-offset-background'
+                  : 'opacity-50'
+              }`}
+            >
+              <img src={image} alt="" className="w-full h-full object-cover" loading="lazy" />
+            </button>
+          ))}
+        </div>
+      ) : (
+        // 5'ten fazla → kayan pencere + pagination dots
+        <div className="relative">
+          <div className="flex gap-2 justify-center">
+            {images.slice(
+              Math.max(0, Math.min(selectedImage - 2, images.length - 5)),
+              Math.max(0, Math.min(selectedImage - 2, images.length - 5)) + 5
+            ).map((image, idx) => {
+              const actualIndex = Math.max(0, Math.min(selectedImage - 2, images.length - 5)) + idx;
+              return (
+                <button
+                  key={actualIndex}
+                  onClick={() => setSelectedImage(actualIndex)}
+                  className={`shrink-0 w-14 aspect-[3/4] rounded-lg overflow-hidden transition-all ${
+                    actualIndex === selectedImage
+                      ? 'ring-2 ring-white ring-offset-2 ring-offset-background'
+                      : 'opacity-50'
+                  }`}
+                >
+                  <img src={image} alt="" className="w-full h-full object-cover" loading="lazy" />
+                </button>
+              );
+            })}
+          </div>
+          {/* Pagination dots */}
+          <div className="flex justify-center gap-1 mt-3">
+            {images.map((_, idx) => (
+              <button
+                key={idx}
+                onClick={() => setSelectedImage(idx)}
+                className={`h-1.5 rounded-full transition-all ${
+                  idx === selectedImage ? 'bg-white w-4' : 'bg-white/30 w-1.5'
+                }`}
+              />
+            ))}
+          </div>
+        </div>
+      )}
+    </div>
+
+  </div>{/* /flex-1 */}
+</motion.div>
+
+
+
+Lightbox (AnimatePresence ile, sayfa body'sine koy)
+
+
+<AnimatePresence>
+  {lightboxOpen && (
+    <motion.div
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      exit={{ opacity: 0 }}
+      className="fixed inset-0 z-[200] bg-black flex items-center justify-center"
+      onClick={() => setLightboxOpen(false)}
+    >
+      {/* Kapat */}
+      <button className="absolute top-4 right-4 w-12 h-12 flex items-center justify-center bg-white/10 hover:bg-white/20 rounded-full transition-colors z-10">
+        <X className="w-5 h-5 text-white" />
+      </button>
+
+      {/* MASAÜSTÜ: ok + tek görsel */}
+      <button onClick={e => { e.stopPropagation(); setSelectedImage(p => p === 0 ? images.length - 1 : p - 1); }}
+        className="absolute left-6 w-12 h-12 flex items-center justify-center bg-white/10 hover:bg-white/20 rounded-full transition-colors z-20 hidden sm:flex">
+        <ChevronLeft className="w-6 h-6 text-white" />
+      </button>
+
+      <div className="hidden sm:block" onClick={e => e.stopPropagation()}>
+        <motion.img
+          key={selectedImage}
+          src={images[selectedImage]}
+          initial={{ opacity: 0, scale: 0.95 }}
+          animate={{ opacity: 1, scale: 1 }}
+          exit={{ opacity: 0 }}
+          transition={{ type: 'spring', stiffness: 300, damping: 30 }}
+          className="max-w-[90vw] max-h-[90vh] object-contain rounded-xl"
+        />
+      </div>
+
+      <button onClick={e => { e.stopPropagation(); setSelectedImage(p => p === images.length - 1 ? 0 : p + 1); }}
+        className="absolute right-6 w-12 h-12 flex items-center justify-center bg-white/10 hover:bg-white/20 rounded-full transition-colors z-20 hidden sm:flex">
+        <ChevronLeft className="w-6 h-6 text-white rotate-180" />
+      </button>
+
+      {/* MOBİL: swipe carousel */}
+      <div className="sm:hidden w-full h-full flex items-center" onClick={e => e.stopPropagation()}>
+        <div className="w-full overflow-hidden" ref={lightboxEmblaRef}>
+          <div className="flex">
+            {images.map((image, index) => (
+              <div key={index} className="flex-[0_0_100%] min-w-0 flex items-center justify-center px-4">
+                <img src={image} alt="" className="max-h-[80vh] w-full object-contain" />
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
+
+      {/* Pagination dots (lightbox) */}
+      <div className="absolute bottom-6 flex gap-1.5 justify-center">
+        {images.map((_, idx) => (
+          <div key={idx} className={`h-1.5 rounded-full transition-all ${
+            idx === selectedImage ? 'bg-white w-6' : 'bg-white/30 w-1.5'
+          }`} />
+        ))}
+      </div>
+    </motion.div>
+  )}
+</AnimatePresence>

@@ -1167,7 +1167,8 @@ export default function ProductDetail() {
 
               {/* Main image */}
               <div className="flex-1 min-w-0">
-                {/* Desktop */}
+
+                {/* ── Desktop: orbit animation + hover zoom ── */}
                 <div className="hidden sm:block">
                   <div className="product-gallery-orbit rounded-xl">
                     <div
@@ -1219,39 +1220,32 @@ export default function ProductDetail() {
                   </div>
                 </div>
 
-                {/* Mobile gallery — card style matching reference design */}
-                <div className="sm:hidden px-4">
-                  {/* ── Main swipe carousel — outer rounded card, inner embla viewport ── */}
+                {/* ── Mobile: swipe carousel (emblaRef directly on carousel div) ── */}
+                <div className="sm:hidden">
                   <div
-                    className="relative rounded-2xl bg-zinc-900 border border-white/10"
-                    style={{ aspectRatio: '3/4' }}
+                    className="product-gallery-orbit rounded-xl relative aspect-[3/4] bg-zinc-900 overflow-hidden w-full"
+                    ref={emblaRef}
                   >
-                    {/* emblaRef on inner div so border doesn't affect slide width calc */}
-                    <div className="absolute inset-0 overflow-hidden rounded-2xl" ref={emblaRef}>
-                      <div className="flex h-full">
-                        {images.map((img, i) => (
-                          <button
-                            type="button"
-                            key={i}
-                            className="flex-[0_0_100%] min-w-0 h-full"
-                            onClick={() => setLightboxOpen(true)}
-                            aria-label={`Görsel ${i + 1} - büyüt`}
-                          >
-                            <img
-                              src={img}
-                              alt={product.name}
-                              loading={i === 0 ? 'eager' : 'lazy'}
-                              fetchPriority={i === 0 ? 'high' : 'auto'}
-                              decoding="async"
-                              className="w-full h-full object-cover"
-                              draggable={false}
-                            />
-                          </button>
-                        ))}
-                      </div>
+                    <div className="flex h-full">
+                      {images.map((img, i) => (
+                        <div
+                          key={i}
+                          className="flex-[0_0_100%] min-w-0 h-full"
+                          onClick={() => setLightboxOpen(true)}
+                        >
+                          <img
+                            src={img}
+                            alt={product.name}
+                            loading={i === 0 ? 'eager' : 'lazy'}
+                            fetchPriority={i === 0 ? 'high' : 'auto'}
+                            decoding="async"
+                            className="w-full h-full object-cover"
+                            draggable={false}
+                          />
+                        </div>
+                      ))}
                     </div>
-
-                    {/* Badges (above embla layer) */}
+                    {/* Badges */}
                     {visibleDiscountBadge && (
                       <span className="absolute top-4 left-4 z-10 bg-red-500 text-black text-[10px] font-extrabold tracking-[0.16em] px-3 py-1.5 uppercase">
                         {visibleDiscountBadge}
@@ -1266,45 +1260,65 @@ export default function ProductDetail() {
                       threshold={freeShippingThreshold}
                     />
                   </div>
+                </div>
 
-                  {/* ── Thumbnail strip + dots ── */}
-                  {images.length > 1 && (
-                    <div className="mt-4 space-y-3">
-                      {/* Square thumbnails */}
-                      <div className="flex justify-center gap-2 overflow-x-auto py-1 [scrollbar-width:none] [-webkit-overflow-scrolling:touch]">
-                        {images.map((img, i) => (
-                          <button
-                            key={i}
-                            type="button"
-                            onClick={() => setSelectedImage(i)}
-                            aria-label={`Görsel ${i + 1}`}
-                            className={`relative shrink-0 overflow-hidden rounded-xl border-2 bg-zinc-900 transition-all duration-200 ${
-                              i === selectedImage
-                                ? 'border-white opacity-100'
-                                : 'border-transparent opacity-40 hover:opacity-65'
-                            }`}
-                            style={{ width: 74, height: 74 }}
-                          >
-                            <img
-                              src={img}
-                              alt=""
-                              className="h-full w-full object-cover"
-                              loading="lazy"
-                            />
-                          </button>
-                        ))}
+                {/* ── Mobile thumbnail strip (reference sliding-window logic) ── */}
+                <div className="sm:hidden mt-4">
+                  {images.length <= 5 ? (
+                    /* ≤5 images — show all, no dots */
+                    <div className="flex gap-2 justify-center">
+                      {images.map((img, index) => (
+                        <button
+                          key={index}
+                          type="button"
+                          onClick={() => setSelectedImage(index)}
+                          aria-label={`Görsel ${index + 1}`}
+                          className={`shrink-0 w-14 aspect-[3/4] rounded-lg overflow-hidden transition-all ${
+                            index === selectedImage
+                              ? 'ring-2 ring-white ring-offset-2 ring-offset-black'
+                              : 'opacity-50 hover:opacity-80'
+                          }`}
+                        >
+                          <img src={img} alt="" className="w-full h-full object-cover" loading="lazy" />
+                        </button>
+                      ))}
+                    </div>
+                  ) : (
+                    /* >5 images — sliding window of 5 + pagination dots */
+                    <div>
+                      <div className="flex gap-2 justify-center">
+                        {(() => {
+                          const windowStart = Math.max(0, Math.min(selectedImage - 2, images.length - 5));
+                          return images.slice(windowStart, windowStart + 5).map((img, idx) => {
+                            const actualIndex = windowStart + idx;
+                            return (
+                              <button
+                                key={actualIndex}
+                                type="button"
+                                onClick={() => setSelectedImage(actualIndex)}
+                                aria-label={`Görsel ${actualIndex + 1}`}
+                                className={`shrink-0 w-14 aspect-[3/4] rounded-lg overflow-hidden transition-all ${
+                                  actualIndex === selectedImage
+                                    ? 'ring-2 ring-white ring-offset-2 ring-offset-black'
+                                    : 'opacity-50 hover:opacity-80'
+                                }`}
+                              >
+                                <img src={img} alt="" className="w-full h-full object-cover" loading="lazy" />
+                              </button>
+                            );
+                          });
+                        })()}
                       </div>
-
-                      {/* Dot indicators */}
-                      <div className="flex justify-center gap-1.5 pb-1">
-                        {images.map((_, i) => (
+                      {/* Pagination dots */}
+                      <div className="flex justify-center gap-1 mt-3">
+                        {images.map((_, idx) => (
                           <button
-                            key={i}
+                            key={idx}
                             type="button"
-                            onClick={() => setSelectedImage(i)}
-                            aria-label={`Görsel ${i + 1}`}
-                            className={`h-1.5 rounded-full transition-all duration-300 ${
-                              i === selectedImage ? 'bg-white w-5' : 'bg-white/30 w-1.5'
+                            onClick={() => setSelectedImage(idx)}
+                            aria-label={`Görsel ${idx + 1}`}
+                            className={`h-1.5 rounded-full transition-all ${
+                              idx === selectedImage ? 'bg-white w-4' : 'bg-white/30 w-1.5'
                             }`}
                           />
                         ))}
@@ -1312,6 +1326,7 @@ export default function ProductDetail() {
                     </div>
                   )}
                 </div>
+
               </div>
             </motion.div>
 
