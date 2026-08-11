@@ -1115,7 +1115,7 @@ export default function ProductDetail() {
 
               {/* Thumbnail strip (desktop) — sliding-window, ref implementation */}
               {images.length > 1 && (
-                <div className="hidden sm:flex flex-col gap-2 w-24 shrink-0">
+                <div className="hidden sm:flex flex-col gap-2 w-[88px] shrink-0">
                   {/* Up arrow — only when >5 images and not at first */}
                   {images.length > 5 && selectedImage > 0 && (
                     <button
