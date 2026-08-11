@@ -1123,7 +1123,7 @@ export default function ProductDetail() {
               initial={reduceMotion ? false : { opacity: 0, y: 18 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.5, ease: [0.33, 1, 0.68, 1] }}
-              className={`flex flex-col sm:flex-row gap-3 sm:gap-4 lg:gap-3${product.description ? ' lg:sticky lg:top-24 lg:self-start' : ''}`}>
+              className={`flex flex-col sm:flex-row sm:gap-4 lg:gap-3${product.description ? ' lg:sticky lg:top-24 lg:self-start' : ''}`}>
 
               {/* Thumbnail strip (desktop) */}
               {images.length > 1 && (
@@ -1220,45 +1220,49 @@ export default function ProductDetail() {
                   </div>
                 </div>
 
-                {/* ── Mobile: swipe carousel (emblaRef directly on carousel div) ── */}
-                <div className="sm:hidden">
-                  <div
-                    className="product-gallery-orbit rounded-xl relative aspect-[3/4] bg-zinc-900 overflow-hidden w-full"
-                    ref={emblaRef}
-                  >
-                    <div className="flex h-full">
-                      {images.map((img, i) => (
-                        <div
-                          key={i}
-                          className="flex-[0_0_100%] min-w-0 h-full"
-                          onClick={() => setLightboxOpen(true)}
-                        >
-                          <img
-                            src={img}
-                            alt={product.name}
-                            loading={i === 0 ? 'eager' : 'lazy'}
-                            fetchPriority={i === 0 ? 'high' : 'auto'}
-                            decoding="async"
-                            className="w-full h-full object-cover"
-                            draggable={false}
-                          />
-                        </div>
-                      ))}
+                {/* ── Mobile: swipe carousel ── */}
+                {/* -mx-4 breaks out of page px-4; px-4 re-applies equal 16 px on both sides */}
+                <div className="sm:hidden -mx-4 px-4">
+                  <div className="product-gallery-orbit rounded-xl w-full">
+                    {/* embla viewport fills the orbit wrapper; rounded-[10px] fits inside the 1px padding */}
+                    <div
+                      className="relative aspect-[3/4] bg-zinc-900 overflow-hidden w-full rounded-[10px]"
+                      ref={emblaRef}
+                    >
+                      <div className="flex h-full">
+                        {images.map((img, i) => (
+                          <div
+                            key={i}
+                            className="flex-[0_0_100%] min-w-0 h-full"
+                            onClick={() => setLightboxOpen(true)}
+                          >
+                            <img
+                              src={img}
+                              alt={product.name}
+                              loading={i === 0 ? 'eager' : 'lazy'}
+                              fetchPriority={i === 0 ? 'high' : 'auto'}
+                              decoding="async"
+                              className="w-full h-full object-cover"
+                              draggable={false}
+                            />
+                          </div>
+                        ))}
+                      </div>
+                      {/* Badges */}
+                      {visibleDiscountBadge && (
+                        <span className="absolute top-4 left-4 z-10 bg-red-500 text-black text-[10px] font-extrabold tracking-[0.16em] px-3 py-1.5 uppercase">
+                          {visibleDiscountBadge}
+                        </span>
+                      )}
+                      {product.isNew && !visibleDiscountBadge && (
+                        <span className="storefront-new-badge absolute top-4 left-4 z-10">Yeni</span>
+                      )}
+                      <FreeShippingBadge
+                        className="absolute bottom-4 left-4 z-10"
+                        productPrice={price}
+                        threshold={freeShippingThreshold}
+                      />
                     </div>
-                    {/* Badges */}
-                    {visibleDiscountBadge && (
-                      <span className="absolute top-4 left-4 z-10 bg-red-500 text-black text-[10px] font-extrabold tracking-[0.16em] px-3 py-1.5 uppercase">
-                        {visibleDiscountBadge}
-                      </span>
-                    )}
-                    {product.isNew && !visibleDiscountBadge && (
-                      <span className="storefront-new-badge absolute top-4 left-4 z-10">Yeni</span>
-                    )}
-                    <FreeShippingBadge
-                      className="absolute bottom-4 left-4 z-10"
-                      productPrice={price}
-                      threshold={freeShippingThreshold}
-                    />
                   </div>
                 </div>
 
