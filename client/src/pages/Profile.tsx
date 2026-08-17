@@ -849,16 +849,45 @@ export default function Profile() {
                             />
                           </div>
                                                     <div className="grid sm:grid-cols-2 gap-4">
-                            <CityDistrictSelect
-                              city={addressForm.city}
-                              district={addressForm.district}
-                              onCityChange={(val) => setAddressForm((f) => ({ ...f, city: val, district: '' }))}
-                              onDistrictChange={(val) => setAddressForm((f) => ({ ...f, district: val }))}
-                              selectClassName="w-full px-4 py-3 bg-white/5 border border-white/12 rounded-md text-white focus:outline-none focus:border-white transition-colors"
-                              labelClassName="block text-sm font-medium text-white/55 mb-2"
-                              cityTestId="input-address-city"
-                              districtTestId="input-address-district"
-                            />
+                            {addressForm.country === 'Türkiye' ? (
+                              <CityDistrictSelect
+                                city={addressForm.city}
+                                district={addressForm.district}
+                                onCityChange={(val) => setAddressForm((f) => ({ ...f, city: val, district: '' }))}
+                                onDistrictChange={(val) => setAddressForm((f) => ({ ...f, district: val }))}
+                                selectClassName="w-full px-4 py-3 bg-white/5 border border-white/12 rounded-md text-white focus:outline-none focus:border-white transition-colors"
+                                labelClassName="block text-sm font-medium text-white/55 mb-2"
+                                cityTestId="input-address-city"
+                                districtTestId="input-address-district"
+                              />
+                            ) : (
+                              <>
+                                <div>
+                                  <label className="block text-sm font-medium text-white/55 mb-2">Şehir *</label>
+                                  <input
+                                    type="text"
+                                    value={addressForm.city}
+                                    onChange={(e) => setAddressForm((f) => ({ ...f, city: e.target.value }))}
+                                    className="w-full px-4 py-3 bg-white/5 border border-white/12 rounded-md text-white placeholder:text-white/30 focus:outline-none focus:border-white transition-colors"
+                                    placeholder="Şehir"
+                                    data-testid="input-address-city"
+                                    required
+                                  />
+                                </div>
+                                <div>
+                                  <label className="block text-sm font-medium text-white/55 mb-2">İlçe / Bölge *</label>
+                                  <input
+                                    type="text"
+                                    value={addressForm.district}
+                                    onChange={(e) => setAddressForm((f) => ({ ...f, district: e.target.value }))}
+                                    className="w-full px-4 py-3 bg-white/5 border border-white/12 rounded-md text-white placeholder:text-white/30 focus:outline-none focus:border-white transition-colors"
+                                    placeholder="İlçe / Bölge"
+                                    data-testid="input-address-district"
+                                    required
+                                  />
+                                </div>
+                              </>
+                            )}
                           </div>
                           <div className="grid sm:grid-cols-2 gap-4">
                             <div>

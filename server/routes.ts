@@ -7412,7 +7412,32 @@ window.addEventListener('load', function() {
   });
 
   // ── Contact Form ──────────────────────────────────────────────────────────
+  // In-memory rate limiter: max 5 requests per IP per 10 minutes.
+  // Uses req.ip (Express proxy-aware, trust proxy: 1 is set in index.ts) so
+  // spoofed X-Forwarded-For headers have no effect. Entries are cleaned up on
+  // each request so the map stays bounded even under a spoofed-IP flood.
+  const contactRateMap = new Map<string, { count: number; resetAt: number }>();
+  const CONTACT_RATE_WINDOW_MS = 10 * 60 * 1000; // 10 minutes
+  const CONTACT_RATE_MAX = 5;
+
   app.post("/api/contact", async (req, res) => {
+    const ip = req.ip || 'unknown';
+    const now = Date.now();
+
+    // Purge expired entries to keep the map bounded
+    Array.from(contactRateMap.entries()).forEach(([key, val]) => {
+      if (now >= val.resetAt) contactRateMap.delete(key);
+    });
+
+    const entry = contactRateMap.get(ip);
+    if (entry && now < entry.resetAt) {
+      if (entry.count >= CONTACT_RATE_MAX) {
+        return res.status(429).json({ error: "Çok fazla istek gönderdiniz. Lütfen 10 dakika sonra tekrar deneyin." });
+      }
+      entry.count += 1;
+    } else {
+      contactRateMap.set(ip, { count: 1, resetAt: now + CONTACT_RATE_WINDOW_MS });
+    }
     try {
       const { name, email, subject, message } = req.body;
       if (!name?.trim() || !email?.trim() || !message?.trim()) {

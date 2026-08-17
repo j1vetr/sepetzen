@@ -4,14 +4,7 @@ import { Footer } from '@/components/Footer';
 import { SEO } from '@/components/SEO';
 import { Link } from 'wouter';
 import { ChevronRight, Phone, Mail, MapPin, MessageCircle, Send, CheckCircle, Loader2 } from 'lucide-react';
-import { useQuery } from '@tanstack/react-query';
-
-interface SiteSettings {
-  contact_email?: string;
-  contact_phone?: string;
-  whatsapp_number?: string;
-  site_address?: string;
-}
+import { useSiteIdentity } from '@/hooks/useSiteIdentity';
 
 const SUBJECTS = [
   'Sipariş Hakkında',
@@ -28,21 +21,12 @@ export default function ContactPage() {
   const [status, setStatus] = useState<'idle' | 'sending' | 'success' | 'error'>('idle');
   const [errorMsg, setErrorMsg] = useState('');
 
-  const { data: settings } = useQuery<SiteSettings>({
-    queryKey: ['/api/site-settings-public'],
-    queryFn: async () => {
-      const res = await fetch('/api/site-identity');
-      if (!res.ok) return {};
-      const data = await res.json();
-      return data.settings ?? {};
-    },
-    staleTime: 10 * 60 * 1000,
-  });
+  const identity = useSiteIdentity();
 
-  const phone = settings?.contact_phone ?? '0536 630 11 38';
-  const email = settings?.contact_email ?? 'sepetzen@gmail.com';
-  const whatsapp = settings?.whatsapp_number ?? '905366301138';
-  const address = settings?.site_address ?? 'Karaçalı Mah. Nergiz Sk. No.8/A, Dalaman / Muğla';
+  const phone = identity.phone;
+  const email = identity.email;
+  const whatsapp = identity.phoneHref.replace(/^\+/, ''); // strip leading + for wa.me link
+  const address = identity.addressLines.join(', ');
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
     setForm(f => ({ ...f, [e.target.name]: e.target.value }));
