@@ -7,25 +7,48 @@ export default function AdminLogin() {
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
+  const [totpStep, setTotpStep] = useState(false);
+  const [totpCode, setTotpCode] = useState('');
 
   const loginMutation = useMutation({
-    mutationFn: async (credentials: { username: string; password: string }) => {
+    mutationFn: async (credentials: { username: string; password: string; totpCode?: string }) => {
       const response = await fetch('/api/admin/login', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(credentials),
       });
-      if (!response.ok) throw new Error('Login failed');
-      return response.json();
+      const data = await response.json().catch(() => ({}));
+      if (!response.ok) {
+        throw Object.assign(new Error('Login failed'), { requiresTotp: !!data.requiresTotp });
+      }
+      return data as { success?: boolean; requiresTotp?: boolean };
     },
-    onSuccess: () => setLocation('/toov-admin'),
-    onError: () => setError('Hatalı kullanıcı adı veya şifre.'),
+    onSuccess: (data) => {
+      if (data.requiresTotp) {
+        setTotpStep(true);
+        setTotpCode('');
+        return;
+      }
+      setLocation('/toov-admin');
+    },
+    onError: (err: Error & { requiresTotp?: boolean }) => {
+      if (err.requiresTotp) {
+        setTotpStep(true);
+        setError('Doğrulama kodu hatalı. Tekrar deneyin.');
+      } else {
+        setError('Hatalı kullanıcı adı veya şifre.');
+      }
+    },
   });
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
-    loginMutation.mutate({ username, password });
+    loginMutation.mutate({
+      username,
+      password,
+      ...(totpStep && totpCode.trim() ? { totpCode: totpCode.trim() } : {}),
+    });
   };
 
   const isPending = loginMutation.isPending;
@@ -73,7 +96,49 @@ export default function AdminLogin() {
               </div>
             )}
 
-            <div className="space-y-1.5">
+            {totpStep && (
+              <div className="space-y-1.5">
+                <label htmlFor="totp-code" className="block text-[12px] font-medium text-white/50 tracking-wide">
+                  Doğrulama Kodu
+                </label>
+                <p className="text-[11.5px] text-white/35 leading-relaxed">
+                  Google Authenticator uygulamasındaki 6 haneli kodu girin. Erişiminiz yoksa
+                  yedek kodlardan birini (XXXX-XXXX) kullanabilirsiniz.
+                </p>
+                <input
+                  id="totp-code"
+                  type="text"
+                  inputMode="numeric"
+                  autoComplete="one-time-code"
+                  autoFocus
+                  value={totpCode}
+                  onChange={(e) => setTotpCode(e.target.value)}
+                  disabled={isPending}
+                  required
+                  placeholder="123456"
+                  maxLength={9}
+                  className="w-full h-11 px-3.5 text-[16px] tracking-[0.3em] text-center font-mono rounded-md transition-all focus:outline-none disabled:opacity-50 disabled:cursor-not-allowed"
+                  style={{
+                    background: 'rgba(255,255,255,0.06)',
+                    border: '1px solid rgba(255,255,255,0.12)',
+                    color: '#fff',
+                  }}
+                  onFocus={e => { e.currentTarget.style.border = '1px solid rgba(255,255,255,0.45)'; e.currentTarget.style.boxShadow = '0 0 0 3px rgba(255,255,255,0.12)'; }}
+                  onBlur={e => { e.currentTarget.style.border = '1px solid rgba(255,255,255,0.12)'; e.currentTarget.style.boxShadow = 'none'; }}
+                  data-testid="input-totp-code"
+                />
+                <button
+                  type="button"
+                  onClick={() => { setTotpStep(false); setTotpCode(''); setError(''); }}
+                  className="text-[11.5px] text-white/35 hover:text-white/60 transition-colors"
+                  data-testid="button-totp-back"
+                >
+                  ← Kullanıcı adı / şifre adımına dön
+                </button>
+              </div>
+            )}
+
+            <div className={`space-y-1.5 ${totpStep ? 'hidden' : ''}`}>
               <label htmlFor="username" className="block text-[12px] font-medium text-white/50 tracking-wide">
                 Kullanıcı Adı
               </label>
@@ -97,7 +162,7 @@ export default function AdminLogin() {
               />
             </div>
 
-            <div className="space-y-1.5">
+            <div className={`space-y-1.5 ${totpStep ? 'hidden' : ''}`}>
               <label htmlFor="password" className="block text-[12px] font-medium text-white/50 tracking-wide">
                 Şifre
               </label>
@@ -137,10 +202,10 @@ export default function AdminLogin() {
                     <span className="w-1 h-1 rounded-full bg-white/80 animate-pulse [animation-delay:0.15s]" />
                     <span className="w-1 h-1 rounded-full bg-white animate-pulse [animation-delay:0.30s]" />
                   </span>
-                  <span>Giriş yapılıyor</span>
+                  <span>{totpStep ? 'Doğrulanıyor' : 'Giriş yapılıyor'}</span>
                 </>
               ) : (
-                <span>Giriş Yap</span>
+                <span>{totpStep ? 'Doğrula' : 'Giriş Yap'}</span>
               )}
             </button>
           </form>

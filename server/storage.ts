@@ -161,6 +161,12 @@ export interface IStorage {
   createAdminUser(user: InsertAdminUser): Promise<AdminUser>;
   updateAdminUser(id: string, data: Partial<InsertAdminUser>): Promise<AdminUser | undefined>;
   updateAdminUserByUsername(username: string, data: Partial<InsertAdminUser>): Promise<AdminUser | undefined>;
+  updateAdminUserSecurity(
+    id: string,
+    data: Partial<Pick<AdminUser, "totpSecret" | "totpEnabled" | "totpBackupCodes" | "totpLastUsedStep">>,
+  ): Promise<AdminUser | undefined>;
+  consumeTotpStep(id: string, step: number): Promise<boolean>;
+  casAdminBackupCodes(id: string, expectedJson: string, newJson: string): Promise<boolean>;
 
   getUser(id: string): Promise<User | undefined>;
   getUserByEmail(email: string): Promise<User | undefined>;
@@ -1816,6 +1822,44 @@ export class DbStorage implements IStorage {
   async updateAdminUserByUsername(username: string, data: Partial<InsertAdminUser>): Promise<AdminUser | undefined> {
     const [updated] = await db.update(adminUsers).set(data).where(eq(adminUsers.username, username)).returning();
     return updated;
+  }
+
+  async updateAdminUserSecurity(
+    id: string,
+    data: Partial<Pick<AdminUser, "totpSecret" | "totpEnabled" | "totpBackupCodes" | "totpLastUsedStep">>,
+  ): Promise<AdminUser | undefined> {
+    const [updated] = await db.update(adminUsers).set(data).where(eq(adminUsers.id, id)).returning();
+    return updated;
+  }
+
+  /**
+   * TOTP replay koruması: verilen zaman adımını atomik olarak "kullanılmış"
+   * işaretler. Aynı adım (veya daha eskisi) daha önce kullanıldıysa false döner —
+   * yani aynı 6 haneli kod ikinci kez kabul edilmez.
+   */
+  async consumeTotpStep(id: string, step: number): Promise<boolean> {
+    const result = await db
+      .update(adminUsers)
+      .set({ totpLastUsedStep: step })
+      .where(
+        sql`${adminUsers.id} = ${id} AND (${adminUsers.totpLastUsedStep} IS NULL OR ${adminUsers.totpLastUsedStep} < ${step})`,
+      )
+      .returning({ id: adminUsers.id });
+    return result.length > 0;
+  }
+
+  /**
+   * Yedek kod listesi için compare-and-swap: yalnızca DB'deki değer hâlâ
+   * `expectedJson` ise `newJson` yazar. Eşzamanlı iki istek aynı kodu
+   * tüketemesin diye kullanılır.
+   */
+  async casAdminBackupCodes(id: string, expectedJson: string, newJson: string): Promise<boolean> {
+    const result = await db
+      .update(adminUsers)
+      .set({ totpBackupCodes: newJson })
+      .where(sql`${adminUsers.id} = ${id} AND ${adminUsers.totpBackupCodes} = ${expectedJson}`)
+      .returning({ id: adminUsers.id });
+    return result.length > 0;
   }
 
   // Influencer coupon methods

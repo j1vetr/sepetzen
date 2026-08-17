@@ -8,6 +8,11 @@ export const adminUsers = pgTable("admin_users", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
   username: text("username").notNull().unique(),
   password: text("password").notNull(),
+  // İki adımlı doğrulama (TOTP / Google Authenticator)
+  totpSecret: text("totp_secret"), // AES-256-GCM şifreli secret (kurulum sırasında pending olarak da yazılır)
+  totpEnabled: boolean("totp_enabled").notNull().default(false),
+  totpBackupCodes: text("totp_backup_codes"), // JSON dizisi: bcrypt hash'li tek kullanımlık yedek kodlar
+  totpLastUsedStep: integer("totp_last_used_step"), // replay koruması: kabul edilen son TOTP zaman adımı
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
 

@@ -2719,6 +2719,7 @@ export default function SettingsPanel({ initialSection = 'genel', contentOnly = 
       </>)}
 
       {section === 'guvenlik' && (<>
+      <TwoFactorSection />
       <div className="bg-white border border-neutral-200 rounded-xl p-6" data-testid="card-turnstile">
         <div className="flex items-center gap-3 mb-6">
           <div className="p-2 bg-orange-50 rounded-lg">
@@ -2895,6 +2896,386 @@ export default function SettingsPanel({ initialSection = 'genel', contentOnly = 
 // ============================================================================
 // Google OAuth bölümü — ayrı bileşen olarak izole edildi
 // ============================================================================
+function TwoFactorSection() {
+  const qc = useQueryClient();
+  const [step, setStep] = useState<'idle' | 'setup' | 'backup'>('idle');
+  const [password, setPassword] = useState('');
+  const [setupData, setSetupData] = useState<{ qrDataUrl: string; manualKey: string } | null>(null);
+  const [verifyCode, setVerifyCode] = useState('');
+  const [backupCodes, setBackupCodes] = useState<string[]>([]);
+  const [disableCode, setDisableCode] = useState('');
+  const [showDisable, setShowDisable] = useState(false);
+  const [showRegen, setShowRegen] = useState(false);
+  const [regenCode, setRegenCode] = useState('');
+  const [busy, setBusy] = useState(false);
+  const [msg, setMsg] = useState<{ ok: boolean; text: string } | null>(null);
+
+  const { data: status } = useQuery<{
+    enabled: boolean;
+    pendingSetup: boolean;
+    backupCodesRemaining: number;
+  }>({
+    queryKey: ['/api/admin/2fa/status'],
+  });
+
+  const post = async (url: string, body: Record<string, unknown>) => {
+    const res = await fetch(url, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      credentials: 'include',
+      body: JSON.stringify(body),
+    });
+    const data = await res.json().catch(() => ({}));
+    if (!res.ok) throw new Error(data.error || 'İşlem başarısız');
+    return data;
+  };
+
+  const refreshStatus = () => qc.invalidateQueries({ queryKey: ['/api/admin/2fa/status'] });
+
+  const handleStartSetup = async () => {
+    if (!password) {
+      setMsg({ ok: false, text: 'Kurulumu başlatmak için mevcut şifrenizi girin.' });
+      return;
+    }
+    setBusy(true);
+    setMsg(null);
+    try {
+      const data = await post('/api/admin/2fa/setup', { currentPassword: password });
+      setSetupData({ qrDataUrl: data.qrDataUrl, manualKey: data.manualKey });
+      setStep('setup');
+      setPassword('');
+      setVerifyCode('');
+    } catch (e) {
+      setMsg({ ok: false, text: (e as Error).message });
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const handleEnable = async () => {
+    setBusy(true);
+    setMsg(null);
+    try {
+      const data = await post('/api/admin/2fa/enable', { code: verifyCode.trim() });
+      setBackupCodes(data.backupCodes || []);
+      setStep('backup');
+      setSetupData(null);
+      setVerifyCode('');
+      await refreshStatus();
+    } catch (e) {
+      setMsg({ ok: false, text: (e as Error).message });
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const handleDisable = async () => {
+    setBusy(true);
+    setMsg(null);
+    try {
+      await post('/api/admin/2fa/disable', { code: disableCode.trim() });
+      setDisableCode('');
+      setShowDisable(false);
+      setStep('idle');
+      setBackupCodes([]);
+      await refreshStatus();
+      setMsg({ ok: true, text: 'İki adımlı doğrulama kapatıldı.' });
+    } catch (e) {
+      setMsg({ ok: false, text: (e as Error).message });
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const handleRegenerate = async () => {
+    setBusy(true);
+    setMsg(null);
+    try {
+      const data = await post('/api/admin/2fa/backup-codes/regenerate', { code: regenCode.trim() });
+      setBackupCodes(data.backupCodes || []);
+      setStep('backup');
+      setShowRegen(false);
+      setRegenCode('');
+      await refreshStatus();
+    } catch (e) {
+      setMsg({ ok: false, text: (e as Error).message });
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const copyBackupCodes = () => {
+    navigator.clipboard?.writeText(backupCodes.join('\n')).then(
+      () => setMsg({ ok: true, text: 'Yedek kodlar panoya kopyalandı.' }),
+      () => setMsg({ ok: false, text: 'Kopyalama başarısız — kodları elle not edin.' }),
+    );
+  };
+
+  const enabled = status?.enabled ?? false;
+
+  return (
+    <div className="bg-white border border-neutral-200 rounded-xl p-6" data-testid="card-two-factor">
+      <div className="flex items-center gap-3 mb-6">
+        <div className={`p-2 rounded-lg ${enabled ? 'bg-emerald-50' : 'bg-neutral-50'}`}>
+          <ShieldCheck className={`w-5 h-5 ${enabled ? 'text-emerald-600' : 'text-neutral-900'}`} />
+        </div>
+        <div className="flex-1">
+          <h3 className="text-lg font-semibold text-neutral-900">İki Adımlı Doğrulama (Google Authenticator)</h3>
+          <p className="text-sm text-neutral-500">
+            Girişte şifreye ek olarak telefonunuzdaki uygulamadan 6 haneli kod istenir.
+            Google Authenticator, Authy veya benzeri bir TOTP uygulamasıyla çalışır.
+          </p>
+        </div>
+        {status && (
+          <span
+            className={`shrink-0 px-2.5 py-1 rounded-full text-[11px] font-semibold ${
+              enabled ? 'bg-emerald-50 text-emerald-700 border border-emerald-200' : 'bg-neutral-100 text-neutral-500 border border-neutral-200'
+            }`}
+            data-testid="text-2fa-status"
+          >
+            {enabled ? 'Aktif' : 'Kapalı'}
+          </span>
+        )}
+      </div>
+
+      {msg && (
+        <div
+          className={`p-3 rounded-lg mb-4 text-xs font-medium ${
+            msg.ok ? 'bg-emerald-50 border border-emerald-200 text-emerald-800' : 'bg-red-50 border border-red-200 text-red-700'
+          }`}
+          data-testid="text-2fa-message"
+        >
+          {msg.text}
+        </div>
+      )}
+
+      {/* KAPALI — kurulum başlat */}
+      {!enabled && step === 'idle' && (
+        <div className="space-y-3">
+          <div className="p-3 bg-amber-50 border border-amber-200 rounded-lg text-xs text-amber-800">
+            Önerilir: Panel yalnızca şifreyle korunuyor. İki adımlı doğrulama, şifreniz ele geçse bile hesabınızı korur.
+          </div>
+          <div className="flex flex-col sm:flex-row gap-3 sm:items-end">
+            <div className="flex-1 max-w-sm">
+              <label className="block text-sm font-medium text-neutral-500 mb-2">Mevcut Şifre</label>
+              <input
+                type="password"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                placeholder="Onay için şifreniz"
+                autoComplete="current-password"
+                className="w-full px-4 py-3 bg-neutral-50 border border-neutral-200 rounded-lg text-neutral-900"
+                data-testid="input-2fa-password"
+              />
+            </div>
+            <button
+              onClick={handleStartSetup}
+              disabled={busy || !password}
+              className="flex items-center gap-2 px-6 py-3 bg-neutral-900 text-white rounded-lg hover:bg-neutral-700 transition-colors disabled:opacity-50 font-medium"
+              data-testid="button-2fa-start"
+            >
+              {busy ? <Loader2 className="w-4 h-4 animate-spin" /> : <ShieldCheck className="w-4 h-4" />}
+              Kurulumu Başlat
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* KURULUM — QR + doğrulama */}
+      {!enabled && step === 'setup' && setupData && (
+        <div className="space-y-4">
+          <ol className="text-sm text-neutral-600 list-decimal list-inside space-y-1">
+            <li>Telefonunuza <span className="font-medium">Google Authenticator</span> uygulamasını indirin.</li>
+            <li>Uygulamada “+” → “QR kodu tara” deyip aşağıdaki kodu okutun.</li>
+            <li>Uygulamanın gösterdiği 6 haneli kodu girip onaylayın.</li>
+          </ol>
+          <div className="flex flex-col sm:flex-row gap-5 items-start">
+            <img
+              src={setupData.qrDataUrl}
+              alt="Google Authenticator QR kodu"
+              className="w-[180px] h-[180px] border border-neutral-200 rounded-lg p-2 bg-white shrink-0"
+              data-testid="img-2fa-qr"
+            />
+            <div className="flex-1 space-y-3 w-full">
+              <div>
+                <label className="block text-sm font-medium text-neutral-500 mb-1">QR okutamıyorsanız — manuel anahtar</label>
+                <code className="block px-3 py-2 bg-neutral-50 border border-neutral-200 rounded-lg text-[13px] font-mono text-neutral-800 break-all select-all" data-testid="text-2fa-manual-key">
+                  {setupData.manualKey}
+                </code>
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-neutral-500 mb-1">Uygulamadaki 6 Haneli Kod</label>
+                <input
+                  type="text"
+                  inputMode="numeric"
+                  maxLength={6}
+                  value={verifyCode}
+                  onChange={(e) => setVerifyCode(e.target.value.replace(/\D/g, ''))}
+                  placeholder="123456"
+                  className="w-40 px-4 py-3 bg-neutral-50 border border-neutral-200 rounded-lg text-neutral-900 font-mono text-center tracking-[0.25em]"
+                  data-testid="input-2fa-verify-code"
+                />
+              </div>
+              <div className="flex gap-2">
+                <button
+                  onClick={handleEnable}
+                  disabled={busy || verifyCode.length !== 6}
+                  className="flex items-center gap-2 px-6 py-3 bg-emerald-600 text-white rounded-lg hover:bg-emerald-700 transition-colors disabled:opacity-50 font-medium"
+                  data-testid="button-2fa-enable"
+                >
+                  {busy ? <Loader2 className="w-4 h-4 animate-spin" /> : <CheckCircle2 className="w-4 h-4" />}
+                  Doğrula ve Aktifleştir
+                </button>
+                <button
+                  onClick={() => { setStep('idle'); setSetupData(null); setVerifyCode(''); setMsg(null); }}
+                  className="px-4 py-3 text-sm text-neutral-500 hover:text-neutral-900 transition-colors"
+                  data-testid="button-2fa-cancel-setup"
+                >
+                  Vazgeç
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* YEDEK KODLAR — tek seferlik gösterim */}
+      {step === 'backup' && backupCodes.length > 0 && (
+        <div className="space-y-4">
+          <div className="p-3 bg-emerald-50 border border-emerald-200 rounded-lg text-sm text-emerald-800 font-medium">
+            ✓ İki adımlı doğrulama aktifleştirildi!
+          </div>
+          <div className="p-4 bg-amber-50 border border-amber-200 rounded-lg">
+            <p className="text-sm font-semibold text-amber-900 mb-1">Yedek kodlarınızı şimdi kaydedin — bir daha gösterilmeyecek</p>
+            <p className="text-xs text-amber-800 mb-3">
+              Telefonunuza erişemezseniz bu kodlardan biriyle giriş yapabilirsiniz. Her kod bir kez kullanılır.
+            </p>
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 mb-3">
+              {backupCodes.map((c) => (
+                <code key={c} className="px-2 py-1.5 bg-white border border-amber-200 rounded text-[13px] font-mono text-center text-neutral-800 select-all">
+                  {c}
+                </code>
+              ))}
+            </div>
+            <button
+              onClick={copyBackupCodes}
+              className="flex items-center gap-2 px-4 py-2 bg-white border border-amber-300 text-amber-900 rounded-lg hover:bg-amber-100 transition-colors text-sm font-medium"
+              data-testid="button-2fa-copy-backup"
+            >
+              <Copy className="w-3.5 h-3.5" />
+              Kodları Kopyala
+            </button>
+          </div>
+          <button
+            onClick={() => { setStep('idle'); setBackupCodes([]); setMsg(null); }}
+            className="px-6 py-3 bg-neutral-900 text-white rounded-lg hover:bg-neutral-700 transition-colors font-medium"
+            data-testid="button-2fa-backup-done"
+          >
+            Kodları Kaydettim, Bitir
+          </button>
+        </div>
+      )}
+
+      {/* AKTİF — durum + kapatma */}
+      {enabled && step === 'idle' && (
+        <div className="space-y-3">
+          <p className="text-sm text-neutral-600">
+            Girişlerde artık 6 haneli doğrulama kodu isteniyor.
+            {typeof status?.backupCodesRemaining === 'number' && (
+              <> Kalan yedek kod: <span className="font-semibold">{status.backupCodesRemaining}</span></>
+            )}
+          </p>
+          {showRegen && (
+            <div className="p-4 border border-neutral-200 bg-neutral-50 rounded-lg space-y-3 max-w-md">
+              <p className="text-sm text-neutral-700 font-medium">
+                Yeni yedek kodlar üretmek için uygulamadaki 6 haneli kodu girin. Eski kodlar geçersiz olur.
+              </p>
+              <input
+                type="text"
+                inputMode="numeric"
+                maxLength={6}
+                value={regenCode}
+                onChange={(e) => setRegenCode(e.target.value.replace(/\D/g, ''))}
+                placeholder="123456"
+                className="w-40 px-4 py-3 bg-white border border-neutral-200 rounded-lg text-neutral-900 font-mono text-center tracking-[0.25em]"
+                data-testid="input-2fa-regen-code"
+              />
+              <div className="flex gap-2">
+                <button
+                  onClick={handleRegenerate}
+                  disabled={busy || regenCode.length !== 6}
+                  className="flex items-center gap-2 px-5 py-2.5 bg-neutral-900 text-white rounded-lg hover:bg-neutral-700 transition-colors disabled:opacity-50 text-sm font-medium"
+                  data-testid="button-2fa-regenerate"
+                >
+                  {busy ? <Loader2 className="w-4 h-4 animate-spin" /> : <KeyRound className="w-4 h-4" />}
+                  Yeni Kodlar Üret
+                </button>
+                <button
+                  onClick={() => { setShowRegen(false); setRegenCode(''); }}
+                  className="px-4 py-2.5 text-sm text-neutral-500 hover:text-neutral-900 transition-colors"
+                >
+                  Vazgeç
+                </button>
+              </div>
+            </div>
+          )}
+          {!showDisable ? (
+            <div className="flex flex-wrap gap-2">
+              {!showRegen && (
+                <button
+                  onClick={() => { setShowRegen(true); setMsg(null); }}
+                  className="px-4 py-2.5 text-sm font-medium text-neutral-700 border border-neutral-200 rounded-lg hover:bg-neutral-50 transition-colors"
+                  data-testid="button-2fa-show-regen"
+                >
+                  Yedek Kodları Yenile
+                </button>
+              )}
+              <button
+                onClick={() => { setShowDisable(true); setShowRegen(false); setMsg(null); }}
+                className="px-4 py-2.5 text-sm font-medium text-red-600 border border-red-200 rounded-lg hover:bg-red-50 transition-colors"
+                data-testid="button-2fa-show-disable"
+              >
+                İki Adımlı Doğrulamayı Kapat
+              </button>
+            </div>
+          ) : (
+            <div className="p-4 border border-red-200 bg-red-50 rounded-lg space-y-3 max-w-md">
+              <p className="text-sm text-red-800 font-medium">
+                Kapatmak için uygulamadaki 6 haneli kodu (veya bir yedek kodu) girin.
+              </p>
+              <input
+                type="text"
+                value={disableCode}
+                onChange={(e) => setDisableCode(e.target.value)}
+                placeholder="123456 veya XXXX-XXXX"
+                className="w-full px-4 py-3 bg-white border border-red-200 rounded-lg text-neutral-900 font-mono"
+                data-testid="input-2fa-disable-code"
+              />
+              <div className="flex gap-2">
+                <button
+                  onClick={handleDisable}
+                  disabled={busy || !disableCode.trim()}
+                  className="flex items-center gap-2 px-5 py-2.5 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors disabled:opacity-50 text-sm font-medium"
+                  data-testid="button-2fa-disable"
+                >
+                  {busy ? <Loader2 className="w-4 h-4 animate-spin" /> : <XCircle className="w-4 h-4" />}
+                  Kapat
+                </button>
+                <button
+                  onClick={() => { setShowDisable(false); setDisableCode(''); }}
+                  className="px-4 py-2.5 text-sm text-neutral-500 hover:text-neutral-900 transition-colors"
+                >
+                  Vazgeç
+                </button>
+              </div>
+            </div>
+          )}
+        </div>
+      )}
+    </div>
+  );
+}
+
 function GoogleOAuthSection() {
   const qc = useQueryClient();
   const [clientId, setClientId] = useState('');

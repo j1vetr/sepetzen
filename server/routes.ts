@@ -5,6 +5,8 @@ import { DEFAULT_FREE_SHIPPING_THRESHOLD, DEFAULT_DOMESTIC_SHIPPING_COST, DEFAUL
 import { z } from "zod";
 import bcrypt from "bcrypt";
 import crypto from "crypto";
+import * as twoFactor from "./adminTwoFactor";
+import * as authRateLimit from "./authRateLimit";
 import multer from "multer";
 import path from "path";
 import fs from "fs";
@@ -927,12 +929,39 @@ export async function registerRoutes(
   // Admin Authentication with JWT
   app.post("/api/admin/login", async (req: Request, res) => {
     try {
-      const { username, password } = req.body;
+      const { username, password, totpCode } = req.body;
+
+      // Hız limiti: kullanıcı adı + IP bazında (şifre ve 2FA denemeleri dahil)
+      const rlKey = authRateLimit.normalizeKey('admin-login', String(username || ''), req.ip);
+      const lockedFor = authRateLimit.lockedForSeconds(rlKey);
+      if (lockedFor > 0) {
+        return res.status(429).json({
+          error: `Çok fazla başarısız deneme. ${Math.ceil(lockedFor / 60)} dakika sonra tekrar deneyin.`,
+        });
+      }
+
       const user = await storage.getAdminUserByUsername(username);
 
       if (!user || !(await bcrypt.compare(password, user.password))) {
+        authRateLimit.recordFailure(rlKey);
         return res.status(401).json({ error: "Invalid credentials" });
       }
+
+      // İki adımlı doğrulama aktifse kod zorunlu
+      if (user.totpEnabled) {
+        if (typeof totpCode !== 'string' || !totpCode.trim()) {
+          // Şifre doğru — cookie VERME, kod adımını iste
+          return res.json({ requiresTotp: true });
+        }
+        const result = await twoFactor.verifyLoginCode(user, totpCode);
+        if (!result.ok) {
+          authRateLimit.recordFailure(rlKey);
+          console.warn(`[2FA] ${user.username} için geçersiz doğrulama kodu (IP: ${req.ip})`);
+          return res.status(401).json({ error: "Doğrulama kodu hatalı", requiresTotp: true });
+        }
+      }
+
+      authRateLimit.recordSuccess(rlKey);
 
       const payload = { adminUserId: user.id, email: user.username, type: 'admin' as const };
       const accessToken = generateAccessToken(payload);
@@ -1047,6 +1076,187 @@ export async function registerRoutes(
     } catch (error) {
       console.error('[AdminAccount] update error:', error);
       res.status(500).json({ error: "Hesap güncellenemedi" });
+    }
+  });
+
+  // ── İki Adımlı Doğrulama (TOTP / Google Authenticator) ──────────────────
+  const getAdminFromRequest = async (req: Request, res: Response) => {
+    const payload = await getAuthPayload(req, res);
+    if (!payload || payload.type !== 'admin' || !payload.adminUserId) return null;
+    return (await storage.getAdminUser(payload.adminUserId)) ?? null;
+  };
+
+  app.get("/api/admin/2fa/status", async (req: Request, res) => {
+    const user = await getAdminFromRequest(req, res);
+    if (!user) return res.status(401).json({ error: "Not authenticated" });
+    let backupCodesRemaining = 0;
+    if (user.totpBackupCodes) {
+      try {
+        const arr = JSON.parse(user.totpBackupCodes);
+        if (Array.isArray(arr)) backupCodesRemaining = arr.length;
+      } catch { /* yok say */ }
+    }
+    res.json({
+      enabled: user.totpEnabled,
+      pendingSetup: !user.totpEnabled && !!user.totpSecret,
+      backupCodesRemaining: user.totpEnabled ? backupCodesRemaining : 0,
+    });
+  });
+
+  // Kurulumu başlat: yeni secret üret, şifreli (pending) kaydet, QR döndür
+  app.post("/api/admin/2fa/setup", async (req: Request, res) => {
+    try {
+      const user = await getAdminFromRequest(req, res);
+      if (!user) return res.status(401).json({ error: "Not authenticated" });
+      if (user.totpEnabled) {
+        return res.status(400).json({ error: "İki adımlı doğrulama zaten aktif. Önce kapatın." });
+      }
+
+      const { currentPassword } = req.body || {};
+      if (typeof currentPassword !== 'string' || !currentPassword) {
+        return res.status(400).json({ error: "Mevcut şifrenizi girin" });
+      }
+      if (!(await bcrypt.compare(currentPassword, user.password))) {
+        return res.status(401).json({ error: "Şifre hatalı" });
+      }
+
+      const secret = twoFactor.generateTotpSecret();
+      await storage.updateAdminUserSecurity(user.id, {
+        totpSecret: twoFactor.encryptTotpSecret(secret),
+        totpEnabled: false,
+        totpBackupCodes: null,
+      });
+
+      const otpauthUrl = twoFactor.buildOtpauthUrl(user.username, secret);
+      const qrDataUrl = await twoFactor.buildQrDataUrl(otpauthUrl);
+      res.json({ qrDataUrl, manualKey: secret, otpauthUrl });
+    } catch (error) {
+      console.error('[2FA] setup error:', error);
+      res.status(500).json({ error: "Kurulum başlatılamadı" });
+    }
+  });
+
+  // Kurulumu doğrula ve aktifleştir; yedek kodları bir kez döndür
+  app.post("/api/admin/2fa/enable", async (req: Request, res) => {
+    try {
+      const user = await getAdminFromRequest(req, res);
+      if (!user) return res.status(401).json({ error: "Not authenticated" });
+      if (user.totpEnabled) {
+        return res.status(400).json({ error: "İki adımlı doğrulama zaten aktif" });
+      }
+      if (!user.totpSecret) {
+        return res.status(400).json({ error: "Önce kurulumu başlatın" });
+      }
+
+      const { code } = req.body || {};
+      if (typeof code !== 'string' || !code.trim()) {
+        return res.status(400).json({ error: "Doğrulama kodunu girin" });
+      }
+
+      const rlKey = authRateLimit.normalizeKey('2fa-action', user.id);
+      const lockedFor = authRateLimit.lockedForSeconds(rlKey);
+      if (lockedFor > 0) {
+        return res.status(429).json({ error: `Çok fazla hatalı kod. ${Math.ceil(lockedFor / 60)} dakika sonra tekrar deneyin.` });
+      }
+
+      const secret = twoFactor.decryptTotpSecret(user.totpSecret);
+      if (!(await twoFactor.verifyAndConsumeTotp(user.id, secret, code))) {
+        authRateLimit.recordFailure(rlKey);
+        return res.status(400).json({ error: "Kod hatalı veya süresi geçti. Uygulamadaki güncel kodu girin." });
+      }
+      authRateLimit.recordSuccess(rlKey);
+
+      const backupCodes = twoFactor.generateBackupCodes();
+      await storage.updateAdminUserSecurity(user.id, {
+        totpEnabled: true,
+        totpBackupCodes: await twoFactor.hashBackupCodes(backupCodes),
+      });
+
+      console.log(`[2FA] ${user.username} iki adımlı doğrulamayı aktifleştirdi`);
+      res.json({ success: true, backupCodes });
+    } catch (error) {
+      console.error('[2FA] enable error:', error);
+      res.status(500).json({ error: "Aktifleştirme başarısız" });
+    }
+  });
+
+  // Kapat: geçerli TOTP veya yedek kod gerekli
+  app.post("/api/admin/2fa/disable", async (req: Request, res) => {
+    try {
+      const user = await getAdminFromRequest(req, res);
+      if (!user) return res.status(401).json({ error: "Not authenticated" });
+      if (!user.totpEnabled) {
+        return res.status(400).json({ error: "İki adımlı doğrulama zaten kapalı" });
+      }
+
+      const { code } = req.body || {};
+      if (typeof code !== 'string' || !code.trim()) {
+        return res.status(400).json({ error: "Doğrulama kodunu girin" });
+      }
+
+      const rlKey = authRateLimit.normalizeKey('2fa-action', user.id);
+      const lockedFor = authRateLimit.lockedForSeconds(rlKey);
+      if (lockedFor > 0) {
+        return res.status(429).json({ error: `Çok fazla hatalı kod. ${Math.ceil(lockedFor / 60)} dakika sonra tekrar deneyin.` });
+      }
+
+      const result = await twoFactor.verifyLoginCode(user, code);
+      if (!result.ok) {
+        authRateLimit.recordFailure(rlKey);
+        return res.status(401).json({ error: "Doğrulama kodu hatalı" });
+      }
+      authRateLimit.recordSuccess(rlKey);
+
+      await storage.updateAdminUserSecurity(user.id, {
+        totpSecret: null,
+        totpEnabled: false,
+        totpBackupCodes: null,
+        totpLastUsedStep: null,
+      });
+
+      console.log(`[2FA] ${user.username} iki adımlı doğrulamayı kapattı`);
+      res.json({ success: true });
+    } catch (error) {
+      console.error('[2FA] disable error:', error);
+      res.status(500).json({ error: "Kapatma başarısız" });
+    }
+  });
+
+  // Yedek kodları yenile (2FA aktifken, geçerli kod gerekli)
+  app.post("/api/admin/2fa/backup-codes/regenerate", async (req: Request, res) => {
+    try {
+      const user = await getAdminFromRequest(req, res);
+      if (!user) return res.status(401).json({ error: "Not authenticated" });
+      if (!user.totpEnabled || !user.totpSecret) {
+        return res.status(400).json({ error: "İki adımlı doğrulama aktif değil" });
+      }
+
+      const { code } = req.body || {};
+      if (typeof code !== 'string' || !code.trim()) {
+        return res.status(400).json({ error: "Doğrulama kodunu girin" });
+      }
+
+      const rlKey = authRateLimit.normalizeKey('2fa-action', user.id);
+      const lockedFor = authRateLimit.lockedForSeconds(rlKey);
+      if (lockedFor > 0) {
+        return res.status(429).json({ error: `Çok fazla hatalı kod. ${Math.ceil(lockedFor / 60)} dakika sonra tekrar deneyin.` });
+      }
+
+      const secret = twoFactor.decryptTotpSecret(user.totpSecret);
+      if (!(await twoFactor.verifyAndConsumeTotp(user.id, secret, code))) {
+        authRateLimit.recordFailure(rlKey);
+        return res.status(401).json({ error: "Doğrulama kodu hatalı" });
+      }
+      authRateLimit.recordSuccess(rlKey);
+
+      const backupCodes = twoFactor.generateBackupCodes();
+      await storage.updateAdminUserSecurity(user.id, {
+        totpBackupCodes: await twoFactor.hashBackupCodes(backupCodes),
+      });
+      res.json({ success: true, backupCodes });
+    } catch (error) {
+      console.error('[2FA] backup regenerate error:', error);
+      res.status(500).json({ error: "Yedek kodlar yenilenemedi" });
     }
   });
 
