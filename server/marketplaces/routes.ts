@@ -707,9 +707,11 @@ export function registerMarketplaceRoutes(
 
     const product = await storage.getProduct(d.productId);
     if (!product) return res.status(404).json({ message: "Ürün bulunamadı" });
-    const images = (product.images ?? []).filter(Boolean);
+    // Video URL'lerini filtrele — Trendyol yalnızca görsel URL kabul eder.
+    const VIDEO_EXTS = /\.(mp4|webm|mov|avi|mkv|ogg|ogv|flv|wmv)(\?.*)?$/i;
+    const images = (product.images ?? []).filter((u) => u && !VIDEO_EXTS.test(u));
     if (images.length === 0) {
-      return res.status(400).json({ message: "Ürünün en az bir görseli olmalı." });
+      return res.status(400).json({ message: "Ürünün en az bir görseli olmalı (video URL'leri Trendyol'a gönderilmez)." });
     }
     // Fiyat kuralı: yüzde artış veya sabit Trendyol fiyatı (yoksa site fiyatı)
     const salePrice = applyPriceRule(Number(product.basePrice), d.priceRule);

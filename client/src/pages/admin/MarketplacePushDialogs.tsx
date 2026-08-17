@@ -19,6 +19,7 @@ import {
   ShoppingCart,
   AlertTriangle,
   Percent,
+  VideoOff,
 } from 'lucide-react';
 import AdminModal from './_ui/AdminModal';
 import {
@@ -568,6 +569,56 @@ export function ProductLinksDialog({
 }
 
 // ============================================================================
+// Medya önizleme — video URL'leri pasif gösterilir
+// ============================================================================
+const VIDEO_EXTS = /\.(mp4|webm|mov|avi|mkv|ogg|ogv|flv|wmv)(\?.*)?$/i;
+
+function isVideoUrl(url: string): boolean {
+  return VIDEO_EXTS.test(url);
+}
+
+function MediaPreviewStrip({ images }: { images: string[] }) {
+  const imageUrls = images.filter((u) => !isVideoUrl(u));
+  const videoUrls = images.filter((u) => isVideoUrl(u));
+  if (imageUrls.length === 0 && videoUrls.length === 0) return null;
+  return (
+    <div>
+      <div className="text-[11px] font-medium text-neutral-500 mb-1.5">
+        Ürün medyası — yalnızca görseller Trendyol'a gönderilir
+      </div>
+      <div className="flex flex-wrap gap-1.5" data-testid="media-preview-strip">
+        {imageUrls.map((url, i) => (
+          <div
+            key={i}
+            className="relative w-14 h-14 rounded border border-neutral-200 overflow-hidden bg-neutral-100 flex-shrink-0"
+            title={url}
+            data-testid="media-thumb-image"
+          >
+            <img src={url} alt="" className="w-full h-full object-cover" />
+          </div>
+        ))}
+        {videoUrls.map((url, i) => (
+          <div
+            key={`v${i}`}
+            className="relative w-14 h-14 rounded border border-neutral-300 overflow-hidden bg-neutral-200 flex-shrink-0 flex flex-col items-center justify-center gap-0.5 opacity-50"
+            title={`Video (Trendyol'a gönderilmez): ${url}`}
+            data-testid="media-thumb-video"
+          >
+            <VideoOff className="w-5 h-5 text-neutral-500" />
+            <span className="text-[9px] text-neutral-500 font-medium leading-none">video</span>
+          </div>
+        ))}
+      </div>
+      {videoUrls.length > 0 && (
+        <div className="mt-1 text-[10.5px] text-amber-600">
+          {videoUrls.length} video URL{videoUrls.length > 1 ? 'si' : 'su'} Trendyol payload'ından otomatik çıkarılır.
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ============================================================================
 // Gönderim sihirbazı — kategori + marka + zorunlu özellikler + fiyat meta
 // ============================================================================
 function PushWizardDialog({
@@ -764,6 +815,11 @@ function PushWizardDialog({
       }
     >
       <div className="space-y-4" data-testid="dialog-push-wizard">
+        {/* Medya önizleme — video URL'leri Trendyol'a gönderilmez */}
+        {(product.images ?? []).length > 0 && (
+          <MediaPreviewStrip images={product.images ?? []} />
+        )}
+
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
           <FormField label="Barkod *" hint="Trendyol'da tekil olmalı; onaydan sonra değiştirilemez.">
             <TextInput
