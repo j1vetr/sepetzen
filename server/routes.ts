@@ -933,7 +933,7 @@ export async function registerRoutes(
 
       // Hız limiti: kullanıcı adı + IP bazında (şifre ve 2FA denemeleri dahil)
       const rlKey = authRateLimit.normalizeKey('admin-login', String(username || ''), req.ip);
-      const lockedFor = authRateLimit.lockedForSeconds(rlKey);
+      const lockedFor = await authRateLimit.lockedForSeconds(rlKey);
       if (lockedFor > 0) {
         return res.status(429).json({
           error: `Çok fazla başarısız deneme. ${Math.ceil(lockedFor / 60)} dakika sonra tekrar deneyin.`,
@@ -943,7 +943,7 @@ export async function registerRoutes(
       const user = await storage.getAdminUserByUsername(username);
 
       if (!user || !(await bcrypt.compare(password, user.password))) {
-        authRateLimit.recordFailure(rlKey);
+        await authRateLimit.recordFailure(rlKey);
         return res.status(401).json({ error: "Invalid credentials" });
       }
 
@@ -955,13 +955,13 @@ export async function registerRoutes(
         }
         const result = await twoFactor.verifyLoginCode(user, totpCode);
         if (!result.ok) {
-          authRateLimit.recordFailure(rlKey);
+          await authRateLimit.recordFailure(rlKey);
           console.warn(`[2FA] ${user.username} için geçersiz doğrulama kodu (IP: ${req.ip})`);
           return res.status(401).json({ error: "Doğrulama kodu hatalı", requiresTotp: true });
         }
       }
 
-      authRateLimit.recordSuccess(rlKey);
+      await authRateLimit.recordSuccess(rlKey);
 
       const payload = { adminUserId: user.id, email: user.username, type: 'admin' as const };
       const accessToken = generateAccessToken(payload);
@@ -1154,17 +1154,17 @@ export async function registerRoutes(
       }
 
       const rlKey = authRateLimit.normalizeKey('2fa-action', user.id);
-      const lockedFor = authRateLimit.lockedForSeconds(rlKey);
+      const lockedFor = await authRateLimit.lockedForSeconds(rlKey);
       if (lockedFor > 0) {
         return res.status(429).json({ error: `Çok fazla hatalı kod. ${Math.ceil(lockedFor / 60)} dakika sonra tekrar deneyin.` });
       }
 
       const secret = twoFactor.decryptTotpSecret(user.totpSecret);
       if (!(await twoFactor.verifyAndConsumeTotp(user.id, secret, code))) {
-        authRateLimit.recordFailure(rlKey);
+        await authRateLimit.recordFailure(rlKey);
         return res.status(400).json({ error: "Kod hatalı veya süresi geçti. Uygulamadaki güncel kodu girin." });
       }
-      authRateLimit.recordSuccess(rlKey);
+      await authRateLimit.recordSuccess(rlKey);
 
       const backupCodes = twoFactor.generateBackupCodes();
       await storage.updateAdminUserSecurity(user.id, {
@@ -1195,17 +1195,17 @@ export async function registerRoutes(
       }
 
       const rlKey = authRateLimit.normalizeKey('2fa-action', user.id);
-      const lockedFor = authRateLimit.lockedForSeconds(rlKey);
+      const lockedFor = await authRateLimit.lockedForSeconds(rlKey);
       if (lockedFor > 0) {
         return res.status(429).json({ error: `Çok fazla hatalı kod. ${Math.ceil(lockedFor / 60)} dakika sonra tekrar deneyin.` });
       }
 
       const result = await twoFactor.verifyLoginCode(user, code);
       if (!result.ok) {
-        authRateLimit.recordFailure(rlKey);
+        await authRateLimit.recordFailure(rlKey);
         return res.status(401).json({ error: "Doğrulama kodu hatalı" });
       }
-      authRateLimit.recordSuccess(rlKey);
+      await authRateLimit.recordSuccess(rlKey);
 
       await storage.updateAdminUserSecurity(user.id, {
         totpSecret: null,
@@ -1237,17 +1237,17 @@ export async function registerRoutes(
       }
 
       const rlKey = authRateLimit.normalizeKey('2fa-action', user.id);
-      const lockedFor = authRateLimit.lockedForSeconds(rlKey);
+      const lockedFor = await authRateLimit.lockedForSeconds(rlKey);
       if (lockedFor > 0) {
         return res.status(429).json({ error: `Çok fazla hatalı kod. ${Math.ceil(lockedFor / 60)} dakika sonra tekrar deneyin.` });
       }
 
       const secret = twoFactor.decryptTotpSecret(user.totpSecret);
       if (!(await twoFactor.verifyAndConsumeTotp(user.id, secret, code))) {
-        authRateLimit.recordFailure(rlKey);
+        await authRateLimit.recordFailure(rlKey);
         return res.status(401).json({ error: "Doğrulama kodu hatalı" });
       }
-      authRateLimit.recordSuccess(rlKey);
+      await authRateLimit.recordSuccess(rlKey);
 
       const backupCodes = twoFactor.generateBackupCodes();
       await storage.updateAdminUserSecurity(user.id, {

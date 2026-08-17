@@ -16,6 +16,21 @@ export const adminUsers = pgTable("admin_users", {
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
 
+/**
+ * Admin girişi ve 2FA hız limiti sayaçları — DB'de tutularak sunucu
+ * yeniden başlatmalarında ve çok-instance dağıtımda sıfırlanmaz.
+ *
+ * Sabit pencere: pencere başından itibaren MAX_FAILURES hata → kilit.
+ * Başarılı girişte satır silinir (sayaç sıfırlanır).
+ */
+export const authRateLimits = pgTable("auth_rate_limits", {
+  key: text("key").primaryKey(),
+  failureCount: integer("failure_count").notNull().default(0),
+  windowStart: timestamp("window_start", { withTimezone: true }).notNull().defaultNow(),
+  lockedUntil: timestamp("locked_until", { withTimezone: true }),
+  updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+});
+
 export const insertAdminUserSchema = createInsertSchema(adminUsers).pick({
   username: true,
   password: true,

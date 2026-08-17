@@ -90,6 +90,14 @@ app.use((req, res, next) => {
     console.error("[index] WhatsApp default-template upgrade failed:", err);
   }
 
+  // Auth hız limiti tablosunu idempotent olarak oluştur (yeni deploy'larda garantili)
+  try {
+    const { ensureTable } = await import("./authRateLimit");
+    await ensureTable();
+  } catch (err) {
+    console.error("[index] authRateLimit ensureTable failed:", err);
+  }
+
   // Pazaryeri senkron zamanlayıcısı (Trendyol delta saatlik / full 03:00)
   try {
     const { startScheduler } = await import("./scheduler");
