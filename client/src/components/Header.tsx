@@ -301,7 +301,7 @@ export function Header() {
                 <div key={copy} className="flex shrink-0 items-center" aria-hidden={copy === 1}>
                   {announcements.map((msg) => (
                     <span key={msg} className="flex items-center whitespace-nowrap">
-                      <span className="px-5 text-white/70">{msg}</span>
+                      <span className="px-5 text-white hover:text-white/70 transition-colors cursor-default">{msg}</span>
                       <span className="text-white/30">✦</span>
                     </span>
                   ))}
@@ -330,7 +330,7 @@ export function Header() {
             <div key={copy} className="flex shrink-0 items-center" aria-hidden={copy === 1}>
               {announcements.map((msg) => (
                 <span key={msg} className="flex items-center whitespace-nowrap">
-                  <span className="px-5">{msg}</span>
+                  <span className="px-5 text-white hover:text-white/70 transition-colors cursor-default">{msg}</span>
                   <span className="text-white/30">✦</span>
                 </span>
               ))}
@@ -541,7 +541,7 @@ export function Header() {
               >
                 <DropdownMenuTrigger asChild>
                   <button
-                    className="all-cats-gold flex items-center gap-2 px-3 2xl:px-4 py-2.5 text-[10px] tracking-[0.10em] 2xl:tracking-[0.14em] uppercase font-bold whitespace-nowrap"
+                    className="all-cats-gold flex items-center gap-2 px-3 2xl:px-4 py-2.5 text-[10px] tracking-[0.10em] 2xl:tracking-[0.14em] uppercase font-bold whitespace-nowrap focus:outline-none focus-visible:outline-none focus:ring-0 focus-visible:ring-0"
                     data-testid="button-all-categories"
                     onMouseEnter={openAllCats}
                     onMouseLeave={closeAllCats}
@@ -1076,7 +1076,7 @@ export function Header() {
 
                       if (isSubmenu) {
                         return (
-                          <motion.li key={root.id} variants={stagger.item} className="border-t border-white/[0.07]">
+                          <motion.li key={root.id} variants={stagger.item} className="">
                             <button
                               onClick={() => setMobileSubOpen(s => ({ ...s, [root.id]: !s[root.id] }))}
                               className="group relative w-full flex items-center justify-between py-3.5"
@@ -1161,7 +1161,7 @@ export function Header() {
 
                       const href = hrefForMenu(root);
                       return (
-                        <motion.li key={root.id} variants={stagger.item} className="border-t border-white/[0.07]">
+                        <motion.li key={root.id} variants={stagger.item} className="">
                           <Link
                             href={href}
                             onClick={() => setMobileOpen(false)}
@@ -1179,7 +1179,7 @@ export function Header() {
                   ) : (
                     visibleCategories.map((c) => {
                       return (
-                        <motion.li key={c.id} variants={stagger.item} className="border-t border-white/[0.07]">
+                        <motion.li key={c.id} variants={stagger.item} className="">
                           <Link
                             href={`/kategori/${c.slug}`}
                             onClick={() => setMobileOpen(false)}
@@ -1197,7 +1197,7 @@ export function Header() {
                   )}
 
                   {user && (
-                    <motion.li variants={stagger.item} className="border-t border-b border-white/[0.07]">
+                    <motion.li variants={stagger.item} className="">
                       <Link
                         href="/hesabim"
                         onClick={() => setMobileOpen(false)}

@@ -1475,3 +1475,89 @@ export async function sendQuoteEmail(
     return { success: false, error: error.message };
   }
 }
+
+// ─── Contact Form Email ───────────────────────────────────────────────────────
+export async function sendContactEmail(params: {
+  name: string;
+  email: string;
+  subject: string;
+  message: string;
+}): Promise<EmailResult> {
+  try {
+    const transporter = await createTransporter();
+    if (!transporter) {
+      return { success: false, error: 'SMTP yapılandırması eksik' };
+    }
+
+    const settings = await storage.getSiteSettings();
+    const fromEmail = settings.smtp_user || 'no-reply@sepetzen.com';
+    const toEmail = settings.contact_email || fromEmail;
+
+    const html = `
+<!DOCTYPE html>
+<html lang="tr">
+<head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"></head>
+<body style="margin:0;padding:0;background:#f4f5f4;font-family:Arial,sans-serif;">
+<table width="100%" cellpadding="0" cellspacing="0" style="background:#f4f5f4;padding:32px 16px;">
+  <tr><td align="center">
+    <table width="560" cellpadding="0" cellspacing="0" style="max-width:560px;width:100%;background:#ffffff;border-radius:4px;overflow:hidden;border:1px solid #e0e8df;">
+      <!-- Header -->
+      <tr><td style="background:${BRAND.primary};padding:28px 32px;">
+        <div style="font-size:18px;font-weight:700;color:#ffffff;letter-spacing:2px;">SEPETZEN</div>
+        <div style="font-size:11px;color:rgba(255,255,255,0.65);letter-spacing:1px;margin-top:4px;">İLETİŞİM FORMU</div>
+      </td></tr>
+      <!-- Body -->
+      <tr><td style="padding:32px;">
+        <p style="margin:0 0 24px;font-size:15px;color:${BRAND.body};line-height:1.6;">
+          Web sitesindeki iletişim formundan yeni bir mesaj aldınız.
+        </p>
+        <!-- Info rows -->
+        <table width="100%" cellpadding="0" cellspacing="0" style="border:1px solid ${BRAND.borderSoft};border-radius:4px;overflow:hidden;margin-bottom:24px;">
+          <tr style="background:${BRAND.card};">
+            <td style="padding:10px 16px;font-size:11px;color:${BRAND.muted};letter-spacing:1px;text-transform:uppercase;font-weight:600;width:110px;">Ad Soyad</td>
+            <td style="padding:10px 16px;font-size:14px;color:${BRAND.ink};font-weight:600;">${escapeHtml(params.name)}</td>
+          </tr>
+          <tr>
+            <td style="padding:10px 16px;font-size:11px;color:${BRAND.muted};letter-spacing:1px;text-transform:uppercase;font-weight:600;border-top:1px solid ${BRAND.borderSoft};">E-posta</td>
+            <td style="padding:10px 16px;font-size:14px;color:${BRAND.ink};border-top:1px solid ${BRAND.borderSoft};">
+              <a href="mailto:${escapeHtml(params.email)}" style="color:${BRAND.primary};text-decoration:none;">${escapeHtml(params.email)}</a>
+            </td>
+          </tr>
+          <tr style="background:${BRAND.card};">
+            <td style="padding:10px 16px;font-size:11px;color:${BRAND.muted};letter-spacing:1px;text-transform:uppercase;font-weight:600;border-top:1px solid ${BRAND.borderSoft};">Konu</td>
+            <td style="padding:10px 16px;font-size:14px;color:${BRAND.ink};font-weight:600;border-top:1px solid ${BRAND.borderSoft};">${escapeHtml(params.subject)}</td>
+          </tr>
+        </table>
+        <!-- Message -->
+        <div style="font-size:11px;color:${BRAND.muted};letter-spacing:1px;text-transform:uppercase;font-weight:600;margin-bottom:10px;">Mesaj</div>
+        <div style="background:${BRAND.card};border:1px solid ${BRAND.borderSoft};border-radius:4px;padding:16px 20px;font-size:14px;color:${BRAND.body};line-height:1.7;white-space:pre-wrap;">${escapeHtml(params.message)}</div>
+        <!-- Reply hint -->
+        <p style="margin:24px 0 0;font-size:12px;color:${BRAND.muted};line-height:1.6;">
+          Bu e-postayı yanıtlayarak doğrudan <strong>${escapeHtml(params.name)}</strong> ile iletişime geçebilirsiniz.
+        </p>
+      </td></tr>
+      <!-- Footer -->
+      <tr><td style="background:${BRAND.bg};border-top:1px solid ${BRAND.border};padding:16px 32px;text-align:center;">
+        <p style="margin:0;font-size:11px;color:${BRAND.muted};">Sepetzen · ${CONTACT.addressLine1}, ${CONTACT.addressLine2}</p>
+      </td></tr>
+    </table>
+  </td></tr>
+</table>
+</body>
+</html>`;
+
+    await transporter.sendMail({
+      from: `"Sepetzen İletişim" <${fromEmail}>`,
+      to: toEmail,
+      replyTo: `"${params.name}" <${params.email}>`,
+      subject: `İletişim Formu: ${params.subject}`,
+      html,
+    });
+
+    console.log(`[Email] Contact form email sent from ${params.email}`);
+    return { success: true };
+  } catch (error: any) {
+    console.error('[Email] Failed to send contact email:', error);
+    return { success: false, error: error.message };
+  }
+}

@@ -89,7 +89,7 @@ export function validateInvoiceInfo(info: InvoiceInfo): string | null {
     if (!info.companyName) return "Kurumsal fatura için firma ünvanı gerekli";
     if (!info.taxOffice) return "Kurumsal fatura için vergi dairesi gerekli";
     if (!info.taxNumber) return "Kurumsal fatura için vergi numarası gerekli";
-    if (!/^\d{10}$/.test(info.taxNumber)) return "Vergi numarası 10 haneli olmalı";
+    if (!/^\d{10,11}$/.test(info.taxNumber)) return "Vergi numarası 10 veya 11 haneli olmalı";
     return null;
   }
   // TCKN bireysel faturada zorunlu değil; girildiyse formatı doğru olmalı.

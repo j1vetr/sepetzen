@@ -24,6 +24,7 @@ import {
   sendReviewRequestEmail,
   sendTestEmail,
   sendAbandonedCartEmail,
+  sendContactEmail,
   sendBankTransferPendingEmail,
   sendAdminReviewNotificationEmail,
   sendGuestReviewApprovedEmail,
@@ -1283,6 +1284,15 @@ export async function registerRoutes(
       res.json({ success: true });
     } catch (error) {
       res.status(500).json({ error: "Failed to delete user" });
+    }
+  });
+
+  app.get("/api/admin/users/:id/addresses", requireAdmin, async (req, res) => {
+    try {
+      const addresses = await storage.getUserAddresses(req.params.id);
+      res.json(addresses);
+    } catch (error) {
+      res.status(500).json({ error: "Failed to fetch user addresses" });
     }
   });
 
@@ -7291,6 +7301,36 @@ window.addEventListener('load', function() {
     } catch (error: any) {
       console.error('[Admin] Bulk cart reminder error:', error);
       res.status(500).json({ error: error.message || "E-postalar gönderilemedi" });
+    }
+  });
+
+  // ── Contact Form ──────────────────────────────────────────────────────────
+  app.post("/api/contact", async (req, res) => {
+    try {
+      const { name, email, subject, message } = req.body;
+      if (!name?.trim() || !email?.trim() || !message?.trim()) {
+        return res.status(400).json({ error: "Ad, e-posta ve mesaj alanları zorunludur" });
+      }
+      if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+        return res.status(400).json({ error: "Geçersiz e-posta adresi" });
+      }
+      if (message.length > 4000) {
+        return res.status(400).json({ error: "Mesaj çok uzun (en fazla 4000 karakter)" });
+      }
+      const result = await sendContactEmail({
+        name: name.trim(),
+        email: email.trim(),
+        subject: (subject?.trim() || 'Genel').slice(0, 200),
+        message: message.trim(),
+      });
+      if (!result.success) {
+        console.error('[Contact] Email send failed:', result.error);
+        return res.status(500).json({ error: "Mesajınız gönderilemedi. Lütfen daha sonra tekrar deneyin." });
+      }
+      res.json({ success: true });
+    } catch (error) {
+      console.error('[Contact] Unexpected error:', error);
+      res.status(500).json({ error: "Bir hata oluştu" });
     }
   });
 

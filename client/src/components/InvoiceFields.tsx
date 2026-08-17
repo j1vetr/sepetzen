@@ -150,14 +150,14 @@ export function InvoiceFields({
                       />
                     </div>
                     <div>
-                      <label className={labelClassName} htmlFor={`${testIdPrefix}-tax-number`}>Vergi No * (10 hane)</label>
+                      <label className={labelClassName} htmlFor={`${testIdPrefix}-tax-number`}>Vergi No * (10 veya 11 hane)</label>
                       <input
                         id={`${testIdPrefix}-tax-number`}
                         type="text"
                         inputMode="numeric"
-                        maxLength={10}
+                        maxLength={11}
                         value={value.taxNumber}
-                        onChange={(e) => set({ taxNumber: e.target.value.replace(/\D/g, '').slice(0, 10) })}
+                        onChange={(e) => set({ taxNumber: e.target.value.replace(/\D/g, '').slice(0, 11) })}
                         placeholder="1234567890"
                         className={inputClassName}
                         data-testid={`${testIdPrefix}-tax-number`}

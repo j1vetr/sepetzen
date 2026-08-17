@@ -66,7 +66,10 @@ export function useCartProvider() {
         body: JSON.stringify({ productId, variantId, quantity }),
         credentials: 'include',
       });
-      if (!res.ok) throw new Error('Sepete eklenemedi');
+      if (!res.ok) {
+        const body = await res.json().catch(() => ({}));
+        throw new Error(body?.error || 'Sepete eklenemedi');
+      }
       return res.json();
     },
   });

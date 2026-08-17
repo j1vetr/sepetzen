@@ -17,6 +17,7 @@ import {
   CheckCircle2, UserPlus, Tag, X, Instagram
 } from 'lucide-react';
 import { COUNTRIES } from '@/lib/countries';
+import CityDistrictSelect from '@/components/CityDistrictSelect';
 import { GoogleAuthButton } from '@/components/AuthLayout';
 import { BANK_TRANSFER_INFO } from '@shared/bankInfo';
 import { InvoiceFields, emptyInvoiceForm, invoiceFormFrom, invoicePayload, validateInvoiceForm, type InvoiceFormValue } from '@/components/InvoiceFields';
@@ -1355,30 +1356,29 @@ export default function Checkout() {
                           </div>
 
                           <div className="grid grid-cols-2 gap-3 sm:gap-4">
-                            <div className="space-y-1.5 min-w-0">
-                              <Label htmlFor="city" className="text-[12px] font-medium text-white/70">İl *</Label>
-                              <Input
-                                id="city"
-                                name="city"
-                                value={formData.city}
-                                onChange={handleChange}
-                                data-testid="input-city"
-                                className={inputCls}
-                                placeholder="İstanbul"
+                            {formData.country === 'Türkiye' ? (
+                              <CityDistrictSelect
+                                city={formData.city}
+                                district={formData.district}
+                                onCityChange={(val) => { setFormData((prev) => ({ ...prev, city: val, district: '' })); setStepErrors({}); }}
+                                onDistrictChange={(val) => { setFormData((prev) => ({ ...prev, district: val })); setStepErrors({}); }}
+                                selectClassName="w-full h-12 bg-[#0F0F0F] border border-white/12 focus:border-white/40 focus:outline-none rounded-lg px-3 text-white text-[14px]"
+                                labelClassName="text-[12px] font-medium text-white/70 block mb-1.5"
+                                cityTestId="input-city"
+                                districtTestId="input-district"
                               />
-                            </div>
-                            <div className="space-y-1.5 min-w-0">
-                              <Label htmlFor="district" className="text-[12px] font-medium text-white/70">İlçe *</Label>
-                              <Input
-                                id="district"
-                                name="district"
-                                value={formData.district}
-                                onChange={handleChange}
-                                data-testid="input-district"
-                                className={inputCls}
-                                placeholder="Kadıköy"
-                              />
-                            </div>
+                            ) : (
+                              <>
+                                <div className="space-y-1.5 min-w-0">
+                                  <Label htmlFor="city" className="text-[12px] font-medium text-white/70">İl *</Label>
+                                  <Input id="city" name="city" value={formData.city} onChange={handleChange} data-testid="input-city" className={inputCls} placeholder="Şehir" />
+                                </div>
+                                <div className="space-y-1.5 min-w-0">
+                                  <Label htmlFor="district" className="text-[12px] font-medium text-white/70">İlçe *</Label>
+                                  <Input id="district" name="district" value={formData.district} onChange={handleChange} data-testid="input-district" className={inputCls} placeholder="İlçe / Bölge" />
+                                </div>
+                              </>
+                            )}
                           </div>
 
                           <div className="grid grid-cols-2 gap-3 sm:gap-4">
@@ -1506,14 +1506,29 @@ export default function Checkout() {
                                   <Input id="billingAddress" name="address" value={billingAddress.address} onChange={handleBillingAddressChange} placeholder="Sokak, Mahalle, Bina No, Daire No" data-testid="input-billing-address" className={inputCls} />
                                 </div>
                                 <div className="grid grid-cols-2 gap-3 sm:gap-4">
-                                  <div className="space-y-1.5 min-w-0">
-                                    <Label htmlFor="billingCity" className="text-[12px] font-medium text-white/70">İl *</Label>
-                                    <Input id="billingCity" name="city" value={billingAddress.city} onChange={handleBillingAddressChange} placeholder="İstanbul" data-testid="input-billing-city" className={inputCls} />
-                                  </div>
-                                  <div className="space-y-1.5 min-w-0">
-                                    <Label htmlFor="billingDistrict" className="text-[12px] font-medium text-white/70">İlçe *</Label>
-                                    <Input id="billingDistrict" name="district" value={billingAddress.district} onChange={handleBillingAddressChange} placeholder="Kadıköy" data-testid="input-billing-district" className={inputCls} />
-                                  </div>
+                                  {billingAddress.country === 'Türkiye' ? (
+                                    <CityDistrictSelect
+                                      city={billingAddress.city}
+                                      district={billingAddress.district}
+                                      onCityChange={(val) => { setBillingAddress((prev) => ({ ...prev, city: val, district: '' })); setStepErrors({}); }}
+                                      onDistrictChange={(val) => { setBillingAddress((prev) => ({ ...prev, district: val })); setStepErrors({}); }}
+                                      selectClassName="w-full h-12 bg-[#0F0F0F] border border-white/12 focus:border-white/40 focus:outline-none rounded-lg px-3 text-white text-[14px]"
+                                      labelClassName="text-[12px] font-medium text-white/70 block mb-1.5"
+                                      cityTestId="input-billing-city"
+                                      districtTestId="input-billing-district"
+                                    />
+                                  ) : (
+                                    <>
+                                      <div className="space-y-1.5 min-w-0">
+                                        <Label htmlFor="billingCity" className="text-[12px] font-medium text-white/70">İl *</Label>
+                                        <Input id="billingCity" name="city" value={billingAddress.city} onChange={handleBillingAddressChange} placeholder="Şehir" data-testid="input-billing-city" className={inputCls} />
+                                      </div>
+                                      <div className="space-y-1.5 min-w-0">
+                                        <Label htmlFor="billingDistrict" className="text-[12px] font-medium text-white/70">İlçe *</Label>
+                                        <Input id="billingDistrict" name="district" value={billingAddress.district} onChange={handleBillingAddressChange} placeholder="İlçe / Bölge" data-testid="input-billing-district" className={inputCls} />
+                                      </div>
+                                    </>
+                                  )}
                                 </div>
                                 <div className="grid grid-cols-2 gap-3 sm:gap-4">
                                   <div className="space-y-1.5 min-w-0">

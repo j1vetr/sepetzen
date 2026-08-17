@@ -459,7 +459,7 @@ function ProductTabs({
   return (
     <div className="mt-8 border-t border-white/8">
       {/* Tab bar */}
-      <div className="flex border-b border-white/8 overflow-x-auto">
+      <div className="flex border-b border-white/8 overflow-x-auto [&::-webkit-scrollbar]:hidden" style={{ scrollbarWidth: 'none' }}>
         {TABS.map((tab) => (
           <button
             key={tab.id}
@@ -676,7 +676,7 @@ export default function ProductDetail() {
   const { data: allProducts = [] } = useProducts({});
   const { data: categories = [] } = useCategories();
 
-  const { addToCart } = useCart();
+  const { addToCart, items: cartItems } = useCart();
   const { showModal } = useCartModal();
   const { toast } = useToast();
   const freeShippingThreshold = useFreeShippingThreshold();
@@ -821,6 +821,7 @@ export default function ProductDetail() {
 
   const ctaSentinelRef = useRef<HTMLDivElement | null>(null);
   const heroImageRef = useRef<HTMLDivElement | null>(null);
+  const reviewsSectionRef = useRef<HTMLElement | null>(null);
   const [zoomPos, setZoomPos] = useState({ x: 50, y: 50 });
   const [isZooming, setIsZooming] = useState(false);
 
@@ -934,8 +935,9 @@ export default function ProductDetail() {
       setJustAdded(true);
       if (justAddedTimerRef.current) clearTimeout(justAddedTimerRef.current);
       justAddedTimerRef.current = setTimeout(() => setJustAdded(false), 1500);
-    } catch {
-      toast({ title: 'Hata', description: 'Sepete eklenemedi.', variant: 'destructive' });
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : 'Sepete eklenemedi.';
+      toast({ title: 'Yeterli stok yok', description: msg, variant: 'destructive' });
     } finally {
       setIsAdding(false);
     }
@@ -1146,6 +1148,15 @@ export default function ProductDetail() {
   // Seçili varyant stokta değilse sepete ekleme kapatılır.
   const selectedUnavailable = !isOutOfStock && showVariantPicker && (!selectedVariant || selectedVariant.stock <= 0);
 
+  // Sepette zaten kaç adet bu ürün/varyant var?
+  const cartQtyForItem = cartItems
+    .filter(ci => ci.productId === product.id &&
+      (selectedVariant ? ci.variantId === selectedVariant.id : true))
+    .reduce((sum, ci) => sum + (ci.quantity || 0), 0);
+  // Eklenebilecek maksimum adet (stok - sepetteki)
+  const effectiveStock = showVariantPicker ? (selectedVariant?.stock ?? 0) : totalStock;
+  const maxAdditional = Math.max(0, effectiveStock - cartQtyForItem);
+
   const sameCategory = allProducts.filter((p) => p.id !== product.id && p.categoryId === product.categoryId);
   const fillers = allProducts.filter((p) => p.id !== product.id && p.categoryId !== product.categoryId);
   const moreProducts = [...sameCategory, ...fillers].slice(0, 4);
@@ -1285,7 +1296,7 @@ export default function ProductDetail() {
               </>
             )}
             <ChevronRight className="w-3 h-3 text-white/20" />
-            <span className="text-white/60 normal-case font-sans tracking-normal text-[12px] truncate max-w-[200px]">{product.name}</span>
+            <span className="text-white/60 normal-case font-body tracking-normal text-[12px] truncate max-w-[200px]">{product.name}</span>
           </nav>
 
           {/* ── Product grid: Gallery + Info ── */}
@@ -1548,7 +1559,7 @@ export default function ProductDetail() {
                    />
                  </div>
                  <div>
-                    <p className="font-display text-[17px] lg:text-[15px] tracking-[0.12em] text-white">SEPETZEN</p>
+                    <p className="font-sans text-[17px] lg:text-[15px] tracking-[0.12em] text-white">SEPETZEN</p>
                     <p className="mt-0.5 text-[10px] lg:text-[9px] uppercase tracking-[0.14em] text-white/45">Outdoor Gear · Dalaman / Muğla</p>
                  </div>
                </div>
@@ -1562,9 +1573,13 @@ export default function ProductDetail() {
                     </span>
                   </Link>
                 ) : <span />}
-                <span className="text-[11px] text-white/45 shrink-0" data-testid="text-product-brand">
-                  Marka: <span className="text-white font-semibold">{product.brand || 'Sepetzen'}</span>
-                </span>
+                <Link
+                  href={`/magaza?brand=${encodeURIComponent(product.brand || 'Sepetzen')}`}
+                  className="text-[11px] text-white/45 shrink-0 hover:text-white/70 transition-colors"
+                  data-testid="text-product-brand"
+                >
+                  Marka: <span className="text-white font-semibold hover:underline">{product.brand || 'Sepetzen'}</span>
+                </Link>
               </div>
 
               {/* Product name */}
@@ -1579,9 +1594,13 @@ export default function ProductDetail() {
               {ratingData && ratingData.count > 0 && (
                  <div className="flex items-center gap-2.5 mt-3 lg:mt-2">
                   <StarRating rating={Math.round(ratingData.average)} size={13} />
-                  <span className="text-[12px] text-white/45">
-                    {ratingData.average.toFixed(1)} <span className="text-white/25">·</span> {ratingData.count} değerlendirme
-                  </span>
+                  <button
+                    type="button"
+                    onClick={() => reviewsSectionRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' })}
+                    className="text-[12px] text-white/45 hover:text-white/70 transition-colors cursor-pointer"
+                  >
+                    {ratingData.average.toFixed(1)} <span className="text-white/25">·</span> {ratingData.count} Değerlendirme
+                  </button>
                 </div>
               )}
 
@@ -1686,6 +1705,11 @@ export default function ProductDetail() {
                 <div className="flex items-center gap-3 flex-wrap">
                   {isOutOfStock ? (
                     <span className="text-[12px] text-red-500 font-medium">Tükendi</span>
+                  ) : totalStock <= 5 ? (
+                    <span className="flex items-center gap-1.5 text-[12px] text-amber-400 font-semibold">
+                      <Check className="w-3.5 h-3.5" strokeWidth={2.5} />
+                      Son {totalStock} ürün!
+                    </span>
                   ) : (
                     <span className="flex items-center gap-1.5 text-[12px] text-white font-semibold">
                       <Check className="w-3.5 h-3.5" strokeWidth={2.5} />
@@ -1713,9 +1737,12 @@ export default function ProductDetail() {
                       className="w-9 text-center text-sm font-semibold text-white tabular-nums inline-block"
                       data-testid="text-quantity"
                     >{quantity}</motion.span>
-                    <motion.button type="button" onClick={() => setQuantity((q) => q + 1)}
-                      whileTap={reduceMotion ? undefined : { scale: 0.88 }}
-                      className="w-10 h-11 lg:w-9 lg:h-10 flex items-center justify-center text-white hover:bg-white hover:text-black transition-colors"
+                    <motion.button
+                      type="button"
+                      onClick={() => setQuantity((q) => Math.min(q + 1, maxAdditional))}
+                      disabled={quantity >= maxAdditional}
+                      whileTap={reduceMotion || quantity >= maxAdditional ? undefined : { scale: 0.88 }}
+                      className="w-10 h-11 lg:w-9 lg:h-10 flex items-center justify-center text-white hover:bg-white hover:text-black transition-colors disabled:opacity-30 disabled:cursor-not-allowed disabled:hover:bg-transparent disabled:hover:text-white"
                       aria-label="Artır" data-testid="button-increase-quantity">
                       <Plus className="w-3.5 h-3.5" />
                     </motion.button>
@@ -1724,10 +1751,10 @@ export default function ProductDetail() {
                   <motion.button
                     type="button"
                     onClick={handleAddToCart}
-                    disabled={isAdding || isOutOfStock || selectedUnavailable}
+                    disabled={isAdding || isOutOfStock || selectedUnavailable || maxAdditional === 0}
                     whileTap={reduceMotion || isOutOfStock || selectedUnavailable ? undefined : { scale: 0.97 }}
                       className={`flex-1 h-12 lg:h-10 font-semibold text-[11px] uppercase tracking-[0.2em] transition-colors flex items-center justify-center gap-2 ${
-                       isOutOfStock || selectedUnavailable ? 'bg-[#1A1A1A] text-white/30 cursor-not-allowed' : 'bg-white text-black hover:bg-white/90'
+                       isOutOfStock || selectedUnavailable || maxAdditional === 0 ? 'bg-[#1A1A1A] text-white/30 cursor-not-allowed' : 'bg-white text-black hover:bg-white/90'
                     }`}
                     data-testid="button-add-to-cart"
                   >
@@ -1750,7 +1777,7 @@ export default function ProductDetail() {
                         </motion.span>
                       ) : (
                         <motion.span key="idle" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
-                          {isOutOfStock ? 'Tükendi' : selectedUnavailable ? 'Seçim Stokta Yok' : 'Sepete Ekle'}
+                          {isOutOfStock ? 'Tükendi' : selectedUnavailable ? 'Seçim Stokta Yok' : maxAdditional === 0 ? 'Sepet Dolu' : 'Sepete Ekle'}
                         </motion.span>
                       )}
                     </AnimatePresence>
@@ -1865,6 +1892,7 @@ export default function ProductDetail() {
 
           {/* ── Reviews ── */}
           <motion.section
+            ref={reviewsSectionRef}
             initial={reduceMotion ? false : { opacity: 0, y: 24 }}
             whileInView={reduceMotion ? undefined : { opacity: 1, y: 0 }}
             viewport={{ once: true, margin: '-80px' }}

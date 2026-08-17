@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import CityDistrictSelect from '@/components/CityDistrictSelect';
 import { Header } from '@/components/Header';
 import { useAuth } from '@/hooks/useAuth';
 import { useLocation, Link } from 'wouter';
@@ -355,7 +356,7 @@ export default function Profile() {
 
   if (authLoading) {
     return (
-      <div className="min-h-screen bg-[#141414]">
+      <div className="min-h-screen bg-[#080808]">
         <SEO title="Hesabım" description="Sepetzen hesap bilgileriniz, siparişleriniz ve adresleriniz." url="/hesabim" noIndex />
         <Header />
         <main className="pt-8 flex items-center justify-center">
@@ -378,7 +379,7 @@ export default function Profile() {
   ];
 
   return (
-    <div className="min-h-screen bg-[#141414]">
+    <div className="min-h-screen bg-[#080808]">
       <Header />
       
       <main className="pt-8 pb-12 px-4 sm:px-6">
@@ -424,7 +425,7 @@ export default function Profile() {
                   <div className="w-20 h-20 rounded-full bg-white text-black flex items-center justify-center text-2xl font-bold mb-3">
                     {user.firstName?.charAt(0) || user.email.charAt(0).toUpperCase()}
                   </div>
-                  <h3 className="font-display text-base tracking-[0.04em] text-white">
+                  <h3 className="font-body text-base tracking-[0.04em] text-white">
                     {user.firstName} {user.lastName}
                   </h3>
                   <p className="text-[11px] tracking-[0.18em] lowercase text-white/45 mt-1" data-testid="text-profile-email">{user.email.toLowerCase()}</p>
@@ -443,11 +444,6 @@ export default function Profile() {
                       data-testid={`tab-${tab.id}`}
                     >
                       <div className="flex items-center gap-3 min-w-0">
-                        <span className={`text-[10px] font-mono tracking-[0.32em] tabular-nums shrink-0 ${
-                          activeTab === tab.id ? 'text-white' : 'text-white/30 group-hover:text-white/70'
-                        }`}>
-                          {String(idx + 1).padStart(2, '0')}
-                        </span>
                         <tab.icon className="w-4 h-4 shrink-0" />
                         <span className={`text-[13px] tracking-[0.04em] truncate ${activeTab === tab.id ? 'font-semibold' : 'font-medium'}`}>{tab.label}</span>
                       </div>
@@ -852,29 +848,17 @@ export default function Profile() {
                               data-testid="input-address-address"
                             />
                           </div>
-                          <div className="grid sm:grid-cols-2 gap-4">
-                            <div>
-                              <label className="block text-sm font-medium text-white/55 mb-2">İl *</label>
-                              <input
-                                type="text"
-                                value={addressForm.city}
-                                onChange={(e) => setAddressForm({ ...addressForm, city: e.target.value })}
-                                className="w-full px-4 py-3 bg-white/5 border border-white/12 rounded-md text-white placeholder:text-white/30 focus:outline-none focus:border-white transition-colors"
-                                placeholder="İstanbul"
-                                data-testid="input-address-city"
-                              />
-                            </div>
-                            <div>
-                              <label className="block text-sm font-medium text-white/55 mb-2">İlçe *</label>
-                              <input
-                                type="text"
-                                value={addressForm.district}
-                                onChange={(e) => setAddressForm({ ...addressForm, district: e.target.value })}
-                                className="w-full px-4 py-3 bg-white/5 border border-white/12 rounded-md text-white placeholder:text-white/30 focus:outline-none focus:border-white transition-colors"
-                                placeholder="Kadıköy"
-                                data-testid="input-address-district"
-                              />
-                            </div>
+                                                    <div className="grid sm:grid-cols-2 gap-4">
+                            <CityDistrictSelect
+                              city={addressForm.city}
+                              district={addressForm.district}
+                              onCityChange={(val) => setAddressForm((f) => ({ ...f, city: val, district: '' }))}
+                              onDistrictChange={(val) => setAddressForm((f) => ({ ...f, district: val }))}
+                              selectClassName="w-full px-4 py-3 bg-white/5 border border-white/12 rounded-md text-white focus:outline-none focus:border-white transition-colors"
+                              labelClassName="block text-sm font-medium text-white/55 mb-2"
+                              cityTestId="input-address-city"
+                              districtTestId="input-address-district"
+                            />
                           </div>
                           <div className="grid sm:grid-cols-2 gap-4">
                             <div>

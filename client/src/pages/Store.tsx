@@ -3,7 +3,7 @@ import { Header } from '@/components/Header';
 import { Footer } from '@/components/Footer';
 import { SEO } from '@/components/SEO';
 import { ProductCard } from '@/components/ProductCard';
-import { Link } from 'wouter';
+import { Link, useSearch } from 'wouter';
 import { ChevronRight, X, SlidersHorizontal, LayoutGrid, Grid3X3, ArrowUpRight, ChevronDown } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useProducts, useCategories, type ProductFilters } from '@/hooks/useProducts';
@@ -69,6 +69,8 @@ function FilterSection({ title, children, defaultOpen = true }: { title: string;
 
 export default function Store() {
   const { data: categories = [] } = useCategories();
+  const search = useSearch();
+  const brandParam = new URLSearchParams(search).get('brand') ?? undefined;
 
   const [sortBy, setSortBy] = useState<ProductFilters['sort']>('newest');
   const [selectedCategory, setSelectedCategory] = useState<string | undefined>(undefined);
@@ -90,13 +92,18 @@ export default function Store() {
 
   const filteredProducts = useMemo(() => {
     let result = fetchedProducts;
+    if (brandParam) {
+      result = result.filter(p =>
+        (p.brand || 'Sepetzen').toLowerCase() === brandParam.toLowerCase()
+      );
+    }
     if (statusFilters.includes('free-shipping')) {
       result = result.filter(p => (parseFloat(p.basePrice || '0') || 0) >= freeShippingThreshold);
     }
     if (statusFilters.includes('new')) result = result.filter(p => p.isNew);
     if (statusFilters.includes('discounted')) result = result.filter(p => !!p.discountBadge);
     return result;
-  }, [fetchedProducts, statusFilters, freeShippingThreshold]);
+  }, [fetchedProducts, brandParam, statusFilters, freeShippingThreshold]);
 
   const toggleStatusFilter = (value: string) => {
     setStatusFilters(prev =>
@@ -283,7 +290,7 @@ export default function Store() {
               className="font-black text-[22px] lg:text-[28px] text-white tracking-tight leading-none"
               data-testid="text-store-title"
             >
-              Tüm Ürünler
+              {brandParam ? `Marka: ${brandParam}` : 'Tüm Ürünler'}
             </h1>
             {!isLoading && (
               <span className="text-[12px] text-white/50 font-mono tabular-nums">
@@ -392,8 +399,16 @@ export default function Store() {
             </div>
 
             {/* Active filter chips */}
-            {hasActiveFilters && (
+            {(hasActiveFilters || brandParam) && (
               <div className="flex flex-wrap items-center gap-2 mb-4">
+                {brandParam && (
+                  <Link href="/magaza">
+                    <span className="inline-flex items-center gap-1.5 bg-white/8 text-white/70 text-[11px] font-medium px-2.5 py-1 rounded-full cursor-pointer hover:bg-white/12">
+                      Marka: {brandParam}
+                      <X className="w-3 h-3" />
+                    </span>
+                  </Link>
+                )}
                 {selectedCategory && (
                   <span className="inline-flex items-center gap-1.5 bg-white/8 text-white/70 text-[11px] font-medium px-2.5 py-1 rounded-full">
                     {categories.find(c => c.id === selectedCategory)?.name}

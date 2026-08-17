@@ -1,8 +1,26 @@
 import { useEffect, useState } from 'react';
-import { Loader2 } from 'lucide-react';
+import { Loader2, MapPin } from 'lucide-react';
 import type { User } from '../_shared/types';
 import AdminModal from '../_ui/AdminModal';
 import { PrimaryButton, SecondaryButton } from '../_ui/AdminUI';
+
+interface SavedAddress {
+  id: string;
+  title: string;
+  firstName: string;
+  lastName: string;
+  phone: string;
+  address: string;
+  city: string;
+  district: string;
+  postalCode: string | null;
+  country: string;
+  isDefault: boolean;
+  invoiceType: string;
+  companyName: string | null;
+  taxOffice: string | null;
+  taxNumber: string | null;
+}
 
 type UserForm = Omit<User, 'id' | 'createdAt'>;
 
@@ -40,15 +58,23 @@ export default function UserDetailModal({
     products: string[];
   } | null>(null);
   const [isLoadingStats, setIsLoadingStats] = useState(true);
+  const [savedAddresses, setSavedAddresses] = useState<SavedAddress[]>([]);
+  const [isLoadingAddresses, setIsLoadingAddresses] = useState(true);
 
   useEffect(() => {
     setForm(toForm(user));
     setIsLoadingStats(true);
+    setIsLoadingAddresses(true);
     fetch(`/api/admin/users/${user.id}/stats`, { credentials: 'include' })
       .then((res) => (res.ok ? res.json() : Promise.reject()))
       .then((data) => setStats(data))
       .catch(() => setStats(null))
       .finally(() => setIsLoadingStats(false));
+    fetch(`/api/admin/users/${user.id}/addresses`, { credentials: 'include' })
+      .then((res) => (res.ok ? res.json() : Promise.reject()))
+      .then((data) => setSavedAddresses(data))
+      .catch(() => setSavedAddresses([]))
+      .finally(() => setIsLoadingAddresses(false));
   }, [user]);
 
   const setField = <K extends keyof UserForm>(field: K, value: UserForm[K]) =>
@@ -138,6 +164,51 @@ export default function UserDetailModal({
         </section>
 
         {saveError && <p className="text-sm text-red-600" role="alert">{saveError}</p>}
+
+        {/* Saved addresses (read-only) */}
+        <section className="pt-5 border-t border-neutral-200">
+          <h3 className="text-sm font-semibold text-neutral-900 mb-3 flex items-center gap-2">
+            <MapPin className="w-4 h-4 text-neutral-400" />
+            Kayıtlı adresler
+          </h3>
+          {isLoadingAddresses ? (
+            <div className="text-sm text-neutral-500">Yükleniyor...</div>
+          ) : savedAddresses.length === 0 ? (
+            <p className="text-sm text-neutral-400 italic">Kayıtlı adres yok.</p>
+          ) : (
+            <div className="space-y-3">
+              {savedAddresses.map((addr) => (
+                <div key={addr.id} className="bg-neutral-50 border border-neutral-200 rounded-lg p-3 text-sm">
+                  <div className="flex items-center gap-2 mb-1.5">
+                    <span className="font-semibold text-neutral-900">{addr.title}</span>
+                    {addr.isDefault && (
+                      <span className="text-[10px] font-bold uppercase tracking-wider bg-neutral-800 text-white px-1.5 py-0.5 rounded">
+                        Varsayılan
+                      </span>
+                    )}
+                    {addr.invoiceType === 'corporate' && (
+                      <span className="text-[10px] font-bold uppercase tracking-wider bg-blue-100 text-blue-700 px-1.5 py-0.5 rounded">
+                        Kurumsal
+                      </span>
+                    )}
+                  </div>
+                  <p className="text-neutral-800 font-medium">{addr.firstName} {addr.lastName}</p>
+                  <p className="text-neutral-600">{addr.address}</p>
+                  <p className="text-neutral-600">{addr.district}, {addr.city}{addr.postalCode ? ` ${addr.postalCode}` : ''}</p>
+                  <p className="text-neutral-600">{addr.country}</p>
+                  <p className="text-neutral-500 mt-1">{addr.phone}</p>
+                  {addr.invoiceType === 'corporate' && addr.companyName && (
+                    <div className="mt-1.5 pt-1.5 border-t border-neutral-200 text-neutral-600">
+                      <p>{addr.companyName}</p>
+                      {addr.taxOffice && <p>Vergi Dairesi: {addr.taxOffice}</p>}
+                      {addr.taxNumber && <p>Vergi No: {addr.taxNumber}</p>}
+                    </div>
+                  )}
+                </div>
+              ))}
+            </div>
+          )}
+        </section>
 
         <section className="pt-5 border-t border-neutral-200">
           <h3 className="text-sm font-semibold text-neutral-900 mb-3">Sipariş özeti</h3>

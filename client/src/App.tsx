@@ -35,6 +35,7 @@ const CancellationPolicy = lazy(() => import("@/pages/CancellationPolicy"));
 const KVKK = lazy(() => import("@/pages/KVKK"));
 const Store = lazy(() => import("@/pages/Store"));
 const StaticPage = lazy(() => import("@/pages/StaticPage"));
+const ContactPage = lazy(() => import("@/pages/ContactPage"));
 const Blog = lazy(() => import("@/pages/Blog"));
 const BlogPost = lazy(() => import("@/pages/BlogPost"));
 const PaymentSuccess = lazy(() => import("@/pages/PaymentSuccess"));
@@ -92,6 +93,7 @@ function Router() {
         <Route path="/kvkk"><Redirect to="/sayfa/kvkk-aydinlatma-metni" /></Route>
         <Route path="/sayfa/gizlilik"><Redirect to="/sayfa/gizlilik-guvenlik" /></Route>
         <Route path="/sayfa/cerez"><Redirect to="/sayfa/cerez-politikasi" /></Route>
+        <Route path="/sayfa/iletisim" component={ContactPage} />
         <Route path="/sayfa/:slug" component={StaticPage} />
         <Route path="/blog" component={Blog} />
         <Route path="/blog/:slug" component={BlogPost} />
