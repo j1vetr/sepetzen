@@ -75,7 +75,7 @@ interface ProductsTabProps {
   onTrendyolAction?: (productId: string) => void;
 }
 
-type StatusFilter = 'all' | 'active' | 'inactive' | 'out';
+type StatusFilter = 'all' | 'active' | 'inactive' | 'out' | 'trendyol_linked' | 'trendyol_unlinked' | 'trendyol_rejected';
 type SortKey = 'newest' | 'oldest' | 'name_asc' | 'price_asc' | 'price_desc';
 
 function formatPrice(value: string | number): string {
@@ -398,10 +398,28 @@ export default function ProductsTab({
         if (statusFilter === 'active' && (!p.isActive || (stock.count > 0 && stock.total === 0))) return false;
         if (statusFilter === 'inactive' && p.isActive) return false;
         if (statusFilter === 'out' && !(stock.count > 0 && stock.total === 0)) return false;
+        if (statusFilter === 'trendyol_linked') {
+          const ty = trendyolStatusMap?.[p.id];
+          if (!ty) return false;
+          // Push-linked with no pushStatus means not yet sent — exclude
+          if (ty.syncDirection !== 'pull' && !ty.pushStatus) return false;
+          // Rejected/error are not "linked" in the positive sense
+          if (ty.pushStatus === 'rejected' || ty.pushStatus === 'error') return false;
+        }
+        if (statusFilter === 'trendyol_unlinked') {
+          const ty = trendyolStatusMap?.[p.id];
+          // Keep only: no link at all, OR push link that hasn't been sent yet
+          if (ty && !(ty.syncDirection !== 'pull' && !ty.pushStatus)) return false;
+        }
+        if (statusFilter === 'trendyol_rejected') {
+          const ty = trendyolStatusMap?.[p.id];
+          if (!ty) return false;
+          if (ty.pushStatus !== 'rejected' && ty.pushStatus !== 'error') return false;
+        }
       }
       return true;
     });
-  }, [products, searchQuery, categoryFilter, statusFilter, allVariants]);
+  }, [products, searchQuery, categoryFilter, statusFilter, allVariants, trendyolStatusMap]);
 
   const sortedProducts = useMemo(() => {
     const list = [...filteredProducts];
@@ -651,6 +669,9 @@ export default function ProductsTab({
             <option value="active">Aktif</option>
             <option value="inactive">Pasif</option>
             <option value="out">Stokta yok</option>
+            <option value="trendyol_linked">Trendyol'da</option>
+            <option value="trendyol_unlinked">Trendyol'a gönderilmemiş</option>
+            <option value="trendyol_rejected">Trendyol'da reddedildi</option>
           </SelectInput>
           <SelectInput
             value={sortKey}
