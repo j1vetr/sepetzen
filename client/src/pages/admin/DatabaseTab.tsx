@@ -424,7 +424,7 @@ export default function DatabasePanel() {
                 </li>
               </ul>
               <p className="text-xs text-neutral-500 italic">
-                Sipariş geçmişi korunur — sipariş kalemleri ürün adıyla birlikte saklanmaya
+                Sipariş geçmişi korunur - sipariş kalemleri ürün adıyla birlikte saklanmaya
                 devam eder, sadece ürün referansı boşaltılır.
               </p>
               <div className="pt-2">

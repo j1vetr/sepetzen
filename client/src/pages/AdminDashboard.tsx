@@ -120,7 +120,7 @@ export default function AdminDashboard() {
     window.history.pushState({ tab: tabId }, '', url.toString());
   };
 
-  // Arama çubuğundan gelen navigasyon — her sekme türü için özel hedef davranışı
+  // Arama çubuğundan gelen navigasyon - her sekme türü için özel hedef davranışı
   const handleSearchNavigate = (
     tabId: TabType,
     options?: { searchQuery?: string; selectedId?: string },

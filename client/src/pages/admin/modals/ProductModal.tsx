@@ -25,7 +25,7 @@ import {
   StatusBadge,
 } from '../_ui/AdminUI';
 
-/** Video URL tespiti — yüklenen medya grid'inde img/video seçimi için */
+/** Video URL tespiti - yüklenen medya grid'inde img/video seçimi için */
 function isVideoUrl(url: string): boolean {
   return /\.(mp4|webm|mov|avi|mkv)(\?.*)?$/i.test(url);
 }
@@ -459,7 +459,7 @@ export default function ProductModal({
         >
           {saveError && <InlineAlert tone="error">{saveError}</InlineAlert>}
 
-          {/* Section 1 — Temel Bilgiler */}
+          {/* Section 1 - Temel Bilgiler */}
           <section>
             <SectionHeading
               number={1}
@@ -566,7 +566,7 @@ export default function ProductModal({
             </div>
           </section>
 
-          {/* Section 2 — Açıklama */}
+          {/* Section 2 - Açıklama */}
           <section>
             <div className="flex items-center justify-between mb-3">
               <SectionHeading number={2} title="Açıklama" />
@@ -646,7 +646,7 @@ export default function ProductModal({
             </div>
           </section>
 
-          {/* Section 3 — Görseller */}
+          {/* Section 3 - Görseller */}
           <section>
             <div className="flex items-center justify-between mb-3">
               <SectionHeading
@@ -810,7 +810,7 @@ export default function ProductModal({
             )}
           </section>
 
-          {/* Section 4 — Renk / Taş Tonu */}
+          {/* Section 4 - Renk / Taş Tonu */}
           <section>
             <SectionHeading
               number={4}
@@ -830,7 +830,7 @@ export default function ProductModal({
             </FormField>
           </section>
 
-          {/* Section 5 — Fiyat & Stok */}
+          {/* Section 5 - Fiyat & Stok */}
           <section>
             <SectionHeading
               number={5}
@@ -870,7 +870,7 @@ export default function ProductModal({
             </div>
           </section>
 
-          {/* Section 6 — Varyantlar */}
+          {/* Section 6 - Varyantlar */}
           <section>
             <SectionHeading
               number={6}
@@ -973,7 +973,7 @@ export default function ProductModal({
             </div>
           </section>
 
-          {/* Section 7 — Görünürlük */}
+          {/* Section 7 - Görünürlük */}
           <section>
             <SectionHeading
               number={7}

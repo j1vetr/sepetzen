@@ -949,7 +949,7 @@ export default function AdminOrderDetail() {
               </div>
             </Card>
 
-            {/* Shipping — aktif sağlayıcı (Aras / Geliver / ShipEntegra) */}
+            {/* Shipping - aktif sağlayıcı (Aras / Geliver / ShipEntegra) */}
             <div id="shipping-section">
             <Card className="p-5">
               <SectionHeading
@@ -966,7 +966,7 @@ export default function AdminOrderDetail() {
                   </div>
                 )}
 
-                {/* Ağırlık / desi override — uluslararası gönderilerde önemli */}
+                {/* Ağırlık / desi override - uluslararası gönderilerde önemli */}
                 <div className="flex gap-2">
                   <div className="flex-1">
                     <label className="block text-[10.5px] text-neutral-400 mb-1">Desi (opsiyonel)</label>
@@ -992,7 +992,7 @@ export default function AdminOrderDetail() {
                   </div>
                 </div>
 
-                {/* API Buttons — Row 1 */}
+                {/* API Buttons - Row 1 */}
                 <div className="flex gap-2">
                   <button
                     type="button"
@@ -1018,7 +1018,7 @@ export default function AdminOrderDetail() {
                   </button>
                 </div>
 
-                {/* API Buttons — Row 2 */}
+                {/* API Buttons - Row 2 */}
                 <div className="flex gap-2">
                   <a
                     href={order ? `/api/admin/orders/${order.id}/shipment/label` : '#'}

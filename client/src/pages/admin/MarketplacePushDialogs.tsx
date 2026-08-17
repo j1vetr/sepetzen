@@ -145,7 +145,7 @@ function fmt(d: string | null): string {
 // Ürün Bağlantıları + Gönderim Sihirbazı
 // ============================================================================
 
-/** Dialog sarmalayıcı — panel içeriğini modal içinde gösterir. */
+/** Dialog sarmalayıcı - panel içeriğini modal içinde gösterir. */
 export function ProductLinksDialog({
   marketplaceId,
   open,
@@ -167,7 +167,7 @@ export function ProductLinksDialog({
   );
 }
 
-/** Panel — hem dialog içinde hem Trendyol Merkezi "Ürünler" sekmesinde kullanılır. */
+/** Panel - hem dialog içinde hem Trendyol Merkezi "Ürünler" sekmesinde kullanılır. */
 export function ProductLinksPanel({
   marketplaceId,
   active = true,
@@ -295,7 +295,7 @@ export function ProductLinksPanel({
       <div className="space-y-4" data-testid="dialog-product-links">
         <InlineAlert tone="neutral">
           <strong>Yön:</strong> "Çek" ürünler Trendyol'dan siteye senkronlanır. "Gönder"
-          ürünlerde merkez site'dir — stok/fiyat değişimleri otomatik Trendyol'a iletilir ve
+          ürünlerde merkez site'dir - stok/fiyat değişimleri otomatik Trendyol'a iletilir ve
           saatlik çekme senkronu bu ürünlere dokunmaz.
         </InlineAlert>
 
@@ -565,7 +565,7 @@ export function ProductLinksPanel({
         <AdminModal
           open={!!errorLink}
           onClose={() => setErrorLink(null)}
-          title={`Trendyol Red Nedeni — ${errorLink.productName ?? errorLink.barcode ?? errorLink.externalId}`}
+          title={`Trendyol Red Nedeni - ${errorLink.productName ?? errorLink.barcode ?? errorLink.externalId}`}
           size="md"
         >
           <div className="space-y-3" data-testid="dialog-push-error-detail">
@@ -587,7 +587,7 @@ export function ProductLinksPanel({
 }
 
 // ============================================================================
-// Medya önizleme — video URL'leri pasif gösterilir
+// Medya önizleme - video URL'leri pasif gösterilir
 // ============================================================================
 const VIDEO_EXTS = /\.(mp4|webm|mov|avi|mkv|ogg|ogv|flv|wmv)(\?.*)?$/i;
 
@@ -602,7 +602,7 @@ function MediaPreviewStrip({ images }: { images: string[] }) {
   return (
     <div>
       <div className="text-[11px] font-medium text-neutral-500 mb-1.5">
-        Ürün medyası — yalnızca görseller Trendyol'a gönderilir
+        Ürün medyası - yalnızca görseller Trendyol'a gönderilir
       </div>
       <div className="flex flex-wrap gap-1.5" data-testid="media-preview-strip">
         {imageUrls.map((url, i) => (
@@ -637,7 +637,7 @@ function MediaPreviewStrip({ images }: { images: string[] }) {
 }
 
 // ============================================================================
-// Gönderim sihirbazı — kategori + marka + zorunlu özellikler + fiyat meta
+// Gönderim sihirbazı - kategori + marka + zorunlu özellikler + fiyat meta
 // ============================================================================
 function PushWizardDialog({
   marketplaceId,
@@ -812,7 +812,7 @@ function PushWizardDialog({
     <AdminModal
       open={open}
       onClose={onClose}
-      title={`Trendyol'a Gönder — ${product.name}`}
+      title={`Trendyol'a Gönder - ${product.name}`}
       size="lg"
       footer={
         <>
@@ -833,7 +833,7 @@ function PushWizardDialog({
       }
     >
       <div className="space-y-4" data-testid="dialog-push-wizard">
-        {/* Medya önizleme — video URL'leri Trendyol'a gönderilmez */}
+        {/* Medya önizleme - video URL'leri Trendyol'a gönderilmez */}
         {(product.images ?? []).length > 0 && (
           <MediaPreviewStrip images={product.images ?? []} />
         )}
@@ -879,7 +879,7 @@ function PushWizardDialog({
             </SelectInput>
             {categories.length === 0 && !categoriesQuery.isLoading && (
               <div className="text-[11px] text-amber-600">
-                Kategori listesi boş — önce bir "Tam Senkron" çalıştırın (kategori ağacı indirilir).
+                Kategori listesi boş - önce bir "Tam Senkron" çalıştırın (kategori ağacı indirilir).
               </div>
             )}
           </div>
@@ -1059,7 +1059,7 @@ export function PushQueueDialog({
   );
 }
 
-/** Panel — hem dialog içinde hem Trendyol Merkezi "Kuyruk" sekmesinde kullanılır. */
+/** Panel - hem dialog içinde hem Trendyol Merkezi "Kuyruk" sekmesinde kullanılır. */
 export function PushQueuePanel({
   marketplaceId,
   active = true,
@@ -1176,7 +1176,7 @@ export function PushQueuePanel({
 }
 
 // ============================================================================
-// Fiyat Kuralı — site fiyatından farklı Trendyol fiyatı (yüzde artış veya sabit)
+// Fiyat Kuralı - site fiyatından farklı Trendyol fiyatı (yüzde artış veya sabit)
 // ============================================================================
 function PriceRuleDialog({
   marketplaceId,
@@ -1232,7 +1232,7 @@ function PriceRuleDialog({
     <AdminModal
       open={open}
       onClose={onClose}
-      title={`Fiyat Kuralı — ${link.productName ?? link.barcode ?? link.externalId}`}
+      title={`Fiyat Kuralı - ${link.productName ?? link.barcode ?? link.externalId}`}
       size="sm"
       footer={
         <>

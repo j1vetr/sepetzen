@@ -1,5 +1,5 @@
 /**
- * Trendyol Merkezi — tüm Trendyol operasyonlarının tek sayfada, sekmeli görünümü.
+ * Trendyol Merkezi - tüm Trendyol operasyonlarının tek sayfada, sekmeli görünümü.
  *   Genel Bakış: bağlantı/senkron sağlığı, stok-fiyat uyuşmazlık denetimi, hızlı aksiyonlar
  *   Ürünler:     ürün bağlantıları + gönderim sihirbazı (ProductLinksPanel)
  *   Siparişler:  mevcut sipariş sekmesi (paket statüsü + faturalama dahil)
@@ -200,7 +200,7 @@ export default function TrendyolCenter({ siteCategories }: { siteCategories: Sit
 }
 
 // ============================================================================
-// GENEL BAKIŞ — sağlık denetimi + uyuşmazlıklar + hızlı aksiyonlar
+// GENEL BAKIŞ - sağlık denetimi + uyuşmazlıklar + hızlı aksiyonlar
 // ============================================================================
 type HealthMismatch = {
   linkId: string;
@@ -446,7 +446,7 @@ function StatCard({
   return <div className="bg-white border border-neutral-200 rounded-lg px-3 py-2.5">{inner}</div>;
 }
 
-/** Basit sayfalama çubuğu — nextCursor varken ileri, 0'dan büyükken geri. */
+/** Basit sayfalama çubuğu - nextCursor varken ileri, 0'dan büyükken geri. */
 function Pager({
   page,
   hasNext,
@@ -473,7 +473,7 @@ function Pager({
 }
 
 // ============================================================================
-// SORULAR — müşteri soruları + cevaplama
+// SORULAR - müşteri soruları + cevaplama
 // ============================================================================
 type Question = {
   id: string;
@@ -706,7 +706,7 @@ function QuestionsPanel({ marketplaceId }: { marketplaceId: string }) {
 }
 
 // ============================================================================
-// İADELER — iade talepleri + onay
+// İADELER - iade talepleri + onay
 // ============================================================================
 type ClaimItem = {
   id: string;
@@ -916,7 +916,7 @@ function ClaimsPanel({ marketplaceId }: { marketplaceId: string }) {
         <AdminModal
           open
           onClose={() => setApproving(null)}
-          title={`İadeyi Onayla — #${approving.orderNumber}`}
+          title={`İadeyi Onayla - #${approving.orderNumber}`}
           size="sm"
           footer={
             <>
@@ -941,7 +941,7 @@ function ClaimsPanel({ marketplaceId }: { marketplaceId: string }) {
         >
           <div className="space-y-2" data-testid="dialog-approve-claim">
             <InlineAlert tone="warning">
-              Onay geri alınamaz — Trendyol müşteriye para iadesini başlatır. Ürünü teslim
+              Onay geri alınamaz - Trendyol müşteriye para iadesini başlatır. Ürünü teslim
               alıp kontrol ettiyseniz onaylayın.
             </InlineAlert>
             <div className="text-[12.5px] text-neutral-700">

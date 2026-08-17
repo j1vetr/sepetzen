@@ -1,5 +1,5 @@
 /**
- * Trendyol Siparişleri sekmesi — pazaryeri siparişlerinin tam görünümü.
+ * Trendyol Siparişleri sekmesi - pazaryeri siparişlerinin tam görünümü.
  * Sipariş numarasına göre gruplu liste: tarih, durum, müşteri, tutar, kargo.
  * Stok düşümü yapılmış, geri yüklenmiş veya eşleşememiş satırlar işaretlenir.
  * Mobilde kart görünümü, genişte tablo benzeri satırlar.
@@ -457,7 +457,7 @@ export default function MarketplaceOrdersTab({
 }
 
 // ============================================================================
-// Faturalama dialogu — paketi "Invoiced" işaretler ve/veya e-fatura linki gönderir
+// Faturalama dialogu - paketi "Invoiced" işaretler ve/veya e-fatura linki gönderir
 // ============================================================================
 function InvoiceDialog({
   marketplaceId,
@@ -520,7 +520,7 @@ function InvoiceDialog({
     <AdminModal
       open
       onClose={onClose}
-      title={`Faturala — #${order.orderNumber}`}
+      title={`Faturala - #${order.orderNumber}`}
       size="sm"
       footer={
         <>
@@ -560,7 +560,7 @@ function InvoiceDialog({
         </FormField>
         <FormField
           label="Fatura Linki (PDF/HTML)"
-          hint="Opsiyonel — müşterinin faturaya erişeceği https linki."
+          hint="Opsiyonel - müşterinin faturaya erişeceği https linki."
           error={!linkValid ? 'Geçerli bir http(s) linki girin.' : undefined}
         >
           <TextInput

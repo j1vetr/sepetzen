@@ -637,7 +637,7 @@ export default function SettingsPanel({ initialSection = 'genel', contentOnly = 
   const [accountNewPassword, setAccountNewPassword] = useState('');
   const [accountNewPassword2, setAccountNewPassword2] = useState('');
 
-  // Ülke bazlı kargo tarifeleri — ayrı local state, settings.country_shipping_rates ile senkronize
+  // Ülke bazlı kargo tarifeleri - ayrı local state, settings.country_shipping_rates ile senkronize
   type CountryRateRow = { country: string; cost: string };
   const [countryRateRows, setCountryRateRows] = useState<CountryRateRow[]>([]);
 
@@ -963,7 +963,7 @@ export default function SettingsPanel({ initialSection = 'genel', contentOnly = 
             cost: String(r.cost),
           })));
         }
-      } catch { /* geçersiz JSON — boş bırak */ }
+      } catch { /* geçersiz JSON - boş bırak */ }
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [savedSettings]);
@@ -2106,7 +2106,7 @@ export default function SettingsPanel({ initialSection = 'genel', contentOnly = 
 
             {/* Summary preview */}
             <div className="mt-4 p-3 bg-neutral-50 rounded-lg border border-neutral-100">
-              <p className="text-xs font-semibold text-neutral-600 mb-2">Özet — ülkeye göre ücret:</p>
+              <p className="text-xs font-semibold text-neutral-600 mb-2">Özet - ülkeye göre ücret:</p>
               <div className="flex flex-wrap gap-2">
                 {countryRateRows.filter(r => r.country).map(r => (
                   <span key={r.country} className="inline-flex items-center gap-1 px-2 py-1 bg-white border border-neutral-200 rounded-md text-xs text-neutral-700">
@@ -2894,7 +2894,7 @@ export default function SettingsPanel({ initialSection = 'genel', contentOnly = 
 }
 
 // ============================================================================
-// Google OAuth bölümü — ayrı bileşen olarak izole edildi
+// Google OAuth bölümü - ayrı bileşen olarak izole edildi
 // ============================================================================
 function TwoFactorSection() {
   const qc = useQueryClient();
@@ -3007,7 +3007,7 @@ function TwoFactorSection() {
   const copyBackupCodes = () => {
     navigator.clipboard?.writeText(backupCodes.join('\n')).then(
       () => setMsg({ ok: true, text: 'Yedek kodlar panoya kopyalandı.' }),
-      () => setMsg({ ok: false, text: 'Kopyalama başarısız — kodları elle not edin.' }),
+      () => setMsg({ ok: false, text: 'Kopyalama başarısız - kodları elle not edin.' }),
     );
   };
 
@@ -3049,7 +3049,7 @@ function TwoFactorSection() {
         </div>
       )}
 
-      {/* KAPALI — kurulum başlat */}
+      {/* KAPALI - kurulum başlat */}
       {!enabled && step === 'idle' && (
         <div className="space-y-3">
           <div className="p-3 bg-amber-50 border border-amber-200 rounded-lg text-xs text-amber-800">
@@ -3081,7 +3081,7 @@ function TwoFactorSection() {
         </div>
       )}
 
-      {/* KURULUM — QR + doğrulama */}
+      {/* KURULUM - QR + doğrulama */}
       {!enabled && step === 'setup' && setupData && (
         <div className="space-y-4">
           <ol className="text-sm text-neutral-600 list-decimal list-inside space-y-1">
@@ -3098,7 +3098,7 @@ function TwoFactorSection() {
             />
             <div className="flex-1 space-y-3 w-full">
               <div>
-                <label className="block text-sm font-medium text-neutral-500 mb-1">QR okutamıyorsanız — manuel anahtar</label>
+                <label className="block text-sm font-medium text-neutral-500 mb-1">QR okutamıyorsanız - manuel anahtar</label>
                 <code className="block px-3 py-2 bg-neutral-50 border border-neutral-200 rounded-lg text-[13px] font-mono text-neutral-800 break-all select-all" data-testid="text-2fa-manual-key">
                   {setupData.manualKey}
                 </code>
@@ -3139,14 +3139,14 @@ function TwoFactorSection() {
         </div>
       )}
 
-      {/* YEDEK KODLAR — tek seferlik gösterim */}
+      {/* YEDEK KODLAR - tek seferlik gösterim */}
       {step === 'backup' && backupCodes.length > 0 && (
         <div className="space-y-4">
           <div className="p-3 bg-emerald-50 border border-emerald-200 rounded-lg text-sm text-emerald-800 font-medium">
             ✓ İki adımlı doğrulama aktifleştirildi!
           </div>
           <div className="p-4 bg-amber-50 border border-amber-200 rounded-lg">
-            <p className="text-sm font-semibold text-amber-900 mb-1">Yedek kodlarınızı şimdi kaydedin — bir daha gösterilmeyecek</p>
+            <p className="text-sm font-semibold text-amber-900 mb-1">Yedek kodlarınızı şimdi kaydedin - bir daha gösterilmeyecek</p>
             <p className="text-xs text-amber-800 mb-3">
               Telefonunuza erişemezseniz bu kodlardan biriyle giriş yapabilirsiniz. Her kod bir kez kullanılır.
             </p>
@@ -3176,7 +3176,7 @@ function TwoFactorSection() {
         </div>
       )}
 
-      {/* AKTİF — durum + kapatma */}
+      {/* AKTİF - durum + kapatma */}
       {enabled && step === 'idle' && (
         <div className="space-y-3">
           <p className="text-sm text-neutral-600">
@@ -3338,7 +3338,7 @@ function GoogleOAuthSection() {
         <div className={`flex items-center gap-2 p-3 rounded-lg mb-5 text-xs font-medium ${config.configured ? 'bg-neutral-50 border border-neutral-200 text-neutral-700' : 'bg-amber-50 border border-amber-200 text-amber-800'}`} data-testid="text-google-oauth-status">
           {config.configured
             ? `✓ Google girişi aktif (Client ID: ${config.clientIdMasked})`
-            : '⚠ Henüz yapılandırılmadı — aşağıdaki bilgileri girin.'}
+            : '⚠ Henüz yapılandırılmadı - aşağıdaki bilgileri girin.'}
         </div>
       )}
 

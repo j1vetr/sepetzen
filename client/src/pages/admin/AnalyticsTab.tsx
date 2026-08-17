@@ -125,7 +125,7 @@ export default function AnalyticsPanel() {
     if (value === null || value === undefined) {
       return (
         <span className="flex items-center gap-1 text-xs font-semibold px-2 py-1 rounded-full bg-neutral-100 text-neutral-400" title="Önceki dönemde veri yok">
-          <Minus className="w-3 h-3" /> —
+          <Minus className="w-3 h-3" /> -
         </span>
       );
     }

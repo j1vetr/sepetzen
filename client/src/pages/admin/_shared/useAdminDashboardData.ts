@@ -105,7 +105,7 @@ export function useAdminDashboardData({
   });
 
   // Ürün değişimleri admin Stok/İstatistik tablarını ve frontend katalog
-  // cache'ini etkiler — hepsini birden geçersiz kılıyoruz ki ctrl+R gerekmeden
+  // cache'ini etkiler - hepsini birden geçersiz kılıyoruz ki ctrl+R gerekmeden
   // her sayfa otomatik yenilensin.
   const invalidateProductRelated = () => {
     queryClient.invalidateQueries({ queryKey: ['admin', 'products'] });

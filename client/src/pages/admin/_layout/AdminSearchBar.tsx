@@ -206,7 +206,7 @@ export default function AdminSearchBar({ onNavigate }: AdminSearchBarProps) {
     if (result.searchQuery) {
       onNavigate(result.tab, { searchQuery: result.searchQuery });
     } else if (result.type !== 'tab') {
-      // blog, page, category — navigate by id
+      // blog, page, category - navigate by id
       onNavigate(result.tab, { selectedId: result.id });
     } else {
       onNavigate(result.tab);
@@ -257,7 +257,7 @@ export default function AdminSearchBar({ onNavigate }: AdminSearchBarProps) {
 
   return (
     <div ref={containerRef} className="relative w-full">
-      {/* Trigger — geniş arama alanı */}
+      {/* Trigger - geniş arama alanı */}
       <button
         onClick={openSearch}
         data-testid="button-admin-search"

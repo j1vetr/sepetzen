@@ -524,7 +524,7 @@ function MarketplaceCard({
   });
 
   // Latest run (running indicator + last result).
-  // Çalışırken sıkı poll (1.5sn), aksi halde 5sn — ilerleme barı canlı hissetsin
+  // Çalışırken sıkı poll (1.5sn), aksi halde 5sn - ilerleme barı canlı hissetsin
   // ama bekleme/idle hâlinde sunucuyu yormasın.
   const latestRunQuery = useQuery<SyncRun[]>({
     queryKey: ['/api/admin/marketplaces', mp.id, 'sync-runs', 'latest'],
@@ -543,7 +543,7 @@ function MarketplaceCard({
   const latestRun = (latestRunQuery.data ?? [])[0];
   const isRunning = latestRun?.status === 'running';
 
-  // Mappings — for unmatched count
+  // Mappings - for unmatched count
   const mappingsQuery = useQuery<CategoryMapping[]>({
     queryKey: ['/api/admin/marketplaces', mp.id, 'category-mappings'],
     queryFn: async () => {
@@ -655,10 +655,10 @@ function MarketplaceCard({
         />
       </div>
 
-      {/* Live progress bar (running) — fades out shortly after completion */}
+      {/* Live progress bar (running) - fades out shortly after completion */}
       <LiveProgressBar mp={mp} latestRun={latestRun} />
 
-      {/* Hata özet paneli — gruplanmış (4xx/5xx/network/parse + imagesFailed).
+      {/* Hata özet paneli - gruplanmış (4xx/5xx/network/parse + imagesFailed).
           errorSummary varsa onu göster (yeni format), yoksa eski "ilk hatayı göster"
           davranışına düş. */}
       {latestRun &&
@@ -715,7 +715,7 @@ function MarketplaceCard({
         </GhostButton>
       </div>
 
-      {/* Diğer işlemler — az kullanılan işler tek pencerede */}
+      {/* Diğer işlemler - az kullanılan işler tek pencerede */}
       {showActions && (
         <AdminModal
           open={showActions}
@@ -802,7 +802,7 @@ function MarketplaceCard({
 }
 
 // ============================================================================
-// Live Progress Bar — kart üzerinde çalışan run için ince yatay bar.
+// Live Progress Bar - kart üzerinde çalışan run için ince yatay bar.
 // - status === 'running' iken görünür.
 // - Bitince (status değişince) 0.5sn sonra solar.
 // - expectedTotal yoksa indeterminate animasyon, varsa determinate %.
@@ -933,7 +933,7 @@ function LiveProgressBar({
           <div className="h-full w-1/3 bg-blue-500 rounded-full animate-progress-indeterminate" />
         )}
       </div>
-      {/* Detay satırı: şu anki ürün / sayfa / retry — sadece çalışıyorsa anlamlı */}
+      {/* Detay satırı: şu anki ürün / sayfa / retry - sadece çalışıyorsa anlamlı */}
       {isRunning && (currentProductName || currentPage !== null || retried > 0) && (
         <div
           className="mt-1 flex items-center gap-2 text-[10.5px] text-neutral-500"
@@ -972,7 +972,7 @@ function LiveProgressBar({
 }
 
 // ============================================================================
-// ErrorSummaryPanel — sync hatalarını gruplanmış göster (4xx/5xx/network/parse).
+// ErrorSummaryPanel - sync hatalarını gruplanmış göster (4xx/5xx/network/parse).
 // errorSummary jsonb yoksa eski "ilk hatayı göster" davranışına yumuşak düşer.
 // ============================================================================
 type ErrorBucket = { count: number; samples: string[] };
@@ -1365,7 +1365,7 @@ function MarketplaceFormDialog({
           )}
         </div>
 
-        {/* Varsayılan fiyat kuralı — sadece Trendyol */}
+        {/* Varsayılan fiyat kuralı - sadece Trendyol */}
         {type === 'trendyol' && (
           <div className="space-y-3 border-t border-neutral-100 pt-4">
             <SectionHeading title="Varsayılan Fiyat Kuralı" />
@@ -1787,7 +1787,7 @@ function CategoryMappingsDialog({
   const SUGGESTION_APPLY_THRESHOLD = 0.4;
 
   // Henüz eşlenmemiş, draft'ta da değiştirilmemiş ve önerisi güçlü olan
-  // satırlar — bulk "Tüm önerileri uygula" akışına alınacaklar.
+  // satırlar - bulk "Tüm önerileri uygula" akışına alınacaklar.
   const applicableSuggestions = useMemo(() => {
     return allMappings
       .map((m) => {
@@ -1919,7 +1919,7 @@ function CategoryMappingsDialog({
         <div className="space-y-3">
           {/* Açıklama */}
           <p className="text-[11.5px] text-neutral-500 bg-neutral-50 border border-neutral-100 rounded-md px-3 py-2 leading-relaxed">
-            <strong className="text-neutral-700">Otomatik öneriler</strong> (✦ simgesiyle işaretli) kategori adlarının Türkçe metin benzerliğine göre hesaplanır — gerçek eşleşmeyi siz onaylarsınız.
+            <strong className="text-neutral-700">Otomatik öneriler</strong> (✦ simgesiyle işaretli) kategori adlarının Türkçe metin benzerliğine göre hesaplanır - gerçek eşleşmeyi siz onaylarsınız.
             Her satırdaki açılır menüyü kullanarak site kategorinizi <strong className="text-neutral-700">manuel olarak</strong> seçebilir, ardından Kaydet ile kaydedebilirsiniz.
           </p>
 
