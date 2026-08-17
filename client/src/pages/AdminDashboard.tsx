@@ -50,6 +50,10 @@ export default function AdminDashboard() {
     return tab && VALID_TABS.includes(tab as TabType) ? (tab as TabType) : 'dashboard';
   });
   const [searchQuery, setSearchQuery] = useState('');
+  // Arama çubuğu navigasyonu için sekmesine özel initial state'ler
+  const [ordersInitialSearch, setOrdersInitialSearch] = useState('');
+  const [blogInitialSelectedId, setBlogInitialSelectedId] = useState('');
+  const [pagesInitialSelectedId, setPagesInitialSelectedId] = useState('');
 
   const [editingProduct, setEditingProduct] = useState<Product | ProductDraft | null>(null);
   const [editingCategory, setEditingCategory] = useState<Category | null>(null);
@@ -116,6 +120,33 @@ export default function AdminDashboard() {
     window.history.pushState({ tab: tabId }, '', url.toString());
   };
 
+  // Arama çubuğundan gelen navigasyon — her sekme türü için özel hedef davranışı
+  const handleSearchNavigate = (
+    tabId: TabType,
+    options?: { searchQuery?: string; selectedId?: string },
+  ) => {
+    handleTabChange(tabId);
+    const q = options?.searchQuery;
+    const id = options?.selectedId;
+    if (tabId === 'products' || tabId === 'users') {
+      // ProductsTab ve UsersTab zaten searchQuery prop'u kullanıyor
+      if (q !== undefined) setSearchQuery(q);
+    } else if (tabId === 'orders') {
+      if (q !== undefined) setOrdersInitialSearch(q);
+    } else if (tabId === 'categories' && id) {
+      // Kategori id'siyle doğrudan düzenleme modalı aç
+      const cat = categories.find((c) => c.id === id);
+      if (cat) {
+        setEditingCategory(cat);
+        setShowCategoryModal(true);
+      }
+    } else if (tabId === 'blog' && id) {
+      setBlogInitialSelectedId(id);
+    } else if (tabId === 'pages' && id) {
+      setPagesInitialSelectedId(id);
+    }
+  };
+
   // Tarayıcı geri/ileri tuşlarını sekme değişimiyle senkron tut
   useEffect(() => {
     const onPopState = (e: PopStateEvent) => {
@@ -161,6 +192,7 @@ export default function AdminDashboard() {
         sidebarCategories={SIDEBAR_CATEGORIES}
         activeTab={activeTab}
         onTabChange={handleTabChange}
+        onNavigate={handleSearchNavigate}
         onLogout={() => logoutMutation.mutate()}
         pendingOrdersCount={pendingOrdersCount}
         pendingReviewsCount={pendingReviewsCount}
@@ -210,7 +242,7 @@ export default function AdminDashboard() {
             categoriesError={categoriesError}
           />
         )}
-        {activeTab === 'orders' && <OrdersTab />}
+        {activeTab === 'orders' && <OrdersTab initialSearch={ordersInitialSearch} />}
         {activeTab === 'users' && (
           <UsersTab
             users={users}
@@ -227,8 +259,8 @@ export default function AdminDashboard() {
         {activeTab === 'menu' && <MenuTab categories={categories} />}
         {activeTab === 'homepage' && <HomepageTab />}
         {activeTab === 'footer' && <FooterTab />}
-        {activeTab === 'pages' && <PagesTab />}
-        {activeTab === 'blog' && <BlogTab />}
+        {activeTab === 'pages' && <PagesTab initialSelectedId={pagesInitialSelectedId} />}
+        {activeTab === 'blog' && <BlogTab initialSelectedId={blogInitialSelectedId} />}
         {activeTab === 'marketplaces' && (
           <MarketplacesTab
             siteCategories={categories.map((c) => ({ id: c.id, name: c.name, slug: c.slug }))}

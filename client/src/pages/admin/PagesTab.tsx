@@ -14,7 +14,11 @@ type PageDraft = Omit<ManagedPage, 'id'> & { id?: string };
 
 const emptyDraft = (): PageDraft => ({ slug: '', title: '', content: '', isPublished: true });
 
-export default function PagesTab() {
+interface PagesTabProps {
+  initialSelectedId?: string;
+}
+
+export default function PagesTab({ initialSelectedId }: PagesTabProps) {
   const queryClient = useQueryClient();
   const { data: pages = [], isLoading, isError } = useQuery<ManagedPage[]>({
     queryKey: ['/api/admin/pages'],
@@ -24,7 +28,12 @@ export default function PagesTab() {
       return response.json();
     },
   });
-  const [selectedId, setSelectedId] = useState('');
+  const [selectedId, setSelectedId] = useState(initialSelectedId ?? '');
+
+  // Arama çubuğundan belirli bir sayfaya yönlendirme
+  useEffect(() => {
+    if (initialSelectedId) setSelectedId(initialSelectedId);
+  }, [initialSelectedId]);
   const [draft, setDraft] = useState<PageDraft | null>(null);
   const [saving, setSaving] = useState(false);
   const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);

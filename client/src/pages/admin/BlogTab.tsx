@@ -41,7 +41,11 @@ function slugify(value: string): string {
     .slice(0, 160);
 }
 
-export default function BlogTab() {
+interface BlogTabProps {
+  initialSelectedId?: string;
+}
+
+export default function BlogTab({ initialSelectedId }: BlogTabProps) {
   const queryClient = useQueryClient();
   const { data: posts = [], isLoading, isError } = useQuery<BlogPost[]>({
     queryKey: ['/api/admin/blog'],
@@ -52,7 +56,12 @@ export default function BlogTab() {
     },
   });
 
-  const [selectedId, setSelectedId] = useState<string | null>(null);
+  const [selectedId, setSelectedId] = useState<string | null>(initialSelectedId ?? null);
+
+  // Arama çubuğundan belirli bir yazıya yönlendirme
+  useEffect(() => {
+    if (initialSelectedId) setSelectedId(initialSelectedId);
+  }, [initialSelectedId]);
   const [draft, setDraft] = useState<Draft>(EMPTY_DRAFT);
   const [saving, setSaving] = useState(false);
   const [deleting, setDeleting] = useState(false);

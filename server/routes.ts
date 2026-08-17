@@ -11,8 +11,8 @@ import fs from "fs";
 import PDFDocument from "pdfkit";
 import sharp from "sharp";
 import { cache, CACHE_KEYS, CACHE_TTL } from "./cache";
-import { eq, desc, sql } from "drizzle-orm";
-import { insertAdminUserSchema, insertCategorySchema, insertProductSchema, insertProductVariantSchema, insertCartItemSchema, insertOrderSchema, insertOrderItemSchema, insertUserSchema, adminUpdateUserSchema, couponRedemptions, orders, coupons, products, stockAdjustments, productCategories, productVariants } from "@shared/schema";
+import { eq, desc, sql, ilike, or } from "drizzle-orm";
+import { insertAdminUserSchema, insertCategorySchema, insertProductSchema, insertProductVariantSchema, insertCartItemSchema, insertOrderSchema, insertOrderItemSchema, insertUserSchema, adminUpdateUserSchema, couponRedemptions, orders, coupons, products, stockAdjustments, productCategories, productVariants, users, categories, blogPosts, pages, productReviews } from "@shared/schema";
 import { optimizeImage, optimizeImageBuffer, optimizeUploadedFiles, verifyImageContent } from "./imageOptimizer";
 import {
   sendWelcomeEmail,
@@ -945,6 +945,49 @@ export async function registerRoutes(
     }
     return id;
   };
+
+  // ── Admin genel arama ──────────────────────────────────────────────────
+  app.get("/api/admin/search", requireAdmin, async (req, res) => {
+    const q = String(req.query.q ?? '').trim();
+    if (q.length < 2) return res.json({ products: [], orders: [], users: [], categories: [], blog: [], pages: [] });
+    const like = `%${q}%`;
+    const MAX = 5;
+    const [productRows, orderRows, userRows, categoryRows, blogRows, pageRows] = await Promise.all([
+      db.select({ id: products.id, name: products.name, sku: products.sku })
+        .from(products)
+        .where(or(sql`${products.name} ILIKE ${like}`, sql`${products.sku} ILIKE ${like}`))
+        .limit(MAX),
+      db.select({ id: orders.id, orderNumber: orders.orderNumber, customerName: orders.customerName, customerEmail: orders.customerEmail })
+        .from(orders)
+        .where(or(sql`${orders.orderNumber} ILIKE ${like}`, sql`${orders.customerName} ILIKE ${like}`, sql`${orders.customerEmail} ILIKE ${like}`))
+        .orderBy(desc(orders.createdAt))
+        .limit(MAX),
+      db.select({ id: users.id, email: users.email, firstName: users.firstName, lastName: users.lastName })
+        .from(users)
+        .where(or(sql`${users.email} ILIKE ${like}`, sql`${users.firstName} ILIKE ${like}`, sql`${users.lastName} ILIKE ${like}`))
+        .limit(MAX),
+      db.select({ id: categories.id, name: categories.name })
+        .from(categories)
+        .where(sql`${categories.name} ILIKE ${like}`)
+        .limit(MAX),
+      db.select({ id: blogPosts.id, title: blogPosts.title })
+        .from(blogPosts)
+        .where(sql`${blogPosts.title} ILIKE ${like}`)
+        .limit(MAX),
+      db.select({ id: pages.id, title: pages.title })
+        .from(pages)
+        .where(sql`${pages.title} ILIKE ${like}`)
+        .limit(MAX),
+    ]);
+    res.json({
+      products: productRows.map(p => ({ id: p.id, label: p.name, sublabel: p.sku || undefined })),
+      orders: orderRows.map(o => ({ id: o.id, label: o.orderNumber, sublabel: o.customerName || o.customerEmail || undefined })),
+      users: userRows.map(u => ({ id: u.id, label: u.email, sublabel: [u.firstName, u.lastName].filter(Boolean).join(' ') || undefined })),
+      categories: categoryRows.map(c => ({ id: c.id, label: c.name })),
+      blog: blogRows.map(b => ({ id: b.id, label: b.title })),
+      pages: pageRows.map(p => ({ id: p.id, label: p.title })),
+    });
+  });
 
   // ── Admin Pages API (requireAdmin tanımlandıktan sonra) ──────────────────
   app.get("/api/admin/pages", requireAdmin, async (_req, res) => {

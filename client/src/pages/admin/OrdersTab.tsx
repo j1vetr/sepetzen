@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Link, useLocation } from 'wouter';
 import { formatTRDateShort, formatTRDateNumeric } from '@shared/dateFormat';
@@ -258,11 +258,20 @@ function TableSkeletonRow() {
   );
 }
 
-export default function OrdersPanel() {
+interface OrdersTabProps {
+  initialSearch?: string;
+}
+
+export default function OrdersPanel({ initialSearch = '' }: OrdersTabProps) {
   const queryClient = useQueryClient();
   const [, navigate] = useLocation();
   const [statusFilter, setStatusFilter] = useState('all');
-  const [search, setSearch] = useState('');
+  const [search, setSearch] = useState(initialSearch);
+
+  // Arama çubuğundan navigasyon geldiğinde search state'ini güncelle
+  useEffect(() => {
+    if (initialSearch) setSearch(initialSearch);
+  }, [initialSearch]);
   const [sort, setSort] = useState('date-desc');
   const [dateFrom, setDateFrom] = useState('');
   const [dateTo, setDateTo] = useState('');

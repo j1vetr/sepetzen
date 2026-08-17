@@ -1,6 +1,7 @@
 import { useState, type ReactNode, type ComponentType } from 'react';
 import { ExternalLink, LogOut, Menu, X } from 'lucide-react';
 import type { TabType } from '../_shared/types';
+import AdminSearchBar from './AdminSearchBar';
 
 export type SidebarItem = {
   id: TabType;
@@ -18,6 +19,7 @@ interface AdminLayoutProps {
   sidebarCategories: SidebarCategory[];
   activeTab: TabType;
   onTabChange: (tab: TabType) => void;
+  onNavigate: (tab: TabType, options?: { searchQuery?: string; selectedId?: string }) => void;
   onLogout: () => void;
   pendingOrdersCount: number;
   pendingReviewsCount?: number;
@@ -32,6 +34,7 @@ export default function AdminLayout({
   sidebarCategories,
   activeTab,
   onTabChange,
+  onNavigate: _onNavigate,
   onLogout,
   pendingOrdersCount,
   pendingReviewsCount = 0,
@@ -172,16 +175,19 @@ export default function AdminLayout({
               )}
             </div>
           </div>
-          <a
-            href="/"
-            target="_blank"
-            rel="noopener noreferrer"
-            className="inline-flex items-center gap-1.5 px-2.5 py-1.5 text-[12px] font-medium text-neutral-700 hover:text-neutral-900 hover:bg-neutral-100 rounded-md transition-colors"
-            data-testid="button-view-site"
-          >
-            <ExternalLink className="w-3.5 h-3.5" />
-            <span className="hidden sm:inline">Siteyi Görüntüle</span>
-          </a>
+          <div className="flex items-center gap-2">
+            <AdminSearchBar onNavigate={_onNavigate} />
+            <a
+              href="/"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex items-center gap-1.5 px-2.5 py-1.5 text-[12px] font-medium text-neutral-700 hover:text-neutral-900 hover:bg-neutral-100 rounded-md transition-colors"
+              data-testid="button-view-site"
+            >
+              <ExternalLink className="w-3.5 h-3.5" />
+              <span className="hidden sm:inline">Siteyi Görüntüle</span>
+            </a>
+          </div>
         </header>
 
         <div className="flex-1 overflow-auto bg-neutral-50">
