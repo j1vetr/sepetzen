@@ -3,7 +3,6 @@ import { useLocation } from 'wouter';
 
 import OrdersTab from './admin/OrdersTab';
 import TrendyolCenter from './admin/TrendyolCenter';
-import MarketplaceOrdersTab from './admin/MarketplaceOrdersTab';
 import AdminLayout from './admin/_layout/AdminLayout';
 
 import DashboardTab from './admin/DashboardTab';
@@ -47,6 +46,8 @@ export default function AdminDashboard() {
   const [activeTab, setActiveTab] = useState<TabType>(() => {
     const params = new URLSearchParams(window.location.search);
     const tab = params.get('tab');
+    // Eski "Trendyol Siparişleri" bağlantıları artık Trendyol Merkezi'ne yönlenir
+    if (tab === 'marketplaceOrders') return 'marketplaces';
     return tab && VALID_TABS.includes(tab as TabType) ? (tab as TabType) : 'dashboard';
   });
   const [searchQuery, setSearchQuery] = useState('');
@@ -152,7 +153,10 @@ export default function AdminDashboard() {
     const onPopState = (e: PopStateEvent) => {
       const params = new URLSearchParams(window.location.search);
       const tab = params.get('tab');
-      if (tab && VALID_TABS.includes(tab as TabType)) {
+      // Eski "Trendyol Siparişleri" bağlantıları artık Trendyol Merkezi'ne yönlenir
+      if (tab === 'marketplaceOrders') {
+        setActiveTab('marketplaces');
+      } else if (tab && VALID_TABS.includes(tab as TabType)) {
         setActiveTab(tab as TabType);
       }
     };
@@ -266,7 +270,6 @@ export default function AdminDashboard() {
             siteCategories={categories.map((c) => ({ id: c.id, name: c.name, slug: c.slug }))}
           />
         )}
-        {activeTab === 'marketplaceOrders' && <MarketplaceOrdersTab />}
         {activeTab === 'coupons' && <CouponsTab />}
         {activeTab === 'reviews' && <ReviewsTab />}
         {activeTab === 'wholesale' && (

@@ -220,7 +220,6 @@ export type TabType =
   | 'pages'
   | 'blog'
   | 'marketplaces'
-  | 'marketplaceOrders'
   | 'coupons'
   | 'reviews'
   | 'wholesale';

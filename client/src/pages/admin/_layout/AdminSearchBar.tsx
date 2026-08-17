@@ -61,7 +61,6 @@ const TAB_ICONS: Record<TabType, React.ComponentType<{ className?: string }>> = 
   orders: ShoppingCart,
   wholesale: HandCoins,
   marketplaces: Globe,
-  marketplaceOrders: ShoppingCart,
   users: Users,
   reviews: MessageSquare,
   coupons: Ticket,

@@ -16,6 +16,8 @@ import {
   Activity,
   AlertTriangle,
   CheckCircle2,
+  ChevronRight,
+  Globe,
   Loader2,
   MessageCircleQuestion,
   PackageOpen,
@@ -54,14 +56,14 @@ type Marketplace = {
 
 type TabId = 'overview' | 'products' | 'orders' | 'questions' | 'claims' | 'queue' | 'settings';
 
-const TABS: Array<{ id: TabId; label: string; icon: typeof Activity }> = [
-  { id: 'overview', label: 'Genel Bakış', icon: Activity },
-  { id: 'products', label: 'Ürünler', icon: Send },
-  { id: 'orders', label: 'Siparişler', icon: ShoppingCart },
-  { id: 'questions', label: 'Sorular', icon: MessageCircleQuestion },
-  { id: 'claims', label: 'İadeler', icon: Undo2 },
-  { id: 'queue', label: 'Kuyruk', icon: PackageOpen },
-  { id: 'settings', label: 'Ayarlar', icon: Settings },
+const TABS: Array<{ id: TabId; label: string; icon: typeof Activity; description: string }> = [
+  { id: 'overview', label: 'Genel Bakış', icon: Activity, description: 'Bağlantı ve senkron sağlığını tek bakışta kontrol edin, sorunları tek tıkla düzeltin.' },
+  { id: 'products', label: 'Ürünler', icon: Send, description: 'Ürün bağlantılarını yönetin, yeni ürünleri sihirbazla Trendyol\'a gönderin.' },
+  { id: 'orders', label: 'Siparişler', icon: ShoppingCart, description: 'Trendyol siparişlerini görüntüleyin, paket durumlarını ve faturaları yönetin.' },
+  { id: 'questions', label: 'Sorular', icon: MessageCircleQuestion, description: 'Müşteri sorularını görüntüleyin ve doğrudan buradan cevaplayın.' },
+  { id: 'claims', label: 'İadeler', icon: Undo2, description: 'İade taleplerini inceleyin, onaylayın veya itiraz edin.' },
+  { id: 'queue', label: 'Kuyruk', icon: PackageOpen, description: 'Stok ve fiyat güncellemelerinin Trendyol\'a gönderim kuyruğunu izleyin.' },
+  { id: 'settings', label: 'Ayarlar', icon: Settings, description: 'Trendyol API bağlantı bilgilerini ve kategori eşleştirmelerini yönetin.' },
 ];
 
 function fmtDate(d: string | null | undefined): string {
@@ -124,17 +126,56 @@ export default function TrendyolCenter({ siteCategories }: { siteCategories: Sit
 
   // Seçili sekme gizlendiyse genel bakışa dön
   const effectiveTab = visibleTabs.some((t) => t.id === tab) ? tab : 'overview';
+  const activeTabInfo = TABS.find((t) => t.id === effectiveTab);
+
+  // Bekleyen sipariş sayısı - Siparişler sekmesinde rozet olarak gösterilir
+  const pendingOrdersQuery = useQuery<{ count: number }>({
+    queryKey: ['/api/admin/marketplace-orders/pending-count'],
+    refetchInterval: 5 * 60_000,
+    staleTime: 2 * 60_000,
+  });
+  const pendingOrders = pendingOrdersQuery.data?.count ?? 0;
+
+  const selectedMp = marketplaces.find((m) => m.id === mpId) ?? null;
+  const lastSync = selectedMp?.lastDeltaSyncAt ?? selectedMp?.lastFullSyncAt ?? null;
 
   if (mpQuery.isLoading) return <LoadingState />;
 
-  // Hiç bağlantı yoksa doğrudan ayarlar (bağlantı kurma) ekranını göster
+  // Hiç bağlantı yoksa yol gösteren kurulum ekranı + bağlantı ayarları
   if (marketplaces.length === 0) {
     return (
-      <div className="space-y-4">
-        <InlineAlert tone="neutral">
-          Henüz aktif bir Trendyol bağlantısı yok. Aşağıdan bağlantı ekleyin; sonrasında bu
-          sayfa senkron sağlığı, ürünler, siparişler, sorular ve iadelerle dolacak.
-        </InlineAlert>
+      <div className="space-y-4" data-testid="trendyol-center">
+        <div className="rounded-xl border border-neutral-200 bg-white p-5">
+          <div className="flex items-start gap-3">
+            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-orange-50">
+              <Globe className="h-5 w-5 text-orange-500" />
+            </div>
+            <div>
+              <h2 className="text-lg font-semibold text-neutral-900">Trendyol Merkezi'ne Hoş Geldiniz</h2>
+              <p className="mt-0.5 text-[12.5px] text-neutral-500">
+                Trendyol mağazanızı bağladığınızda senkron sağlığı, ürünler, siparişler, sorular ve
+                iadeler bu sayfada tek merkezden yönetilir.
+              </p>
+            </div>
+          </div>
+          <ol className="mt-4 grid gap-2 sm:grid-cols-3">
+            {[
+              ['1', 'Bağlantıyı kurun', 'Aşağıya Trendyol satıcı API bilgilerinizi girin ve kaydedin.'],
+              ['2', 'Kategorileri eşleştirin', 'Site kategorilerinizi Trendyol kategorileriyle eşleyin.'],
+              ['3', 'Ürünleri gönderin', 'Ürünler sekmesindeki sihirbazla ürünlerinizi Trendyol\'a taşıyın.'],
+            ].map(([num, title, desc]) => (
+              <li key={num} className="rounded-lg border border-neutral-200 bg-neutral-50 p-3">
+                <div className="flex items-center gap-2">
+                  <span className="flex h-5 w-5 items-center justify-center rounded-full bg-neutral-900 text-[10.5px] font-semibold text-white">
+                    {num}
+                  </span>
+                  <span className="text-[12.5px] font-semibold text-neutral-900">{title}</span>
+                </div>
+                <p className="mt-1 text-[11.5px] leading-4 text-neutral-500">{desc}</p>
+              </li>
+            ))}
+          </ol>
+        </div>
         <MarketplacesTab siteCategories={siteCategories} />
       </div>
     );
@@ -142,52 +183,98 @@ export default function TrendyolCenter({ siteCategories }: { siteCategories: Sit
 
   return (
     <div className="space-y-4" data-testid="trendyol-center">
-      <div className="flex flex-wrap items-center gap-2">
-        <h2 className="text-lg font-semibold text-neutral-900 mr-auto">Trendyol Merkezi</h2>
-        {marketplaces.length > 1 && (
-          <SelectInput
-            value={mpId ?? ''}
-            onChange={(e) => setSelectedMpId(e.target.value)}
-            className="w-44"
-            data-testid="select-center-marketplace"
+      {/* Başlık + bağlantı durumu */}
+      <div className="rounded-xl border border-neutral-200 bg-white p-4 sm:p-5">
+        <div className="flex flex-wrap items-center gap-3">
+          <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-orange-50">
+            <Globe className="h-5 w-5 text-orange-500" />
+          </div>
+          <div className="mr-auto min-w-0">
+            <h2 className="text-lg font-semibold leading-6 text-neutral-900">Trendyol Merkezi</h2>
+            <p className="text-[12px] text-neutral-500">
+              Tüm Trendyol operasyonlarınız tek ekranda
+            </p>
+          </div>
+          <div
+            className="inline-flex items-center gap-2 rounded-lg border border-emerald-200 bg-emerald-50 px-3 py-1.5"
+            data-testid="chip-connection-status"
           >
-            {marketplaces.map((m) => (
-              <option key={m.id} value={m.id}>
-                {m.name}
-              </option>
-            ))}
-          </SelectInput>
-        )}
+            <span className="h-2 w-2 rounded-full bg-emerald-500" />
+            <span className="text-[12px] font-medium text-emerald-700">
+              {selectedMp?.name ?? 'Bağlı'}
+            </span>
+            <span className="hidden text-[11px] text-emerald-600/80 sm:inline">
+              Son senkron: {fmtDate(lastSync)}
+            </span>
+          </div>
+          {marketplaces.length > 1 && (
+            <SelectInput
+              value={mpId ?? ''}
+              onChange={(e) => setSelectedMpId(e.target.value)}
+              className="w-44"
+              data-testid="select-center-marketplace"
+            >
+              {marketplaces.map((m) => (
+                <option key={m.id} value={m.id}>
+                  {m.name}
+                </option>
+              ))}
+            </SelectInput>
+          )}
+        </div>
       </div>
 
       {/* Sekme çubuğu */}
-      <div className="border-b border-neutral-200 -mx-1 px-1 overflow-x-auto">
-        <div className="flex gap-1 min-w-max">
+      <div className="-mx-1 overflow-x-auto px-1 pb-0.5">
+        <div className="flex min-w-max gap-1.5">
           {visibleTabs.map((t) => {
             const Icon = t.icon;
             const active = effectiveTab === t.id;
+            const badge = t.id === 'orders' ? pendingOrders : 0;
             return (
               <button
                 key={t.id}
                 type="button"
                 onClick={() => setTab(t.id)}
-                className={`inline-flex items-center gap-1.5 px-3 py-2 text-[13px] font-medium border-b-2 -mb-px transition-colors whitespace-nowrap ${
+                className={`inline-flex items-center gap-1.5 whitespace-nowrap rounded-lg border px-3 py-2 text-[12.5px] font-medium transition-colors ${
                   active
-                    ? 'border-neutral-900 text-neutral-900'
-                    : 'border-transparent text-neutral-500 hover:text-neutral-800'
+                    ? 'border-neutral-900 bg-neutral-900 text-white'
+                    : 'border-neutral-200 bg-white text-neutral-600 hover:border-neutral-300 hover:text-neutral-900'
                 }`}
                 data-testid={`tab-trendyol-${t.id}`}
               >
-                <Icon className="w-4 h-4" />
+                <Icon className="h-4 w-4" />
                 {t.label}
+                {badge > 0 && (
+                  <span
+                    className={`inline-flex h-[18px] min-w-[18px] items-center justify-center rounded-full px-1 text-[10px] font-semibold leading-none ${
+                      active ? 'bg-white text-neutral-900' : 'bg-neutral-900 text-white'
+                    }`}
+                    data-testid="badge-tab-orders-count"
+                  >
+                    {badge > 99 ? '99+' : badge}
+                  </span>
+                )}
               </button>
             );
           })}
         </div>
       </div>
 
+      {/* Aktif sekmenin kısa açıklaması - kullanıcıyı yönlendirir */}
+      {activeTabInfo && (
+        <p className="text-[12px] text-neutral-500" data-testid="text-tab-description">
+          {activeTabInfo.description}
+        </p>
+      )}
+
       {effectiveTab === 'overview' && mpId && (
-        <OverviewPanel marketplaceId={mpId} onGoTab={setTab} />
+        <OverviewPanel
+          marketplaceId={mpId}
+          onGoTab={setTab}
+          quickNavTabs={visibleTabs.filter((t) => t.id !== 'overview')}
+          pendingOrders={pendingOrders}
+        />
       )}
       {effectiveTab === 'products' && mpId && <ProductLinksPanel marketplaceId={mpId} />}
       {effectiveTab === 'orders' && <MarketplaceOrdersTab marketplaceId={mpId} />}
@@ -230,9 +317,13 @@ type HealthResponse = {
 function OverviewPanel({
   marketplaceId,
   onGoTab,
+  quickNavTabs,
+  pendingOrders,
 }: {
   marketplaceId: string;
   onGoTab: (t: TabId) => void;
+  quickNavTabs: Array<{ id: TabId; label: string; icon: typeof Activity; description: string }>;
+  pendingOrders: number;
 }) {
   const qc = useQueryClient();
   const { toast } = useToast();
@@ -274,10 +365,46 @@ function OverviewPanel({
 
   return (
     <div className="space-y-4" data-testid="panel-overview">
-      <div className="flex flex-wrap items-center gap-2">
+      {/* Hızlı erişim - bölümlere yönlendiren kartlar */}
+      <div className="grid grid-cols-2 gap-2 lg:grid-cols-3" data-testid="grid-quick-nav">
+        {quickNavTabs.map((t) => {
+          const Icon = t.icon;
+          const badge = t.id === 'orders' ? pendingOrders : 0;
+          return (
+            <button
+              key={t.id}
+              type="button"
+              onClick={() => onGoTab(t.id)}
+              className="group flex items-start gap-2.5 rounded-xl border border-neutral-200 bg-white p-3 text-left transition-colors hover:border-neutral-300 hover:bg-neutral-50"
+              data-testid={`card-quick-${t.id}`}
+            >
+              <div className="mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-neutral-100 text-neutral-600 transition-colors group-hover:bg-neutral-900 group-hover:text-white">
+                <Icon className="h-4 w-4" />
+              </div>
+              <div className="min-w-0 flex-1">
+                <div className="flex items-center gap-1.5">
+                  <span className="text-[13px] font-semibold text-neutral-900">{t.label}</span>
+                  {badge > 0 && (
+                    <span className="inline-flex h-[17px] min-w-[17px] items-center justify-center rounded-full bg-neutral-900 px-1 text-[10px] font-semibold leading-none text-white">
+                      {badge > 99 ? '99+' : badge}
+                    </span>
+                  )}
+                </div>
+                <p className="mt-0.5 hidden text-[11px] leading-4 text-neutral-500 sm:block">
+                  {t.description}
+                </p>
+              </div>
+              <ChevronRight className="mt-1 h-4 w-4 shrink-0 text-neutral-300 transition-colors group-hover:text-neutral-500" />
+            </button>
+          );
+        })}
+      </div>
+
+      <div className="flex flex-wrap items-center gap-2 pt-1">
         <p className="text-[12.5px] text-neutral-500 mr-auto">
-          Sağlık denetimi, push yönündeki tüm ürünlerin Trendyol'daki gerçek stok/fiyatını
-          barkodla sorgular ve beklenen değerlerle karşılaştırır.
+          <span className="font-semibold text-neutral-700">Senkron sağlığı:</span> push
+          yönündeki tüm ürünlerin Trendyol'daki gerçek stok/fiyatı barkodla sorgulanır ve
+          sitedeki değerlerle karşılaştırılır.
         </p>
         <SecondaryButton
           onClick={() => healthQuery.refetch()}

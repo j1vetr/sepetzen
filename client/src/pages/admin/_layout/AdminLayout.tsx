@@ -97,7 +97,7 @@ export default function AdminLayout({
                 let badgeCount = 0;
                 if (item.id === 'orders') badgeCount = pendingOrdersCount;
                 else if (item.id === 'reviews') badgeCount = pendingReviewsCount;
-                else if (item.id === 'marketplaceOrders') badgeCount = pendingMarketplaceOrdersCount;
+                else if (item.id === 'marketplaces') badgeCount = pendingMarketplaceOrdersCount;
                 const showBadge = badgeCount > 0;
                 return (
                   <button
