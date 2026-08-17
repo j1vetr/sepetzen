@@ -1,5 +1,11 @@
 import { useState, useEffect } from 'react';
-import { X, Minus, Plus, Loader2, ShoppingBag } from 'lucide-react';
+import { X, Minus, Plus, Loader2, ShoppingBag, Play } from 'lucide-react';
+
+function isVideoUrl(url: string): boolean {
+  if (!url) return false;
+  const lower = url.toLowerCase().split('?')[0];
+  return lower.endsWith('.mp4') || lower.endsWith('.webm') || lower.endsWith('.mov');
+}
 import { motion, AnimatePresence } from 'framer-motion';
 import { useCart } from '@/hooks/useCart';
 import { useCartModal } from '@/hooks/useCartModal';
@@ -119,11 +125,23 @@ export function QuickViewModal({ product, isOpen, onClose }: QuickViewModalProps
             <div className="grid grid-cols-1 md:grid-cols-2">
               {/* Image */}
               <div className="relative aspect-square md:aspect-auto md:h-full bg-[#151515]">
-                <img
-                  src={product.images[currentImageIndex] || '/placeholder.jpg'}
-                  alt={product.name}
-                  className="w-full h-full object-cover"
-                />
+                {isVideoUrl(product.images[currentImageIndex] || '') ? (
+                  <video
+                    src={product.images[currentImageIndex]}
+                    className="w-full h-full object-cover"
+                    muted
+                    autoPlay
+                    loop
+                    playsInline
+                    controls
+                  />
+                ) : (
+                  <img
+                    src={product.images[currentImageIndex] || '/placeholder.jpg'}
+                    alt={product.name}
+                    className="w-full h-full object-cover"
+                  />
+                )}
                 {!isOutOfStock && (
                   <FreeShippingBadge
                     className="absolute top-4 left-4 z-10"
@@ -138,13 +156,22 @@ export function QuickViewModal({ product, isOpen, onClose }: QuickViewModalProps
                         type="button"
                         key={index}
                         onClick={() => setCurrentImageIndex(index)}
-                        className={`w-12 h-12 overflow-hidden border-2 transition-colors ${
+                        className={`relative w-12 h-12 overflow-hidden border-2 transition-colors ${
                           currentImageIndex === index
                             ? 'border-white'
                             : 'border-transparent opacity-50 hover:opacity-100'
                         }`}
                       >
-                        <img src={img} alt="" className="w-full h-full object-cover" />
+                        {isVideoUrl(img) ? (
+                          <>
+                            <video src={img} className="w-full h-full object-cover" muted playsInline preload="metadata" />
+                            <div className="absolute inset-0 flex items-center justify-center bg-black/30">
+                              <Play className="w-3 h-3 text-white fill-white" />
+                            </div>
+                          </>
+                        ) : (
+                          <img src={img} alt="" className="w-full h-full object-cover" />
+                        )}
                       </button>
                     ))}
                   </div>

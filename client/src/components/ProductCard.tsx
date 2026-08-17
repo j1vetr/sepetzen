@@ -1,5 +1,11 @@
 import React, { useState, memo } from 'react';
-import { Heart, Loader2, ArrowRight } from 'lucide-react';
+import { Heart, Loader2, ArrowRight, Play } from 'lucide-react';
+
+function isVideoUrl(url: string): boolean {
+  if (!url) return false;
+  const lower = url.toLowerCase().split('?')[0];
+  return lower.endsWith('.mp4') || lower.endsWith('.webm') || lower.endsWith('.mov');
+}
 import { motion } from 'framer-motion';
 import { Link } from 'wouter';
 import { useFavoriteIds, useToggleFavorite } from '@/hooks/useFavorites';
@@ -73,16 +79,35 @@ export const ProductCard = memo(function ProductCard({ product }: ProductCardPro
         >
           {/* Image container */}
           <div className="relative aspect-[3/4] overflow-hidden bg-[#151515]">
-            <motion.img
-              src={mainImage}
-              alt={product.name}
-              className="w-full h-full object-cover"
-              loading="lazy"
-              decoding="async"
-              animate={{ scale: isHovered ? 1.06 : 1 }}
-              transition={{ duration: 0.7, ease: [0.33, 1, 0.68, 1] }}
-              data-testid={`img-product-${product.id}`}
-            />
+            {isVideoUrl(mainImage) ? (
+              <>
+                <motion.video
+                  src={mainImage}
+                  className="w-full h-full object-cover"
+                  muted
+                  autoPlay
+                  loop
+                  playsInline
+                  animate={{ scale: isHovered ? 1.06 : 1 }}
+                  transition={{ duration: 0.7, ease: [0.33, 1, 0.68, 1] }}
+                  data-testid={`img-product-${product.id}`}
+                />
+                <div className="absolute top-3 left-3 z-20 w-7 h-7 rounded-full bg-black/50 backdrop-blur-sm flex items-center justify-center">
+                  <Play className="w-3 h-3 text-white fill-white" />
+                </div>
+              </>
+            ) : (
+              <motion.img
+                src={mainImage}
+                alt={product.name}
+                className="w-full h-full object-cover"
+                loading="lazy"
+                decoding="async"
+                animate={{ scale: isHovered ? 1.06 : 1 }}
+                transition={{ duration: 0.7, ease: [0.33, 1, 0.68, 1] }}
+                data-testid={`img-product-${product.id}`}
+              />
+            )}
 
             {/* Out of stock overlay */}
             {isOutOfStock && (

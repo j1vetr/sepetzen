@@ -49,8 +49,15 @@ import {
   Gift,
   Info,
   ImagePlus,
+  Play,
   type LucideIcon,
 } from 'lucide-react';
+
+function isVideoUrl(url: string): boolean {
+  if (!url) return false;
+  const lower = url.toLowerCase().split('?')[0];
+  return lower.endsWith('.mp4') || lower.endsWith('.webm') || lower.endsWith('.mov');
+}
 
 function WhatsAppIcon({ className }: { className?: string }) {
   return (
@@ -1243,18 +1250,35 @@ export default function ProductDetail() {
             )}
 
             <div className="hidden sm:flex w-full h-full items-center justify-center p-10">
-              <motion.img
-                key={selectedImage}
-                initial={{ opacity: 0, scale: 0.97 }}
-                animate={{ opacity: 1, scale: 1 }}
-                exit={{ opacity: 0 }}
-                transition={{ duration: 0.2 }}
-                src={images[selectedImage]}
-                alt={product.name}
-                className="max-w-[90vw] max-h-[90vh] object-contain select-none"
-                onClick={(e) => e.stopPropagation()}
-                draggable={false}
-              />
+              <AnimatePresence mode="wait">
+                {isVideoUrl(images[selectedImage]) ? (
+                  <motion.video
+                    key={selectedImage}
+                    initial={{ opacity: 0, scale: 0.97 }}
+                    animate={{ opacity: 1, scale: 1 }}
+                    exit={{ opacity: 0 }}
+                    transition={{ duration: 0.2 }}
+                    src={images[selectedImage]}
+                    className="max-w-[90vw] max-h-[90vh] object-contain select-none"
+                    onClick={(e) => e.stopPropagation()}
+                    controls
+                    playsInline
+                  />
+                ) : (
+                  <motion.img
+                    key={selectedImage}
+                    initial={{ opacity: 0, scale: 0.97 }}
+                    animate={{ opacity: 1, scale: 1 }}
+                    exit={{ opacity: 0 }}
+                    transition={{ duration: 0.2 }}
+                    src={images[selectedImage]}
+                    alt={product.name}
+                    className="max-w-[90vw] max-h-[90vh] object-contain select-none"
+                    onClick={(e) => e.stopPropagation()}
+                    draggable={false}
+                  />
+                )}
+              </AnimatePresence>
             </div>
 
             <div className="sm:hidden w-full h-full flex items-center" onClick={(e) => e.stopPropagation()}>
@@ -1262,7 +1286,11 @@ export default function ProductDetail() {
                 <div className="flex">
                   {images.map((img, i) => (
                     <div key={i} className="flex-[0_0_100%] min-w-0 flex items-center justify-center px-4">
-                      <img src={img} alt={product.name} loading="lazy" decoding="async" className="max-w-full max-h-[80vh] object-contain" draggable={false} />
+                      {isVideoUrl(img) ? (
+                        <video src={img} className="max-w-full max-h-[80vh] object-contain" controls playsInline />
+                      ) : (
+                        <img src={img} alt={product.name} loading="lazy" decoding="async" className="max-w-full max-h-[80vh] object-contain" draggable={false} />
+                      )}
                     </div>
                   ))}
                 </div>
@@ -1349,7 +1377,16 @@ export default function ProductDetail() {
                                 : 'opacity-50 hover:opacity-100'
                             }`}
                           >
-                            <img src={img} alt="" className="w-full h-full object-cover" loading="lazy" />
+                            {isVideoUrl(img) ? (
+                              <>
+                                <video src={img} className="w-full h-full object-cover" muted playsInline preload="metadata" />
+                                <div className="absolute inset-0 flex items-center justify-center bg-black/30">
+                                  <Play className="w-4 h-4 text-white fill-white" />
+                                </div>
+                              </>
+                            ) : (
+                              <img src={img} alt="" className="w-full h-full object-cover" loading="lazy" />
+                            )}
                           </motion.button>
                         );
                       });
@@ -1394,17 +1431,29 @@ export default function ProductDetail() {
                           exit={{ opacity: 0 }}
                           transition={{ duration: reduceMotion ? 0 : 0.28, ease: [0.33, 1, 0.68, 1] }}
                         >
-                          <img
-                            src={images[selectedImage]}
-                            alt={product.name}
-                            className="absolute inset-0 w-full h-full object-cover will-change-transform"
-                            style={{
-                              transformOrigin: `${zoomPos.x}% ${zoomPos.y}%`,
-                              transform: isZooming && !reduceMotion ? 'scale(2)' : 'scale(1)',
-                              transition: 'transform 0.4s cubic-bezier(0.22,1,0.36,1)',
-                            }}
-                            draggable={false}
-                          />
+                          {isVideoUrl(images[selectedImage]) ? (
+                            <video
+                              src={images[selectedImage]}
+                              className="absolute inset-0 w-full h-full object-cover"
+                              muted
+                              autoPlay
+                              loop
+                              playsInline
+                              controls
+                            />
+                          ) : (
+                            <img
+                              src={images[selectedImage]}
+                              alt={product.name}
+                              className="absolute inset-0 w-full h-full object-cover will-change-transform"
+                              style={{
+                                transformOrigin: `${zoomPos.x}% ${zoomPos.y}%`,
+                                transform: isZooming && !reduceMotion ? 'scale(2)' : 'scale(1)',
+                                transition: 'transform 0.4s cubic-bezier(0.22,1,0.36,1)',
+                              }}
+                              draggable={false}
+                            />
+                          )}
                         </motion.div>
                       </AnimatePresence>
                       {/* Badges — sol üstte dikey yığın */}
@@ -1443,15 +1492,26 @@ export default function ProductDetail() {
                             className="flex-[0_0_100%] min-w-0 h-full"
                             onClick={() => setLightboxOpen(true)}
                           >
-                            <img
-                              src={img}
-                              alt={product.name}
-                              loading={i === 0 ? 'eager' : 'lazy'}
-                              fetchPriority={i === 0 ? 'high' : 'auto'}
-                              decoding="async"
-                              className="w-full h-full object-cover"
-                              draggable={false}
-                            />
+                            {isVideoUrl(img) ? (
+                              <video
+                                src={img}
+                                className="w-full h-full object-cover"
+                                muted
+                                autoPlay
+                                loop
+                                playsInline
+                              />
+                            ) : (
+                              <img
+                                src={img}
+                                alt={product.name}
+                                loading={i === 0 ? 'eager' : 'lazy'}
+                                fetchPriority={i === 0 ? 'high' : 'auto'}
+                                decoding="async"
+                                className="w-full h-full object-cover"
+                                draggable={false}
+                              />
+                            )}
                           </div>
                         ))}
                       </div>
@@ -1491,7 +1551,16 @@ export default function ProductDetail() {
                               : 'opacity-50 hover:opacity-80'
                           }`}
                         >
-                          <img src={img} alt="" className="w-full h-full object-cover" loading="lazy" />
+                          {isVideoUrl(img) ? (
+                            <>
+                              <video src={img} className="w-full h-full object-cover" muted playsInline preload="metadata" />
+                              <div className="absolute inset-0 flex items-center justify-center bg-black/30">
+                                <Play className="w-3.5 h-3.5 text-white fill-white" />
+                              </div>
+                            </>
+                          ) : (
+                            <img src={img} alt="" className="w-full h-full object-cover" loading="lazy" />
+                          )}
                         </button>
                       ))}
                     </div>
@@ -1509,13 +1578,22 @@ export default function ProductDetail() {
                                 type="button"
                                 onClick={() => setSelectedImage(actualIndex)}
                                 aria-label={`Görsel ${actualIndex + 1}`}
-                                className={`shrink-0 w-14 aspect-[3/4] rounded-lg overflow-hidden transition-all ${
+                                className={`relative shrink-0 w-14 aspect-[3/4] rounded-lg overflow-hidden transition-all ${
                                   actualIndex === selectedImage
                                     ? 'ring-2 ring-white ring-offset-2 ring-offset-black'
                                     : 'opacity-50 hover:opacity-80'
                                 }`}
                               >
-                                <img src={img} alt="" className="w-full h-full object-cover" loading="lazy" />
+                                {isVideoUrl(img) ? (
+                                  <>
+                                    <video src={img} className="w-full h-full object-cover" muted playsInline preload="metadata" />
+                                    <div className="absolute inset-0 flex items-center justify-center bg-black/30">
+                                      <Play className="w-3.5 h-3.5 text-white fill-white" />
+                                    </div>
+                                  </>
+                                ) : (
+                                  <img src={img} alt="" className="w-full h-full object-cover" loading="lazy" />
+                                )}
                               </button>
                             );
                           });
