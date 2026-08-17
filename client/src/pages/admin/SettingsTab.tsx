@@ -1,6 +1,6 @@
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useState, useEffect, type ComponentType } from 'react';
-import { Settings, Mail, Loader2, CheckCircle2, XCircle, Send, Server, CreditCard, Copy, AlertTriangle, Wrench, MessageCircle, KeyRound, ShieldCheck, Truck, MapPin, Megaphone, Globe, Banknote, Upload, ShoppingBag, Plus, Trash2 } from 'lucide-react';
+import { Settings, Mail, Loader2, CheckCircle2, XCircle, Send, Server, CreditCard, Copy, AlertTriangle, Wrench, MessageCircle, KeyRound, ShieldCheck, Truck, MapPin, Megaphone, Globe, Banknote, Upload, ShoppingBag, Plus, Trash2, Sparkles } from 'lucide-react';
 import { BANK_TRANSFER_INFO } from '@shared/bankInfo';
 import type { SiteIdentity, SocialLink, MobileNavItem } from '@shared/siteIdentity';
 import { COUNTRIES } from '@/lib/countries';
@@ -574,6 +574,7 @@ export default function SettingsPanel({ initialSection = 'genel', contentOnly = 
     wpileti_admin_phone: '',
     turnstile_site_key: '',
     turnstile_secret_key: '',
+    openai_api_key: '',
     aras_kargo_enabled: 'false',
     aras_kargo_username: '',
     aras_kargo_password: '',
@@ -2773,6 +2774,48 @@ export default function SettingsPanel({ initialSection = 'genel', contentOnly = 
 
         <div className="mt-4 p-3 bg-amber-50 border border-amber-200 rounded-lg text-xs text-amber-800">
           Boş bırakılırsa sunucudaki ortam değişkenleri (TURNSTILE_SITE_KEY / TURNSTILE_SECRET_KEY) kullanılır. Production'da her ikisi de boşsa misafir yorumları reddedilir.
+        </div>
+      </div>
+
+      <div className="bg-white border border-neutral-200 rounded-xl p-6" data-testid="card-openai">
+        <div className="flex items-center gap-3 mb-6">
+          <div className="p-2 bg-violet-50 rounded-lg">
+            <Sparkles className="w-5 h-5 text-violet-600" />
+          </div>
+          <div className="flex-1">
+            <h3 className="text-lg font-semibold text-neutral-900">OpenAI (Yapay Zeka)</h3>
+            <p className="text-sm text-neutral-500">
+              Blog yazısı ve ürün açıklaması üretiminde kullanılan ChatGPT API anahtarı.
+              Anahtarınızı{' '}
+              <a
+                href="https://platform.openai.com/api-keys"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-blue-600 hover:underline"
+              >
+                OpenAI panelinden
+              </a>{' '}
+              alabilirsiniz.
+            </p>
+          </div>
+        </div>
+
+        <div>
+          <label className="block text-sm font-medium text-neutral-500 mb-2">OpenAI API Anahtarı</label>
+          <input
+            type="password"
+            value={settings.openai_api_key}
+            onChange={(e) => setSettings(s => ({ ...s, openai_api_key: e.target.value }))}
+            placeholder="sk-..."
+            autoComplete="new-password"
+            className="w-full px-4 py-3 bg-neutral-50 border border-neutral-200 rounded-lg text-neutral-900 font-mono text-sm"
+            data-testid="input-openai-api-key"
+          />
+          <p className="text-xs text-neutral-500 mt-1">Sunucuda saklanır, asla görüntülenmez.</p>
+        </div>
+
+        <div className="mt-4 p-3 bg-amber-50 border border-amber-200 rounded-lg text-xs text-amber-800">
+          Boş bırakılırsa sunucudaki OPENAI_API_KEY ortam değişkeni kullanılır. Her ikisi de boşsa yapay zeka özellikleri devre dışı kalır.
         </div>
       </div>
 

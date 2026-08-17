@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { CheckCircle2, Loader2, Newspaper, Plus, Save, Trash2, Upload, XCircle } from 'lucide-react';
+import { AlertTriangle, CheckCircle2, Lightbulb, Loader2, Newspaper, Plus, Save, Sparkles, Trash2, Upload, XCircle } from 'lucide-react';
 
 interface BlogPost {
   id: string;
@@ -70,6 +70,85 @@ export default function BlogTab({ initialSelectedId }: BlogTabProps) {
   // Adres, kullanıcı elle değiştirene kadar başlıktan türetilir.
   const [slugTouched, setSlugTouched] = useState(false);
 
+  // ── Yapay zeka ile yazı üretimi ──
+  const [aiOpen, setAiOpen] = useState(false);
+  const [aiTopics, setAiTopics] = useState<string[]>([]);
+  const [aiTopicsLoading, setAiTopicsLoading] = useState(false);
+  const [aiGeneratingTopic, setAiGeneratingTopic] = useState<string | null>(null);
+  const [aiCustomTopic, setAiCustomTopic] = useState('');
+  const [aiError, setAiError] = useState<string | null>(null);
+  const { data: aiStatus } = useQuery<{ configured: boolean }>({
+    queryKey: ['/api/admin/blog/ai/status'],
+    queryFn: async () => {
+      const response = await fetch('/api/admin/blog/ai/status', { credentials: 'include' });
+      if (!response.ok) throw new Error('Durum alınamadı');
+      return response.json();
+    },
+    enabled: aiOpen,
+    staleTime: 60 * 1000,
+  });
+
+  const fetchAiTopics = async () => {
+    setAiTopicsLoading(true);
+    setAiError(null);
+    try {
+      const response = await fetch('/api/admin/blog/ai/topics', { method: 'POST', credentials: 'include' });
+      const payload = await response.json().catch(() => ({}));
+      if (!response.ok) throw new Error(payload.error || 'Konu önerileri alınamadı');
+      setAiTopics(payload.topics ?? []);
+    } catch (error) {
+      setAiError(error instanceof Error ? error.message : 'Konu önerileri alınamadı');
+    } finally {
+      setAiTopicsLoading(false);
+    }
+  };
+
+  const generateFromTopic = async (topic: string) => {
+    const trimmed = topic.trim();
+    if (trimmed.length < 3) {
+      setAiError('Lütfen en az 3 karakterlik bir konu girin.');
+      return;
+    }
+    if ((draft.title.trim() || draft.content.trim()) &&
+      !window.confirm('Editördeki mevcut içerik yapay zeka çıktısıyla değiştirilecek. Devam edilsin mi?')) {
+      return;
+    }
+    setAiGeneratingTopic(trimmed);
+    setAiError(null);
+    setMessage(null);
+    try {
+      const response = await fetch('/api/admin/blog/ai/generate', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify({ topic: trimmed }),
+      });
+      const payload = await response.json().catch(() => ({}));
+      if (!response.ok) throw new Error(payload.error || 'Yazı üretilemedi');
+      setSelectedId(null);
+      setDraft({
+        id: null,
+        slug: payload.slug ?? '',
+        title: payload.title ?? '',
+        excerpt: payload.excerpt ?? '',
+        content: payload.content ?? '',
+        coverImage: null,
+        seoTitle: payload.seoTitle ?? '',
+        seoDescription: payload.seoDescription ?? '',
+        isPublished: false,
+      });
+      setSlugTouched(true);
+      setMessage({
+        type: 'success',
+        text: 'Yazı taslağı üretildi. İçeriği gözden geçirin, kapak görseli yükleyin ve kaydedin.',
+      });
+    } catch (error) {
+      setAiError(error instanceof Error ? error.message : 'Yazı üretilemedi');
+    } finally {
+      setAiGeneratingTopic(null);
+    }
+  };
+
   useEffect(() => {
     if (!selectedId) return;
     const post = posts.find((item) => item.id === selectedId);
@@ -108,7 +187,7 @@ export default function BlogTab({ initialSelectedId }: BlogTabProps) {
       const payload = await response.json().catch(() => ({}));
       if (!response.ok || !payload.urls?.[0]) throw new Error(payload.error || 'Kapak görseli yüklenemedi');
       update({ coverImage: payload.urls[0] });
-      setMessage({ type: 'success', text: 'Kapak görseli yüklendi. Kaydettiğinizde yayına alınır.' });
+      setMessage({ type: 'success', text: 'Kapak görseli yüklendi. Değişikliğin kalıcı olması için yazıyı kaydetmeyi unutmayın.' });
     } catch (error) {
       setMessage({ type: 'error', text: error instanceof Error ? error.message : 'Kapak görseli yüklenemedi' });
     } finally {
@@ -248,6 +327,14 @@ export default function BlogTab({ initialSelectedId }: BlogTabProps) {
             </p>
           </div>
           <div className="flex items-center gap-2">
+            <button
+              type="button"
+              onClick={() => { setAiOpen((open) => !open); setAiError(null); }}
+              className={`inline-flex items-center gap-2 rounded-lg border px-3 py-2.5 text-sm font-semibold transition-colors ${aiOpen ? 'border-violet-300 bg-violet-50 text-violet-700' : 'border-neutral-200 text-neutral-700 hover:bg-neutral-50'}`}
+              data-testid="button-toggle-ai-panel"
+            >
+              <Sparkles className="h-4 w-4" /> Yapay Zeka ile Yaz
+            </button>
             {draft.id && (
               <button
                 type="button"
@@ -279,6 +366,99 @@ export default function BlogTab({ initialSelectedId }: BlogTabProps) {
           >
             {message.type === 'success' ? <CheckCircle2 className="h-4 w-4" /> : <XCircle className="h-4 w-4" />}
             {message.text}
+          </div>
+        )}
+
+        {aiOpen && (
+          <div className="mb-6 rounded-xl border border-violet-200 bg-violet-50/50 p-4 sm:p-5" data-testid="panel-ai-writer">
+            <div className="mb-3 flex items-center gap-2">
+              <Sparkles className="h-4 w-4 text-violet-600" />
+              <h3 className="text-sm font-semibold text-neutral-900">Yapay Zeka ile Yazı Üret</h3>
+            </div>
+
+            {aiStatus && !aiStatus.configured ? (
+              <div className="flex items-start gap-2 rounded-lg border border-amber-200 bg-amber-50 p-3 text-sm text-amber-800" data-testid="text-ai-key-missing">
+                <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0" />
+                <span>
+                  OpenAI API anahtarı tanımlı değil. Yapay zeka ile yazı üretmek için{' '}
+                  <strong>Ayarlar &gt; Giriş &amp; Güvenlik</strong> bölümünden OpenAI API anahtarınızı ekleyin.
+                </span>
+              </div>
+            ) : (
+              <>
+                <p className="mb-4 text-xs leading-5 text-neutral-500">
+                  Mağazanızın kategori ve ürünlerine uygun konu önerileri alın veya kendi konunuzu yazın.
+                  Başlık, adres, özet, içerik ve SEO alanları otomatik doldurulur; size yalnızca kapak görseli
+                  yüklemek ve kaydetmek kalır.
+                </p>
+
+                {aiError && (
+                  <div className="mb-4 flex items-center gap-2 rounded-lg border border-red-200 bg-red-50 p-3 text-sm text-red-700" data-testid="text-ai-error">
+                    <XCircle className="h-4 w-4 shrink-0" /> {aiError}
+                  </div>
+                )}
+
+                <div className="mb-4">
+                  <button
+                    type="button"
+                    onClick={fetchAiTopics}
+                    disabled={aiTopicsLoading || aiGeneratingTopic !== null}
+                    className="inline-flex items-center gap-2 rounded-lg border border-violet-300 bg-white px-3 py-2 text-xs font-semibold text-violet-700 transition-colors hover:bg-violet-50 disabled:opacity-50"
+                    data-testid="button-fetch-ai-topics"
+                  >
+                    {aiTopicsLoading ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Lightbulb className="h-3.5 w-3.5" />}
+                    {aiTopicsLoading ? 'Konular hazırlanıyor...' : aiTopics.length ? 'Yeni Konu Önerileri Getir' : 'Konu Önerileri Getir'}
+                  </button>
+                </div>
+
+                {aiTopics.length > 0 && (
+                  <div className="mb-4 flex flex-wrap gap-2" data-testid="list-ai-topics">
+                    {aiTopics.map((topic) => (
+                      <button
+                        key={topic}
+                        type="button"
+                        onClick={() => generateFromTopic(topic)}
+                        disabled={aiGeneratingTopic !== null}
+                        className="inline-flex items-center gap-1.5 rounded-full border border-neutral-200 bg-white px-3 py-1.5 text-xs text-neutral-700 transition-colors hover:border-violet-300 hover:text-violet-700 disabled:opacity-50"
+                      >
+                        {aiGeneratingTopic === topic ? <Loader2 className="h-3 w-3 animate-spin" /> : <Sparkles className="h-3 w-3 text-violet-500" />}
+                        {topic}
+                      </button>
+                    ))}
+                  </div>
+                )}
+
+                <div className="flex flex-col gap-2 sm:flex-row">
+                  <input
+                    value={aiCustomTopic}
+                    onChange={(event) => setAiCustomTopic(event.target.value)}
+                    onKeyDown={(event) => {
+                      if (event.key === 'Enter' && aiGeneratingTopic === null) generateFromTopic(aiCustomTopic);
+                    }}
+                    placeholder="Kendi konunuzu yazın, örn. Kamp bıçağı bakımı nasıl yapılır?"
+                    className="w-full flex-1 rounded-lg border border-neutral-200 bg-white px-3 py-2 text-sm text-neutral-900"
+                    data-testid="input-ai-custom-topic"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => generateFromTopic(aiCustomTopic)}
+                    disabled={aiGeneratingTopic !== null || aiCustomTopic.trim().length < 3}
+                    className="inline-flex items-center justify-center gap-2 rounded-lg bg-violet-600 px-4 py-2 text-sm font-semibold text-white transition-colors hover:bg-violet-700 disabled:opacity-50"
+                    data-testid="button-generate-from-custom-topic"
+                  >
+                    {aiGeneratingTopic === aiCustomTopic.trim() ? <Loader2 className="h-4 w-4 animate-spin" /> : <Sparkles className="h-4 w-4" />}
+                    Yazı Üret
+                  </button>
+                </div>
+
+                {aiGeneratingTopic !== null && (
+                  <div className="mt-3 flex items-center gap-2 rounded-lg border border-violet-200 bg-white p-3 text-sm text-violet-700" data-testid="text-ai-generating">
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                    Yazı üretiliyor, bu işlem 20-40 saniye sürebilir...
+                  </div>
+                )}
+              </>
+            )}
           </div>
         )}
 

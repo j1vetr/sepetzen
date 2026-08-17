@@ -2,6 +2,7 @@ import type { Express, Request, Response, NextFunction } from "express";
 import { createServer, type Server } from "http";
 import { storage, db } from "./storage";
 import { sanitizeStoredHtml } from "./htmlSanitize";
+import { getOpenAiApiKey, mapOpenAiError, stripEmDashes, OPENAI_KEY_MISSING_MESSAGE } from "./openaiKey";
 import { DEFAULT_FREE_SHIPPING_THRESHOLD, DEFAULT_DOMESTIC_SHIPPING_COST, DEFAULT_INTERNATIONAL_SHIPPING_COST } from "@shared/shipping";
 import { z } from "zod";
 import bcrypt from "bcrypt";
@@ -1411,6 +1412,10 @@ export async function registerRoutes(
       });
       res.status(201).json(post);
     } catch (err) {
+      // Eş zamanlı kayıt yarışında unique kısıtı devreye girerse anlaşılır 409 dön
+      if ((err as { code?: string })?.code === '23505') {
+        return res.status(409).json({ error: "Bu adres başka bir yazıda kullanılıyor. Adresi değiştirip tekrar kaydedin." });
+      }
       console.error("[blog] create error:", err);
       res.status(500).json({ error: "Yazı kaydedilemedi" });
     }
@@ -1437,6 +1442,9 @@ export async function registerRoutes(
       });
       res.json(post);
     } catch (err) {
+      if ((err as { code?: string })?.code === '23505') {
+        return res.status(409).json({ error: "Bu adres başka bir yazıda kullanılıyor. Adresi değiştirip tekrar kaydedin." });
+      }
       console.error("[blog] update error:", err);
       res.status(500).json({ error: "Yazı kaydedilemedi" });
     }
@@ -1451,6 +1459,144 @@ export async function registerRoutes(
     } catch (err) {
       console.error("[blog] delete error:", err);
       res.status(500).json({ error: "Yazı silinemedi" });
+    }
+  });
+
+  // ── AI Blog Yazımı ────────────────────────────────────────────────────────
+  /** Başlıktan URL adresi türetir (Türkçe karakterler sadeleştirilir). */
+  function slugifyTr(value: string): string {
+    const map: Record<string, string> = { ç: 'c', ğ: 'g', ı: 'i', ö: 'o', ş: 's', ü: 'u', â: 'a', î: 'i', û: 'u' };
+    return value
+      .toLowerCase()
+      .replace(/[çğıöşüâîû]/g, (char) => map[char] ?? char)
+      .replace(/[^a-z0-9]+/g, '-')
+      .replace(/^-+|-+$/g, '')
+      .slice(0, 150);
+  }
+
+  /** Mağaza bağlamı: kategori ve örnek ürün adları (konu üretimi için). */
+  async function getStoreContextForAi(): Promise<string> {
+    const cats = await db.select({ name: categories.name }).from(categories).limit(30);
+    const prods = await db
+      .select({ name: products.name })
+      .from(products)
+      .where(eq(products.isActive, true))
+      .orderBy(desc(products.createdAt))
+      .limit(40);
+    return [
+      `Kategoriler: ${cats.map((c) => c.name).join(', ') || 'yok'}`,
+      `Örnek ürünler: ${prods.map((p) => p.name).join(', ') || 'yok'}`,
+    ].join('\n');
+  }
+
+  // Anahtar tanımlı mı? (UI, üretim butonlarının yanında uyarı gösterebilsin)
+  app.get("/api/admin/blog/ai/status", requireAdmin, async (_req, res) => {
+    const key = await getOpenAiApiKey();
+    res.json({ configured: Boolean(key) });
+  });
+
+  app.post("/api/admin/blog/ai/topics", requireAdmin, async (_req, res) => {
+    const apiKey = await getOpenAiApiKey();
+    if (!apiKey) return res.status(503).json({ error: OPENAI_KEY_MISSING_MESSAGE });
+    try {
+      const context = await getStoreContextForAi();
+      const existingPosts = await storage.getBlogPosts({});
+      const existingTitles = existingPosts.map((p) => p.title).slice(0, 30);
+
+      const { default: OpenAI } = await import("openai");
+      const openai = new OpenAI({ apiKey });
+      const completion = await openai.chat.completions.create({
+        model: "gpt-4o",
+        response_format: { type: "json_object" },
+        temperature: 0.9,
+        max_tokens: 800,
+        messages: [
+          {
+            role: "system",
+            content: `Sen Sepetzen adlı Türk e-ticaret markasının (kamp, outdoor, av ve kamp bıçakları, bağ & bahçe, mangal, EDC ürünleri) içerik stratejistisin. Mağazanın kategori ve ürün verisine bakarak, hem müşterilere gerçekten faydalı hem de arama motorlarında trafik getirecek blog konu başlıkları önerirsin. Türkçe yaz. Uzun tire (—) karakterini asla kullanma, gerekirse normal tire (-) kullan. Yalnızca JSON döndür: {"topics": ["konu 1", ...]}. 10 konu öner. Konular somut, ilgi çekici ve rehber/karşılaştırma/bakım odaklı olsun.`,
+          },
+          {
+            role: "user",
+            content: `Mağaza verisi:\n${context}\n\nMevcut blog yazıları (bunlarla aynı konuları önerme): ${existingTitles.join('; ') || 'yok'}\n\n10 blog konusu öner.`,
+          },
+        ],
+      });
+      const raw = completion.choices[0]?.message?.content ?? '{}';
+      let topics: string[] = [];
+      try {
+        const parsed = JSON.parse(raw);
+        if (Array.isArray(parsed.topics)) {
+          topics = parsed.topics.filter((t: unknown) => typeof t === 'string' && t.trim()).map((t: string) => stripEmDashes(t.trim())).slice(0, 12);
+        }
+      } catch { /* aşağıda kontrol ediliyor */ }
+      if (!topics.length) return res.status(502).json({ error: "Konu önerileri alınamadı. Lütfen tekrar deneyin." });
+      res.json({ topics });
+    } catch (error) {
+      const mapped = mapOpenAiError(error);
+      res.status(mapped.status).json({ error: mapped.message });
+    }
+  });
+
+  app.post("/api/admin/blog/ai/generate", requireAdmin, async (req, res) => {
+    const parsed = z.object({ topic: z.string().trim().min(3, "Konu en az 3 karakter olmalı").max(300) }).safeParse(req.body);
+    if (!parsed.success) {
+      return res.status(400).json({ error: parsed.error.issues[0]?.message || "Konu geçersiz" });
+    }
+    const apiKey = await getOpenAiApiKey();
+    if (!apiKey) return res.status(503).json({ error: OPENAI_KEY_MISSING_MESSAGE });
+    try {
+      const { default: OpenAI } = await import("openai");
+      const openai = new OpenAI({ apiKey });
+      const completion = await openai.chat.completions.create({
+        model: "gpt-4o",
+        response_format: { type: "json_object" },
+        temperature: 0.7,
+        max_tokens: 4000,
+        messages: [
+          {
+            role: "system",
+            content: `Sen Sepetzen adlı Türk e-ticaret markasının (kamp, outdoor, av ve kamp bıçakları, bağ & bahçe, mangal, EDC ürünleri) blog yazarısın. Verilen konudan, müşteriye gerçekten faydalı, akıcı Türkçe, SEO uyumlu ve profesyonel bir blog yazısı üretirsin.
+
+KURALLAR:
+- Uzun tire (—) karakterini ASLA kullanma; gerekirse normal tire (-) kullan.
+- İçerik HTML olmalı: <h2> alt başlıklar, <p> paragraflar, yer yer <ul>/<li> listeler ve <strong> vurgular kullan. <h1>, <script>, <img> kullanma.
+- 600-1000 kelime civarında, en az 4 alt başlık.
+- Doğal yerlerde Sepetzen ürün kategorilerine genel atıf yapabilirsin ama reklam diline kaçma; bilgi ver.
+- Yalnızca JSON döndür:
+{"title": "yazı başlığı (en fazla 70 karakter)", "excerpt": "liste sayfası için 1-2 cümlelik özet (en fazla 220 karakter)", "content": "HTML gövde", "seoTitle": "SEO başlığı (en fazla 60 karakter)", "seoDescription": "SEO meta açıklaması (en fazla 155 karakter)"}`,
+          },
+          { role: "user", content: `Konu: ${parsed.data.topic}` },
+        ],
+      });
+      const raw = completion.choices[0]?.message?.content ?? '{}';
+      let data: { title?: string; excerpt?: string; content?: string; seoTitle?: string; seoDescription?: string };
+      try {
+        data = JSON.parse(raw);
+      } catch {
+        return res.status(502).json({ error: "Yapay zeka geçersiz yanıt döndürdü. Lütfen tekrar deneyin." });
+      }
+      const title = stripEmDashes((data.title ?? '').trim()).slice(0, 200);
+      const content = sanitizeStoredHtml(stripEmDashes((data.content ?? '').trim()));
+      if (!title || content.length < 200) {
+        return res.status(502).json({ error: "Yapay zeka eksik içerik döndürdü. Lütfen tekrar deneyin." });
+      }
+      // Slug benzersizliğini garanti et
+      const baseSlug = slugifyTr(title) || `blog-yazisi-${Date.now()}`;
+      let slug = baseSlug;
+      for (let i = 2; await storage.getBlogPostBySlug(slug); i++) {
+        slug = `${baseSlug}-${i}`;
+      }
+      res.json({
+        title,
+        slug,
+        excerpt: stripEmDashes((data.excerpt ?? '').trim()).slice(0, 500),
+        content,
+        seoTitle: stripEmDashes((data.seoTitle ?? '').trim()).slice(0, 200) || null,
+        seoDescription: stripEmDashes((data.seoDescription ?? '').trim()).slice(0, 400) || null,
+      });
+    } catch (error) {
+      const mapped = mapOpenAiError(error);
+      res.status(mapped.status).json({ error: mapped.message });
     }
   });
 
@@ -2722,9 +2868,9 @@ export async function registerRoutes(
         return res.status(404).json({ error: "Ürün bulunamadı" });
       }
 
-      const apiKey = process.env.OPENAI_API_KEY;
+      const apiKey = await getOpenAiApiKey();
       if (!apiKey) {
-        return res.status(503).json({ error: "OpenAI API anahtarı tanımlanmamış. Replit Secrets'a OPENAI_API_KEY ekleyin." });
+        return res.status(503).json({ error: OPENAI_KEY_MISSING_MESSAGE });
       }
 
       const { default: OpenAI } = await import("openai");
@@ -7487,6 +7633,9 @@ window.addEventListener('load', function() {
       if (settings.shipentegra_client_secret) {
         settings.shipentegra_client_secret = '••••••••';
       }
+      if (settings.openai_api_key) {
+        settings.openai_api_key = '••••••••';
+      }
       res.json(settings);
     } catch (error) {
       res.status(500).json({ error: "Failed to fetch settings" });
@@ -7563,6 +7712,13 @@ window.addEventListener('load', function() {
       }
       if (settings.shipentegra_client_secret === '••••••••') {
         delete settings.shipentegra_client_secret;
+      }
+      if (settings.openai_api_key === '••••••••') {
+        delete settings.openai_api_key;
+      }
+      // Kopyala-yapıştır kaynaklı baş/son boşlukları temizle
+      if (typeof settings.openai_api_key === 'string') {
+        settings.openai_api_key = settings.openai_api_key.trim();
       }
       await storage.setSiteSettings(settings);
       // ShipEntegra kimlik bilgileri değiştiyse önbellekteki token geçersizdir.
