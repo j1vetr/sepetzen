@@ -20,7 +20,6 @@ import {
   Ticket,
   HandCoins,
   X,
-  Command,
 } from 'lucide-react';
 import { useQuery } from '@tanstack/react-query';
 import type { TabType } from '../_shared/types';
@@ -215,21 +214,6 @@ export default function AdminSearchBar({ onNavigate }: AdminSearchBarProps) {
     closeSearch();
   }, [onNavigate, closeSearch]);
 
-  // Ctrl/Cmd+K global shortcut
-  useEffect(() => {
-    const handler = (e: KeyboardEvent) => {
-      if ((e.ctrlKey || e.metaKey) && e.key === 'k') {
-        e.preventDefault();
-        if (isOpen) {
-          closeSearch();
-        } else {
-          openSearch();
-        }
-      }
-    };
-    document.addEventListener('keydown', handler);
-    return () => document.removeEventListener('keydown', handler);
-  }, [isOpen, openSearch, closeSearch]);
 
   // Close on click outside
   useEffect(() => {
@@ -271,21 +255,16 @@ export default function AdminSearchBar({ onNavigate }: AdminSearchBarProps) {
   // Flat index lookup (for selectedIndex highlight)
   const flatResults = GROUP_ORDER.flatMap((type) => grouped[type] || []);
 
-  const isMac = typeof navigator !== 'undefined' && /Mac/.test(navigator.platform);
-
   return (
-    <div ref={containerRef} className="relative">
-      {/* Trigger button (always visible in header) */}
+    <div ref={containerRef} className="relative w-full">
+      {/* Trigger — geniş arama alanı */}
       <button
         onClick={openSearch}
         data-testid="button-admin-search"
-        className="flex items-center gap-2 px-3 py-1.5 text-[12px] text-neutral-500 bg-neutral-100 hover:bg-neutral-200 rounded-lg transition-colors border border-transparent hover:border-neutral-300"
+        className="w-full flex items-center gap-2.5 px-4 py-2 text-[13px] text-neutral-400 bg-neutral-100 hover:bg-neutral-200 rounded-xl transition-colors border border-neutral-200 hover:border-neutral-300"
       >
-        <Search className="w-3.5 h-3.5 shrink-0" />
-        <span className="hidden md:inline">Ara…</span>
-        <kbd className="hidden md:inline-flex items-center gap-0.5 px-1 py-0.5 bg-white border border-neutral-300 rounded text-[10px] font-mono text-neutral-400">
-          {isMac ? <Command className="w-2.5 h-2.5" /> : 'Ctrl'} K
-        </kbd>
+        <Search className="w-4 h-4 shrink-0 text-neutral-400" />
+        <span className="flex-1 text-left">Ürün, sipariş, kullanıcı, sekme ara…</span>
       </button>
 
       {/* Overlay + modal */}

@@ -175,13 +175,15 @@ export default function AdminLayout({
               )}
             </div>
           </div>
-          <div className="flex items-center gap-2">
-            <AdminSearchBar onNavigate={_onNavigate} />
+          <div className="flex items-center gap-2 flex-1 min-w-0 max-w-2xl">
+            <div className="flex-1 min-w-0">
+              <AdminSearchBar onNavigate={_onNavigate} />
+            </div>
             <a
               href="/"
               target="_blank"
               rel="noopener noreferrer"
-              className="inline-flex items-center gap-1.5 px-2.5 py-1.5 text-[12px] font-medium text-neutral-700 hover:text-neutral-900 hover:bg-neutral-100 rounded-md transition-colors"
+              className="inline-flex items-center gap-1.5 px-2.5 py-1.5 text-[12px] font-medium text-neutral-700 hover:text-neutral-900 hover:bg-neutral-100 rounded-md transition-colors shrink-0"
               data-testid="button-view-site"
             >
               <ExternalLink className="w-3.5 h-3.5" />
