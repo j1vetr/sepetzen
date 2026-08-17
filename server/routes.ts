@@ -15,8 +15,8 @@ import fs from "fs";
 import PDFDocument from "pdfkit";
 import sharp from "sharp";
 import { cache, CACHE_KEYS, CACHE_TTL } from "./cache";
-import { eq, desc, sql, ilike, or, inArray } from "drizzle-orm";
-import { insertAdminUserSchema, insertCategorySchema, insertProductSchema, insertProductVariantSchema, insertCartItemSchema, insertOrderSchema, insertOrderItemSchema, insertUserSchema, adminUpdateUserSchema, couponRedemptions, orders, coupons, products, stockAdjustments, productCategories, productVariants, users, categories, blogPosts, pages, productReviews, orderItems } from "@shared/schema";
+import { eq, desc, sql, ilike, or, inArray, isNotNull } from "drizzle-orm";
+import { insertAdminUserSchema, insertCategorySchema, insertProductSchema, insertProductVariantSchema, insertCartItemSchema, insertOrderSchema, insertOrderItemSchema, insertUserSchema, adminUpdateUserSchema, couponRedemptions, orders, coupons, products, stockAdjustments, productCategories, productVariants, users, categories, blogPosts, pages, productReviews, orderItems, marketplaceProducts, marketplaces as marketplacesTable } from "@shared/schema";
 import { optimizeImage, optimizeImageBuffer, optimizeUploadedFiles, verifyImageContent } from "./imageOptimizer";
 import {
   sendWelcomeEmail,
@@ -2828,6 +2828,53 @@ KURALLAR:
     } catch (error) {
       console.error('Bulk badge update error:', error);
       res.status(500).json({ error: "Toplu etiket güncellemesi başarısız" });
+    }
+  });
+
+  // Trendyol bağlantı durumu haritası — ürün listesi rozetleri için hafif uç nokta
+  // Yalnızca type='trendyol' pazaryerlerini kapsar; ürün başına deterministik seçim:
+  //   push yönlü link > pull yönlü link (birden fazla pazaryeri varsa push öncelikli)
+  // { [productId]: { pushStatus, linkId, externalId, syncDirection } }
+  app.get("/api/admin/products/trendyol-status", requireAdmin, async (req, res) => {
+    try {
+      const rows = await db
+        .select({
+          id: marketplaceProducts.id,
+          productId: marketplaceProducts.productId,
+          externalId: marketplaceProducts.externalId,
+          pushStatus: marketplaceProducts.pushStatus,
+          syncDirection: marketplaceProducts.syncDirection,
+        })
+        .from(marketplaceProducts)
+        .innerJoin(
+          marketplacesTable,
+          eq(marketplaceProducts.marketplaceId, marketplacesTable.id),
+        )
+        .where(
+          sql`${marketplaceProducts.productId} IS NOT NULL AND ${marketplacesTable.type} = 'trendyol' AND ${marketplacesTable.isActive} = true`,
+        );
+
+      // Deterministik seçim: push yönlü link pull'a göre önceliklidir
+      const map: Record<string, { pushStatus: string | null; linkId: string; externalId: string; syncDirection: string | null }> = {};
+      for (const row of rows) {
+        if (!row.productId) continue;
+        const existing = map[row.productId];
+        const isPush = row.syncDirection === 'push';
+        const existingIsPush = existing?.syncDirection === 'push';
+        // Push linki varsa korur; yoksa ya da mevcut pull ise günceller
+        if (!existing || (isPush && !existingIsPush)) {
+          map[row.productId] = {
+            pushStatus: row.pushStatus,
+            linkId: row.id,
+            externalId: row.externalId,
+            syncDirection: row.syncDirection,
+          };
+        }
+      }
+      res.json(map);
+    } catch (error) {
+      console.error('Trendyol status map error:', error);
+      res.status(500).json({ error: 'Durum alınamadı' });
     }
   });
 

@@ -171,15 +171,19 @@ export function ProductLinksDialog({
 export function ProductLinksPanel({
   marketplaceId,
   active = true,
+  initialProductId,
 }: {
   marketplaceId: string;
   active?: boolean;
+  /** Ürünler sayfasından tek tıkla gelirken sihirbazı otomatik açmak için site product ID */
+  initialProductId?: string;
 }) {
   const open = active;
   const qc = useQueryClient();
   const { toast } = useToast();
   const [wizardProduct, setWizardProduct] = useState<SiteProduct | null>(null);
   const [wizardLink, setWizardLink] = useState<ProductLink | null>(null);
+  const [autoOpenDone, setAutoOpenDone] = useState(false);
   const [errorLink, setErrorLink] = useState<ProductLink | null>(null);
   const [priceRuleLink, setPriceRuleLink] = useState<ProductLink | null>(null);
   const [search, setSearch] = useState('');
@@ -234,8 +238,49 @@ export function ProductLinksPanel({
     enabled: open,
   });
 
-  const invalidate = () =>
+  const invalidate = () => {
     qc.invalidateQueries({ queryKey: ['/api/admin/marketplaces', marketplaceId, 'product-links'] });
+    // Ürünler sekmesindeki Trendyol rozetleri de güncellensin
+    qc.invalidateQueries({ queryKey: ['/api/admin/products/trendyol-status'] });
+  };
+
+  // initialProductId geldiğinde veriler yüklenir yüklenmez uygun eylemi tetikle
+  useEffect(() => {
+    if (!initialProductId || autoOpenDone) return;
+    const links = linksQuery.data;
+    const prods = productsQuery.data;
+    if (!links || !prods) return;
+
+    setAutoOpenDone(true);
+
+    const existingLink = links.find((l) => l.productId === initialProductId);
+
+    if (existingLink) {
+      // Pull yönlü ya da başarıyla onaylanmış/bekleyen push link → sihirbaz açılmaz;
+      // kullanıcı panelde mevcut durumu görür (yönetim akışı).
+      const isPullManaged = existingLink.syncDirection === 'pull';
+      const isRetryEligible =
+        existingLink.syncDirection === 'push' &&
+        (existingLink.pushStatus === 'rejected' || existingLink.pushStatus === 'error');
+
+      if (!isPullManaged && isRetryEligible) {
+        const prod = prods.find((p) => p.id === initialProductId);
+        if (prod) {
+          setWizardProduct(prod);
+          setWizardLink(existingLink);
+        }
+      }
+      // Pull veya approved/sent → sihirbaz açılmaz, panel yeterli
+      return;
+    }
+
+    // Bağlantısız ürün → yeni gönderim sihirbazı
+    const prod = prods.find((p) => p.id === initialProductId);
+    if (prod) {
+      setWizardProduct(prod);
+      setWizardLink(null);
+    }
+  }, [initialProductId, linksQuery.data, productsQuery.data, autoOpenDone]);
 
   const directionMutation = useMutation({
     mutationFn: async ({ linkId, syncDirection, barcode }: { linkId: string; syncDirection: 'pull' | 'push'; barcode?: string }) => {

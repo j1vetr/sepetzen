@@ -88,14 +88,23 @@ type Capabilities = {
   inventoryLookup: boolean;
 };
 
-export default function TrendyolCenter({ siteCategories }: { siteCategories: SiteCategory[] }) {
-  const [tab, setTab] = useState<TabId>('overview');
+export default function TrendyolCenter({
+  siteCategories,
+  initialProductId,
+}: {
+  siteCategories: SiteCategory[];
+  /** Ürünler sayfasından tek tıkla gelirken doğrudan açılacak site product ID */
+  initialProductId?: string;
+}) {
+  const [tab, setTab] = useState<TabId>(() => (initialProductId ? 'products' : 'overview'));
 
   const mpQuery = useQuery<Marketplace[]>({
     queryKey: ['/api/admin/marketplaces'],
     refetchInterval: 30_000,
   });
-  const marketplaces = (mpQuery.data ?? []).filter((m) => m.isActive);
+  // TrendyolCenter yalnızca Trendyol tipi pazaryerlerini gösterir;
+  // diğer aktif pazaryerlerine (N11, Hepsiburada, Amazon) yanlış yönlendirmeyi önler
+  const marketplaces = (mpQuery.data ?? []).filter((m) => m.isActive && m.type === 'trendyol');
   const [selectedMpId, setSelectedMpId] = useState<string | null>(null);
   const mpId = selectedMpId ?? marketplaces[0]?.id ?? null;
 
@@ -276,7 +285,9 @@ export default function TrendyolCenter({ siteCategories }: { siteCategories: Sit
           pendingOrders={pendingOrders}
         />
       )}
-      {effectiveTab === 'products' && mpId && <ProductLinksPanel marketplaceId={mpId} />}
+      {effectiveTab === 'products' && mpId && (
+        <ProductLinksPanel marketplaceId={mpId} initialProductId={initialProductId} />
+      )}
       {effectiveTab === 'orders' && <MarketplaceOrdersTab marketplaceId={mpId} />}
       {effectiveTab === 'questions' && mpId && <QuestionsPanel marketplaceId={mpId} />}
       {effectiveTab === 'claims' && mpId && <ClaimsPanel marketplaceId={mpId} />}

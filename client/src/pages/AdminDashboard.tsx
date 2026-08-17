@@ -50,6 +50,12 @@ export default function AdminDashboard() {
     if (tab === 'marketplaceOrders') return 'marketplaces';
     return tab && VALID_TABS.includes(tab as TabType) ? (tab as TabType) : 'dashboard';
   });
+
+  // Ürünler sayfasından tek tıkla gelen ürün ID'si — Trendyol sihirbazını otomatik açar
+  const [trendyolInitialProductId, setTrendyolInitialProductId] = useState<string | undefined>(() => {
+    const params = new URLSearchParams(window.location.search);
+    return params.get('typroduct') ?? undefined;
+  });
   const [searchQuery, setSearchQuery] = useState('');
   // Arama çubuğu navigasyonu için sekmesine özel initial state'ler
   const [ordersInitialSearch, setOrdersInitialSearch] = useState('');
@@ -118,7 +124,19 @@ export default function AdminDashboard() {
     setActiveTab(tabId);
     const url = new URL(window.location.href);
     url.searchParams.set('tab', tabId);
+    // typroduct parametresini temizle — sekme değişiminde sihirbaz otomatik açılmasın
+    url.searchParams.delete('typroduct');
     window.history.pushState({ tab: tabId }, '', url.toString());
+    if (tabId !== 'marketplaces') setTrendyolInitialProductId(undefined);
+  };
+
+  const handleTrendyolAction = (productId: string) => {
+    setTrendyolInitialProductId(productId);
+    const url = new URL(window.location.href);
+    url.searchParams.set('tab', 'marketplaces');
+    url.searchParams.set('typroduct', productId);
+    window.history.pushState({ tab: 'marketplaces' }, '', url.toString());
+    setActiveTab('marketplaces');
   };
 
   // Arama çubuğundan gelen navigasyon - her sekme türü için özel hedef davranışı
@@ -234,6 +252,7 @@ export default function AdminDashboard() {
             deleteProductMutation={deleteProductMutation}
             productsLoading={productsLoading}
             productsError={productsError}
+            onTrendyolAction={handleTrendyolAction}
           />
         )}
         {activeTab === 'categories' && (
@@ -268,6 +287,7 @@ export default function AdminDashboard() {
         {activeTab === 'marketplaces' && (
           <TrendyolCenter
             siteCategories={categories.map((c) => ({ id: c.id, name: c.name, slug: c.slug }))}
+            initialProductId={trendyolInitialProductId}
           />
         )}
         {activeTab === 'coupons' && <CouponsTab />}

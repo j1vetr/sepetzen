@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react';
-import { useQueryClient } from '@tanstack/react-query';
+import { useQueryClient, useQuery } from '@tanstack/react-query';
 import {
   Search,
   RefreshCw,
@@ -15,6 +15,7 @@ import {
   SlidersHorizontal,
   Eye,
   ImageIcon,
+  ExternalLink,
 } from 'lucide-react';
 import type { Product, Category, ProductVariant, ProductDraft } from './_shared/types';
 import {
@@ -49,6 +50,13 @@ interface SyncResult {
   message: string;
 }
 
+type TrendyolStatusEntry = {
+  pushStatus: string | null;
+  linkId: string;
+  externalId: string;
+  syncDirection: string | null;
+};
+
 interface ProductsTabProps {
   products: Product[];
   categories: Category[];
@@ -63,6 +71,8 @@ interface ProductsTabProps {
   deleteProductMutation: { mutate: (id: string) => void };
   productsLoading?: boolean;
   productsError?: unknown;
+  /** Ürün satırındaki Trendyol aksiyonu tıklandığında çağrılır (Trendyol Merkezi'ne yönlendirir) */
+  onTrendyolAction?: (productId: string) => void;
 }
 
 type StatusFilter = 'all' | 'active' | 'inactive' | 'out';
@@ -80,14 +90,39 @@ function getStockSummary(productId: string, variants: ProductVariant[]) {
   return { total, count: my.length };
 }
 
+/**
+ * Trendyol bağlantı rozeti mantığı:
+ *   - Pull yönlü link → neutral "Trendyol'da" (çekme yönetimli, gönderim durumu yok)
+ *   - Push yönlü link + pushStatus null → rozet yok (henüz gönderim başlatılmamış)
+ *   - Push yönlü link + pushStatus → duruma göre renk
+ */
+function trendyolBadge(
+  tyStatus: TrendyolStatusEntry | null | undefined,
+): { tone: Parameters<typeof StatusBadge>[0]['tone']; label: string } | null {
+  if (!tyStatus) return null;
+  if (tyStatus.syncDirection === 'pull') {
+    return { tone: 'neutral', label: "Trendyol'da" };
+  }
+  // Push yönlü
+  switch (tyStatus.pushStatus) {
+    case 'approved': return { tone: 'emerald', label: "Trendyol'da" };
+    case 'sent':     return { tone: 'blue',    label: 'Onay bekliyor' };
+    case 'rejected': return { tone: 'red',     label: 'Reddedildi' };
+    case 'error':    return { tone: 'red',     label: 'Hata' };
+    default:         return null; // pushStatus null → push link var ama henüz gönderilmedi
+  }
+}
+
 function ProductStatusChips({
   product,
   stockTotal,
   hasVariants,
+  tyStatus,
 }: {
   product: Product;
   stockTotal: number;
   hasVariants: boolean;
+  tyStatus?: TrendyolStatusEntry | null;
 }) {
   const chips: Array<{ key: string; tone: Parameters<typeof StatusBadge>[0]['tone']; label: string }> = [];
   if (!product.isActive) {
@@ -100,6 +135,10 @@ function ProductStatusChips({
   if (product.isFeatured) chips.push({ key: 'featured', tone: 'indigo', label: 'Öne çıkan' });
   if (product.isNew) chips.push({ key: 'new', tone: 'blue', label: 'Yeni' });
   if (product.discountBadge) chips.push({ key: 'badge', tone: 'red', label: product.discountBadge });
+
+  const tyBadge = trendyolBadge(tyStatus);
+  if (tyBadge) chips.push({ key: 'trendyol', tone: tyBadge.tone, label: tyBadge.label });
+
   return (
     <div className="flex flex-wrap gap-1">
       {chips.map((c) => (
@@ -170,17 +209,41 @@ function RowActions({
   onCopy,
   onDelete,
   onView,
+  onTrendyol,
+  tyStatus,
 }: {
   product: Product;
   onEdit: () => void;
   onCopy: () => void;
   onDelete: () => void;
   onView: () => void;
+  onTrendyol?: () => void;
+  tyStatus?: TrendyolStatusEntry | null;
 }) {
   const [open, setOpen] = useState(false);
+
+  /** Duruma göre akıllı Trendyol buton etiketi */
+  const tyLabel = (() => {
+    if (!tyStatus) return "Trendyol'a Gönder";
+    // Pull yönlü link: ürün Trendyol tarafından yönetiliyor
+    if (tyStatus.syncDirection === 'pull') return "Trendyol'da Yönet";
+    // Push yönlü link: gönderim durumuna göre
+    if (tyStatus.pushStatus === 'rejected' || tyStatus.pushStatus === 'error') return 'Yeniden Gönder';
+    return "Trendyol'da Yönet";
+  })();
+
   return (
     <div className="flex items-center justify-end gap-0.5">
       <div className="hidden md:flex items-center gap-0.5">
+        {onTrendyol && (
+          <IconButton
+            title={tyLabel}
+            onClick={onTrendyol}
+            data-testid={`button-trendyol-${product.id}`}
+          >
+            <ExternalLink className="w-4 h-4" />
+          </IconButton>
+        )}
         <IconButton title="Düzenle" onClick={onEdit} data-testid={`button-edit-product-${product.id}`}>
           <Edit3 className="w-4 h-4" />
         </IconButton>
@@ -211,7 +274,21 @@ function RowActions({
               className="fixed inset-0 z-10"
               onClick={() => setOpen(false)}
             />
-            <div className="absolute right-0 top-9 z-20 w-44 bg-white border border-neutral-200 rounded-md shadow-lg py-1">
+            <div className="absolute right-0 top-9 z-20 w-48 bg-white border border-neutral-200 rounded-md shadow-lg py-1">
+              {onTrendyol && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    setOpen(false);
+                    onTrendyol();
+                  }}
+                  className="w-full flex items-center gap-2 px-3 py-2 text-[13px] text-orange-600 hover:bg-orange-50"
+                  data-testid={`button-trendyol-mobile-${product.id}`}
+                >
+                  <ExternalLink className="w-3.5 h-3.5" />
+                  {tyLabel}
+                </button>
+              )}
               <button
                 type="button"
                 onClick={() => {
@@ -281,8 +358,16 @@ export default function ProductsTab({
   deleteProductMutation,
   productsLoading,
   productsError,
+  onTrendyolAction,
 }: ProductsTabProps) {
   const queryClient = useQueryClient();
+
+  // Trendyol bağlantı durumu haritası — ürün başına rozet ve aksiyon için
+  const { data: trendyolStatusMap } = useQuery<Record<string, TrendyolStatusEntry>>({
+    queryKey: ['/api/admin/products/trendyol-status'],
+    staleTime: 60_000,
+    refetchInterval: 120_000,
+  });
 
   const [categoryFilter, setCategoryFilter] = useState<string>('all');
   const [statusFilter, setStatusFilter] = useState<StatusFilter>('all');
@@ -744,6 +829,7 @@ export default function ProductsTab({
                   {pagedProducts.map((product) => {
                     const stock = getStockSummary(product.id, allVariants);
                     const isSelected = selectedIds.has(product.id);
+                    const tyStatus = trendyolStatusMap?.[product.id] ?? null;
                     return (
                       <tr
                         key={product.id}
@@ -814,11 +900,13 @@ export default function ProductsTab({
                             product={product}
                             stockTotal={stock.total}
                             hasVariants={stock.count > 0}
+                            tyStatus={tyStatus}
                           />
                         </td>
                         <td className="px-4 py-3 align-middle">
                           <RowActions
                             product={product}
+                            tyStatus={tyStatus}
                             onEdit={() => {
                               setEditingProduct(product);
                               setShowProductModal(true);
@@ -832,6 +920,7 @@ export default function ProductsTab({
                             onView={() => {
                               window.open(`/urun/${product.slug}`, '_blank', 'noopener,noreferrer');
                             }}
+                            onTrendyol={onTrendyolAction ? () => onTrendyolAction(product.id) : undefined}
                           />
                         </td>
                       </tr>
@@ -846,6 +935,7 @@ export default function ProductsTab({
             {pagedProducts.map((product) => {
               const stock = getStockSummary(product.id, allVariants);
               const isSelected = selectedIds.has(product.id);
+              const tyStatus = trendyolStatusMap?.[product.id] ?? null;
               return (
                 <Card
                   key={product.id}
@@ -879,6 +969,7 @@ export default function ProductsTab({
                         </div>
                         <RowActions
                           product={product}
+                          tyStatus={tyStatus}
                           onEdit={() => {
                             setEditingProduct(product);
                             setShowProductModal(true);
@@ -892,6 +983,7 @@ export default function ProductsTab({
                           onView={() => {
                             window.open(`/urun/${product.slug}`, '_blank', 'noopener,noreferrer');
                           }}
+                          onTrendyol={onTrendyolAction ? () => onTrendyolAction(product.id) : undefined}
                         />
                       </div>
                       <div className="mt-2 flex items-center justify-between gap-2">
@@ -909,6 +1001,7 @@ export default function ProductsTab({
                           product={product}
                           stockTotal={stock.total}
                           hasVariants={stock.count > 0}
+                          tyStatus={tyStatus}
                         />
                       </div>
                     </div>
