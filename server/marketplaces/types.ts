@@ -214,6 +214,8 @@ export interface NormalizedOrderLine {
 export interface NormalizedOrder {
   /** Pazaryeri sipariş numarası (idempotency anahtarının parçası). */
   orderNumber: string;
+  /** Pazaryeri paket id'si (statü güncelleme / fatura gönderimi için gerekli). */
+  externalPackageId?: string | null;
   /** Sipariş/paket durumu. */
   status: string;
   orderedAt: Date | null;
@@ -240,6 +242,173 @@ export interface MarketplaceOrderAdapter {
    * startDate/endDate: epoch ms.
    */
   fetchOrdersPage(startDate: number, endDate: number, cursor: PageCursor): Promise<OrdersPage>;
+}
+
+// ============================================================================
+// SORU-CEVAP (Q&A) YÜZEYİ — opsiyonel.
+// ============================================================================
+
+export interface NormalizedQuestion {
+  id: string;
+  status: string; // WAITING_FOR_ANSWER | ANSWERED | REPORTED | REJECTED | WAITING_FOR_APPROVE
+  text: string;
+  customerName: string | null;
+  productName: string | null;
+  productImageUrl: string | null;
+  productWebUrl: string | null;
+  askedAt: Date | null;
+  answeredAt: Date | null;
+  answerText: string | null;
+  /** Cevap için kalan süre bilgisi varsa (saat). */
+  showCustomerName?: boolean;
+}
+
+export interface QuestionsPage {
+  questions: NormalizedQuestion[];
+  nextCursor: PageCursor;
+  total?: number;
+}
+
+export interface MarketplaceQnAAdapter {
+  /** startDate/endDate epoch ms; status opsiyonel filtre. */
+  fetchQuestionsPage(params: {
+    startDate?: number;
+    endDate?: number;
+    status?: string;
+    cursor?: PageCursor;
+  }): Promise<QuestionsPage>;
+  answerQuestion(questionId: string, text: string): Promise<void>;
+}
+
+export function supportsQnA(
+  adapter: MarketplaceAdapter,
+): adapter is MarketplaceAdapter & MarketplaceQnAAdapter {
+  const a = adapter as Partial<MarketplaceQnAAdapter>;
+  return (
+    typeof a.fetchQuestionsPage === "function" && typeof a.answerQuestion === "function"
+  );
+}
+
+// ============================================================================
+// İADE (CLAIMS) YÜZEYİ — opsiyonel.
+// ============================================================================
+
+export interface NormalizedClaimItem {
+  /** claimItem id — onay/red işlemlerinde kullanılır. */
+  id: string;
+  orderLineId: string | null;
+  barcode: string | null;
+  productName: string | null;
+  productImageUrl: string | null;
+  quantity: number;
+  status: string; // Created / WaitingInAction / Accepted / Rejected / ...
+  customerReason: string | null;
+  customerNote: string | null;
+}
+
+export interface NormalizedClaim {
+  id: string;
+  orderNumber: string;
+  claimDate: Date | null;
+  orderDate: Date | null;
+  customerName: string | null;
+  cargoProvider: string | null;
+  cargoTracking: string | null;
+  /** İade paketinin bağlı olduğu orijinal paket id. */
+  orderShipmentPackageId: string | null;
+  items: NormalizedClaimItem[];
+}
+
+export interface ClaimsPage {
+  claims: NormalizedClaim[];
+  nextCursor: PageCursor;
+  total?: number;
+}
+
+export interface ClaimIssueReason {
+  id: string;
+  name: string;
+}
+
+export interface MarketplaceClaimsAdapter {
+  fetchClaimsPage(params: {
+    startDate?: number;
+    endDate?: number;
+    claimItemStatus?: string;
+    cursor?: PageCursor;
+  }): Promise<ClaimsPage>;
+  /** İade kalemlerini onayla (para iadesi süreci başlar). */
+  approveClaimItems(claimId: string, claimLineItemIds: string[]): Promise<void>;
+  fetchClaimIssueReasons(): Promise<ClaimIssueReason[]>;
+}
+
+export function supportsClaims(
+  adapter: MarketplaceAdapter,
+): adapter is MarketplaceAdapter & MarketplaceClaimsAdapter {
+  const a = adapter as Partial<MarketplaceClaimsAdapter>;
+  return (
+    typeof a.fetchClaimsPage === "function" && typeof a.approveClaimItems === "function"
+  );
+}
+
+// ============================================================================
+// SİPARİŞ YAZMA (FULFILLMENT) YÜZEYİ — opsiyonel. Paket statüsü + fatura linki.
+// ============================================================================
+
+export interface MarketplaceFulfillmentAdapter {
+  /**
+   * Paket statüsünü güncelle. Trendyol: 'Picking' (hazırlanıyor) veya
+   * 'Invoiced' (faturalandı). lines: pakete dahil satırlar (lineId + adet).
+   */
+  updatePackageStatus(
+    packageId: string,
+    status: "Picking" | "Invoiced",
+    lines: Array<{ lineId: number; quantity: number }>,
+    invoiceNumber?: string,
+  ): Promise<void>;
+  /** Müşteriye e-fatura linki gönder. */
+  sendInvoiceLink(params: {
+    packageId: string;
+    invoiceLink: string;
+    invoiceNumber?: string;
+    invoiceDateTime?: number;
+  }): Promise<void>;
+}
+
+export function supportsFulfillment(
+  adapter: MarketplaceAdapter,
+): adapter is MarketplaceAdapter & MarketplaceFulfillmentAdapter {
+  const a = adapter as Partial<MarketplaceFulfillmentAdapter>;
+  return (
+    typeof a.updatePackageStatus === "function" && typeof a.sendInvoiceLink === "function"
+  );
+}
+
+// ============================================================================
+// HIZLI ENVANTER SORGUSU — opsiyonel. Barkodla direkt stok/fiyat lookup
+// (sayfa taraması yerine). Sağlık kontrolü / uyuşmazlık tespiti kullanır.
+// ============================================================================
+
+export interface InventorySnapshotItem {
+  barcode: string;
+  quantity: number;
+  salePrice: number;
+  listPrice: number | null;
+  onSale: boolean;
+}
+
+export interface MarketplaceInventoryLookupAdapter {
+  /** Barkod listesiyle (max ~50/istek, adapter böler) güncel stok/fiyat döner. */
+  fetchInventoryByBarcodes(barcodes: string[]): Promise<InventorySnapshotItem[]>;
+}
+
+export function supportsInventoryLookup(
+  adapter: MarketplaceAdapter,
+): adapter is MarketplaceAdapter & MarketplaceInventoryLookupAdapter {
+  return (
+    typeof (adapter as Partial<MarketplaceInventoryLookupAdapter>).fetchInventoryByBarcodes ===
+    "function"
+  );
 }
 
 /** Type guard: adapter sipariş çekmeyi destekliyor mu? */

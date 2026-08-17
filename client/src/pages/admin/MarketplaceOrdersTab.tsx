@@ -18,15 +18,22 @@ import {
   User,
   PackageCheck,
   PackageX,
+  ClipboardCheck,
+  FileText,
 } from 'lucide-react';
 import {
   EmptyState,
   LoadingState,
+  PrimaryButton,
   SecondaryButton,
   GhostButton,
   StatusBadge,
   SelectInput,
+  FormField,
+  TextInput,
+  InlineAlert,
 } from './_ui/AdminUI';
+import AdminModal from './_ui/AdminModal';
 
 type Marketplace = { id: string; name: string; type: string; isActive: boolean };
 
@@ -49,6 +56,7 @@ type OrderLine = {
 
 type MarketplaceOrder = {
   orderNumber: string;
+  packageId: string | null;
   orderedAt: string | null;
   customerName: string | null;
   cargoProvider: string | null;
@@ -108,19 +116,25 @@ function fmtDate(d: string | null): string {
   }
 }
 
-export default function MarketplaceOrdersTab() {
+export default function MarketplaceOrdersTab({
+  marketplaceId,
+}: {
+  /** Verilirse pazaryeri seçimi bu id'ye sabitlenir (Trendyol Merkezi içinden). */
+  marketplaceId?: string | null;
+} = {}) {
   const qc = useQueryClient();
   const { toast } = useToast();
   const [statusFilter, setStatusFilter] = useState('');
   const [days, setDays] = useState('30');
   const [openOrder, setOpenOrder] = useState<string | null>(null);
   const [selectedMpId, setSelectedMpId] = useState<string | null>(null);
+  const [invoiceOrder, setInvoiceOrder] = useState<MarketplaceOrder | null>(null);
 
   const mpQuery = useQuery<Marketplace[]>({
     queryKey: ['/api/admin/marketplaces'],
   });
   const marketplaces = (mpQuery.data ?? []).filter((m) => m.isActive);
-  const mpId = selectedMpId ?? marketplaces[0]?.id ?? null;
+  const mpId = marketplaceId ?? selectedMpId ?? marketplaces[0]?.id ?? null;
 
   const ordersQuery = useQuery<OrdersResponse>({
     queryKey: ['/api/admin/marketplaces', mpId, 'orders', statusFilter, days],
@@ -145,6 +159,23 @@ export default function MarketplaceOrdersTab() {
     },
     onError: (err: Error) =>
       toast({ title: 'Çekilemedi', description: err.message, variant: 'destructive' }),
+  });
+
+  const pickingMutation = useMutation({
+    mutationFn: async (packageId: string) => {
+      await apiRequest('POST', `/api/admin/marketplaces/${mpId}/packages/${packageId}/status`, {
+        status: 'Picking',
+      });
+    },
+    onSuccess: () => {
+      toast({
+        title: 'Paket "Hazırlanıyor" olarak işaretlendi',
+        description: 'Trendyol panelinde de aynı statü görünür.',
+      });
+      qc.invalidateQueries({ queryKey: ['/api/admin/marketplaces', mpId, 'orders'] });
+    },
+    onError: (err: Error) =>
+      toast({ title: 'İşaretlenemedi', description: err.message, variant: 'destructive' }),
   });
 
   const summary = ordersQuery.data?.summary;
@@ -180,7 +211,7 @@ export default function MarketplaceOrdersTab() {
     <div className="space-y-4" data-testid="tab-marketplace-orders">
       <div className="flex flex-wrap items-center gap-2">
         <h2 className="text-lg font-semibold text-neutral-900 mr-auto">Trendyol Siparişleri</h2>
-        {marketplaces.length > 1 && (
+        {!marketplaceId && marketplaces.length > 1 && (
           <SelectInput
             value={mpId ?? ''}
             onChange={(e) => setSelectedMpId(e.target.value)}
@@ -331,6 +362,34 @@ export default function MarketplaceOrdersTab() {
 
                 {expanded && (
                   <div className="border-t border-neutral-100 divide-y divide-neutral-50">
+                    {o.packageId && (o.statusGroup === 'new' || o.statusGroup === 'preparing') && (
+                      <div className="p-3 flex flex-wrap items-center gap-2 bg-neutral-50/60">
+                        <span className="text-[11px] text-neutral-500 mr-auto">
+                          Paket #{o.packageId}
+                        </span>
+                        {o.statusGroup === 'new' && (
+                          <SecondaryButton
+                            onClick={() => pickingMutation.mutate(o.packageId!)}
+                            disabled={pickingMutation.isPending}
+                            data-testid={`button-picking-${o.orderNumber}`}
+                          >
+                            {pickingMutation.isPending ? (
+                              <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                            ) : (
+                              <ClipboardCheck className="w-3.5 h-3.5" />
+                            )}
+                            Hazırlanıyor İşaretle
+                          </SecondaryButton>
+                        )}
+                        <SecondaryButton
+                          onClick={() => setInvoiceOrder(o)}
+                          data-testid={`button-invoice-${o.orderNumber}`}
+                        >
+                          <FileText className="w-3.5 h-3.5" />
+                          Faturala / Fatura Linki
+                        </SecondaryButton>
+                      </div>
+                    )}
                     {o.lines.map((l) => {
                       const lb = GROUP_BADGE[l.statusGroup] ?? { label: l.status ?? '-', tone: 'neutral' as const };
                       return (
@@ -381,6 +440,137 @@ export default function MarketplaceOrdersTab() {
           })}
         </div>
       )}
+
+      {invoiceOrder && mpId && (
+        <InvoiceDialog
+          marketplaceId={mpId}
+          order={invoiceOrder}
+          onClose={() => setInvoiceOrder(null)}
+          onDone={() => {
+            setInvoiceOrder(null);
+            qc.invalidateQueries({ queryKey: ['/api/admin/marketplaces', mpId, 'orders'] });
+          }}
+        />
+      )}
     </div>
+  );
+}
+
+// ============================================================================
+// Faturalama dialogu — paketi "Invoiced" işaretler ve/veya e-fatura linki gönderir
+// ============================================================================
+function InvoiceDialog({
+  marketplaceId,
+  order,
+  onClose,
+  onDone,
+}: {
+  marketplaceId: string;
+  order: MarketplaceOrder;
+  onClose: () => void;
+  onDone: () => void;
+}) {
+  const { toast } = useToast();
+  const [invoiceNumber, setInvoiceNumber] = useState('');
+  const [invoiceLink, setInvoiceLink] = useState('');
+  const [markInvoiced, setMarkInvoiced] = useState(true);
+
+  const linkValid =
+    invoiceLink.trim() === '' || /^https?:\/\/\S+$/i.test(invoiceLink.trim());
+  const canSubmit = linkValid && (markInvoiced || invoiceLink.trim() !== '');
+
+  const submitMutation = useMutation({
+    mutationFn: async () => {
+      const pkg = order.packageId!;
+      if (markInvoiced) {
+        await apiRequest(
+          'POST',
+          `/api/admin/marketplaces/${marketplaceId}/packages/${pkg}/status`,
+          {
+            status: 'Invoiced',
+            ...(invoiceNumber.trim() ? { invoiceNumber: invoiceNumber.trim() } : {}),
+          },
+        );
+      }
+      if (invoiceLink.trim()) {
+        await apiRequest(
+          'POST',
+          `/api/admin/marketplaces/${marketplaceId}/packages/${pkg}/invoice-link`,
+          {
+            invoiceLink: invoiceLink.trim(),
+            ...(invoiceNumber.trim() ? { invoiceNumber: invoiceNumber.trim() } : {}),
+          },
+        );
+      }
+    },
+    onSuccess: () => {
+      toast({
+        title: 'Faturalama tamamlandı',
+        description: invoiceLink.trim()
+          ? 'Statü güncellendi ve fatura linki müşteriye iletildi.'
+          : 'Paket "Faturalandı" olarak işaretlendi.',
+      });
+      onDone();
+    },
+    onError: (err: Error) =>
+      toast({ title: 'İşlem başarısız', description: err.message, variant: 'destructive' }),
+  });
+
+  return (
+    <AdminModal
+      open
+      onClose={onClose}
+      title={`Faturala — #${order.orderNumber}`}
+      size="sm"
+      footer={
+        <>
+          <GhostButton onClick={onClose}>Vazgeç</GhostButton>
+          <PrimaryButton
+            onClick={() => submitMutation.mutate()}
+            disabled={!canSubmit || submitMutation.isPending}
+            data-testid="button-submit-invoice"
+          >
+            {submitMutation.isPending && <Loader2 className="w-3.5 h-3.5 animate-spin" />}
+            Gönder
+          </PrimaryButton>
+        </>
+      }
+    >
+      <div className="space-y-4" data-testid="dialog-invoice">
+        <InlineAlert tone="neutral">
+          Paket "Faturalandı" olarak işaretlenir; fatura linki girerseniz müşteriye
+          e-fatura erişimi de gönderilir. Link göndermek zorunlu değildir.
+        </InlineAlert>
+        <label className="flex items-center gap-2 text-[13px] text-neutral-800">
+          <input
+            type="checkbox"
+            checked={markInvoiced}
+            onChange={(e) => setMarkInvoiced(e.target.checked)}
+            data-testid="checkbox-mark-invoiced"
+          />
+          Paketi "Faturalandı" olarak işaretle
+        </label>
+        <FormField label="Fatura Numarası" hint="Opsiyonel.">
+          <TextInput
+            value={invoiceNumber}
+            onChange={(e) => setInvoiceNumber(e.target.value)}
+            placeholder="ör. SPZ2026000123"
+            data-testid="input-invoice-number"
+          />
+        </FormField>
+        <FormField
+          label="Fatura Linki (PDF/HTML)"
+          hint="Opsiyonel — müşterinin faturaya erişeceği https linki."
+          error={!linkValid ? 'Geçerli bir http(s) linki girin.' : undefined}
+        >
+          <TextInput
+            value={invoiceLink}
+            onChange={(e) => setInvoiceLink(e.target.value)}
+            placeholder="https://…/fatura.pdf"
+            data-testid="input-invoice-link"
+          />
+        </FormField>
+      </div>
+    </AdminModal>
   );
 }

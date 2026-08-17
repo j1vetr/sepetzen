@@ -30,14 +30,23 @@ import {
   BatchResult,
   BrandOption,
   CategoryAttributeDef,
+  ClaimIssueReason,
+  ClaimsPage,
+  InventorySnapshotItem,
   MarketplaceAdapter,
+  MarketplaceClaimsAdapter,
   MarketplaceConfig,
   MarketplaceCredentials,
   MarketplaceError,
+  MarketplaceFulfillmentAdapter,
+  MarketplaceInventoryLookupAdapter,
   MarketplaceOrderAdapter,
+  MarketplaceQnAAdapter,
   MarketplaceWriteAdapter,
   NormalizedCategory,
+  NormalizedClaim,
   NormalizedOrder,
+  NormalizedQuestion,
   OrdersPage,
   NormalizedProduct,
   NormalizedStockPrice,
@@ -45,6 +54,7 @@ import {
   PageCursor,
   ProductsPage,
   ConnectionTestResult,
+  QuestionsPage,
   StockPricePushItem,
 } from "../types";
 
@@ -122,6 +132,8 @@ interface TrendyolOrderLine {
 }
 
 interface TrendyolShipmentPackage {
+  /** Paket id — statü güncelleme / fatura gönderiminde kullanılır. */
+  id?: number | string;
   orderNumber?: string;
   status?: string;
   shipmentPackageStatus?: string;
@@ -141,7 +153,16 @@ interface TrendyolOrdersResponse {
   content: TrendyolShipmentPackage[];
 }
 
-class TrendyolAdapter implements MarketplaceAdapter, MarketplaceWriteAdapter, MarketplaceOrderAdapter {
+class TrendyolAdapter
+  implements
+    MarketplaceAdapter,
+    MarketplaceWriteAdapter,
+    MarketplaceOrderAdapter,
+    MarketplaceQnAAdapter,
+    MarketplaceClaimsAdapter,
+    MarketplaceFulfillmentAdapter,
+    MarketplaceInventoryLookupAdapter
+{
   readonly type = "trendyol" as const;
   private readonly client: MarketplaceHttpClient;
   private readonly supplierId: string;
@@ -421,6 +442,7 @@ class TrendyolAdapter implements MarketplaceAdapter, MarketplaceWriteAdapter, Ma
       .filter((p) => p.orderNumber)
       .map((p) => ({
         orderNumber: String(p.orderNumber),
+        externalPackageId: p.id != null ? String(p.id) : null,
         status: String(p.shipmentPackageStatus ?? p.status ?? ""),
         orderedAt: p.orderDate ? new Date(Number(p.orderDate)) : null,
         customerName:
@@ -448,6 +470,282 @@ class TrendyolAdapter implements MarketplaceAdapter, MarketplaceWriteAdapter, Ma
     const hasMore =
       resp.totalPages != null ? next < resp.totalPages : (resp.content?.length ?? 0) > 0;
     return { orders, nextCursor: hasMore && next <= 1000 ? next : null, total: resp.totalElements };
+  }
+
+  // ==========================================================================
+  // HIZLI ENVANTER SORGUSU — barkod filtreli inventory-and-price endpoint'i.
+  // Sayfa taraması yerine direkt lookup (max 50 barkod / istek).
+  // ==========================================================================
+
+  async fetchInventoryByBarcodes(barcodes: string[]): Promise<InventorySnapshotItem[]> {
+    const uniq = Array.from(new Set(barcodes.map((b) => b.trim()).filter(Boolean)));
+    const out: InventorySnapshotItem[] = [];
+    for (let i = 0; i < uniq.length; i += 50) {
+      const batch = uniq.slice(i, i + 50);
+      const qs = batch.map((b) => `barcodes=${encodeURIComponent(b)}`).join("&");
+      try {
+        const resp = await this.client.request<{
+          content?: Array<{
+            barcode?: string;
+            quantity?: number;
+            salePrice?: number;
+            listPrice?: number;
+            onSale?: boolean;
+          }>;
+        }>(
+          `/product/sellers/${encodeURIComponent(this.supplierId)}/products/approved/inventory-and-price?size=100&${qs}`,
+        );
+        for (const r of resp.content ?? []) {
+          if (!r.barcode) continue;
+          out.push({
+            barcode: String(r.barcode),
+            quantity: Number(r.quantity ?? 0),
+            salePrice: Number(r.salePrice ?? 0),
+            listPrice: r.listPrice != null ? Number(r.listPrice) : null,
+            onSale: r.onSale !== false,
+          });
+        }
+      } catch (err) {
+        // 404 = hiçbiri bulunamadı → boş devam
+        if (err instanceof MarketplaceError && err.statusCode === 404) continue;
+        throw err;
+      }
+    }
+    return out;
+  }
+
+  // ==========================================================================
+  // SORU-CEVAP — /qna/sellers/{sellerId}/questions
+  // ==========================================================================
+
+  async fetchQuestionsPage(params: {
+    startDate?: number;
+    endDate?: number;
+    status?: string;
+    cursor?: PageCursor;
+  }): Promise<QuestionsPage> {
+    const page = params.cursor == null ? 0 : Number(params.cursor);
+    const q = new URLSearchParams();
+    q.set("page", String(page));
+    q.set("size", "50");
+    q.set("orderByField", "CreatedDate");
+    q.set("orderByDirection", "DESC");
+    if (params.status) q.set("status", params.status);
+    if (params.startDate) q.set("startDate", String(Math.floor(params.startDate)));
+    if (params.endDate) q.set("endDate", String(Math.floor(params.endDate)));
+    let resp: {
+      page?: number;
+      totalPages?: number;
+      totalElements?: number;
+      content?: Array<{
+        id?: number | string;
+        status?: string;
+        text?: string;
+        userName?: string;
+        customerId?: number;
+        showUserName?: boolean;
+        creationDate?: number;
+        answeredDateMessage?: string;
+        productName?: string;
+        imageUrl?: string;
+        webUrl?: string;
+        public?: boolean;
+        answer?: { text?: string; creationDate?: number } | null;
+      }>;
+    };
+    try {
+      resp = await this.client.request(
+        `/qna/sellers/${encodeURIComponent(this.supplierId)}/questions/filter?${q.toString()}`,
+      );
+    } catch (err) {
+      if (err instanceof MarketplaceError && err.statusCode === 404) {
+        return { questions: [], nextCursor: null, total: 0 };
+      }
+      throw err;
+    }
+    const questions: NormalizedQuestion[] = (resp.content ?? [])
+      .filter((r) => r.id != null)
+      .map((r) => ({
+        id: String(r.id),
+        status: String(r.status ?? ""),
+        text: String(r.text ?? ""),
+        customerName: r.userName ?? null,
+        productName: r.productName ?? null,
+        productImageUrl: r.imageUrl ?? null,
+        productWebUrl: r.webUrl ?? null,
+        askedAt: r.creationDate ? new Date(Number(r.creationDate)) : null,
+        answeredAt: r.answer?.creationDate ? new Date(Number(r.answer.creationDate)) : null,
+        answerText: r.answer?.text ?? null,
+        showCustomerName: r.showUserName !== false,
+      }));
+    const next = page + 1;
+    const hasMore =
+      resp.totalPages != null ? next < resp.totalPages : (resp.content?.length ?? 0) > 0;
+    return { questions, nextCursor: hasMore ? next : null, total: resp.totalElements };
+  }
+
+  async answerQuestion(questionId: string, text: string): Promise<void> {
+    await this.client.request(
+      `/qna/sellers/${encodeURIComponent(this.supplierId)}/questions/${encodeURIComponent(questionId)}/answers`,
+      { method: "POST", body: { text } },
+    );
+  }
+
+  // ==========================================================================
+  // İADELER (CLAIMS) — /order/sellers/{sellerId}/claims
+  // ==========================================================================
+
+  async fetchClaimsPage(params: {
+    startDate?: number;
+    endDate?: number;
+    claimItemStatus?: string;
+    cursor?: PageCursor;
+  }): Promise<ClaimsPage> {
+    const page = params.cursor == null ? 0 : Number(params.cursor);
+    const q = new URLSearchParams();
+    q.set("page", String(page));
+    q.set("size", "50");
+    if (params.claimItemStatus) q.set("claimItemStatus", params.claimItemStatus);
+    if (params.startDate) q.set("startDate", String(Math.floor(params.startDate)));
+    if (params.endDate) q.set("endDate", String(Math.floor(params.endDate)));
+    let resp: {
+      totalPages?: number;
+      totalElements?: number;
+      content?: Array<{
+        id?: string;
+        orderNumber?: string;
+        orderDate?: number;
+        claimDate?: number;
+        customerFirstName?: string;
+        customerLastName?: string;
+        cargoTrackingNumber?: number | string;
+        cargoProviderName?: string;
+        orderShipmentPackageId?: number | string;
+        items?: Array<{
+          orderLine?: {
+            id?: number | string;
+            productName?: string;
+            barcode?: string;
+            imageUrl?: string;
+          };
+          claimItems?: Array<{
+            id?: string;
+            orderLineItemId?: number | string;
+            customerClaimItemReason?: { name?: string };
+            trendyolClaimItemReason?: { name?: string };
+            claimItemStatus?: { name?: string };
+            note?: string;
+            customerNote?: string;
+          }>;
+        }>;
+      }>;
+    };
+    try {
+      resp = await this.client.request(
+        `/order/sellers/${encodeURIComponent(this.supplierId)}/claims?${q.toString()}`,
+      );
+    } catch (err) {
+      if (err instanceof MarketplaceError && err.statusCode === 404) {
+        return { claims: [], nextCursor: null, total: 0 };
+      }
+      throw err;
+    }
+    const claims: NormalizedClaim[] = (resp.content ?? [])
+      .filter((c) => c.id && c.orderNumber)
+      .map((c) => ({
+        id: String(c.id),
+        orderNumber: String(c.orderNumber),
+        claimDate: c.claimDate ? new Date(Number(c.claimDate)) : null,
+        orderDate: c.orderDate ? new Date(Number(c.orderDate)) : null,
+        customerName:
+          [c.customerFirstName, c.customerLastName].filter(Boolean).join(" ").trim() || null,
+        cargoProvider: c.cargoProviderName ?? null,
+        cargoTracking:
+          c.cargoTrackingNumber != null ? String(c.cargoTrackingNumber) : null,
+        orderShipmentPackageId:
+          c.orderShipmentPackageId != null ? String(c.orderShipmentPackageId) : null,
+        items: (c.items ?? []).flatMap((it) =>
+          (it.claimItems ?? [])
+            .filter((ci) => ci.id)
+            .map((ci) => ({
+              id: String(ci.id),
+              orderLineId: it.orderLine?.id != null ? String(it.orderLine.id) : null,
+              barcode: it.orderLine?.barcode ?? null,
+              productName: it.orderLine?.productName ?? null,
+              productImageUrl: it.orderLine?.imageUrl ?? null,
+              quantity: 1, // Trendyol claim item'ları adet başına ayrı kayıttır
+              status: ci.claimItemStatus?.name ?? "",
+              customerReason:
+                ci.customerClaimItemReason?.name ?? ci.trendyolClaimItemReason?.name ?? null,
+              customerNote: ci.customerNote ?? ci.note ?? null,
+            })),
+        ),
+      }));
+    const next = page + 1;
+    const hasMore =
+      resp.totalPages != null ? next < resp.totalPages : (resp.content?.length ?? 0) > 0;
+    return { claims, nextCursor: hasMore ? next : null, total: resp.totalElements };
+  }
+
+  async approveClaimItems(claimId: string, claimLineItemIds: string[]): Promise<void> {
+    await this.client.request(
+      `/order/sellers/${encodeURIComponent(this.supplierId)}/claims/${encodeURIComponent(claimId)}/items/approve`,
+      {
+        method: "PUT",
+        body: { claimLineItemIdList: claimLineItemIds, params: {} },
+      },
+    );
+  }
+
+  async fetchClaimIssueReasons(): Promise<ClaimIssueReason[]> {
+    const resp = await this.client.request<
+      Array<{ id?: number | string; name?: string; externalReasonId?: number }>
+    >(`/order/claim-issue-reasons`);
+    return (Array.isArray(resp) ? resp : [])
+      .filter((r) => r.id != null && r.name)
+      .map((r) => ({ id: String(r.id), name: String(r.name) }));
+  }
+
+  // ==========================================================================
+  // SİPARİŞ YAZMA — paket statüsü + fatura linki
+  // ==========================================================================
+
+  async updatePackageStatus(
+    packageId: string,
+    status: "Picking" | "Invoiced",
+    lines: Array<{ lineId: number; quantity: number }>,
+    invoiceNumber?: string,
+  ): Promise<void> {
+    const body: Record<string, unknown> = {
+      lines: lines.map((l) => ({ lineId: l.lineId, quantity: l.quantity })),
+      params: status === "Invoiced" && invoiceNumber ? { invoiceNumber } : {},
+      status,
+    };
+    await this.client.request(
+      `/order/sellers/${encodeURIComponent(this.supplierId)}/shipment-packages/${encodeURIComponent(packageId)}`,
+      { method: "PUT", body },
+    );
+  }
+
+  async sendInvoiceLink(params: {
+    packageId: string;
+    invoiceLink: string;
+    invoiceNumber?: string;
+    invoiceDateTime?: number;
+  }): Promise<void> {
+    await this.client.request(
+      `/order/sellers/${encodeURIComponent(this.supplierId)}/seller-invoice-links`,
+      {
+        method: "POST",
+        body: {
+          invoiceLink: params.invoiceLink,
+          shipmentPackageId: Number(params.packageId),
+          ...(params.invoiceNumber ? { invoiceNumber: params.invoiceNumber } : {}),
+          // Trendyol tarih alanları epoch milisaniye bekler
+          invoiceDateTime: Math.floor(params.invoiceDateTime ?? Date.now()),
+        },
+      },
+    );
   }
 
   /** Batch sonucu: GET /product/sellers/{sellerId}/products/batch-requests/{id} */

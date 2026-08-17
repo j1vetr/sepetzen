@@ -76,11 +76,21 @@ async function buildStockPriceItem(
   if (!product) return null;
   const variants = await storage.getProductVariants(link.productId);
   const active = variants.filter((v) => v.isActive !== false);
-  // Trendyol'da barcode başına tek satır. Çok varyantlı ürünlerde toplam stok
-  // gönderilir (katalogdaki ürünler ağırlıkla tek varyant — bıçaklar).
-  const totalStock = active.reduce((s, v) => s + (v.stock ?? 0), 0);
+  // Trendyol'da barcode başına tek satır. Bağlantının stockCode/barkodu bir
+  // varyantın SKU'suyla eşleşiyorsa O varyantın stok+fiyatı gönderilir
+  // (sipariş motorunun stok düşüm hedefiyle tutarlı); eşleşme yoksa çok
+  // varyantlı ürünlerde toplam stok + ürün baz fiyatı gönderilir.
+  const matched =
+    (link.stockCode && active.find((v) => v.sku === link.stockCode)) ||
+    (link.barcode && active.find((v) => v.sku === link.barcode)) ||
+    null;
+  const totalStock = matched
+    ? (matched.stock ?? 0)
+    : active.reduce((s, v) => s + (v.stock ?? 0), 0);
   const meta = (link.pushMeta ?? {}) as { listPrice?: number; priceRule?: PriceRule };
-  const salePrice = applyPriceRule(Number(product.basePrice), meta.priceRule);
+  const siteBase =
+    matched && active.length > 1 ? Number(matched.price) : Number(product.basePrice);
+  const salePrice = applyPriceRule(siteBase, meta.priceRule);
   const listPrice = typeof meta.listPrice === "number" && meta.listPrice >= salePrice
     ? meta.listPrice
     : salePrice;

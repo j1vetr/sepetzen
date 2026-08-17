@@ -144,6 +144,8 @@ function fmt(d: string | null): string {
 // ============================================================================
 // Ürün Bağlantıları + Gönderim Sihirbazı
 // ============================================================================
+
+/** Dialog sarmalayıcı — panel içeriğini modal içinde gösterir. */
 export function ProductLinksDialog({
   marketplaceId,
   open,
@@ -153,6 +155,27 @@ export function ProductLinksDialog({
   open: boolean;
   onClose: () => void;
 }) {
+  return (
+    <AdminModal
+      open={open}
+      onClose={onClose}
+      title="Ürün Bağlantıları ve Trendyol'a Gönderim"
+      size="xl"
+    >
+      <ProductLinksPanel marketplaceId={marketplaceId} active={open} />
+    </AdminModal>
+  );
+}
+
+/** Panel — hem dialog içinde hem Trendyol Merkezi "Ürünler" sekmesinde kullanılır. */
+export function ProductLinksPanel({
+  marketplaceId,
+  active = true,
+}: {
+  marketplaceId: string;
+  active?: boolean;
+}) {
+  const open = active;
   const qc = useQueryClient();
   const { toast } = useToast();
   const [wizardProduct, setWizardProduct] = useState<SiteProduct | null>(null);
@@ -268,12 +291,7 @@ export function ProductLinksDialog({
   }, [products, links, search]);
 
   return (
-    <AdminModal
-      open={open}
-      onClose={onClose}
-      title="Ürün Bağlantıları ve Trendyol'a Gönderim"
-      size="xl"
-    >
+    <>
       <div className="space-y-4" data-testid="dialog-product-links">
         <InlineAlert tone="neutral">
           <strong>Yön:</strong> "Çek" ürünler Trendyol'dan siteye senkronlanır. "Gönder"
@@ -564,7 +582,7 @@ export function ProductLinksDialog({
           </div>
         </AdminModal>
       )}
-    </AdminModal>
+    </>
   );
 }
 
@@ -1034,6 +1052,22 @@ export function PushQueueDialog({
   open: boolean;
   onClose: () => void;
 }) {
+  return (
+    <AdminModal open={open} onClose={onClose} title="Trendyol Gönderim Kuyruğu" size="lg">
+      <PushQueuePanel marketplaceId={marketplaceId} active={open} />
+    </AdminModal>
+  );
+}
+
+/** Panel — hem dialog içinde hem Trendyol Merkezi "Kuyruk" sekmesinde kullanılır. */
+export function PushQueuePanel({
+  marketplaceId,
+  active = true,
+}: {
+  marketplaceId: string;
+  active?: boolean;
+}) {
+  const open = active;
   const qc = useQueryClient();
   const { toast } = useToast();
 
@@ -1077,8 +1111,7 @@ export function PushQueueDialog({
   const failedCount = rows.filter((r) => r.status === 'failed').length;
 
   return (
-    <AdminModal open={open} onClose={onClose} title="Trendyol Gönderim Kuyruğu" size="lg">
-      <div className="space-y-3" data-testid="dialog-push-queue">
+    <div className="space-y-3" data-testid="dialog-push-queue">
         <div className="flex items-center gap-2">
           <StatusBadge tone={pendingCount > 0 ? 'amber' : 'neutral'}>Bekleyen: {pendingCount}</StatusBadge>
           <StatusBadge tone={failedCount > 0 ? 'red' : 'neutral'}>Hatalı: {failedCount}</StatusBadge>
@@ -1138,8 +1171,7 @@ export function PushQueueDialog({
             })}
           </div>
         )}
-      </div>
-    </AdminModal>
+    </div>
   );
 }
 

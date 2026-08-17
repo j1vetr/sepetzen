@@ -69,7 +69,7 @@ export const SIDEBAR_CATEGORIES: SidebarCategory[] = [
   {
     title: 'Trendyol',
     items: [
-      { id: 'marketplaces', icon: Globe, label: 'Trendyol Bağlantısı' },
+      { id: 'marketplaces', icon: Globe, label: 'Trendyol Merkezi' },
       { id: 'marketplaceOrders', icon: ShoppingCart, label: 'Trendyol Siparişleri' },
     ],
   },
@@ -112,7 +112,7 @@ export const TAB_DESCRIPTIONS: Record<TabType, string> = {
   inventory: 'Ürün stoklarını tek ekrandan görüp güncelleyin.',
   orders: 'Sitenizden gelen siparişleri görüntüleyin ve yönetin.',
   wholesale: 'Toptan satış müşterileri ve özel fiyatlar.',
-  marketplaces: 'Trendyol hesabınızı bağlayın, ürünleri senkronlayın ve gönderin.',
+  marketplaces: 'Senkron sağlığı, ürünler, siparişler, sorular ve iadeler tek merkezde.',
   marketplaceOrders: 'Trendyol siparişlerinizi ve stok düşümlerini takip edin.',
   users: 'Kayıtlı müşterilerinizi görüntüleyin.',
   reviews: 'Müşteri yorumlarını onaylayın veya kaldırın.',

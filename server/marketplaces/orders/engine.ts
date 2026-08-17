@@ -125,6 +125,7 @@ export async function processOrder(
       marketplaceId,
       orderNumber: order.orderNumber,
       lineId: line.lineId,
+      packageId: order.externalPackageId ?? null,
       barcode: line.barcode,
       quantity: qty,
       status: line.status || order.status || null,
@@ -159,6 +160,9 @@ export async function processOrder(
     // dönmüşse ve daha önce düşüm uygulandıysa stoğu BİR KEZ geri ekle.
     const statusChanged = (line.status || null) !== (row.status ?? null);
     const infoPatch = {
+      ...(order.externalPackageId && !row.packageId
+        ? { packageId: order.externalPackageId }
+        : {}),
       ...(unitPrice != null && row.unitPrice == null ? { unitPrice, totalPrice } : {}),
       ...(line.productTitle && !row.productTitle ? { productTitle: line.productTitle } : {}),
       ...(order.customerName && !row.customerName ? { customerName: order.customerName } : {}),

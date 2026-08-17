@@ -16,7 +16,14 @@ import {
   applyPriceRule,
   type PriceRule,
 } from "./push/engine";
-import { supportsWrites } from "./types";
+import {
+  supportsWrites,
+  supportsQnA,
+  supportsClaims,
+  supportsFulfillment,
+  supportsInventoryLookup,
+  supportsOrders,
+} from "./types";
 import { suggestCategoryMappings } from "./category-suggester";
 import type { Marketplace, InsertMarketplace } from "@shared/schema";
 import type {
@@ -537,6 +544,7 @@ export function registerMarketplaceRoutes(
         groups[0];
       return {
         orderNumber,
+        packageId: first.packageId ?? null,
         orderedAt: first.orderedAt ?? first.createdAt,
         customerName: first.customerName,
         cargoProvider: first.cargoProvider,
@@ -876,6 +884,312 @@ export function registerMarketplaceRoutes(
       await enqueueStockPricePush(link.productId);
       void processPushQueue(req.params.id).catch(() => {});
       res.status(202).json({ ok: true });
+    },
+  );
+
+  // ==========================================================================
+  // GENİŞLETİLMİŞ TRENDYOL YÜZEYİ — yetenekler, sağlık, soru-cevap, iadeler,
+  // sipariş yazma (paket statüsü + fatura linki)
+  // ==========================================================================
+
+  /** Adapter'ı getir (yazma şartı yok); yoksa null + yanıt yazılmış olur. */
+  async function adapterOr404(req: Request, res: Response) {
+    const mp = await storage.getMarketplace(req.params.id);
+    if (!mp) {
+      res.status(404).json({ message: "Bulunamadı" });
+      return null;
+    }
+    try {
+      return { mp, adapter: adapterFromMarketplace(mp) };
+    } catch (err) {
+      res.status(500).json({ message: err instanceof Error ? err.message : String(err) });
+      return null;
+    }
+  }
+
+  // Adapter yetenekleri — UI tab görünürlüğü için
+  app.get("/api/admin/marketplaces/:id/capabilities", requireAdmin, async (req, res) => {
+    const ctx = await adapterOr404(req, res);
+    if (!ctx) return;
+    res.json({
+      writes: supportsWrites(ctx.adapter),
+      orders: supportsOrders(ctx.adapter),
+      qna: supportsQnA(ctx.adapter),
+      claims: supportsClaims(ctx.adapter),
+      fulfillment: supportsFulfillment(ctx.adapter),
+      inventoryLookup: supportsInventoryLookup(ctx.adapter),
+    });
+  });
+
+  // Sağlık / uyuşmazlık raporu — push bağlantılarının Trendyol'daki güncel
+  // stok/fiyatını barkodla direkt sorgular ve beklenen değerlerle karşılaştırır.
+  app.get("/api/admin/marketplaces/:id/health", requireAdmin, async (req, res) => {
+    const ctx = await adapterOr404(req, res);
+    if (!ctx) return;
+    const { mp, adapter } = ctx;
+
+    const links = await storage.getMarketplaceProducts(mp.id);
+    const pushLinks = links.filter((l) => l.syncDirection === "push" && l.barcode);
+    const queue = await storage.getPushQueue(mp.id, 500);
+    const queueStats = {
+      pending: queue.filter((q) => q.status === "pending").length,
+      sent: queue.filter((q) => q.status === "sent").length,
+      failed: queue.filter((q) => q.status === "failed").length,
+    };
+
+    let mismatches: Array<Record<string, unknown>> = [];
+    let checked = 0;
+    let notFoundOnMarketplace: string[] = [];
+    if (supportsInventoryLookup(adapter) && pushLinks.length > 0) {
+      try {
+        const inv = await adapter.fetchInventoryByBarcodes(
+          pushLinks.map((l) => l.barcode as string),
+        );
+        const byBarcode = new Map(inv.map((i) => [i.barcode, i]));
+        for (const link of pushLinks) {
+          if (!link.productId) continue;
+          const product = await storage.getProduct(link.productId);
+          if (!product) continue;
+          const variants = await storage.getProductVariants(link.productId);
+          const active = variants.filter((v) => v.isActive !== false);
+          const matched =
+            (link.stockCode && active.find((v) => v.sku === link.stockCode)) ||
+            (link.barcode && active.find((v) => v.sku === link.barcode)) ||
+            null;
+          const expectedStock = product.isActive
+            ? matched
+              ? (matched.stock ?? 0)
+              : active.reduce((s, v) => s + (v.stock ?? 0), 0)
+            : 0;
+          const meta = (link.pushMeta ?? {}) as { priceRule?: PriceRule };
+          const siteBase =
+            matched && active.length > 1 ? Number(matched.price) : Number(product.basePrice);
+          const expectedPrice = applyPriceRule(siteBase, meta.priceRule);
+
+          checked++;
+          const remote = byBarcode.get(link.barcode as string);
+          if (!remote) {
+            notFoundOnMarketplace.push(link.barcode as string);
+            continue;
+          }
+          const stockDiff = remote.quantity !== expectedStock;
+          const priceDiff = Math.abs(remote.salePrice - expectedPrice) > 0.01;
+          if (stockDiff || priceDiff) {
+            mismatches.push({
+              linkId: link.id,
+              productId: link.productId,
+              productName: product.name,
+              barcode: link.barcode,
+              expectedStock,
+              remoteStock: remote.quantity,
+              expectedPrice,
+              remotePrice: remote.salePrice,
+              stockDiff,
+              priceDiff,
+            });
+          }
+        }
+      } catch (err) {
+        return res.json({
+          ok: false,
+          error: err instanceof Error ? err.message : String(err),
+          lastFullSyncAt: mp.lastFullSyncAt,
+          lastDeltaSyncAt: mp.lastDeltaSyncAt,
+          pushLinkCount: pushLinks.length,
+          queueStats,
+        });
+      }
+    }
+
+    res.json({
+      ok: true,
+      lastFullSyncAt: mp.lastFullSyncAt,
+      lastDeltaSyncAt: mp.lastDeltaSyncAt,
+      pushLinkCount: pushLinks.length,
+      checked,
+      queueStats,
+      mismatches,
+      notFoundOnMarketplace,
+    });
+  });
+
+  // Uyuşmazlıkları düzelt — mismatch bulunan ürünleri kuyruğa yaz ve hemen işle
+  app.post("/api/admin/marketplaces/:id/health/fix", requireAdmin, async (req, res) => {
+    const schema = z.object({ productIds: z.array(z.string().min(1)).min(1).max(500) });
+    const parsed = schema.safeParse(req.body ?? {});
+    if (!parsed.success) return res.status(400).json({ message: "Geçersiz veri" });
+    const mp = await storage.getMarketplace(req.params.id);
+    if (!mp) return res.status(404).json({ message: "Bulunamadı" });
+    let enqueued = 0;
+    for (const pid of parsed.data.productIds) {
+      await enqueueStockPricePush(pid);
+      enqueued++;
+    }
+    void processPushQueue(req.params.id).catch(() => {});
+    res.status(202).json({ ok: true, enqueued });
+  });
+
+  // --- Soru-Cevap ---
+  app.get("/api/admin/marketplaces/:id/questions", requireAdmin, async (req, res) => {
+    const ctx = await adapterOr404(req, res);
+    if (!ctx) return;
+    if (!supportsQnA(ctx.adapter)) {
+      return res.status(400).json({ message: `${ctx.mp.type} soru-cevap desteklemiyor` });
+    }
+    const days = Math.min(Math.max(Number(req.query.days) || 14, 1), 14);
+    const endDate = Date.now();
+    const startDate = endDate - days * 24 * 60 * 60_000;
+    const status = String(req.query.status ?? "").trim() || undefined;
+    const cursor = req.query.page != null ? Number(req.query.page) : null;
+    try {
+      const page = await ctx.adapter.fetchQuestionsPage({ startDate, endDate, status, cursor });
+      res.json(page);
+    } catch (err) {
+      res.status(502).json({ message: err instanceof Error ? err.message : String(err) });
+    }
+  });
+
+  app.post(
+    "/api/admin/marketplaces/:id/questions/:questionId/answer",
+    requireAdmin,
+    async (req, res) => {
+      const schema = z.object({ text: z.string().trim().min(10).max(2000) });
+      const parsed = schema.safeParse(req.body ?? {});
+      if (!parsed.success) {
+        return res
+          .status(400)
+          .json({ message: "Cevap 10-2000 karakter arasında olmalı." });
+      }
+      const ctx = await adapterOr404(req, res);
+      if (!ctx) return;
+      if (!supportsQnA(ctx.adapter)) {
+        return res.status(400).json({ message: `${ctx.mp.type} soru-cevap desteklemiyor` });
+      }
+      try {
+        await ctx.adapter.answerQuestion(req.params.questionId, parsed.data.text);
+        res.json({ ok: true });
+      } catch (err) {
+        res.status(502).json({ message: err instanceof Error ? err.message : String(err) });
+      }
+    },
+  );
+
+  // --- İadeler (Claims) ---
+  app.get("/api/admin/marketplaces/:id/claims", requireAdmin, async (req, res) => {
+    const ctx = await adapterOr404(req, res);
+    if (!ctx) return;
+    if (!supportsClaims(ctx.adapter)) {
+      return res.status(400).json({ message: `${ctx.mp.type} iade yönetimi desteklemiyor` });
+    }
+    const days = Math.min(Math.max(Number(req.query.days) || 14, 1), 14);
+    const endDate = Date.now();
+    const startDate = endDate - days * 24 * 60 * 60_000;
+    const claimItemStatus = String(req.query.status ?? "").trim() || undefined;
+    const cursor = req.query.page != null ? Number(req.query.page) : null;
+    try {
+      const page = await ctx.adapter.fetchClaimsPage({
+        startDate,
+        endDate,
+        claimItemStatus,
+        cursor,
+      });
+      res.json(page);
+    } catch (err) {
+      res.status(502).json({ message: err instanceof Error ? err.message : String(err) });
+    }
+  });
+
+  app.put(
+    "/api/admin/marketplaces/:id/claims/:claimId/approve",
+    requireAdmin,
+    async (req, res) => {
+      const schema = z.object({ claimLineItemIds: z.array(z.string().min(1)).min(1) });
+      const parsed = schema.safeParse(req.body ?? {});
+      if (!parsed.success) return res.status(400).json({ message: "Geçersiz veri" });
+      const ctx = await adapterOr404(req, res);
+      if (!ctx) return;
+      if (!supportsClaims(ctx.adapter)) {
+        return res.status(400).json({ message: `${ctx.mp.type} iade yönetimi desteklemiyor` });
+      }
+      try {
+        await ctx.adapter.approveClaimItems(req.params.claimId, parsed.data.claimLineItemIds);
+        res.json({ ok: true });
+      } catch (err) {
+        res.status(502).json({ message: err instanceof Error ? err.message : String(err) });
+      }
+    },
+  );
+
+  // --- Sipariş yazma: paket statüsü + fatura linki ---
+  app.post(
+    "/api/admin/marketplaces/:id/packages/:packageId/status",
+    requireAdmin,
+    async (req, res) => {
+      const schema = z.object({
+        status: z.enum(["Picking", "Invoiced"]),
+        invoiceNumber: z.string().trim().max(64).optional(),
+      });
+      const parsed = schema.safeParse(req.body ?? {});
+      if (!parsed.success) return res.status(400).json({ message: "Geçersiz veri" });
+      const ctx = await adapterOr404(req, res);
+      if (!ctx) return;
+      if (!supportsFulfillment(ctx.adapter)) {
+        return res
+          .status(400)
+          .json({ message: `${ctx.mp.type} paket statü güncellemeyi desteklemiyor` });
+      }
+      // Paketin satırlarını DB'den topla (lineId + quantity zorunlu)
+      const allLines = await storage.listMarketplaceOrderLines(req.params.id, 10_000);
+      const pkgLines = allLines.filter((l) => l.packageId === req.params.packageId);
+      if (pkgLines.length === 0) {
+        return res.status(404).json({
+          message:
+            "Bu pakete ait satır bulunamadı. Önce 'Siparişleri Çek' ile siparişleri güncelleyin.",
+        });
+      }
+      try {
+        await ctx.adapter.updatePackageStatus(
+          req.params.packageId,
+          parsed.data.status,
+          pkgLines.map((l) => ({ lineId: Number(l.lineId), quantity: l.quantity })),
+          parsed.data.invoiceNumber,
+        );
+        res.json({ ok: true });
+      } catch (err) {
+        res.status(502).json({ message: err instanceof Error ? err.message : String(err) });
+      }
+    },
+  );
+
+  app.post(
+    "/api/admin/marketplaces/:id/packages/:packageId/invoice-link",
+    requireAdmin,
+    async (req, res) => {
+      const schema = z.object({
+        invoiceLink: z.string().trim().url().max(500),
+        invoiceNumber: z.string().trim().max(64).optional(),
+      });
+      const parsed = schema.safeParse(req.body ?? {});
+      if (!parsed.success) {
+        return res.status(400).json({ message: "Geçerli bir fatura linki girin." });
+      }
+      const ctx = await adapterOr404(req, res);
+      if (!ctx) return;
+      if (!supportsFulfillment(ctx.adapter)) {
+        return res
+          .status(400)
+          .json({ message: `${ctx.mp.type} fatura linki göndermeyi desteklemiyor` });
+      }
+      try {
+        await ctx.adapter.sendInvoiceLink({
+          packageId: req.params.packageId,
+          invoiceLink: parsed.data.invoiceLink,
+          invoiceNumber: parsed.data.invoiceNumber,
+        });
+        res.json({ ok: true });
+      } catch (err) {
+        res.status(502).json({ message: err instanceof Error ? err.message : String(err) });
+      }
     },
   );
 }

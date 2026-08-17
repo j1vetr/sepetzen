@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { useLocation } from 'wouter';
 
 import OrdersTab from './admin/OrdersTab';
-import MarketplacesTab from './admin/MarketplacesTab';
+import TrendyolCenter from './admin/TrendyolCenter';
 import MarketplaceOrdersTab from './admin/MarketplaceOrdersTab';
 import AdminLayout from './admin/_layout/AdminLayout';
 
@@ -262,7 +262,7 @@ export default function AdminDashboard() {
         {activeTab === 'pages' && <PagesTab initialSelectedId={pagesInitialSelectedId} />}
         {activeTab === 'blog' && <BlogTab initialSelectedId={blogInitialSelectedId} />}
         {activeTab === 'marketplaces' && (
-          <MarketplacesTab
+          <TrendyolCenter
             siteCategories={categories.map((c) => ({ id: c.id, name: c.name, slug: c.slug }))}
           />
         )}

@@ -1050,6 +1050,8 @@ export const marketplaceOrderLines = pgTable("marketplace_order_lines", {
   orderNumber: text("order_number").notNull(),
   /** Sipariş satırı id'si (Trendyol line id). */
   lineId: text("line_id").notNull(),
+  /** Pazaryeri paket id'si (statü güncelleme / fatura gönderimi için). */
+  packageId: text("package_id"),
   barcode: text("barcode"),
   quantity: integer("quantity").default(0).notNull(),
   /** Pazaryerindeki son bilinen satır durumu (Created/Shipped/Cancelled...). */

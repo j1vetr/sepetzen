@@ -13,3 +13,10 @@ description: Rules for the site→Trendyol push path and pull/push identity guar
 - Price-and-inventory batches ARE queryable via the product `batch-requests/{id}` endpoint (verified live).
 - Reverse direction (Trendyol order → site stock decrement) runs via a 10-min cron: order lines recorded idempotently (uniq marketplace+orderNumber+lineId), decrement only for push links, cancel/return restores once. Stock change goes through `updateProductVariant` so the outbox propagates it — do not bypass storage when adjusting stock.
 - `npm run db:push` can prompt interactively (table rename / constraint truncate) and hang in non-TTY shells — if a new table matches, create it via SQL matching drizzle schema exactly, then push is a no-op. Pre-existing drift: refresh_tokens unique constraint prompt.
+
+## Trendyol v2 ek yüzeyler (Q&A / claims / fulfillment)
+- Fatura linki endpoint'i `/order/sellers/{sellerId}/seller-invoice-links` (öndeki `/order` şart); tüm tarih alanları epoch **milisaniye**.
+- Claim onayı: `PUT /order/sellers/{id}/claims/{claimId}/items/approve` body `{claimLineItemIdList, params:{}}`.
+- Q&A/claims filtreleri startDate/endDate max 14 gün, sayfa boyutu max 50 — UI sayfalama zorunlu.
+- Hızlı stok/fiyat doğrulaması: `products/approved/inventory-and-price?barcodes=` (istek başına max 50 barkod); sağlık denetimi beklenen değeri push engine'deki buildStockPriceItem mantığıyla birebir aynı hesaplamalı.
+- Paket statü yazımı paket id ister → `marketplace_order_lines.package_id` kolonu; sipariş çekiminde doldurulur.
