@@ -1,7 +1,7 @@
 import type { Express, Request, Response, NextFunction } from "express";
 import { createServer, type Server } from "http";
 import { storage, db } from "./storage";
-import { DEFAULT_FREE_SHIPPING_THRESHOLD } from "@shared/shipping";
+import { DEFAULT_FREE_SHIPPING_THRESHOLD, DEFAULT_DOMESTIC_SHIPPING_COST, DEFAULT_INTERNATIONAL_SHIPPING_COST } from "@shared/shipping";
 import { z } from "zod";
 import bcrypt from "bcrypt";
 import crypto from "crypto";
@@ -266,11 +266,78 @@ async function cleanupOrphanReviewImages(): Promise<void> {
 setTimeout(() => { cleanupOrphanReviewImages().catch(() => {}); }, 5 * 60 * 1000);
 setInterval(() => { cleanupOrphanReviewImages().catch(() => {}); }, 6 * 60 * 60 * 1000);
 
+// Kargo ücret ayarları: ilk açılışta varsayılan değerleri yaz (zaten varsa dokunma)
+(async () => {
+  try {
+    const defaults: Array<[string, string]> = [
+      ['domestic_shipping_cost', '200'],
+      ['international_shipping_cost', '2500'],
+      ['country_shipping_rates', JSON.stringify([{ country: 'Irak', cost: 5700 }])],
+    ];
+    for (const [key, value] of defaults) {
+      const existing = await storage.getSiteSetting(key);
+      if (existing === null || existing === undefined) {
+        await storage.setSiteSettings({ [key]: value });
+      }
+    }
+  } catch { /* ilk açılış seed hatası kritik değil */ }
+})();
+
 // Ücretsiz kargo eşiği: admin ayarı geçersiz/eksikse tek merkezi fallback kullanılır.
 async function resolveFreeShippingThreshold(): Promise<number> {
   const raw = await storage.getSiteSetting('free_shipping_threshold');
   const value = Number.parseFloat(raw ?? '');
   return Number.isFinite(value) && value > 0 ? value : DEFAULT_FREE_SHIPPING_THRESHOLD;
+}
+
+interface ShippingCosts {
+  domestic: number;
+  international: number;
+  /** Ülke adı → ücret (özel tarifeler). Eşleşme yoksa `international` kullanılır. */
+  countryMap: Record<string, number>;
+}
+
+/** Tüm kargo ücret ayarlarını DB'den okur; eksik/geçersiz değerlerde fallback kullanır. */
+async function resolveShippingCosts(): Promise<ShippingCosts> {
+  const [domRaw, intRaw, ratesRaw] = await Promise.all([
+    storage.getSiteSetting('domestic_shipping_cost'),
+    storage.getSiteSetting('international_shipping_cost'),
+    storage.getSiteSetting('country_shipping_rates'),
+  ]);
+
+  const domestic = (() => {
+    const v = Number.parseFloat(domRaw ?? '');
+    return Number.isFinite(v) && v >= 0 ? v : DEFAULT_DOMESTIC_SHIPPING_COST;
+  })();
+
+  const international = (() => {
+    const v = Number.parseFloat(intRaw ?? '');
+    return Number.isFinite(v) && v >= 0 ? v : DEFAULT_INTERNATIONAL_SHIPPING_COST;
+  })();
+
+  const countryMap: Record<string, number> = {};
+  try {
+    const rows: Array<{ country: string; cost: number }> = JSON.parse(ratesRaw ?? '[]');
+    if (Array.isArray(rows)) {
+      for (const r of rows) {
+        const cost = Number(r.cost);
+        if (typeof r.country === 'string' && r.country && Number.isFinite(cost) && cost >= 0) {
+          countryMap[r.country] = cost;
+        }
+      }
+    }
+  } catch { /* geçersiz JSON — boş bırak */ }
+
+  return { domestic, international, countryMap };
+}
+
+/** Belirli bir ülke için kargo ücretini hesaplar (threshold kontrolü dahil değil). */
+function shippingCostForCountry(country: string, costs: ShippingCosts): number {
+  if (country === 'Türkiye') return costs.domestic;
+  if (Object.prototype.hasOwnProperty.call(costs.countryMap, country)) {
+    return costs.countryMap[country];
+  }
+  return costs.international;
 }
 
 function sanitizeStoredHtml(rawHtml: string): string {
@@ -3151,15 +3218,13 @@ Bu ürün için 4 bölümlü HTML açıklama üret. Teknik Özellikler bölümü
 
       // Calculate shipping and total
       const FREE_SHIPPING_THRESHOLD = await resolveFreeShippingThreshold();
-      const DOMESTIC_SHIPPING_COST = 200;
-      const INTERNATIONAL_SHIPPING_COST = 2500;
-      const IRAQ_SHIPPING_COST = 5700;
+      const shippingCosts = await resolveShippingCosts();
 
       const isDomestic = selectedCountry === 'Türkiye';
-      const isIraq = selectedCountry === 'Irak';
+      const baseRate = shippingCostForCountry(selectedCountry, shippingCosts);
       let shippingCost = isDomestic
-        ? (serverSubtotal >= FREE_SHIPPING_THRESHOLD ? 0 : DOMESTIC_SHIPPING_COST)
-        : isIraq ? IRAQ_SHIPPING_COST : INTERNATIONAL_SHIPPING_COST;
+        ? (serverSubtotal >= FREE_SHIPPING_THRESHOLD ? 0 : baseRate)
+        : baseRate;
 
       if (couponFreeShipping) {
         shippingCost = 0;
@@ -3495,14 +3560,12 @@ Bu ürün için 4 bölümlü HTML açıklama üret. Teknik Özellikler bölümü
 
       // Shipping
       const FREE_SHIPPING_THRESHOLD = await resolveFreeShippingThreshold();
-      const DOMESTIC_SHIPPING_COST = 200;
-      const INTERNATIONAL_SHIPPING_COST = 2500;
-      const IRAQ_SHIPPING_COST = 5700;
+      const shippingCosts = await resolveShippingCosts();
       const isDomestic = selectedCountry === 'Türkiye';
-      const isIraq = selectedCountry === 'Irak';
+      const baseRate = shippingCostForCountry(selectedCountry, shippingCosts);
       let shippingCost = isDomestic
-        ? (serverSubtotal >= FREE_SHIPPING_THRESHOLD ? 0 : DOMESTIC_SHIPPING_COST)
-        : isIraq ? IRAQ_SHIPPING_COST : INTERNATIONAL_SHIPPING_COST;
+        ? (serverSubtotal >= FREE_SHIPPING_THRESHOLD ? 0 : baseRate)
+        : baseRate;
       if (couponFreeShipping) shippingCost = 0;
 
       // Kargo dahil kupon: indirim tabanı subtotal + kargo olur (kart akışı ile aynı mantık)
@@ -4392,16 +4455,14 @@ Bu ürün için 4 bölümlü HTML açıklama üret. Teknik Özellikler bölümü
 
       // Calculate shipping and total on server
       const FREE_SHIPPING_THRESHOLD = await resolveFreeShippingThreshold();
-      const DOMESTIC_SHIPPING_COST = 200;
-      const INTERNATIONAL_SHIPPING_COST = 2500;
-      const IRAQ_SHIPPING_COST = 5700;
+      const shippingCosts = await resolveShippingCosts();
 
       const orderCountry = req.body.shippingAddress?.country || 'Türkiye';
       const isDomestic = orderCountry === 'Türkiye';
-      const isIraq = orderCountry === 'Irak';
+      const baseRate = shippingCostForCountry(orderCountry, shippingCosts);
       const shippingCost = isDomestic
-        ? (serverSubtotal >= FREE_SHIPPING_THRESHOLD ? 0 : DOMESTIC_SHIPPING_COST)
-        : isIraq ? IRAQ_SHIPPING_COST : INTERNATIONAL_SHIPPING_COST;
+        ? (serverSubtotal >= FREE_SHIPPING_THRESHOLD ? 0 : baseRate)
+        : baseRate;
       const serverTotal = Math.max(0, serverSubtotal - discountAmount + shippingCost);
 
       const validated = insertOrderSchema.parse({
@@ -7036,8 +7097,16 @@ window.addEventListener('load', function() {
 
   app.get("/api/shipping/settings", async (_req, res) => {
     try {
+      const [freeShippingThreshold, costs] = await Promise.all([
+        resolveFreeShippingThreshold(),
+        resolveShippingCosts(),
+      ]);
+      const countryShippingRates = Object.entries(costs.countryMap).map(([country, cost]) => ({ country, cost }));
       res.json({
-        freeShippingThreshold: await resolveFreeShippingThreshold(),
+        freeShippingThreshold,
+        domesticShippingCost: costs.domestic,
+        internationalShippingCost: costs.international,
+        countryShippingRates,
       });
     } catch {
       res.status(500).json({ error: "Failed to fetch shipping settings" });
@@ -7082,6 +7151,44 @@ window.addEventListener('load', function() {
           return res.status(400).json({ error: "Ücretsiz kargo eşiği sıfırdan büyük olmalıdır." });
         }
         settings.free_shipping_threshold = String(Math.round(threshold));
+      }
+      if (settings.domestic_shipping_cost !== undefined) {
+        const cost = Number.parseFloat(settings.domestic_shipping_cost);
+        if (!Number.isFinite(cost) || cost < 0) {
+          return res.status(400).json({ error: "Yurt içi kargo ücreti sıfır veya daha büyük olmalıdır." });
+        }
+        settings.domestic_shipping_cost = String(Math.round(cost));
+      }
+      if (settings.international_shipping_cost !== undefined) {
+        const cost = Number.parseFloat(settings.international_shipping_cost);
+        if (!Number.isFinite(cost) || cost < 0) {
+          return res.status(400).json({ error: "Yurt dışı kargo ücreti sıfır veya daha büyük olmalıdır." });
+        }
+        settings.international_shipping_cost = String(Math.round(cost));
+      }
+      if (settings.country_shipping_rates !== undefined) {
+        try {
+          const rates = JSON.parse(settings.country_shipping_rates);
+          if (!Array.isArray(rates)) throw new Error('not-array');
+          const seen = new Set<string>();
+          for (const r of rates) {
+            if (typeof r.country !== 'string' || !r.country || r.country === 'Türkiye') throw new Error('bad-country');
+            if (seen.has(r.country)) throw new Error('duplicate-country');
+            seen.add(r.country);
+            const cost = Number(r.cost);
+            if (!Number.isFinite(cost) || cost < 0) throw new Error('negative-cost');
+          }
+          // Normalize costs to non-negative integers
+          settings.country_shipping_rates = JSON.stringify(
+            rates.map((r: { country: string; cost: number }) => ({ country: r.country, cost: Math.max(0, Math.round(Number(r.cost))) }))
+          );
+        } catch (e: unknown) {
+          const msg = e instanceof Error ? e.message : '';
+          if (msg === 'negative-cost') return res.status(400).json({ error: "Ülke kargo ücreti negatif olamaz." });
+          if (msg === 'duplicate-country') return res.status(400).json({ error: "Aynı ülke birden fazla kez eklenemez." });
+          if (msg === 'bad-country') return res.status(400).json({ error: "Geçersiz ülke adı." });
+          return res.status(400).json({ error: "Ülke bazlı kargo tarifeleri geçersiz format." });
+        }
       }
       // Don't update masked credentials
       if (settings.smtp_pass === '••••••••') {

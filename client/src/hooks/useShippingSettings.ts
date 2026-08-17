@@ -1,12 +1,27 @@
 import { useQuery } from '@tanstack/react-query';
-import { DEFAULT_FREE_SHIPPING_THRESHOLD } from '@shared/shipping';
+import {
+  DEFAULT_FREE_SHIPPING_THRESHOLD,
+  DEFAULT_DOMESTIC_SHIPPING_COST,
+  DEFAULT_INTERNATIONAL_SHIPPING_COST,
+  type CountryShippingRate,
+} from '@shared/shipping';
 
 interface ShippingSettingsResponse {
   freeShippingThreshold?: number;
+  domesticShippingCost?: number;
+  internationalShippingCost?: number;
+  countryShippingRates?: CountryShippingRate[];
 }
 
-export function useFreeShippingThreshold() {
-  const { data } = useQuery<ShippingSettingsResponse>({
+export interface ShippingSettings {
+  freeShippingThreshold: number;
+  domesticShippingCost: number;
+  internationalShippingCost: number;
+  countryShippingRates: CountryShippingRate[];
+}
+
+function useShippingSettingsQuery() {
+  return useQuery<ShippingSettingsResponse>({
     queryKey: ['/api/shipping/settings'],
     queryFn: async () => {
       const response = await fetch('/api/shipping/settings');
@@ -15,9 +30,35 @@ export function useFreeShippingThreshold() {
     },
     staleTime: 5 * 60 * 1000,
   });
+}
 
-  const configuredThreshold = Number(data?.freeShippingThreshold);
-  return Number.isFinite(configuredThreshold) && configuredThreshold > 0
-    ? configuredThreshold
-    : DEFAULT_FREE_SHIPPING_THRESHOLD;
+/** Tüm kargo ayarlarını döner; DB'den okuyamadığında fallback değerleri kullanır. */
+export function useShippingSettings(): ShippingSettings {
+  const { data } = useShippingSettingsQuery();
+
+  const freeShippingThreshold =
+    Number.isFinite(Number(data?.freeShippingThreshold)) && Number(data?.freeShippingThreshold) > 0
+      ? Number(data!.freeShippingThreshold)
+      : DEFAULT_FREE_SHIPPING_THRESHOLD;
+
+  const domesticShippingCost =
+    Number.isFinite(Number(data?.domesticShippingCost)) && Number(data?.domesticShippingCost) >= 0
+      ? Number(data!.domesticShippingCost)
+      : DEFAULT_DOMESTIC_SHIPPING_COST;
+
+  const internationalShippingCost =
+    Number.isFinite(Number(data?.internationalShippingCost)) && Number(data?.internationalShippingCost) >= 0
+      ? Number(data!.internationalShippingCost)
+      : DEFAULT_INTERNATIONAL_SHIPPING_COST;
+
+  const countryShippingRates = Array.isArray(data?.countryShippingRates)
+    ? data!.countryShippingRates
+    : [];
+
+  return { freeShippingThreshold, domesticShippingCost, internationalShippingCost, countryShippingRates };
+}
+
+/** Geriye dönük uyumluluk: sadece eşiği döner. */
+export function useFreeShippingThreshold(): number {
+  return useShippingSettings().freeShippingThreshold;
 }

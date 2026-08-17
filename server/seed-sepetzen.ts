@@ -752,6 +752,9 @@ Adres: Karaçalı Mah. Nergiz Sk. No.8/A Dalaman / Muğla</p>`,
       { key: "announcement_bar", value: "1500 TL ve Üzeri Ücretsiz Kargo! | İlk Siparişinize Sepette %10 İndirim! | Havale/EFT'de %3 İndirim" },
       { key: "site_address", value: "Karaçalı Mah. Nergiz Sk. No.8/A Dalaman / Muğla" },
       { key: "free_shipping_threshold", value: "1500" },
+      { key: "domestic_shipping_cost", value: "200" },
+      { key: "international_shipping_cost", value: "2500" },
+      { key: "country_shipping_rates", value: JSON.stringify([{ country: "Irak", cost: 5700 }]) },
     ];
     for (const s of settingUpdates) {
       await db.insert(siteSettings).values({ key: s.key, value: s.value })

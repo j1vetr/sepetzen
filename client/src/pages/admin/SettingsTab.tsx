@@ -1,8 +1,9 @@
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useState, useEffect, type ComponentType } from 'react';
-import { Settings, Mail, Loader2, CheckCircle2, XCircle, Send, Server, CreditCard, Copy, AlertTriangle, Wrench, MessageCircle, KeyRound, ShieldCheck, Truck, MapPin, Megaphone, Globe, Banknote, Upload, ShoppingBag } from 'lucide-react';
+import { Settings, Mail, Loader2, CheckCircle2, XCircle, Send, Server, CreditCard, Copy, AlertTriangle, Wrench, MessageCircle, KeyRound, ShieldCheck, Truck, MapPin, Megaphone, Globe, Banknote, Upload, ShoppingBag, Plus, Trash2 } from 'lucide-react';
 import { BANK_TRANSFER_INFO } from '@shared/bankInfo';
 import type { SiteIdentity, SocialLink, MobileNavItem } from '@shared/siteIdentity';
+import { COUNTRIES } from '@/lib/countries';
 
 type WhatsAppEvent =
   | 'order_received_customer'
@@ -582,6 +583,9 @@ export default function SettingsPanel({ initialSection = 'genel', contentOnly = 
     aras_kargo_sender_address_id: '',
     aras_kargo_default_desi: '1',
     free_shipping_threshold: '1500',
+    domestic_shipping_cost: '200',
+    international_shipping_cost: '2500',
+    country_shipping_rates: '[]',
     shipping_provider: 'aras',
     geliver_enabled: 'false',
     geliver_api_token: '',
@@ -632,6 +636,10 @@ export default function SettingsPanel({ initialSection = 'genel', contentOnly = 
   const [accountNewUsername, setAccountNewUsername] = useState('');
   const [accountNewPassword, setAccountNewPassword] = useState('');
   const [accountNewPassword2, setAccountNewPassword2] = useState('');
+
+  // Ülke bazlı kargo tarifeleri — ayrı local state, settings.country_shipping_rates ile senkronize
+  type CountryRateRow = { country: string; cost: string };
+  const [countryRateRows, setCountryRateRows] = useState<CountryRateRow[]>([]);
 
   const { data: maintenanceData, refetch: refetchMaintenance } = useQuery<{ enabled: boolean }>({
     queryKey: ['/api/admin/maintenance'],
@@ -946,9 +954,30 @@ export default function SettingsPanel({ initialSection = 'genel', contentOnly = 
       if (savedSettings.wpileti_admin_phone && !waTestPhone) {
         setWaTestPhone(savedSettings.wpileti_admin_phone);
       }
+      // Ülke bazlı kargo tarifelerini ayrıştır
+      try {
+        const rows = JSON.parse(savedSettings.country_shipping_rates ?? '[]');
+        if (Array.isArray(rows)) {
+          setCountryRateRows(rows.map((r: { country: string; cost: number | string }) => ({
+            country: String(r.country),
+            cost: String(r.cost),
+          })));
+        }
+      } catch { /* geçersiz JSON — boş bırak */ }
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [savedSettings]);
+
+  /** Ülke bazlı satır değişince settings.country_shipping_rates'i güncelle */
+  const syncCountryRates = (rows: CountryRateRow[]) => {
+    setCountryRateRows(rows);
+    setSettings(s => ({
+      ...s,
+      country_shipping_rates: JSON.stringify(
+        rows.map(r => ({ country: r.country, cost: Number(r.cost) || 0 }))
+      ),
+    }));
+  };
 
   const handleSave = async () => {
     setIsSaving(true);
@@ -1921,6 +1950,178 @@ export default function SettingsPanel({ initialSection = 'genel', contentOnly = 
             className="w-full px-4 py-3 bg-neutral-50 border border-neutral-200 rounded-lg text-neutral-900 text-sm focus:outline-none focus:border-neutral-900 transition-colors"
           />
         </div>
+      </div>
+
+      {/* Yurt İçi Kargo Ücreti */}
+      <div className="bg-white border border-neutral-200 rounded-xl p-6" data-testid="card-domestic-shipping">
+        <div className="flex items-center gap-3 mb-5">
+          <div className="p-2 bg-neutral-100 rounded-lg">
+            <MapPin className="w-5 h-5 text-neutral-700" />
+          </div>
+          <div>
+            <h3 className="text-lg font-semibold text-neutral-900">Yurt İçi Kargo Ücreti</h3>
+            <p className="text-sm text-neutral-500">
+              Türkiye'ye yapılan ve ücretsiz kargo eşiğinin altında kalan siparişlere uygulanır.
+            </p>
+          </div>
+        </div>
+        <div className="max-w-xs">
+          <label className="block text-sm font-medium text-neutral-700 mb-2" htmlFor="domestic-shipping-cost">
+            Kargo ücreti (₺)
+          </label>
+          <input
+            id="domestic-shipping-cost"
+            type="number"
+            min="0"
+            step="1"
+            value={settings.domestic_shipping_cost}
+            onChange={(e) => setSettings(s => ({ ...s, domestic_shipping_cost: e.target.value }))}
+            data-testid="input-domestic-shipping-cost"
+            className="w-full px-4 py-3 bg-neutral-50 border border-neutral-200 rounded-lg text-neutral-900 text-sm focus:outline-none focus:border-neutral-900 transition-colors"
+          />
+          <p className="text-xs text-neutral-400 mt-1.5">0 girilirse yurt içi kargo her zaman ücretsiz olur.</p>
+        </div>
+      </div>
+
+      {/* Yurt Dışı Kargo Ücreti */}
+      <div className="bg-white border border-neutral-200 rounded-xl p-6" data-testid="card-international-shipping">
+        <div className="flex items-center gap-3 mb-5">
+          <div className="p-2 bg-neutral-100 rounded-lg">
+            <Globe className="w-5 h-5 text-neutral-700" />
+          </div>
+          <div>
+            <h3 className="text-lg font-semibold text-neutral-900">Yurt Dışı Kargo Ücreti</h3>
+            <p className="text-sm text-neutral-500">
+              Türkiye dışındaki ülkelere yapılan siparişlere uygulanan varsayılan ücret. Aşağıda özel tarife tanımlanmamış tüm ülkeler bu ücreti kullanır.
+            </p>
+          </div>
+        </div>
+        <div className="max-w-xs">
+          <label className="block text-sm font-medium text-neutral-700 mb-2" htmlFor="international-shipping-cost">
+            Kargo ücreti (₺)
+          </label>
+          <input
+            id="international-shipping-cost"
+            type="number"
+            min="0"
+            step="1"
+            value={settings.international_shipping_cost}
+            onChange={(e) => setSettings(s => ({ ...s, international_shipping_cost: e.target.value }))}
+            data-testid="input-international-shipping-cost"
+            className="w-full px-4 py-3 bg-neutral-50 border border-neutral-200 rounded-lg text-neutral-900 text-sm focus:outline-none focus:border-neutral-900 transition-colors"
+          />
+        </div>
+      </div>
+
+      {/* Ülke Bazlı Özel Kargo Tarifeleri */}
+      <div className="bg-white border border-neutral-200 rounded-xl p-6" data-testid="card-country-shipping-rates">
+        <div className="flex items-center justify-between mb-5">
+          <div className="flex items-center gap-3">
+            <div className="p-2 bg-neutral-100 rounded-lg">
+              <Truck className="w-5 h-5 text-neutral-700" />
+            </div>
+            <div>
+              <h3 className="text-lg font-semibold text-neutral-900">Ülke Bazlı Özel Tarifeler</h3>
+              <p className="text-sm text-neutral-500">
+                Belirli ülkelere farklı kargo ücreti uygulayın. Türkiye buraya eklenmez; yurt içi ücret yukarıdaki ayardan gelir.
+              </p>
+            </div>
+          </div>
+          <button
+            type="button"
+            onClick={() => syncCountryRates([...countryRateRows, { country: '', cost: '' }])}
+            className="flex items-center gap-1.5 px-3 py-2 bg-neutral-900 text-white text-sm font-medium rounded-lg hover:bg-neutral-700 transition-colors shrink-0"
+            data-testid="button-add-country-rate"
+          >
+            <Plus className="w-4 h-4" />
+            Ülke Ekle
+          </button>
+        </div>
+
+        {countryRateRows.length === 0 ? (
+          <div className="flex flex-col items-center justify-center py-8 text-center border-2 border-dashed border-neutral-200 rounded-lg">
+            <Globe className="w-8 h-8 text-neutral-300 mb-2" />
+            <p className="text-sm text-neutral-500 font-medium">Henüz özel tarife yok</p>
+            <p className="text-xs text-neutral-400 mt-1">Tüm yurt dışı siparişler varsayılan yurt dışı ücretini kullanır.</p>
+          </div>
+        ) : (
+          <div className="space-y-3">
+            {/* Header row */}
+            <div className="grid grid-cols-[1fr_140px_40px] gap-3 px-1">
+              <span className="text-xs font-semibold text-neutral-500 uppercase tracking-wide">Ülke</span>
+              <span className="text-xs font-semibold text-neutral-500 uppercase tracking-wide">Ücret (₺)</span>
+              <span />
+            </div>
+            {countryRateRows.map((row, idx) => {
+              const usedCountries = countryRateRows.filter((_, i) => i !== idx).map(r => r.country);
+              const availableCountries = COUNTRIES.filter(c => c !== 'Türkiye' && !usedCountries.includes(c));
+              return (
+                <div key={idx} className="grid grid-cols-[1fr_140px_40px] gap-3 items-center">
+                  <select
+                    value={row.country}
+                    onChange={(e) => {
+                      const next = [...countryRateRows];
+                      next[idx] = { ...next[idx], country: e.target.value };
+                      syncCountryRates(next);
+                    }}
+                    data-testid={`select-country-rate-country-${idx}`}
+                    className="w-full px-3 py-2.5 bg-neutral-50 border border-neutral-200 rounded-lg text-neutral-900 text-sm focus:outline-none focus:border-neutral-900 transition-colors"
+                  >
+                    <option value="">Ülke seçin…</option>
+                    {row.country && !availableCountries.includes(row.country) && (
+                      <option value={row.country}>{row.country}</option>
+                    )}
+                    {availableCountries.map(c => (
+                      <option key={c} value={c}>{c}</option>
+                    ))}
+                  </select>
+                  <div className="relative">
+                    <input
+                      type="number"
+                      min="0"
+                      step="1"
+                      value={row.cost}
+                      onChange={(e) => {
+                        const next = [...countryRateRows];
+                        next[idx] = { ...next[idx], cost: e.target.value };
+                        syncCountryRates(next);
+                      }}
+                      data-testid={`input-country-rate-cost-${idx}`}
+                      placeholder="0"
+                      className="w-full pl-3 pr-7 py-2.5 bg-neutral-50 border border-neutral-200 rounded-lg text-neutral-900 text-sm focus:outline-none focus:border-neutral-900 transition-colors"
+                    />
+                    <span className="absolute right-2.5 top-1/2 -translate-y-1/2 text-xs text-neutral-400 pointer-events-none">₺</span>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => syncCountryRates(countryRateRows.filter((_, i) => i !== idx))}
+                    data-testid={`button-remove-country-rate-${idx}`}
+                    className="flex items-center justify-center w-9 h-9 rounded-lg text-neutral-400 hover:text-red-500 hover:bg-red-50 transition-colors"
+                  >
+                    <Trash2 className="w-4 h-4" />
+                  </button>
+                </div>
+              );
+            })}
+
+            {/* Summary preview */}
+            <div className="mt-4 p-3 bg-neutral-50 rounded-lg border border-neutral-100">
+              <p className="text-xs font-semibold text-neutral-600 mb-2">Özet — ülkeye göre ücret:</p>
+              <div className="flex flex-wrap gap-2">
+                {countryRateRows.filter(r => r.country).map(r => (
+                  <span key={r.country} className="inline-flex items-center gap-1 px-2 py-1 bg-white border border-neutral-200 rounded-md text-xs text-neutral-700">
+                    <span className="font-medium">{r.country}</span>
+                    <span className="text-neutral-400">→</span>
+                    <span className="font-semibold text-neutral-900">{Number(r.cost || 0).toLocaleString('tr-TR')} ₺</span>
+                  </span>
+                ))}
+                <span className="inline-flex items-center gap-1 px-2 py-1 bg-neutral-100 border border-neutral-200 rounded-md text-xs text-neutral-500 italic">
+                  Diğer tüm ülkeler → {Number(settings.international_shipping_cost || 0).toLocaleString('tr-TR')} ₺
+                </span>
+              </div>
+            </div>
+          </div>
+        )}
       </div>
 
       {/* Aktif kargo sağlayıcısı seçimi */}

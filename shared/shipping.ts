@@ -1,7 +1,15 @@
-// Ücretsiz kargo eşiği — tek merkezi fallback.
-// Gerçek değer admin panelindeki `free_shipping_threshold` site ayarından okunur;
-// bu sabit yalnızca ayar hiç yokken veya geçersizken devreye girer.
+// Kargo sabitlerinin merkezi fallback değerleri.
+// Gerçek değerler admin panelindeki site ayarlarından okunur;
+// bu sabitler yalnızca ayar hiç yokken veya geçersizken devreye girer.
 export const DEFAULT_FREE_SHIPPING_THRESHOLD = 1500;
+export const DEFAULT_DOMESTIC_SHIPPING_COST = 200;
+export const DEFAULT_INTERNATIONAL_SHIPPING_COST = 2500;
+
+/** Ülke bazlı özel kargo tarifesi kaydı */
+export interface CountryShippingRate {
+  country: string;
+  cost: number;
+}
 
 /** Eşiği Türkçe biçimde yazar: 1500 -> "1.500" */
 export function formatShippingThreshold(threshold: number): string {

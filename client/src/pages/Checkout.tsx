@@ -21,7 +21,7 @@ import CityDistrictSelect from '@/components/CityDistrictSelect';
 import { GoogleAuthButton } from '@/components/AuthLayout';
 import { BANK_TRANSFER_INFO } from '@shared/bankInfo';
 import { InvoiceFields, emptyInvoiceForm, invoiceFormFrom, invoicePayload, validateInvoiceForm, type InvoiceFormValue } from '@/components/InvoiceFields';
-import { useFreeShippingThreshold } from '@/hooks/useShippingSettings';
+import { useShippingSettings } from '@/hooks/useShippingSettings';
 
 interface Product {
   id: string;
@@ -50,9 +50,6 @@ interface UserAddress {
   taxNumber?: string | null;
 }
 
-const INTERNATIONAL_SHIPPING_COST = 2500;
-const IRAQ_SHIPPING_COST = 5700;
-const DOMESTIC_SHIPPING_COST = 200;
 
 const steps = [
   { id: 1, title: 'İletişim', icon: User },
@@ -65,7 +62,7 @@ export default function Checkout() {
   const { items, subtotal, clearCart } = useCart();
   const { user } = useAuth();
   const { toast } = useToast();
-  const freeShippingThreshold = useFreeShippingThreshold();
+  const { freeShippingThreshold, domesticShippingCost, internationalShippingCost, countryShippingRates } = useShippingSettings();
   const [loading, setLoading] = useState(false);
   const [currentStep, setCurrentStep] = useState(1);
   const [orderComplete, setOrderComplete] = useState(false);
@@ -324,10 +321,13 @@ export default function Checkout() {
 
   // Calculate shipping based on country
   const isDomestic = formData.country === 'Türkiye';
-  const isIraq = formData.country === 'Irak';
-  const baseShippingCost = isDomestic 
-    ? (subtotal >= freeShippingThreshold ? 0 : DOMESTIC_SHIPPING_COST)
-    : isIraq ? IRAQ_SHIPPING_COST : INTERNATIONAL_SHIPPING_COST;
+  const countryRate = countryShippingRates.find(r => r.country === formData.country);
+  const rawRate = isDomestic
+    ? domesticShippingCost
+    : (countryRate ? countryRate.cost : internationalShippingCost);
+  const baseShippingCost = isDomestic
+    ? (subtotal >= freeShippingThreshold ? 0 : rawRate)
+    : rawRate;
   const shippingCost = appliedCoupon?.freeShipping ? 0 : baseShippingCost;
   const remainingForFreeShipping = isDomestic && !appliedCoupon?.freeShipping ? (freeShippingThreshold - subtotal) : 0;
   const shippingProgress = isDomestic ? Math.min((subtotal / freeShippingThreshold) * 100, 100) : 100;
@@ -1417,7 +1417,7 @@ export default function Checkout() {
                             <div className="p-3 bg-white/5 border border-white/15 rounded-lg">
                               <p className="text-[12.5px] text-white/70">
                                 <strong className="text-white">Uluslararası Kargo:</strong>{' '}
-                                {isIraq ? 'Irak siparişlerinde sabit 5.700 TL' : 'Türkiye dışı siparişlerde sabit 2.500 TL'} kargo ücreti uygulanır.
+                                {Number(baseShippingCost).toLocaleString('tr-TR')} ₺ kargo ücreti uygulanır.
                               </p>
                             </div>
                           )}
