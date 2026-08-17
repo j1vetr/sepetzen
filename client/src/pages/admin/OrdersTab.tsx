@@ -1,4 +1,5 @@
-import { useState, useMemo, useEffect } from 'react';
+import { useState, useMemo, useEffect, useRef } from 'react';
+import { createPortal } from 'react-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Link, useLocation } from 'wouter';
 import { formatTRDateShort, formatTRDateNumeric } from '@shared/dateFormat';
@@ -131,20 +132,36 @@ function StatusSelect({
   onChange: (id: string, status: string) => void;
 }) {
   const [open, setOpen] = useState(false);
+  const [rect, setRect] = useState<DOMRect | null>(null);
+  const btnRef = useRef<HTMLButtonElement>(null);
   const cfg = STATUS_CONFIG[currentStatus] || STATUS_CONFIG.pending;
+
+  const openDropdown = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    if (!open && btnRef.current) setRect(btnRef.current.getBoundingClientRect());
+    setOpen((v) => !v);
+  };
+
+  // Close on scroll/resize so the fixed menu doesn't drift
+  useEffect(() => {
+    if (!open) return;
+    const close = () => setOpen(false);
+    window.addEventListener('scroll', close, true);
+    window.addEventListener('resize', close);
+    return () => {
+      window.removeEventListener('scroll', close, true);
+      window.removeEventListener('resize', close);
+    };
+  }, [open]);
+
   return (
     <div className="relative inline-flex">
       <button
+        ref={btnRef}
         type="button"
-        onClick={(e) => {
-          e.stopPropagation();
-          setOpen(!open);
-        }}
+        onClick={openDropdown}
         onKeyDown={(e) => {
-          if (e.key === 'Escape' && open) {
-            e.stopPropagation();
-            setOpen(false);
-          }
+          if (e.key === 'Escape' && open) { e.stopPropagation(); setOpen(false); }
         }}
         className="inline-flex items-center gap-1.5 hover:opacity-80 transition-opacity rounded-full focus:outline-none focus-visible:ring-2 focus-visible:ring-neutral-900/20"
         aria-haspopup="menu"
@@ -155,19 +172,18 @@ function StatusSelect({
         <StatusBadge tone={cfg.tone}>{cfg.label}</StatusBadge>
         <ChevronDown className="w-3 h-3 text-neutral-400" />
       </button>
-      {open && (
+      {open && rect && createPortal(
         <>
+          {/* backdrop */}
           <div
-            className="fixed inset-0 z-10"
-            onClick={(e) => {
-              e.stopPropagation();
-              setOpen(false);
-            }}
+            className="fixed inset-0 z-[998]"
+            onClick={(e) => { e.stopPropagation(); setOpen(false); }}
           />
           <div
             role="menu"
             aria-label="Sipariş durumu seç"
-            className="absolute left-0 top-full mt-1 z-20 bg-white border border-neutral-200 rounded-md shadow-lg overflow-hidden min-w-[150px] py-1"
+            style={{ top: rect.bottom + 4, left: rect.left }}
+            className="fixed z-[999] bg-white border border-neutral-200 rounded-md shadow-lg overflow-hidden min-w-[150px] py-1"
           >
             {Object.entries(STATUS_CONFIG).map(([val, conf]) => (
               <button
@@ -181,16 +197,15 @@ function StatusSelect({
                   setOpen(false);
                 }}
                 className={`w-full flex items-center gap-2 px-2.5 py-1.5 text-[12px] hover:bg-neutral-50 focus:bg-neutral-50 focus:outline-none transition-colors ${
-                  val === currentStatus
-                    ? 'text-neutral-900 font-medium'
-                    : 'text-neutral-600'
+                  val === currentStatus ? 'text-neutral-900 font-medium' : 'text-neutral-600'
                 }`}
               >
                 <StatusBadge tone={conf.tone}>{conf.label}</StatusBadge>
               </button>
             ))}
           </div>
-        </>
+        </>,
+        document.body,
       )}
     </div>
   );

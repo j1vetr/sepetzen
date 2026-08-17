@@ -156,18 +156,27 @@ export async function verifyImageContent(filePath: string): Promise<boolean> {
   }
 }
 
+const VIDEO_EXTENSIONS = new Set(['.mp4', '.webm', '.mov', '.avi', '.mkv']);
+
 export async function optimizeUploadedFiles(files: Express.Multer.File[]): Promise<string[]> {
   const optimizedPaths: string[] = [];
   
   for (const file of files) {
-    try {
-      const optimizedPath = await optimizeImage(file.path);
-      const relativePath = optimizedPath.replace(process.cwd() + '/client/public', '');
-      optimizedPaths.push(relativePath);
-    } catch (error) {
-      console.error(`[ImageOptimizer] Failed to optimize ${file.filename}:`, error);
+    const ext = path.extname(file.filename).toLowerCase();
+    if (VIDEO_EXTENSIONS.has(ext)) {
+      // Video dosyaları — görüntü optimizasyonu uygulanmaz, doğrudan döndürülür
       const relativePath = file.path.replace(process.cwd() + '/client/public', '');
       optimizedPaths.push(relativePath);
+    } else {
+      try {
+        const optimizedPath = await optimizeImage(file.path);
+        const relativePath = optimizedPath.replace(process.cwd() + '/client/public', '');
+        optimizedPaths.push(relativePath);
+      } catch (error) {
+        console.error(`[ImageOptimizer] Failed to optimize ${file.filename}:`, error);
+        const relativePath = file.path.replace(process.cwd() + '/client/public', '');
+        optimizedPaths.push(relativePath);
+      }
     }
   }
   

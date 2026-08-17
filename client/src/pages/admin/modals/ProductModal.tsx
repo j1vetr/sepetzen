@@ -8,6 +8,7 @@ import {
   Trash2,
   RefreshCw,
   Wand2,
+  GripVertical,
 } from 'lucide-react';
 import type { Product, ProductDraft, Category } from '../_shared/types';
 import AdminModal from '../_ui/AdminModal';
@@ -23,6 +24,11 @@ import {
   InlineAlert,
   StatusBadge,
 } from '../_ui/AdminUI';
+
+/** Video URL tespiti — yüklenen medya grid'inde img/video seçimi için */
+function isVideoUrl(url: string): boolean {
+  return /\.(mp4|webm|mov|avi|mkv)(\?.*)?$/i.test(url);
+}
 
 // Türkçe-uyumlu büyük harf dönüşümü: i → İ, ı → I, vs.
 function toTurkishUpper(value: string): string {
@@ -103,6 +109,9 @@ export default function ProductModal({
   const [isUploading, setIsUploading] = useState(false);
   const [dragOver, setDragOver] = useState(false);
   const [uploadError, setUploadError] = useState<string | null>(null);
+  // Sürükle-bırak sıralama state'i
+  const [dragStartIndex, setDragStartIndex] = useState<number | null>(null);
+  const [dragOverIndex, setDragOverIndex] = useState<number | null>(null);
   const [isGenerating, setIsGenerating] = useState(false);
   const [generateError, setGenerateError] = useState<string | null>(null);
 
@@ -223,8 +232,42 @@ export default function ProductModal({
   const handleDrop = (e: React.DragEvent) => {
     e.preventDefault();
     setDragOver(false);
-    const files = Array.from(e.dataTransfer.files).filter((f) => f.type.startsWith('image/'));
+    // Resim VE video dosyaları kabul edilir
+    const files = Array.from(e.dataTransfer.files).filter(
+      (f) => f.type.startsWith('image/') || f.type.startsWith('video/'),
+    );
     setPendingFiles((prev) => [...prev, ...files]);
+  };
+
+  // Sürükle-bırak sıralama handler'ları (mevcut yüklü görseller için)
+  const handleImageDragStart = (e: React.DragEvent, index: number) => {
+    e.dataTransfer.effectAllowed = 'move';
+    setDragStartIndex(index);
+  };
+  const handleImageDragOver = (e: React.DragEvent, index: number) => {
+    e.preventDefault();
+    e.dataTransfer.dropEffect = 'move';
+    if (dragOverIndex !== index) setDragOverIndex(index);
+  };
+  const handleImageDrop = (e: React.DragEvent, dropIndex: number) => {
+    e.preventDefault();
+    if (dragStartIndex === null || dragStartIndex === dropIndex) {
+      setDragStartIndex(null);
+      setDragOverIndex(null);
+      return;
+    }
+    setFormData((prev) => {
+      const newImages = [...prev.images];
+      const [dragged] = newImages.splice(dragStartIndex, 1);
+      newImages.splice(dropIndex, 0, dragged);
+      return { ...prev, images: newImages };
+    });
+    setDragStartIndex(null);
+    setDragOverIndex(null);
+  };
+  const handleImageDragEnd = () => {
+    setDragStartIndex(null);
+    setDragOverIndex(null);
   };
 
   const removePendingFile = (index: number) => {
@@ -640,7 +683,7 @@ export default function ProductModal({
               <input
                 type="file"
                 multiple
-                accept="image/png,image/jpeg,image/webp,image/gif"
+                accept="image/png,image/jpeg,image/webp,video/mp4,video/webm,video/quicktime"
                 onChange={handleFileChange}
                 className="hidden"
                 id="image-upload"
@@ -649,12 +692,12 @@ export default function ProductModal({
               <label htmlFor="image-upload" className="cursor-pointer block">
                 <Upload className="w-6 h-6 mx-auto mb-2 text-neutral-400" />
                 <p className="text-[13px] text-neutral-700">
-                  Resimleri sürükleyip bırakın veya{' '}
+                  Sürükleyip bırakın veya{' '}
                   <span className="text-neutral-900 font-medium underline underline-offset-2">
                     seçin
                   </span>
                 </p>
-                <p className="text-[11px] text-neutral-500 mt-1">PNG, JPG, WEBP veya GIF · max 10MB</p>
+                <p className="text-[11px] text-neutral-500 mt-1">Resim: PNG, JPG, WEBP · Video: MP4, WebM, MOV · max 200MB</p>
               </label>
             </div>
 
@@ -663,17 +706,45 @@ export default function ProductModal({
                 {formData.images.map((image, index) => (
                   <div
                     key={`existing-${index}`}
-                    className={`relative group aspect-square bg-neutral-50 rounded-md overflow-hidden border ${
+                    draggable
+                    onDragStart={(e) => handleImageDragStart(e, index)}
+                    onDragOver={(e) => handleImageDragOver(e, index)}
+                    onDrop={(e) => handleImageDrop(e, index)}
+                    onDragEnd={handleImageDragEnd}
+                    className={`relative group aspect-square bg-neutral-50 rounded-md overflow-hidden border transition-all select-none ${
                       index === 0 ? 'border-neutral-900' : 'border-neutral-200'
+                    } ${dragStartIndex === index ? 'opacity-40 scale-95' : ''}${
+                      dragOverIndex === index && dragStartIndex !== index
+                        ? ' ring-2 ring-neutral-800 ring-offset-1'
+                        : ''
                     }`}
                   >
-                    <img
-                      src={image}
-                      alt={`Ürün ${index + 1}`}
-                      className="w-full h-full object-cover cursor-pointer"
-                      onClick={() => promoteImage(index)}
-                      title={index === 0 ? 'Ana fotoğraf' : 'Ana fotoğraf olarak ayarla'}
-                    />
+                    {/* Sürükleme tutamacı */}
+                    <div className="absolute top-1 left-1 z-10 opacity-0 group-hover:opacity-100 transition-opacity cursor-grab active:cursor-grabbing">
+                      <div className="w-5 h-5 bg-white/80 backdrop-blur-sm rounded flex items-center justify-center shadow-sm">
+                        <GripVertical className="w-3 h-3 text-neutral-500" />
+                      </div>
+                    </div>
+
+                    {isVideoUrl(image) ? (
+                      <video
+                        src={image}
+                        className="w-full h-full object-cover"
+                        muted
+                        loop
+                        preload="metadata"
+                      />
+                    ) : (
+                      <img
+                        src={image}
+                        alt={`Ürün ${index + 1}`}
+                        className="w-full h-full object-cover cursor-pointer"
+                        onClick={() => !dragStartIndex && promoteImage(index)}
+                        title={index === 0 ? 'Ana fotoğraf' : 'Ana fotoğraf olarak ayarla'}
+                        draggable={false}
+                      />
+                    )}
+
                     <button
                       type="button"
                       onClick={() => removeExistingImage(index)}
@@ -682,9 +753,14 @@ export default function ProductModal({
                     >
                       <Trash2 className="w-3 h-3" />
                     </button>
+
                     {index === 0 ? (
                       <span className="absolute bottom-1 left-1 inline-flex items-center px-1.5 h-4 rounded bg-neutral-900 text-white text-[9px] font-medium uppercase tracking-wide leading-none">
-                        Ana
+                        {isVideoUrl(image) ? 'Video · Ana' : 'Ana'}
+                      </span>
+                    ) : isVideoUrl(image) ? (
+                      <span className="absolute bottom-1 left-1 inline-flex items-center px-1.5 h-4 rounded bg-neutral-700 text-white text-[9px] font-medium uppercase tracking-wide leading-none">
+                        Video
                       </span>
                     ) : (
                       <button
@@ -697,12 +773,26 @@ export default function ProductModal({
                     )}
                   </div>
                 ))}
-                {pendingPreviewUrls.map((url, index) => (
+
+                {pendingFiles.map((file, index) => (
                   <div
                     key={`pending-${index}`}
                     className="relative group aspect-square bg-neutral-50 rounded-md overflow-hidden border border-neutral-300"
                   >
-                    <img src={url} alt={`Yeni ${index + 1}`} className="w-full h-full object-cover" />
+                    {file.type.startsWith('video/') ? (
+                      <video
+                        src={pendingPreviewUrls[index] ?? ''}
+                        className="w-full h-full object-cover"
+                        muted
+                        preload="metadata"
+                      />
+                    ) : (
+                      <img
+                        src={pendingPreviewUrls[index] ?? ''}
+                        alt={`Yeni ${index + 1}`}
+                        className="w-full h-full object-cover"
+                      />
+                    )}
                     <button
                       type="button"
                       onClick={() => removePendingFile(index)}
@@ -712,7 +802,7 @@ export default function ProductModal({
                       <Trash2 className="w-3 h-3" />
                     </button>
                     <span className="absolute bottom-1 left-1 inline-flex items-center px-1.5 h-4 rounded bg-neutral-600 text-white text-[9px] font-medium uppercase tracking-wide leading-none">
-                      Yeni
+                      {file.type.startsWith('video/') ? 'Video' : 'Yeni'}
                     </span>
                   </div>
                 ))}

@@ -1167,6 +1167,15 @@ function MarketplaceFormDialog({
   const [isActive, setIsActive] = useState<boolean>(existing?.isActive ?? true);
   const [credentials, setCredentials] = useState<Record<string, string>>({});
   const [testResult, setTestResult] = useState<{ ok: boolean; message: string } | null>(null);
+  const [defaultRuleType, setDefaultRuleType] = useState<'none' | 'percent' | 'fixed'>(() => {
+    const r = existing?.config?.defaultPriceRule as { type?: string } | null | undefined;
+    if (r?.type === 'percent' || r?.type === 'fixed') return r.type;
+    return 'none';
+  });
+  const [defaultRuleValue, setDefaultRuleValue] = useState<string>(() => {
+    const r = existing?.config?.defaultPriceRule as { value?: number } | null | undefined;
+    return r?.value ? String(r.value) : '';
+  });
   const fields = adapters.find((a) => a.type === type)?.credentialFields ?? [];
 
   function updateCredential(key: string, value: string) {
@@ -1223,6 +1232,15 @@ function MarketplaceFormDialog({
         Object.entries(credentials).filter(([, v]) => v && v.trim().length > 0),
       );
       if (Object.keys(filled).length > 0) payload.credentials = filled;
+      // Varsayılan fiyat kuralını config'e yaz
+      const config: Record<string, unknown> = { ...(existing?.config ?? {}) };
+      const defRuleNum = Number(defaultRuleValue);
+      if (defaultRuleType !== 'none' && Number.isFinite(defRuleNum) && defRuleNum > 0) {
+        config.defaultPriceRule = { type: defaultRuleType, value: defRuleNum };
+      } else {
+        delete config.defaultPriceRule;
+      }
+      payload.config = config;
       if (existing) {
         await apiRequest('PUT', `/api/admin/marketplaces/${existing.id}`, payload);
       } else {
@@ -1235,7 +1253,7 @@ function MarketplaceFormDialog({
           name,
           isActive,
           credentials: filled,
-          config: {},
+          config,
         });
       }
     },
@@ -1346,6 +1364,39 @@ function MarketplaceFormDialog({
             </p>
           )}
         </div>
+
+        {/* Varsayılan fiyat kuralı — sadece Trendyol */}
+        {type === 'trendyol' && (
+          <div className="space-y-3 border-t border-neutral-100 pt-4">
+            <SectionHeading title="Varsayılan Fiyat Kuralı" />
+            <p className="text-[11.5px] text-neutral-500">
+              Push sihirbazında kural belirtilmemişse bu kural uygulanır. Her ürün için ayrıca geçersiz kılınabilir.
+            </p>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <FormField label="Kural tipi">
+                <SelectInput
+                  value={defaultRuleType}
+                  onChange={(e) => setDefaultRuleType(e.target.value as 'none' | 'percent' | 'fixed')}
+                >
+                  <option value="none">Kural yok (site fiyatı)</option>
+                  <option value="percent">Yüzde artış</option>
+                  <option value="fixed">Sabit fiyat</option>
+                </SelectInput>
+              </FormField>
+              {defaultRuleType !== 'none' && (
+                <FormField label={defaultRuleType === 'percent' ? 'Artış yüzdesi (%)' : 'Sabit fiyat (TL)'}>
+                  <TextInput
+                    type="number"
+                    min="0"
+                    value={defaultRuleValue}
+                    onChange={(e) => setDefaultRuleValue(e.target.value)}
+                    placeholder={defaultRuleType === 'percent' ? 'örn. 20' : 'örn. 1500'}
+                  />
+                </FormField>
+              )}
+            </div>
+          </div>
+        )}
 
         <div className="border-t border-neutral-100 pt-4 space-y-2">
           <div className="flex items-center gap-2 flex-wrap">
@@ -1866,6 +1917,12 @@ function CategoryMappingsDialog({
         />
       ) : (
         <div className="space-y-3">
+          {/* Açıklama */}
+          <p className="text-[11.5px] text-neutral-500 bg-neutral-50 border border-neutral-100 rounded-md px-3 py-2 leading-relaxed">
+            <strong className="text-neutral-700">Otomatik öneriler</strong> (✦ simgesiyle işaretli) kategori adlarının Türkçe metin benzerliğine göre hesaplanır — gerçek eşleşmeyi siz onaylarsınız.
+            Her satırdaki açılır menüyü kullanarak site kategorinizi <strong className="text-neutral-700">manuel olarak</strong> seçebilir, ardından Kaydet ile kaydedebilirsiniz.
+          </p>
+
           {/* Filter bar */}
           <div className="flex flex-col sm:flex-row sm:items-center gap-2">
             <div className="flex-1 min-w-0">

@@ -159,6 +159,41 @@ export function ProductLinksDialog({
   const [errorLink, setErrorLink] = useState<ProductLink | null>(null);
   const [priceRuleLink, setPriceRuleLink] = useState<ProductLink | null>(null);
   const [search, setSearch] = useState('');
+  const [showBulkApply, setShowBulkApply] = useState(false);
+  const [bulkRuleType, setBulkRuleType] = useState<'none' | 'percent' | 'fixed'>('percent');
+  const [bulkRuleValue, setBulkRuleValue] = useState('');
+
+  // Marketplace config (varsayılan fiyat kuralı için)
+  const mpQuery = useQuery<{ config: Record<string, unknown> }>({
+    queryKey: ['/api/admin/marketplaces', marketplaceId],
+    queryFn: async () => {
+      const res = await apiRequest('GET', `/api/admin/marketplaces/${marketplaceId}`);
+      return await res.json();
+    },
+    enabled: open,
+  });
+  const marketplaceConfig = mpQuery.data?.config ?? {};
+
+  const bulkApplyMutation = useMutation({
+    mutationFn: async () => {
+      const ruleNum = Number(bulkRuleValue);
+      const priceRule = bulkRuleType === 'none' ? null
+        : { type: bulkRuleType, value: ruleNum };
+      const res = await apiRequest(
+        'POST',
+        `/api/admin/marketplaces/${marketplaceId}/bulk-apply-price-rule`,
+        { priceRule },
+      );
+      return await res.json() as { updated: number };
+    },
+    onSuccess: (data) => {
+      toast({ title: `${data.updated} ürüne fiyat kuralı uygulandı` });
+      setShowBulkApply(false);
+      invalidate();
+    },
+    onError: (err: Error) =>
+      toast({ title: 'Uygulama başarısız', description: err.message, variant: 'destructive' }),
+  });
 
   const linksQuery = useQuery<ProductLink[]>({
     queryKey: ['/api/admin/marketplaces', marketplaceId, 'product-links'],
@@ -244,6 +279,58 @@ export function ProductLinksDialog({
           ürünlerde merkez site'dir — stok/fiyat değişimleri otomatik Trendyol'a iletilir ve
           saatlik çekme senkronu bu ürünlere dokunmaz.
         </InlineAlert>
+
+        {/* Toplu fiyat kuralı uygula */}
+        <div className="border border-neutral-200 rounded-lg overflow-hidden">
+          <button
+            type="button"
+            onClick={() => setShowBulkApply((v) => !v)}
+            className="w-full flex items-center justify-between px-3 py-2 text-[12.5px] font-medium text-neutral-700 hover:bg-neutral-50 transition-colors"
+          >
+            <span className="flex items-center gap-1.5">
+              <Percent className="w-3.5 h-3.5 text-neutral-400" />
+              Tüm Push Ürünlerine Fiyat Kuralı Uygula
+            </span>
+            <span className="text-[10.5px] text-neutral-400">{showBulkApply ? '▲' : '▼'}</span>
+          </button>
+          {showBulkApply && (
+            <div className="px-3 pb-3 pt-1 border-t border-neutral-100 space-y-3">
+              <p className="text-[11.5px] text-neutral-500">
+                Seçilen kural, tüm "Gönder" yönlü ürün bağlantılarına uygulanır ve fiyatlar Trendyol'a anında iletilir.
+              </p>
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 items-end">
+                <FormField label="Kural tipi">
+                  <SelectInput value={bulkRuleType} onChange={(e) => setBulkRuleType(e.target.value as 'none' | 'percent' | 'fixed')}>
+                    <option value="percent">Yüzde artış</option>
+                    <option value="fixed">Sabit fiyat</option>
+                    <option value="none">Kural kaldır (site fiyatı)</option>
+                  </SelectInput>
+                </FormField>
+                {bulkRuleType !== 'none' && (
+                  <FormField label={bulkRuleType === 'percent' ? 'Artış (%)' : 'Fiyat (TL)'}>
+                    <TextInput
+                      type="number"
+                      min="0"
+                      value={bulkRuleValue}
+                      onChange={(e) => setBulkRuleValue(e.target.value)}
+                      placeholder={bulkRuleType === 'percent' ? 'örn. 20' : 'örn. 1500'}
+                    />
+                  </FormField>
+                )}
+                <PrimaryButton
+                  onClick={() => bulkApplyMutation.mutate()}
+                  disabled={
+                    bulkApplyMutation.isPending ||
+                    (bulkRuleType !== 'none' && (!bulkRuleValue || Number(bulkRuleValue) <= 0))
+                  }
+                >
+                  {bulkApplyMutation.isPending && <Loader2 className="w-3.5 h-3.5 animate-spin" />}
+                  Uygula
+                </PrimaryButton>
+              </div>
+            </div>
+          )}
+        </div>
 
         <SearchInput
           value={search}
@@ -428,6 +515,7 @@ export function ProductLinksDialog({
           marketplaceId={marketplaceId}
           product={wizardProduct}
           initialLink={wizardLink}
+          marketplaceConfig={marketplaceConfig}
           open={!!wizardProduct}
           onClose={() => {
             setWizardProduct(null);
@@ -486,6 +574,7 @@ function PushWizardDialog({
   marketplaceId,
   product,
   initialLink,
+  marketplaceConfig,
   open,
   onClose,
   onDone,
@@ -493,11 +582,14 @@ function PushWizardDialog({
   marketplaceId: string;
   product: SiteProduct;
   initialLink?: ProductLink | null;
+  marketplaceConfig?: Record<string, unknown>;
   open: boolean;
   onClose: () => void;
   onDone: () => void;
 }) {
   const { toast } = useToast();
+  // Varsayılan fiyat kuralı: önce ürün bağlantısından, yoksa marketplace ayarından
+  const defaultRule = (marketplaceConfig?.defaultPriceRule ?? null) as PriceRule | null;
   const [barcode, setBarcode] = useState(initialLink?.barcode ?? '');
   const [stockCode, setStockCode] = useState(initialLink?.stockCode ?? '');
   const [categorySearch, setCategorySearch] = useState('');
@@ -514,10 +606,14 @@ function PushWizardDialog({
   const [listPrice, setListPrice] = useState('');
   const [dimensionalWeight, setDimensionalWeight] = useState('1');
   const [ruleType, setRuleType] = useState<'none' | 'percent' | 'fixed'>(
-    initialLink?.priceRule?.type ?? 'none',
+    initialLink?.priceRule?.type ?? defaultRule?.type ?? 'none',
   );
   const [ruleValue, setRuleValue] = useState(
-    initialLink?.priceRule ? String(initialLink.priceRule.value) : '',
+    initialLink?.priceRule
+      ? String(initialLink.priceRule.value)
+      : defaultRule
+        ? String(defaultRule.value)
+        : '',
   );
 
   const ruleNum = Number(ruleValue);

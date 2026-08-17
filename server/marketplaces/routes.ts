@@ -184,6 +184,39 @@ export function registerMarketplaceRoutes(
     res.status(204).end();
   });
 
+  // Tüm push ürünlerine toplu fiyat kuralı uygula
+  app.post(
+    "/api/admin/marketplaces/:id/bulk-apply-price-rule",
+    requireAdmin,
+    async (req, res) => {
+      const schema = z.object({
+        priceRule: z
+          .object({
+            type: z.enum(["percent", "fixed"]),
+            value: z.number().positive().max(1_000_000),
+          })
+          .nullable(),
+      });
+      const parsed = schema.safeParse(req.body ?? {});
+      if (!parsed.success) return res.status(400).json({ message: "Geçersiz veri" });
+      const mp = await storage.getMarketplace(req.params.id);
+      if (!mp) return res.status(404).json({ message: "Bulunamadı" });
+      const links = await storage.getMarketplaceProducts(req.params.id);
+      const pushLinks = links.filter((l) => l.syncDirection === "push");
+      let updated = 0;
+      for (const link of pushLinks) {
+        const meta = { ...((link.pushMeta ?? {}) as Record<string, unknown>) };
+        if (parsed.data.priceRule === null) delete meta.priceRule;
+        else meta.priceRule = parsed.data.priceRule;
+        await storage.updateMarketplaceProduct(link.id, { pushMeta: meta });
+        if (link.productId) await enqueueStockPricePush(link.productId);
+        updated++;
+      }
+      if (updated > 0) void processPushQueue(req.params.id).catch(() => {});
+      res.json({ updated });
+    },
+  );
+
   // Bağlantı testi
   // Kayıttan ÖNCE: form'da girilen ham kredensiyallerle bağlantı testi.
   // Kredensiyaller bellekte kalır, DB'ye yazılmaz.

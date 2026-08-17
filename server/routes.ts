@@ -11,8 +11,8 @@ import fs from "fs";
 import PDFDocument from "pdfkit";
 import sharp from "sharp";
 import { cache, CACHE_KEYS, CACHE_TTL } from "./cache";
-import { eq, desc, sql, ilike, or } from "drizzle-orm";
-import { insertAdminUserSchema, insertCategorySchema, insertProductSchema, insertProductVariantSchema, insertCartItemSchema, insertOrderSchema, insertOrderItemSchema, insertUserSchema, adminUpdateUserSchema, couponRedemptions, orders, coupons, products, stockAdjustments, productCategories, productVariants, users, categories, blogPosts, pages, productReviews } from "@shared/schema";
+import { eq, desc, sql, ilike, or, inArray } from "drizzle-orm";
+import { insertAdminUserSchema, insertCategorySchema, insertProductSchema, insertProductVariantSchema, insertCartItemSchema, insertOrderSchema, insertOrderItemSchema, insertUserSchema, adminUpdateUserSchema, couponRedemptions, orders, coupons, products, stockAdjustments, productCategories, productVariants, users, categories, blogPosts, pages, productReviews, orderItems } from "@shared/schema";
 import { optimizeImage, optimizeImageBuffer, optimizeUploadedFiles, verifyImageContent } from "./imageOptimizer";
 import {
   sendWelcomeEmail,
@@ -168,6 +168,27 @@ const upload = multer({
   },
 });
 
+// Ürün medya yükleyici — resim + video (MP4, WebM, MOV) desteği
+const productMediaUpload = multer({
+  storage: multerStorage,
+  limits: { fileSize: 200 * 1024 * 1024 }, // 200MB (videolar için)
+  fileFilter: (_req, file, cb) => {
+    const ext = path.extname(file.originalname).toLowerCase();
+    const mime = file.mimetype.toLowerCase();
+    const imgExt = new Set(['.jpeg', '.jpg', '.png', '.webp']);
+    const imgMime = new Set(['image/jpeg', 'image/png', 'image/webp']);
+    const vidExt = new Set(['.mp4', '.webm', '.mov', '.avi']);
+    const vidMime = new Set(['video/mp4', 'video/webm', 'video/quicktime', 'video/x-msvideo', 'video/avi']);
+    const isImage = imgExt.has(ext) && imgMime.has(mime);
+    const isVideo = vidExt.has(ext) && vidMime.has(mime);
+    if (isImage || isVideo) {
+      cb(null, true);
+    } else {
+      cb(new Error("Yalnızca resim (JPG, PNG, WebP) veya video (MP4, WebM, MOV) dosyaları yüklenebilir"));
+    }
+  },
+});
+
 // Yorum görselleri — herkese açık uçta kullanıldığı için daha sıkı limitler
 const REVIEW_IMAGE_MAX_COUNT = 4;
 const REVIEW_IMAGE_MAX_SIZE = 5 * 1024 * 1024; // 5MB
@@ -282,6 +303,41 @@ setInterval(() => { cleanupOrphanReviewImages().catch(() => {}); }, 6 * 60 * 60 
     }
   } catch { /* ilk açılış seed hatası kritik değil */ }
 })();
+
+// Mevcut kullanıcı profillerini sipariş geçmişinden backfill et (boş alanları doldur)
+async function backfillUserProfilesFromOrders(): Promise<void> {
+  try {
+    const allUsers = await storage.getUsers();
+    let updated = 0;
+    for (const user of allUsers) {
+      const needsUpdate = !user.phone || !user.firstName || !user.address || !user.city;
+      if (!needsUpdate) continue;
+      const userOrders = await storage.getOrdersByEmail(user.email);
+      if (!userOrders.length) continue;
+      // En güncel siparişten al
+      const latest = userOrders[0];
+      const addr = latest.shippingAddress as Record<string, string> | null;
+      const nameParts = (latest.customerName || '').trim().split(/\s+/);
+      const updates: Record<string, string | null> = {};
+      if (!user.phone && latest.customerPhone) updates.phone = latest.customerPhone;
+      if (!user.firstName && nameParts[0]) updates.firstName = nameParts[0];
+      if (!user.lastName && nameParts.length > 1) updates.lastName = nameParts.slice(1).join(' ');
+      if (!user.address && addr?.address) updates.address = addr.address;
+      if (!user.city && addr?.city) updates.city = addr.city;
+      if (!user.district && addr?.district) updates.district = addr.district;
+      if (!user.postalCode && addr?.postalCode) updates.postalCode = addr.postalCode;
+      if (Object.keys(updates).length > 0) {
+        await storage.updateUser(user.id, updates as any);
+        updated++;
+      }
+    }
+    if (updated > 0) console.log(`[UserSync] ${updated} kullanıcı profili siparişlerden güncellendi.`);
+  } catch (err) {
+    console.error('[UserSync] Backfill hatası:', err);
+  }
+}
+// Açılıştan 30sn sonra bir kez çalıştır (DB bağlantısı hazır olsun diye kısa bekleme)
+setTimeout(() => { backfillUserProfilesFromOrders().catch(() => {}); }, 30 * 1000);
 
 // Ücretsiz kargo eşiği: admin ayarı geçersiz/eksikse tek merkezi fallback kullanılır.
 async function resolveFreeShippingThreshold(): Promise<number> {
@@ -1199,11 +1255,19 @@ export async function registerRoutes(
 
   // File Upload Route with type validation and image optimization
   app.post("/api/admin/upload/:type", requireAdmin, (req, res, next) => {
-    upload.array("images", 20)(req, res, (err) => {
+    // Ürün yüklemelerinde resim + video desteklenir; diğer tipler yalnızca resim
+    const multerMiddleware = req.params.type === 'products'
+      ? productMediaUpload.array("images", 20)
+      : upload.array("images", 20);
+    multerMiddleware(req, res, (err) => {
       if (err) {
         console.error('[Upload] Multer error:', err.message);
         if (err.code === 'LIMIT_FILE_SIZE') {
-          return res.status(400).json({ error: "Dosya boyutu 10MB'ı geçemez" });
+          return res.status(400).json({
+            error: req.params.type === 'products'
+              ? "Video için max 200MB, resim için max 10MB desteklenir"
+              : "Dosya boyutu 10MB'ı geçemez",
+          });
         }
         if (err.code === 'LIMIT_FILE_COUNT') {
           return res.status(400).json({ error: "En fazla 20 dosya yüklenebilir" });
@@ -3640,6 +3704,25 @@ Bu ürün için 4 bölümlü HTML açıklama üret. Teknik Özellikler bölümü
       // Clear cart so user doesn't accidentally re-checkout
       await storage.clearCart(cartToken);
 
+      // Kayıtlı kullanıcı profil senkronizasyonu (banka transferi akışı)
+      try {
+        const profileUser = await storage.getUserByEmail(customerEmail);
+        if (profileUser) {
+          const addr = shippingAddress as Record<string, string>;
+          const nameParts = customerName.trim().split(/\s+/);
+          const updates: Record<string, string | null> = {};
+          if (!profileUser.phone && customerPhone) updates.phone = customerPhone;
+          if (!profileUser.firstName && nameParts[0]) updates.firstName = nameParts[0];
+          if (!profileUser.lastName && nameParts.length > 1) updates.lastName = nameParts.slice(1).join(' ');
+          if (!profileUser.address && addr?.address) updates.address = addr.address;
+          if (!profileUser.city && addr?.city) updates.city = addr.city;
+          if (!profileUser.district && addr?.district) updates.district = addr.district;
+          if (!profileUser.postalCode && addr?.postalCode) updates.postalCode = addr.postalCode;
+          if (!profileUser.country && addr?.country && addr.country !== 'Türkiye') updates.country = addr.country;
+          if (Object.keys(updates).length > 0) await storage.updateUser(profileUser.id, updates as any);
+        }
+      } catch { /* profil senkronizasyon hatası sipariş akışını durdurmaz */ }
+
       // Notifications (best-effort)
       const orderItems = await storage.getOrderItems(order.id);
       sendBankTransferPendingEmail(order, orderItems).catch(err => console.error('[Email] Bank transfer pending email failed:', err));
@@ -3829,6 +3912,30 @@ Bu ürün için 4 bölümlü HTML açıklama üret. Teknik Özellikler bölümü
         console.error(`[${paymentMethod} Callback] Failed to create user account:`, userError);
       }
     }
+
+    // ── Kayıtlı kullanıcı profil senkronizasyonu ────────────────────────────
+    // Müşteri sipariş vermeden önce profilini doldurmamış olabilir.
+    // Sipariş verisinden boş alanları güncelliyoruz (dolu alanlar dokunulmaz).
+    try {
+      const profileUser = await storage.getUserByEmail(pendingPayment.customerEmail);
+      if (profileUser) {
+        const addr = pendingPayment.shippingAddress as Record<string, string>;
+        const nameParts = pendingPayment.customerName.trim().split(/\s+/);
+        const updates: Record<string, string | null> = {};
+        if (!profileUser.phone && pendingPayment.customerPhone) updates.phone = pendingPayment.customerPhone;
+        if (!profileUser.firstName && nameParts[0]) updates.firstName = nameParts[0];
+        if (!profileUser.lastName && nameParts.length > 1) updates.lastName = nameParts.slice(1).join(' ');
+        if (!profileUser.address && addr?.address) updates.address = addr.address;
+        if (!profileUser.city && addr?.city) updates.city = addr.city;
+        if (!profileUser.district && addr?.district) updates.district = addr.district;
+        if (!profileUser.postalCode && addr?.postalCode) updates.postalCode = addr.postalCode;
+        if (!profileUser.country && addr?.country && addr.country !== 'Türkiye') updates.country = addr.country;
+        if (Object.keys(updates).length > 0) {
+          await storage.updateUser(profileUser.id, updates as any);
+        }
+      }
+    } catch { /* profil senkronizasyon hatası sipariş akışını durdurmaz */ }
+    // ────────────────────────────────────────────────────────────────────────
 
     return order;
   };
@@ -4334,8 +4441,42 @@ Bu ürün için 4 bölümlü HTML açıklama üret. Teknik Özellikler bölümü
   // Orders API
   app.get("/api/admin/orders", requireAdmin, async (req, res) => {
     try {
-      const orders = await storage.getOrders();
-      res.json(orders);
+      const allOrders = await storage.getOrders();
+      if (allOrders.length === 0) return res.json([]);
+
+      // Tek sorguda tüm siparişlerin kalemlerini ve ürün görsellerini çek
+      const orderIds = allOrders.map((o) => o.id);
+      const itemRows = await db
+        .select({
+          orderId: orderItems.orderId,
+          productName: orderItems.productName,
+          quantity: orderItems.quantity,
+          images: products.images,
+        })
+        .from(orderItems)
+        .leftJoin(products, eq(orderItems.productId, products.id))
+        .where(inArray(orderItems.orderId, orderIds));
+
+      const itemsByOrder = new Map<
+        string,
+        Array<{ productName: string; productImage: string | null; quantity: number }>
+      >();
+      for (const row of itemRows) {
+        const list = itemsByOrder.get(row.orderId) ?? [];
+        const imageArr = row.images as string[] | null;
+        list.push({
+          productName: row.productName,
+          productImage: imageArr?.[0] ?? null,
+          quantity: row.quantity,
+        });
+        itemsByOrder.set(row.orderId, list);
+      }
+
+      const result = allOrders.map((order) => ({
+        ...order,
+        items: itemsByOrder.get(order.id) ?? [],
+      }));
+      res.json(result);
     } catch (error) {
       res.status(500).json({ error: "Failed to fetch orders" });
     }
@@ -6380,6 +6521,12 @@ window.addEventListener('load', function() {
       const items = await storage.getOrderItems(order.id);
       const settings = await storage.getSiteSettings();
 
+      // Admin'den desi/ağırlık override gelebilir (uluslararası gönderilerde önemli)
+      const bodyDesi = req.body?.desi ? String(req.body.desi) : undefined;
+      const bodyWeightKg = req.body?.weightKg ? String(req.body.weightKg) : undefined;
+
+      const { toCountryCode } = await import('@shared/country-codes');
+
       const result = await provider.createShipment({
         orderNumber: order.orderNumber,
         recipient: {
@@ -6390,7 +6537,7 @@ window.addEventListener('load', function() {
           city: addr?.city || '',
           district: addr?.district || addr?.city || '',
           postalCode: addr?.postalCode || addr?.zip || undefined,
-          countryCode: isTurkey ? 'TR' : countryRaw.toUpperCase().slice(0, 2),
+          countryCode: isTurkey ? 'TR' : toCountryCode(countryRaw),
         },
         items: items.map(i => ({
           title: i.productName,
@@ -6398,8 +6545,8 @@ window.addEventListener('load', function() {
           unitPrice: i.price,
           sku: i.variantId || undefined,
         })),
-        desi: settings.aras_kargo_default_desi || '1',
-        weightKg: settings.shipping_default_weight_kg || undefined,
+        desi: bodyDesi || settings.aras_kargo_default_desi || '1',
+        weightKg: bodyWeightKg || settings.shipping_default_weight_kg || undefined,
         totalAmount: order.total,
         currency: 'TRY',
         isWorldwide: !isTurkey,

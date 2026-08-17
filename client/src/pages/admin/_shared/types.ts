@@ -47,6 +47,12 @@ export interface Order {
   total: string;
   status: string;
   createdAt: string;
+  /** Dashboard önizlemesi için hafif kalem listesi */
+  items?: Array<{
+    productName: string;
+    productImage: string | null;
+    quantity: number;
+  }>;
 }
 
 export interface User {

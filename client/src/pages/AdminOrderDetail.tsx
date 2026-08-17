@@ -73,6 +73,7 @@ interface Order {
     city: string;
     district: string;
     postalCode: string;
+    country?: string;
   };
   billingAddress?: {
     address: string;
@@ -178,6 +179,8 @@ export default function AdminOrderDetail() {
   const [shipmentQuerying, setShipmentQuerying] = useState(false);
   const [shipmentMessage, setShipmentMessage] = useState<{ type: 'success' | 'error' | 'warn'; text: string } | null>(null);
   const [shipmentAlreadySent, setShipmentAlreadySent] = useState(false);
+  const [shipmentDesi, setShipmentDesi] = useState('');
+  const [shipmentWeightKg, setShipmentWeightKg] = useState('');
   const [carrier, setCarrier] = useState<{ id: string; label: string; enabled: boolean; configured: boolean; missing?: string } | null>(null);
   useEffect(() => {
     let cancelled = false;
@@ -328,10 +331,14 @@ export default function AdminOrderDetail() {
     setShipmentAlreadySent(false);
     try {
       const url = `/api/admin/orders/${order.id}/shipment/create${force ? '?force=1' : ''}`;
+      const body: Record<string, string> = {};
+      if (shipmentDesi.trim()) body.desi = shipmentDesi.trim();
+      if (shipmentWeightKg.trim()) body.weightKg = shipmentWeightKg.trim();
       const res = await fetch(url, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         credentials: 'include',
+        body: JSON.stringify(body),
       });
       const data = await res.json();
       const label = data.providerLabel || carrierLabel;
@@ -871,6 +878,12 @@ export default function AdminOrderDetail() {
                   {order.shippingAddress?.postalCode &&
                     ` · ${order.shippingAddress.postalCode}`}
                 </p>
+                {order.shippingAddress?.country &&
+                  !['türkiye', 'turkiye', 'turkey', 'tr'].includes(order.shippingAddress.country.toLowerCase()) && (
+                  <p className="ml-[18px] inline-flex items-center gap-1 text-[11px] font-medium text-orange-700 bg-orange-50 border border-orange-200 rounded px-1.5 py-0.5 w-fit">
+                    🌍 Yurt dışı · {order.shippingAddress.country}
+                  </p>
+                )}
               </div>
               {order.billingAddress && (
                 <div className="mt-4 pt-4 border-t border-neutral-100">
@@ -952,6 +965,32 @@ export default function AdminOrderDetail() {
                       : `${carrier.label} ayarları eksik. ${carrier.missing || ''}`}
                   </div>
                 )}
+
+                {/* Ağırlık / desi override — uluslararası gönderilerde önemli */}
+                <div className="flex gap-2">
+                  <div className="flex-1">
+                    <label className="block text-[10.5px] text-neutral-400 mb-1">Desi (opsiyonel)</label>
+                    <TextInput
+                      type="number"
+                      min="0"
+                      step="0.1"
+                      placeholder={carrier?.id === 'shipentegra' ? 'Örn. 3' : 'Varsayılan'}
+                      value={shipmentDesi}
+                      onChange={(e) => setShipmentDesi(e.target.value)}
+                    />
+                  </div>
+                  <div className="flex-1">
+                    <label className="block text-[10.5px] text-neutral-400 mb-1">Ağırlık kg (opsiyonel)</label>
+                    <TextInput
+                      type="number"
+                      min="0"
+                      step="0.01"
+                      placeholder="Örn. 1.5"
+                      value={shipmentWeightKg}
+                      onChange={(e) => setShipmentWeightKg(e.target.value)}
+                    />
+                  </div>
+                </div>
 
                 {/* API Buttons — Row 1 */}
                 <div className="flex gap-2">

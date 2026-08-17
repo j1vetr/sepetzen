@@ -297,6 +297,8 @@ export const shipentegraProvider: CargoProvider = {
       width: 20,
       length: 20,
       shippingAmount,
+      // DDP=1, IOSS=2; uluslararası gönderilerde gümrük tipi olarak gereklidir.
+      shippingType: creds.shippingType || 1,
       addressName: sanitize(input.recipient.name, 80) || 'Musteri',
       rememberMyAddress: false,
       shippingAddress: {

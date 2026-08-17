@@ -212,12 +212,17 @@ function StatusBadge({
 
 function OrderRowSkeleton() {
   return (
-    <div className="flex items-center justify-between gap-4 py-3 border-b border-neutral-100 last:border-b-0">
+    <div className="flex items-center gap-3 py-3 border-b border-neutral-100 last:border-b-0">
+      {/* Görsel şeridi iskeleti */}
+      <div className="flex gap-1 shrink-0">
+        <span className="block w-9 h-9 rounded-md bg-neutral-100" />
+        <span className="block w-9 h-9 rounded-md bg-neutral-50" />
+      </div>
       <div className="flex-1 min-w-0 space-y-1.5">
-        <span className="block h-3.5 w-24 rounded bg-neutral-100" />
+        <span className="block h-3.5 w-40 rounded bg-neutral-100" />
         <span className="block h-3 w-32 rounded bg-neutral-50" />
       </div>
-      <div className="flex flex-col items-end gap-1.5">
+      <div className="flex flex-col items-end gap-1.5 shrink-0">
         <span className="block h-3.5 w-16 rounded bg-neutral-100" />
         <span className="block h-4 w-20 rounded-full bg-neutral-50" />
       </div>
@@ -434,38 +439,89 @@ export default function DashboardTab({
             </div>
           ) : (
             <ul className="-my-1" data-testid="list-recent-orders">
-              {recentOrders.map((order) => (
-                <li key={order.id} data-testid={`row-order-${order.id}`}>
-                  <button
-                    type="button"
-                    onClick={() => onNavigate('orders')}
-                    className="w-full flex items-center justify-between gap-4 py-3 border-b border-neutral-100 last:border-b-0 text-left hover:bg-neutral-50 -mx-2 px-2 rounded-md transition-colors"
-                  >
-                    <div className="flex-1 min-w-0">
-                      <p
-                        className="text-[13px] font-medium text-neutral-900 truncate tabular-nums"
-                        data-testid={`text-order-number-${order.id}`}
-                      >
-                        {order.orderNumber}
-                      </p>
-                      <p className="text-[12px] text-neutral-500 truncate mt-0.5">
-                        {order.customerName}
-                        {order.shippingAddress?.city ? ` · ${order.shippingAddress.city}` : ''}
-                        {order.createdAt ? ` · ${timeAgo(order.createdAt)}` : ''}
-                      </p>
-                    </div>
-                    <div className="flex flex-col items-end gap-1.5 shrink-0">
-                      <span
-                        className="text-[13px] font-semibold text-neutral-900 tabular-nums"
-                        data-testid={`text-order-total-${order.id}`}
-                      >
-                        {formatCurrency(Number(order.total) || 0)}
-                      </span>
-                      <StatusBadge status={order.status} getStatusLabel={getStatusLabel} />
-                    </div>
-                  </button>
-                </li>
-              ))}
+              {recentOrders.map((order) => {
+                const items = order.items ?? [];
+                const thumbs = items.slice(0, 3);
+                const extraCount = items.length - thumbs.length;
+                const firstName = items[0]?.productName ?? null;
+                const moreLabel =
+                  items.length > 1 ? ` ve ${items.length - 1} ürün daha` : '';
+
+                return (
+                  <li key={order.id} data-testid={`row-order-${order.id}`}>
+                    <button
+                      type="button"
+                      onClick={() => onNavigate('orders')}
+                      className="w-full flex items-center gap-3 py-3 border-b border-neutral-100 last:border-b-0 text-left hover:bg-neutral-50 -mx-2 px-2 rounded-md transition-colors"
+                    >
+                      {/* Ürün görseli şeridi */}
+                      {items.length > 0 ? (
+                        <div className="flex gap-1 shrink-0">
+                          {thumbs.map((item, i) => (
+                            <div
+                              key={i}
+                              className="w-9 h-9 rounded-md bg-neutral-100 overflow-hidden border border-neutral-200 shrink-0"
+                            >
+                              {item.productImage ? (
+                                <img
+                                  src={item.productImage}
+                                  alt={item.productName}
+                                  className="w-full h-full object-cover"
+                                />
+                              ) : (
+                                <div className="w-full h-full flex items-center justify-center">
+                                  <Package className="w-4 h-4 text-neutral-400" />
+                                </div>
+                              )}
+                            </div>
+                          ))}
+                          {extraCount > 0 && (
+                            <div className="w-9 h-9 rounded-md bg-neutral-100 border border-neutral-200 flex items-center justify-center shrink-0">
+                              <span className="text-[10px] font-semibold text-neutral-500">+{extraCount}</span>
+                            </div>
+                          )}
+                        </div>
+                      ) : (
+                        <div className="w-9 h-9 rounded-md bg-neutral-100 border border-neutral-200 flex items-center justify-center shrink-0">
+                          <Package className="w-4 h-4 text-neutral-300" />
+                        </div>
+                      )}
+
+                      {/* Sipariş bilgileri */}
+                      <div className="flex-1 min-w-0">
+                        {firstName && (
+                          <p className="text-[13px] font-medium text-neutral-900 truncate leading-snug">
+                            {firstName}
+                            {moreLabel && (
+                              <span className="font-normal text-neutral-500">{moreLabel}</span>
+                            )}
+                          </p>
+                        )}
+                        <p
+                          className={`text-[11px] text-neutral-500 truncate tabular-nums ${firstName ? 'mt-0.5' : ''}`}
+                          data-testid={`text-order-number-${order.id}`}
+                        >
+                          {order.orderNumber}
+                          {order.customerName ? ` · ${order.customerName}` : ''}
+                          {order.shippingAddress?.city ? ` · ${order.shippingAddress.city}` : ''}
+                          {order.createdAt ? ` · ${timeAgo(order.createdAt)}` : ''}
+                        </p>
+                      </div>
+
+                      {/* Tutar + durum */}
+                      <div className="flex flex-col items-end gap-1.5 shrink-0">
+                        <span
+                          className="text-[13px] font-semibold text-neutral-900 tabular-nums"
+                          data-testid={`text-order-total-${order.id}`}
+                        >
+                          {formatCurrency(Number(order.total) || 0)}
+                        </span>
+                        <StatusBadge status={order.status} getStatusLabel={getStatusLabel} />
+                      </div>
+                    </button>
+                  </li>
+                );
+              })}
             </ul>
           )}
         </PageSection>
