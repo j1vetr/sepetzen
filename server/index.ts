@@ -90,6 +90,15 @@ app.use((req, res, next) => {
     console.error("[index] WhatsApp default-template upgrade failed:", err);
   }
 
+  // Yasal/bilgi sayfaları: eksik olanları varsayılan içerikle oluştur
+  // (mevcut/düzenlenmiş sayfalara dokunulmaz - temiz kurulumlar için)
+  try {
+    const { seedDefaultPages } = await import("./seedPages");
+    await seedDefaultPages();
+  } catch (err) {
+    console.error("[index] default page seed failed:", err);
+  }
+
   // Auth hız limiti tablosunu idempotent olarak oluştur (yeni deploy'larda garantili)
   try {
     const { ensureTable } = await import("./authRateLimit");

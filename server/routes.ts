@@ -1,6 +1,7 @@
 import type { Express, Request, Response, NextFunction } from "express";
 import { createServer, type Server } from "http";
 import { storage, db } from "./storage";
+import { sanitizeStoredHtml } from "./htmlSanitize";
 import { DEFAULT_FREE_SHIPPING_THRESHOLD, DEFAULT_DOMESTIC_SHIPPING_COST, DEFAULT_INTERNATIONAL_SHIPPING_COST } from "@shared/shipping";
 import { z } from "zod";
 import bcrypt from "bcrypt";
@@ -398,13 +399,6 @@ function shippingCostForCountry(country: string, costs: ShippingCosts): number {
   return costs.international;
 }
 
-function sanitizeStoredHtml(rawHtml: string): string {
-  return rawHtml
-    .replace(/<\s*(script|style|iframe|object|embed|form)\b[^>]*>[\s\S]*?<\s*\/\s*\1\s*>/gi, '')
-    .replace(/<\s*(script|style|iframe|object|embed|form)\b[^>]*\/?\s*>/gi, '')
-    .replace(/\s+on[a-z]+\s*=\s*(?:"[^"]*"|'[^']*'|[^\s>]+)/gi, '')
-    .replace(/\s+(href|src)\s*=\s*(["'])\s*(?:javascript|vbscript|data):[\s\S]*?\2/gi, '');
-}
 
 // Helper function to generate quote PDF as buffer for email attachment
 async function generateQuotePdfBuffer(quote: any, dealer: any, items: any[]): Promise<Buffer> {
