@@ -33,6 +33,7 @@ export const VALID_TABS: TabType[] = [
   'database',
   'menu',
   'homepage',
+  'footer',
   'pages',
   'blog',
   'marketplaces',

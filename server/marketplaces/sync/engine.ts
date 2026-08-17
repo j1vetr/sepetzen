@@ -645,29 +645,38 @@ async function upsertProduct(
     stats.productsAdded += 1;
   }
 
-  // Varyantları senkronize et (basit: mevcutları sil + yeniden yaz)
+  // Varyantları senkronize et — referans korumalı uzlaştırma: mevcut
+  // varyantlar SKU (yoksa beden+renk) üzerinden eşleştirilip yerinde
+  // güncellenir (id korunur → sepet/sipariş/stok geçmişi bozulmaz);
+  // pazaryerinden düşen varyantlar geçmişi varsa pasife alınır, yoksa
+  // silinir. Tamamı tek transaction'dır.
   try {
     const existingVariants = await storage.getProductVariants(siteProduct.id);
-    for (const v of existingVariants) {
-      await storage.deleteProductVariant(v.id);
-    }
     // sku alanını doldur ki delta sync SKU üzerinden deterministik eşleşsin.
     // sku UNIQUE — pazaryerine prefix ekleyerek başka kaynaklarla çakışmayı önle.
     const skuPrefix = `${marketplace.type}:`;
-    for (const v of np.variants) {
+    const claimedIds: string[] = [];
+    const rows = np.variants.map((v) => {
       const rawSku = v.sku ?? v.barcode ?? v.externalVariantId ?? null;
       const sku = rawSku ? `${skuPrefix}${rawSku}` : null;
-      await storage.createProductVariant({
-        productId: siteProduct.id,
+      const size = v.size ?? "Tek Beden";
+      const color = v.color?.name ?? "-";
+      const match =
+        (sku ? existingVariants.find((ev) => ev.sku === sku && claimedIds.indexOf(ev.id) === -1) : undefined) ??
+        existingVariants.find((ev) => ev.size === size && ev.color === color && claimedIds.indexOf(ev.id) === -1);
+      if (match) claimedIds.push(match.id);
+      return {
+        id: match?.id,
         sku,
-        size: v.size ?? "Tek Beden",
-        color: v.color?.name ?? "-",
+        size,
+        color,
         colorHex: v.color?.hex ?? null,
         price: v.price.toFixed(2),
         stock: v.stock,
         isActive: true,
-      });
-    }
+      };
+    });
+    await storage.reconcileProductVariants(siteProduct.id, rows);
   } catch (err) {
     errors.push({
       context: `${ctx} variants`,

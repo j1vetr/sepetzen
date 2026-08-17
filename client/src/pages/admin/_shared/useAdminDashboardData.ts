@@ -164,13 +164,16 @@ export function useAdminDashboardData({
     mutationFn: async (product: Partial<Product>) => {
       const method = product.id ? 'PATCH' : 'POST';
       const url = product.id ? `/api/admin/products/${product.id}` : '/api/admin/products';
-      return (
-        await fetch(url, {
-          method,
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(product),
-        })
-      ).json();
+      const response = await fetch(url, {
+        method,
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify(product),
+      });
+      const result = await response.json();
+      // Hata (örn. varyant doğrulama, SKU çakışması) modal içinde gösterilir.
+      if (!response.ok) throw new Error(result.error || 'Ürün kaydedilemedi');
+      return result;
     },
     onSuccess: () => {
       invalidateProductRelated();

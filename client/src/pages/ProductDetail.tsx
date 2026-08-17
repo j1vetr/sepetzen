@@ -695,6 +695,91 @@ export default function ProductDetail() {
   const [selectedImage, setSelectedImage] = useState(0);
   const [quantity, setQuantity] = useState(1);
   const [isAdding, setIsAdding] = useState(false);
+
+  // ── Varyant seçimi ──
+  // Aktif varyantlar arasından beden/renk seçilir; tek aktif varyantta
+  // seçici gösterilmez. İlk stoktaki varyant otomatik ön-seçilir.
+  const activeVariants = useMemo(
+    () => (product?.variants || []).filter((v) => v.isActive),
+    [product?.variants],
+  );
+  const sizeOptions = useMemo(() => {
+    const list: string[] = [];
+    activeVariants.forEach((v) => {
+      if (v.size && list.indexOf(v.size) === -1) list.push(v.size);
+    });
+    return list;
+  }, [activeVariants]);
+  const colorOptions = useMemo(() => {
+    const list: string[] = [];
+    activeVariants.forEach((v) => {
+      if (v.color && list.indexOf(v.color) === -1) list.push(v.color);
+    });
+    return list;
+  }, [activeVariants]);
+  const [selectedSize, setSelectedSize] = useState<string | null>(null);
+  const [selectedColor, setSelectedColor] = useState<string | null>(null);
+
+  const matchesSelection = useCallback(
+    (v: { size?: string | null; color?: string | null }, size: string | null, color: string | null) => {
+      const sizeOk = sizeOptions.length === 0 || (v.size ?? null) === size;
+      const colorOk = colorOptions.length === 0 || (v.color ?? null) === color;
+      return sizeOk && colorOk;
+    },
+    [sizeOptions.length, colorOptions.length],
+  );
+
+  useEffect(() => {
+    // Ürün değişince ilk stoktaki aktif varyantı ön-seç.
+    const preferred = activeVariants.find((v) => v.stock > 0) || activeVariants[0];
+    setSelectedSize(preferred?.size ?? null);
+    setSelectedColor(preferred?.color ?? null);
+    setQuantity(1);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [product?.id]);
+
+  const selectedVariant = useMemo(
+    () => activeVariants.find((v) => matchesSelection(v, selectedSize, selectedColor)) || null,
+    [activeVariants, matchesSelection, selectedSize, selectedColor],
+  );
+  const showVariantPicker = activeVariants.length > 1 && (sizeOptions.length > 0 || colorOptions.length > 0);
+
+  const sizeHasStock = useCallback(
+    (size: string) => activeVariants.some((v) => (v.size ?? null) === size && v.stock > 0),
+    [activeVariants],
+  );
+  const colorHasStock = useCallback(
+    (color: string) => activeVariants.some((v) => (v.color ?? null) === color && v.stock > 0),
+    [activeVariants],
+  );
+  // Seçim her zaman stoktaki geçerli bir kombinasyona oturtulur: bir eksen
+  // seçilince diğer eksen o seçimle stokta olan bir değere taşınır.
+  const pickSize = (size: string) => {
+    setSelectedSize(size);
+    if (colorOptions.length > 0) {
+      const comboOk = activeVariants.some(
+        (v) => (v.size ?? null) === size && (v.color ?? null) === selectedColor && v.stock > 0,
+      );
+      if (!comboOk) {
+        const alt = activeVariants.find((v) => (v.size ?? null) === size && v.stock > 0);
+        if (alt) setSelectedColor(alt.color ?? null);
+      }
+    }
+    setQuantity(1);
+  };
+  const pickColor = (color: string) => {
+    setSelectedColor(color);
+    if (sizeOptions.length > 0) {
+      const comboOk = activeVariants.some(
+        (v) => (v.color ?? null) === color && (v.size ?? null) === selectedSize && v.stock > 0,
+      );
+      if (!comboOk) {
+        const alt = activeVariants.find((v) => (v.color ?? null) === color && v.stock > 0);
+        if (alt) setSelectedSize(alt.size ?? null);
+      }
+    }
+    setQuantity(1);
+  };
   const [justAdded, setJustAdded] = useState(false);
   const justAddedTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   useEffect(() => () => { if (justAddedTimerRef.current) clearTimeout(justAddedTimerRef.current); }, []);
@@ -831,12 +916,21 @@ export default function ProductDetail() {
 
   const handleAddToCart = async () => {
     if (!product) return;
+    // Seçici görünüyorsa MUTLAKA müşterinin seçtiği varyant gönderilir;
+    // seçim stokta değilse asla başka bir varyantla değiştirilmez.
+    if (showVariantPicker && (!selectedVariant || selectedVariant.stock <= 0)) {
+      return;
+    }
     setIsAdding(true);
     try {
-      const variant = product.variants?.find((v) => v.isActive);
+      // Seçici yoksa (basit/tek varyantlı ürün) stoktaki ilk aktif varyant.
+      const variant = showVariantPicker
+        ? selectedVariant!
+        : activeVariants.find((v) => v.stock > 0) || activeVariants[0];
       await addToCart(product.id, variant?.id, quantity);
+      const unitPrice = variant?.price ? parseFloat(variant.price) : parseFloat(product.basePrice || '0');
       const mainImage = product.images?.[0] ?? 'https://images.unsplash.com/photo-1618354691373-d851c5c3a990?w=600&h=800&fit=crop';
-      showModal({ name: product.name, image: mainImage, price: parseFloat(product.basePrice || '0') * quantity, quantity });
+      showModal({ name: product.name, image: mainImage, price: unitPrice * quantity, quantity });
       setJustAdded(true);
       if (justAddedTimerRef.current) clearTimeout(justAddedTimerRef.current);
       justAddedTimerRef.current = setTimeout(() => setJustAdded(false), 1500);
@@ -1037,14 +1131,20 @@ export default function ProductDetail() {
   // ─── Derived values ───────────────────────────────────────────────────────
 
   const images = renderedImages;
-  const price = parseFloat(product.basePrice || '0');
+  // Fiyat, seçili varyanta göre gösterilir (boşsa ürün taban fiyatı).
+  const price = selectedVariant?.price
+    ? parseFloat(selectedVariant.price)
+    : parseFloat(product.basePrice || '0');
   const originalPrice = getOriginalPrice(price, product.discountBadge);
   const visibleDiscountBadge = !isFreeShippingPromotion(product.discountBadge)
     ? product.discountBadge
     : null;
   const category = categories.find((c) => c.id === product.categoryId);
-  const totalStock = product.variants?.reduce((sum, v) => sum + (v.stock || 0), 0) ?? 0;
+  // Stok yalnızca aktif varyantlar üzerinden hesaplanır.
+  const totalStock = activeVariants.reduce((sum, v) => sum + (v.stock || 0), 0);
   const isOutOfStock = !!product.variants && product.variants.length > 0 && totalStock === 0;
+  // Seçili varyant stokta değilse sepete ekleme kapatılır.
+  const selectedUnavailable = !isOutOfStock && showVariantPicker && (!selectedVariant || selectedVariant.stock <= 0);
 
   const sameCategory = allProducts.filter((p) => p.id !== product.id && p.categoryId === product.categoryId);
   const fillers = allProducts.filter((p) => p.id !== product.id && p.categoryId !== product.categoryId);
@@ -1500,6 +1600,79 @@ export default function ProductDetail() {
                 </span>
               </div>
 
+              {/* Varyant seçici (beden/renk) */}
+              {showVariantPicker && (
+                <div className="space-y-4 mb-5 lg:mb-3" data-testid="section-variant-picker">
+                  {sizeOptions.length > 0 && (
+                    <div>
+                      <p className="text-[10px] tracking-[0.25em] uppercase text-white/40 font-medium mb-2">
+                        Beden{selectedSize ? <span className="text-white/70 ml-2 tracking-normal normal-case">{selectedSize}</span> : null}
+                      </p>
+                      <div className="flex flex-wrap gap-2">
+                        {sizeOptions.map((size) => {
+                          const disabled = !sizeHasStock(size);
+                          const active = selectedSize === size;
+                          return (
+                            <button
+                              key={size}
+                              type="button"
+                              onClick={() => !disabled && pickSize(size)}
+                              disabled={disabled}
+                              className={`min-w-[44px] px-3 h-10 text-[12px] tracking-[0.08em] uppercase border transition-colors ${
+                                active
+                                  ? 'border-white bg-white text-black font-semibold'
+                                  : disabled
+                                    ? 'border-white/10 text-white/25 line-through cursor-not-allowed'
+                                    : 'border-white/25 text-white/80 hover:border-white hover:text-white'
+                              }`}
+                              data-testid={`button-variant-size-${size}`}
+                            >
+                              {size}
+                            </button>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  )}
+                  {colorOptions.length > 0 && (
+                    <div>
+                      <p className="text-[10px] tracking-[0.25em] uppercase text-white/40 font-medium mb-2">
+                        Renk{selectedColor ? <span className="text-white/70 ml-2 tracking-normal normal-case">{selectedColor}</span> : null}
+                      </p>
+                      <div className="flex flex-wrap gap-2">
+                        {colorOptions.map((color) => {
+                          const disabled = !colorHasStock(color);
+                          const active = selectedColor === color;
+                          return (
+                            <button
+                              key={color}
+                              type="button"
+                              onClick={() => !disabled && pickColor(color)}
+                              disabled={disabled}
+                              className={`px-3 h-10 text-[12px] tracking-[0.08em] uppercase border transition-colors ${
+                                active
+                                  ? 'border-white bg-white text-black font-semibold'
+                                  : disabled
+                                    ? 'border-white/10 text-white/25 line-through cursor-not-allowed'
+                                    : 'border-white/25 text-white/80 hover:border-white hover:text-white'
+                              }`}
+                              data-testid={`button-variant-color-${color}`}
+                            >
+                              {color}
+                            </button>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  )}
+                  {selectedUnavailable && (
+                    <p className="text-[12px] text-red-500 font-medium" data-testid="text-variant-unavailable">
+                      Bu seçim stokta yok. Lütfen başka bir seçenek deneyin.
+                    </p>
+                  )}
+                </div>
+              )}
+
               {/* Blurb */}
               {product.description && (() => {
                 const blurb = extractBlurb(product.description);
@@ -1551,10 +1724,10 @@ export default function ProductDetail() {
                   <motion.button
                     type="button"
                     onClick={handleAddToCart}
-                    disabled={isAdding || isOutOfStock}
-                    whileTap={reduceMotion || isOutOfStock ? undefined : { scale: 0.97 }}
+                    disabled={isAdding || isOutOfStock || selectedUnavailable}
+                    whileTap={reduceMotion || isOutOfStock || selectedUnavailable ? undefined : { scale: 0.97 }}
                       className={`flex-1 h-12 lg:h-10 font-semibold text-[11px] uppercase tracking-[0.2em] transition-colors flex items-center justify-center gap-2 ${
-                       isOutOfStock ? 'bg-[#1A1A1A] text-white/30 cursor-not-allowed' : 'bg-white text-black hover:bg-white/90'
+                       isOutOfStock || selectedUnavailable ? 'bg-[#1A1A1A] text-white/30 cursor-not-allowed' : 'bg-white text-black hover:bg-white/90'
                     }`}
                     data-testid="button-add-to-cart"
                   >
@@ -1577,7 +1750,7 @@ export default function ProductDetail() {
                         </motion.span>
                       ) : (
                         <motion.span key="idle" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
-                          {isOutOfStock ? 'Tükendi' : 'Sepete Ekle'}
+                          {isOutOfStock ? 'Tükendi' : selectedUnavailable ? 'Seçim Stokta Yok' : 'Sepete Ekle'}
                         </motion.span>
                       )}
                     </AnimatePresence>
@@ -2017,10 +2190,10 @@ export default function ProductDetail() {
             <motion.button
               type="button"
               onClick={handleAddToCart}
-              disabled={isAdding || isOutOfStock}
-              whileTap={reduceMotion || isOutOfStock ? undefined : { scale: 0.96 }}
+              disabled={isAdding || isOutOfStock || selectedUnavailable}
+              whileTap={reduceMotion || isOutOfStock || selectedUnavailable ? undefined : { scale: 0.96 }}
               className={`h-10 px-5 font-semibold text-[11px] uppercase tracking-[0.18em] flex items-center justify-center gap-2 rounded-lg ${
-                isOutOfStock ? 'bg-[#141414]/10 text-white/35 cursor-not-allowed border border-white/10' : 'btn-glass'
+                isOutOfStock || selectedUnavailable ? 'bg-[#141414]/10 text-white/35 cursor-not-allowed border border-white/10' : 'btn-glass'
               }`}
               data-testid="button-add-to-cart-mobile"
             >
@@ -2028,7 +2201,7 @@ export default function ProductDetail() {
                 ? <Loader2 className="w-4 h-4 animate-spin" />
                 : justAdded
                   ? <span className="flex items-center gap-2"><Check className="w-4 h-4" strokeWidth={2.5} />Eklendi</span>
-                  : <span>{isOutOfStock ? 'Tükendi' : 'Sepete Ekle'}</span>}
+                  : <span>{isOutOfStock ? 'Tükendi' : selectedUnavailable ? 'Stokta Yok' : 'Sepete Ekle'}</span>}
             </motion.button>
           </motion.div>
         )}

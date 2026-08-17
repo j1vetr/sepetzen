@@ -53,18 +53,31 @@ function generateSlug(name: string) {
     .replace(/^-+|-+$/g, '');
 }
 
+// Varyant düzenleme satırı: fiyat boş bırakılırsa ürün fiyatı kullanılır.
+export interface VariantRow {
+  id?: string;
+  size: string;
+  color: string;
+  sku: string;
+  price: string;
+  stock: string;
+  isActive: boolean;
+}
+
 export default function ProductModal({
   product,
   categories,
   onClose,
   onSave,
   isSaving,
+  saveError,
 }: {
   product: Product | ProductDraft | null;
   categories: Category[];
   onClose: () => void;
   onSave: (product: Partial<Product>) => void;
   isSaving: boolean;
+  saveError?: string | null;
 }) {
   const [formData, setFormData] = useState({
     name: product?.name || '',
@@ -98,6 +111,66 @@ export default function ProductModal({
   );
   const [previewImage, setPreviewImage] = useState(0);
   const [showPreview, setShowPreview] = useState(false);
+
+  // Varyant yönetimi: mevcut üründe varyantlar yüklenir ve form onları
+  // açıkça yönetir; yeni üründe admin isterse varyant ekler, eklemezse
+  // eski basit akış (başlangıç stoğu + otomatik tek varyant) korunur.
+  const [variantRows, setVariantRows] = useState<VariantRow[]>([]);
+  const [variantsLoaded, setVariantsLoaded] = useState(!product?.id);
+  const [variantLoadError, setVariantLoadError] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (!product?.id) {
+      setVariantRows([]);
+      setVariantsLoaded(true);
+      setVariantLoadError(null);
+      return;
+    }
+    let cancelled = false;
+    setVariantsLoaded(false);
+    setVariantLoadError(null);
+    fetch(`/api/products/${product.id}/variants`, { credentials: 'include' })
+      .then(async (res) => {
+        if (!res.ok) throw new Error('load-failed');
+        const data = await res.json();
+        if (cancelled) return;
+        setVariantRows(
+          (data as any[]).map((v) => ({
+            id: v.id,
+            size: v.size || '',
+            color: v.color || '',
+            sku: v.sku || '',
+            price: v.price != null ? String(v.price) : '',
+            stock: v.stock != null ? String(v.stock) : '0',
+            isActive: v.isActive !== false,
+          })),
+        );
+        setVariantsLoaded(true);
+      })
+      .catch(() => {
+        if (cancelled) return;
+        // Yüklenemezse varyantlar payload'a eklenmez → sunucu mevcut
+        // varyantlara dokunmaz (yanlışlıkla silinmesin).
+        setVariantLoadError('Varyantlar yüklenemedi. Kaydederseniz mevcut varyantlar değiştirilmeden korunur.');
+        setVariantsLoaded(false);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [product?.id]);
+
+  const addVariantRow = () => {
+    setVariantRows((prev) => [
+      ...prev,
+      { size: '', color: '', sku: '', price: '', stock: '0', isActive: true },
+    ]);
+  };
+  const updateVariantRow = (index: number, patch: Partial<VariantRow>) => {
+    setVariantRows((prev) => prev.map((r, i) => (i === index ? { ...r, ...patch } : r)));
+  };
+  const removeVariantRow = (index: number) => {
+    setVariantRows((prev) => prev.filter((_, i) => i !== index));
+  };
 
   useEffect(() => {
     const urls = pendingFiles.map((f) => URL.createObjectURL(f));
@@ -243,13 +316,30 @@ export default function ProductModal({
       ? [{ name: toTurkishUpper(trimmedColor), hex: null }]
       : [];
 
+    // Varyantlar yalnızca başarıyla yüklendiyse (veya yeni üründe satır
+    // eklendiyse) payload'a girer; aksi halde sunucu varyantlara dokunmaz.
+    const includeVariants = product?.id ? variantsLoaded : variantRows.length > 0;
+
     onSave({
       ...product,
       ...formData,
       slug: formData.slug || generateSlug(formData.name),
       images: [...formData.images, ...uploadedUrls],
       availableColors: normalizedColors,
-    });
+      ...(includeVariants
+        ? {
+            variants: variantRows.map((r) => ({
+              id: r.id,
+              size: r.size.trim() || null,
+              color: r.color.trim() || null,
+              sku: r.sku.trim() || null,
+              price: r.price.trim() || null,
+              stock: parseInt(r.stock, 10) || 0,
+              isActive: r.isActive,
+            })),
+          }
+        : {}),
+    } as Partial<Product>);
   };
 
   const isValid =
@@ -324,6 +414,8 @@ export default function ProductModal({
           onSubmit={handleSubmit}
           className={`space-y-6 ${showPreview ? 'flex-1 min-w-0' : 'w-full'}`}
         >
+          {saveError && <InlineAlert tone="error">{saveError}</InlineAlert>}
+
           {/* Section 1 — Temel Bilgiler */}
           <section>
             <SectionHeading
@@ -654,12 +746,12 @@ export default function ProductModal({
               number={5}
               title="Fiyat & Stok"
               description={
-                product?.id
-                  ? 'Stok bilgileri varyant yönetiminden ayarlanır.'
+                product?.id || variantRows.length > 0
+                  ? 'Stok, aşağıdaki Varyantlar bölümünden yönetilir.'
                   : 'Yeni ürün için başlangıç stok miktarını girin.'
               }
             />
-            <div className={`grid grid-cols-1 sm:${product?.id ? 'grid-cols-1' : 'grid-cols-2'} gap-3`}>
+            <div className={`grid grid-cols-1 sm:${product?.id || variantRows.length > 0 ? 'grid-cols-1' : 'grid-cols-2'} gap-3`}>
               <FormField label="Fiyat (₺)" required>
                 <TextInput
                   type="text"
@@ -670,7 +762,7 @@ export default function ProductModal({
                   data-testid="input-product-price"
                 />
               </FormField>
-              {!product?.id && (
+              {!product?.id && variantRows.length === 0 && (
                 <FormField
                   label="Başlangıç Stoğu"
                   hint="Bu değer otomatik oluşturulan varyanta atanır."
@@ -688,10 +780,113 @@ export default function ProductModal({
             </div>
           </section>
 
-          {/* Section 6 — Görünürlük */}
+          {/* Section 6 — Varyantlar */}
           <section>
             <SectionHeading
               number={6}
+              title="Varyantlar"
+              description={
+                product?.id
+                  ? 'Beden, renk, SKU, fiyat ve stok satır satır düzenlenir. Fiyat boş bırakılırsa ürün fiyatı kullanılır.'
+                  : 'Varyant eklemezseniz tek stok değerli basit ürün oluşturulur.'
+              }
+            />
+            {variantLoadError && (
+              <InlineAlert tone="warning">{variantLoadError}</InlineAlert>
+            )}
+            {variantRows.length > 0 && (
+              <div className="space-y-2" data-testid="list-variant-rows">
+                <div className="hidden sm:grid grid-cols-[1fr_1fr_1fr_90px_80px_60px_32px] gap-2 px-1 text-[10px] uppercase tracking-wide text-neutral-400 font-medium">
+                  <span>Beden</span>
+                  <span>Renk</span>
+                  <span>SKU</span>
+                  <span>Fiyat (₺)</span>
+                  <span>Stok</span>
+                  <span>Aktif</span>
+                  <span />
+                </div>
+                {variantRows.map((row, i) => (
+                  <div
+                    key={row.id || `new-${i}`}
+                    className="grid grid-cols-2 sm:grid-cols-[1fr_1fr_1fr_90px_80px_60px_32px] gap-2 items-center rounded-md border border-neutral-200 bg-white p-2"
+                    data-testid={`row-variant-${i}`}
+                  >
+                    <TextInput
+                      value={row.size}
+                      onChange={(e) => updateVariantRow(i, { size: e.target.value })}
+                      placeholder="Beden"
+                      data-testid={`input-variant-size-${i}`}
+                    />
+                    <TextInput
+                      value={row.color}
+                      onChange={(e) => updateVariantRow(i, { color: e.target.value })}
+                      placeholder="Renk"
+                      data-testid={`input-variant-color-${i}`}
+                    />
+                    <TextInput
+                      value={row.sku}
+                      onChange={(e) => updateVariantRow(i, { sku: e.target.value })}
+                      placeholder="SKU (ops.)"
+                      data-testid={`input-variant-sku-${i}`}
+                    />
+                    <TextInput
+                      value={row.price}
+                      onChange={(e) => updateVariantRow(i, { price: e.target.value })}
+                      placeholder={formData.basePrice || 'Ürün fiyatı'}
+                      data-testid={`input-variant-price-${i}`}
+                    />
+                    <TextInput
+                      type="number"
+                      min="0"
+                      value={row.stock}
+                      onChange={(e) => updateVariantRow(i, { stock: e.target.value })}
+                      placeholder="0"
+                      data-testid={`input-variant-stock-${i}`}
+                    />
+                    <label className="flex items-center justify-center gap-1 text-[11px] text-neutral-600 cursor-pointer">
+                      <input
+                        type="checkbox"
+                        checked={row.isActive}
+                        onChange={(e) => updateVariantRow(i, { isActive: e.target.checked })}
+                        className="w-4 h-4 rounded"
+                        data-testid={`checkbox-variant-active-${i}`}
+                      />
+                      <span className="sm:hidden">Aktif</span>
+                    </label>
+                    <IconButton
+                      type="button"
+                      onClick={() => removeVariantRow(i)}
+                      disabled={!!product?.id && variantRows.length === 1}
+                      aria-label="Varyantı sil"
+                      data-testid={`button-remove-variant-${i}`}
+                    >
+                      <Trash2 className="w-3.5 h-3.5" />
+                    </IconButton>
+                  </div>
+                ))}
+                {!!product?.id && variantRows.length === 1 && (
+                  <p className="text-[11px] text-neutral-500">
+                    Üründe en az bir varyant kalmalı. Basit ürünlerde beden/renk alanlarını boş bırakın.
+                  </p>
+                )}
+              </div>
+            )}
+            <div className="mt-2">
+              <SecondaryButton
+                type="button"
+                onClick={addVariantRow}
+                disabled={!!product?.id && !variantsLoaded}
+                data-testid="button-add-variant"
+              >
+                + Varyant Ekle
+              </SecondaryButton>
+            </div>
+          </section>
+
+          {/* Section 7 — Görünürlük */}
+          <section>
+            <SectionHeading
+              number={7}
               title="Görünürlük"
               description="Ürünün mağazadaki yerini kontrol edin."
             />

@@ -1870,6 +1870,57 @@ export async function registerRoutes(
     }
   });
 
+  // Admin formundan gelen varyant satırlarını doğrular ve normalleştirir.
+  // Hata durumunda Türkçe mesajlı Error fırlatır (route 400 döner).
+  class VariantInputError extends Error {}
+  function normalizeVariantInputs(
+    input: unknown,
+    basePrice: string,
+  ): Array<{ id?: string; size: string | null; color: string | null; sku: string | null; price: string; stock: number; isActive: boolean }> {
+    if (!Array.isArray(input)) return [];
+    if (input.length === 0) {
+      throw new VariantInputError("En az bir varyant gerekli. Basit ürünler için beden/renk alanları boş tek satır bırakın.");
+    }
+    if (input.length > 100) {
+      throw new VariantInputError("En fazla 100 varyant tanımlanabilir.");
+    }
+    const seen: string[] = [];
+    return input.map((raw: any, i: number) => {
+      const size = typeof raw?.size === 'string' && raw.size.trim() ? raw.size.trim() : null;
+      const color = typeof raw?.color === 'string' && raw.color.trim() ? raw.color.trim() : null;
+      const sku = typeof raw?.sku === 'string' && raw.sku.trim() ? raw.sku.trim() : null;
+      const comboKey = `${(size || '').toLocaleLowerCase('tr')}|${(color || '').toLocaleLowerCase('tr')}`;
+      if (seen.indexOf(comboKey) !== -1) {
+        throw new VariantInputError(`Aynı beden/renk kombinasyonu birden fazla satırda var: ${size || '-'} / ${color || '-'}`);
+      }
+      seen.push(comboKey);
+      const priceRaw = raw?.price !== undefined && raw?.price !== null && String(raw.price).trim() !== ''
+        ? String(raw.price).trim().replace(',', '.')
+        : null;
+      const price = priceRaw ?? basePrice;
+      const priceNum = parseFloat(price);
+      if (isNaN(priceNum) || priceNum < 0) {
+        throw new VariantInputError(`${i + 1}. varyantın fiyatı geçersiz.`);
+      }
+      const stockNum = parseInt(String(raw?.stock ?? 0), 10);
+      if (isNaN(stockNum) || stockNum < 0) {
+        throw new VariantInputError(`${i + 1}. varyantın stok değeri geçersiz.`);
+      }
+      return {
+        id: typeof raw?.id === 'string' && raw.id ? raw.id : undefined,
+        size,
+        color,
+        sku,
+        price: String(priceNum),
+        stock: stockNum,
+        isActive: raw?.isActive === undefined ? true : !!raw.isActive,
+      };
+    });
+  }
+  function isUniqueViolation(error: any): boolean {
+    return error?.code === '23505' || /duplicate key/i.test(String(error?.message || ''));
+  }
+
   // Products API
   app.get("/api/products", async (req, res) => {
     try {
@@ -1906,8 +1957,24 @@ export async function registerRoutes(
 
   app.post("/api/admin/products", requireAdmin, async (req, res) => {
     try {
-      const { categoryIds, initialStock, ...productData } = req.body;
+      const { categoryIds, initialStock, variants: variantsInput, ...productData } = req.body;
       const validated = insertProductSchema.parse(productData);
+      // Form varyantları açıkça yönetiyorsa otomatik üretim atlanır.
+      const explicitVariants = variantsInput !== undefined
+        ? normalizeVariantInputs(variantsInput, String(validated.basePrice))
+        : [];
+      if (explicitVariants.length > 0) {
+        // Ürün + kategoriler + açık varyantlar TEK transaction: SKU çakışması
+        // vb. hatada yarım kayıt (ürün var, varyant yok) kalmaz.
+        const product = await storage.createProductWithVariants(
+          validated,
+          explicitVariants,
+          categoryIds && Array.isArray(categoryIds) ? categoryIds : null,
+        );
+        const productCategoryIds = await storage.getProductCategoryIds(product.id);
+        return res.status(201).json({ ...product, categoryIds: productCategoryIds });
+      }
+
       const product = await storage.createProduct(validated);
 
       // Set product categories (multi-category support)
@@ -1980,14 +2047,55 @@ export async function registerRoutes(
       res.status(201).json({ ...product, categoryIds: productCategoryIds });
     } catch (error) {
       console.error('Product creation error:', error);
+      if (error instanceof VariantInputError) {
+        return res.status(400).json({ error: error.message });
+      }
+      if (isUniqueViolation(error)) {
+        return res.status(400).json({ error: "Bu SKU zaten başka bir varyantta kullanılıyor. Her varyant SKU'su benzersiz olmalı." });
+      }
       res.status(400).json({ error: "Invalid product data" });
     }
   });
 
   app.patch("/api/admin/products/:id", requireAdmin, async (req, res) => {
     try {
-      const { categoryIds, ...productData } = req.body;
+      const { categoryIds, variants: variantsInput, ...productData } = req.body;
       console.log('Updating product:', req.params.id, 'with data:', JSON.stringify(productData, null, 2));
+      // Doğrulama, ürün güncellenmeden ÖNCE yapılır ki geçersiz varyant
+      // verisi yarım kalmış bir kayda yol açmasın. Fiyatı boş bırakılan
+      // varyantlar ürünün (yeni ya da mevcut) taban fiyatına düşer.
+      let explicitVariants: ReturnType<typeof normalizeVariantInputs> | null = null;
+      if (variantsInput !== undefined) {
+        const fallbackBase = productData.basePrice !== undefined && String(productData.basePrice).trim() !== ''
+          ? String(productData.basePrice)
+          : String((await storage.getProduct(req.params.id))?.basePrice ?? '');
+        explicitVariants = normalizeVariantInputs(variantsInput, fallbackBase);
+      }
+      if (explicitVariants) {
+        // Form varyantları açıkça yönetiyor: ürün alanları + varyant
+        // uzlaştırma + kategori ataması TEK transaction'da kaydedilir;
+        // herhangi bir adım (örn. SKU çakışması) başarısız olursa hiçbir
+        // değişiklik uygulanmaz. Sipariş/sepet/stok geçmişi referansı olan
+        // varyantlar silinmek yerine pasife alınır (veri kaybı yok).
+        const outcome = await storage.updateProductWithVariants(
+          req.params.id,
+          productData,
+          explicitVariants,
+          categoryIds && Array.isArray(categoryIds) ? categoryIds : null,
+        );
+        if (!outcome) {
+          return res.status(404).json({ error: "Product not found" });
+        }
+        const pcIds = await storage.getProductCategoryIds(outcome.product.id);
+        return res.json({
+          ...outcome.product,
+          categoryIds: pcIds,
+          ...(outcome.retiredCount > 0
+            ? { variantNotice: `${outcome.retiredCount} varyant sipariş/sepet geçmişi olduğu için silinmek yerine pasife alındı.` }
+            : {}),
+        });
+      }
+
       const product = await storage.updateProduct(req.params.id, productData);
       if (!product) {
         return res.status(404).json({ error: "Product not found" });
@@ -2069,6 +2177,12 @@ export async function registerRoutes(
       res.json({ ...product, categoryIds: productCategoryIds });
     } catch (error) {
       console.error('Product update error:', error);
+      if (error instanceof VariantInputError) {
+        return res.status(400).json({ error: error.message });
+      }
+      if (isUniqueViolation(error)) {
+        return res.status(400).json({ error: "Bu SKU zaten başka bir varyantta kullanılıyor. Her varyant SKU'su benzersiz olmalı." });
+      }
       res.status(400).json({ error: "Failed to update product" });
     }
   });
@@ -2316,8 +2430,19 @@ Bu ürün için 4 bölümlü HTML açıklama üret. Teknik Özellikler bölümü
 
   app.delete("/api/admin/variants/:id", requireAdmin, async (req, res) => {
     try {
-      await storage.deleteProductVariant(req.params.id);
-      res.json({ success: true });
+      // Referans korumalı: sipariş/sepet/stok geçmişi olan varyant silinmez,
+      // pasife alınır (cascade ile müşteri sepeti/geçmiş kaybını önler).
+      const outcome = await storage.deleteOrRetireProductVariant(req.params.id);
+      if (!outcome) {
+        return res.status(404).json({ error: "Varyant bulunamadı" });
+      }
+      res.json({
+        success: true,
+        retired: outcome.retired,
+        ...(outcome.retired
+          ? { message: "Varyantın sipariş/sepet geçmişi olduğu için silinmek yerine pasife alındı." }
+          : {}),
+      });
     } catch (error) {
       res.status(500).json({ error: "Failed to delete variant" });
     }
@@ -2357,11 +2482,14 @@ Bu ürün için 4 bölümlü HTML açıklama üret. Teknik Özellikler bölümü
       if (resolvedVariant && resolvedVariant.productId !== productId) {
         return res.status(400).json({ error: "Geçersiz varyant" });
       }
+      // Pasife alınmış (satıştan kaldırılmış) varyant sepete eklenemez.
+      if (resolvedVariant && !resolvedVariant.isActive) {
+        return res.status(400).json({ error: "Bu seçenek artık satışta değil, lütfen başka bir seçenek deneyin" });
+      }
 
       if (!resolvedVariant) {
         const variants = await storage.getProductVariants(productId);
-        const candidate = variants.find(v => v.isActive && (v.stock ?? 0) > 0)
-          ?? variants.find(v => (v.stock ?? 0) > 0);
+        const candidate = variants.find(v => v.isActive && (v.stock ?? 0) > 0);
         if (candidate) {
           resolvedVariant = candidate;
           variantId = candidate.id;
@@ -2416,6 +2544,10 @@ Bu ürün için 4 bölümlü HTML açıklama üret. Teknik Özellikler bölümü
       // Yeni adet kalan stoğu aşmasın.
       if (existingItem.variantId) {
         const variant = await storage.getProductVariant(existingItem.variantId);
+        // Pasife alınmış varyantın adedi artırılamaz.
+        if (variant && !variant.isActive) {
+          return res.status(400).json({ error: "Bu seçenek artık satışta değil, lütfen sepetinizden çıkarın" });
+        }
         const availableStock = variant?.stock ?? 0;
         if (quantity > availableStock) {
           return res.status(400).json({
@@ -2899,6 +3031,12 @@ Bu ürün için 4 bölümlü HTML açıklama üret. Teknik Özellikler bölümü
 
         if (product) {
           // Ödeme öncesi son stok kontrolü: sepetteki adet kalan stoğu aşmasın.
+          // Pasife alınmış (satıştan kaldırılmış) varyant satın alınamaz.
+          if (variant && !variant.isActive) {
+            return res.status(400).json({
+              error: `"${product.name}" için seçtiğiniz seçenek artık satışta değil, lütfen sepetinizden çıkarın`,
+            });
+          }
           const availableStock = variant?.stock ?? 0;
           if (!variant || cartItem.quantity > availableStock) {
             return res.status(400).json({
@@ -2907,7 +3045,10 @@ Bu ürün için 4 bölümlü HTML açıklama üret. Teknik Özellikler bölümü
                 : `"${product.name}" için yeterli stok yok (kalan: ${availableStock})`,
             });
           }
-          const itemPrice = parseFloat(product.basePrice);
+          // Fiyat, seçilen varyantın fiyatıdır (müşterinin gördüğü fiyat);
+          // varyant fiyatı yoksa ürün taban fiyatına düşülür.
+          const unitPriceStr = variant?.price || product.basePrice;
+          const itemPrice = parseFloat(unitPriceStr);
           serverSubtotal += itemPrice * cartItem.quantity;
 
           cartItemsForStorage.push({
@@ -2916,7 +3057,7 @@ Bu ürün için 4 bölümlü HTML açıklama üret. Teknik Özellikler bölümü
             quantity: cartItem.quantity,
             productName: product.name,
             variantDetails: variant ? `${variant.size || ''} ${variant.color || ''}`.trim() : null,
-            price: product.basePrice,
+            price: unitPriceStr,
           });
 
           // iyzico basket: one row per unit so sum(basketItems.price) === price
@@ -3249,6 +3390,12 @@ Bu ürün için 4 bölümlü HTML açıklama üret. Teknik Özellikler bölümü
         const product = await storage.getProduct(actualProductId);
         if (product) {
           // Ödeme öncesi son stok kontrolü: sepetteki adet kalan stoğu aşmasın.
+          // Pasife alınmış (satıştan kaldırılmış) varyant satın alınamaz.
+          if (variant && !variant.isActive) {
+            return res.status(400).json({
+              error: `"${product.name}" için seçtiğiniz seçenek artık satışta değil, lütfen sepetinizden çıkarın`,
+            });
+          }
           const availableStock = variant?.stock ?? 0;
           if (!variant || cartItem.quantity > availableStock) {
             return res.status(400).json({
@@ -3257,7 +3404,9 @@ Bu ürün için 4 bölümlü HTML açıklama üret. Teknik Özellikler bölümü
                 : `"${product.name}" için yeterli stok yok (kalan: ${availableStock})`,
             });
           }
-          const itemPrice = parseFloat(product.basePrice);
+          // Varyant fiyatı esas alınır (müşterinin gördüğü fiyat).
+          const unitPriceStr = variant?.price || product.basePrice;
+          const itemPrice = parseFloat(unitPriceStr);
           serverSubtotal += itemPrice * cartItem.quantity;
           cartItemsForOrder.push({
             productId: product.id,
@@ -3265,7 +3414,7 @@ Bu ürün için 4 bölümlü HTML açıklama üret. Teknik Özellikler bölümü
             quantity: cartItem.quantity,
             productName: product.name,
             variantDetails: variant ? `${variant.size || ''} ${variant.color || ''}`.trim() : null,
-            price: product.basePrice,
+            price: unitPriceStr,
           });
         }
       }
@@ -3405,6 +3554,23 @@ Bu ürün için 4 bölümlü HTML açıklama üret. Teknik Özellikler bölümü
   ) => {
     const orderNumber = merchantOid;
 
+    // Ödeme başlatıldıktan sonra varyant satıştan kaldırılmış ya da stok
+    // tükenmiş olabilir. Para zaten tahsil edildiği için sipariş yine
+    // oluşturulur; ancak sorun varsa 'confirmed' yerine 'pending' bırakılır
+    // ve nota yazılır ki admin sevkiyattan önce incelesin.
+    const availabilityIssues: string[] = [];
+    for (const item of pendingPayment.cartItems) {
+      if (!item.variantId) continue;
+      const v = await storage.getProductVariant(item.variantId);
+      if (!v) {
+        availabilityIssues.push(`"${item.productName}" varyantı artık mevcut değil`);
+      } else if (!v.isActive) {
+        availabilityIssues.push(`"${item.productName}" (${item.variantDetails || 'varyant'}) satıştan kaldırılmış`);
+      } else if (v.stock < item.quantity) {
+        availabilityIssues.push(`"${item.productName}" için stok yetersiz (kalan: ${v.stock}, istenen: ${item.quantity})`);
+      }
+    }
+
     const order = await storage.createOrder({
       orderNumber,
       customerName: pendingPayment.customerName,
@@ -3417,10 +3583,21 @@ Bu ürün için 4 bölümlü HTML açıklama üret. Teknik Özellikler bölümü
       discountAmount: pendingPayment.discountAmount || '0',
       couponCode: pendingPayment.couponCode,
       total: pendingPayment.total,
-      status: 'confirmed',
+      status: availabilityIssues.length > 0 ? 'pending' : 'confirmed',
       paymentMethod,
       paymentStatus: 'paid',
     });
+
+    if (availabilityIssues.length > 0) {
+      await storage.createOrderNote({
+        orderId: order.id,
+        authorType: 'system',
+        noteType: 'status_change',
+        content: `Ödeme alındı ancak sipariş incelenmeli: ${availabilityIssues.join('; ')}`,
+        isPrivate: true,
+      }).catch(err => console.error('[finalize] availability note failed:', err));
+      console.error(`[finalize] ${orderNumber} availability issues:`, availabilityIssues.join('; '));
+    }
 
     // Create order items and reduce stock
     for (const item of pendingPayment.cartItems) {
@@ -4115,6 +4292,12 @@ Bu ürün için 4 bölümlü HTML açıklama üret. Teknik Özellikler bölümü
         const product = await storage.getProduct(actualProductId);
         if (product) {
           // Sipariş öncesi son stok kontrolü: sepetteki adet kalan stoğu aşmasın.
+          // Pasife alınmış (satıştan kaldırılmış) varyant satın alınamaz.
+          if (variant && !variant.isActive) {
+            return res.status(400).json({
+              error: `"${product.name}" için seçtiğiniz seçenek artık satışta değil, lütfen sepetinizden çıkarın`,
+            });
+          }
           const availableStock = variant?.stock ?? 0;
           if (!variant || cartItem.quantity > availableStock) {
             return res.status(400).json({
@@ -4123,7 +4306,8 @@ Bu ürün için 4 bölümlü HTML açıklama üret. Teknik Özellikler bölümü
                 : `"${product.name}" için yeterli stok yok (kalan: ${availableStock})`,
             });
           }
-          const itemPrice = parseFloat(product.basePrice);
+          // Varyant fiyatı esas alınır (müşterinin gördüğü fiyat).
+          const itemPrice = parseFloat(variant?.price || product.basePrice);
           serverSubtotal += itemPrice * cartItem.quantity;
         }
       }
@@ -4225,9 +4409,9 @@ Bu ürün için 4 bölümlü HTML açıklama üret. Teknik Özellikler bölümü
             variantId: variant?.id,
             productName: product.name,
             variantDetails: variant ? `${variant.size || ''} ${variant.color || ''}`.trim() : null,
-            price: product.basePrice,
+            price: variant?.price || product.basePrice,
             quantity: cartItem.quantity,
-            subtotal: ((parseFloat(product.basePrice) * cartItem.quantity).toFixed(2)),
+            subtotal: ((parseFloat(variant?.price || product.basePrice) * cartItem.quantity).toFixed(2)),
           });
 
           // Reduce stock for the variant
@@ -6253,6 +6437,27 @@ window.addEventListener('load', function() {
       }
 
       const orderItems = await storage.getOrderItems(order.id);
+
+      // Onaydan ÖNCE yeniden doğrula: sipariş beklerken varyant satıştan
+      // kaldırılmış ya da stok tükenmiş olabilir. Sorun varsa stok düşmeden
+      // admin'e açık bir hata dönülür (para henüz tahsil edilmedi sayılır).
+      const availabilityIssues: string[] = [];
+      for (const item of orderItems) {
+        if (!item.variantId) continue;
+        const variant = await storage.getProductVariant(item.variantId);
+        if (!variant) {
+          availabilityIssues.push(`"${item.productName}" varyantı artık mevcut değil`);
+        } else if (!variant.isActive) {
+          availabilityIssues.push(`"${item.productName}" (${item.variantDetails || 'varyant'}) satıştan kaldırılmış`);
+        } else if (variant.stock < item.quantity) {
+          availabilityIssues.push(`"${item.productName}" için stok yetersiz (kalan: ${variant.stock}, istenen: ${item.quantity})`);
+        }
+      }
+      if (availabilityIssues.length > 0) {
+        return res.status(400).json({
+          error: `Havale onaylanamadı, önce şu sorunları giderin: ${availabilityIssues.join('; ')}`,
+        });
+      }
 
       // Reduce stock now (was deferred at order creation time)
       for (const item of orderItems) {

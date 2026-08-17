@@ -16,4 +16,6 @@
 
 - [Overlay z-index stack](overlay-z-index-stack.md) — shared sheet/dialog primitives default *below* the sticky header; fix stacking order on the primitive, not with per-page padding.
 
+- [Product variants](product-variants.md) — admin edits reconcile in one tx (referenced variants retired, never deleted); all three checkout paths must price from variant.price, not basePrice.
+
 - [Monochrome rebrand & dark theme](monochrome-rebrand.md) — storefront is full dark monochrome; admin stays light; legacy polen/sepetzen tokens render near-black (invisible on dark) — never use them in storefront.

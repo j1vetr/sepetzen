@@ -21,6 +21,7 @@ interface AdminLayoutProps {
   onLogout: () => void;
   pendingOrdersCount: number;
   pendingReviewsCount?: number;
+  pendingMarketplaceOrdersCount?: number;
   pageTitle: string;
   pageDescription?: string;
   children: ReactNode;
@@ -34,6 +35,7 @@ export default function AdminLayout({
   onLogout,
   pendingOrdersCount,
   pendingReviewsCount = 0,
+  pendingMarketplaceOrdersCount = 0,
   pageTitle,
   pageDescription,
   children,
@@ -92,6 +94,7 @@ export default function AdminLayout({
                 let badgeCount = 0;
                 if (item.id === 'orders') badgeCount = pendingOrdersCount;
                 else if (item.id === 'reviews') badgeCount = pendingReviewsCount;
+                else if (item.id === 'marketplaceOrders') badgeCount = pendingMarketplaceOrdersCount;
                 const showBadge = badgeCount > 0;
                 return (
                   <button

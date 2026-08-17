@@ -420,6 +420,35 @@ export function registerMarketplaceRoutes(
     );
   });
 
+  // Bekleyen pazaryeri siparişi sayısı — sidebar rozeti için hafif endpoint.
+  // Son 30 günde 'new' veya 'preparing' grubundaki siparişleri sayar.
+  app.get("/api/admin/marketplace-orders/pending-count", requireAdmin, async (req, res) => {
+    const groupOf = (status: string | null): string => {
+      const s = String(status ?? "").toLowerCase();
+      if (["cancelled", "unsupplied"].includes(s)) return "cancelled";
+      if (["returned", "undeliveredandreturned"].includes(s)) return "returned";
+      if (s === "delivered") return "delivered";
+      if (s === "shipped") return "shipped";
+      if (["picking", "invoiced", "readytoship"].includes(s)) return "preparing";
+      return "new";
+    };
+    const since = new Date(Date.now() - 30 * 24 * 60 * 60_000);
+    const marketplaces = await storage.getMarketplaces();
+    let count = 0;
+    for (const mp of marketplaces.filter((m) => m.isActive)) {
+      const lines = await storage.listMarketplaceOrderLines(mp.id, 10_000, since);
+      const orderNumbers = new Set<string>();
+      for (const line of lines) {
+        const g = groupOf(line.status);
+        if (g === "new" || g === "preparing") {
+          orderNumbers.add(line.orderNumber);
+        }
+      }
+      count += orderNumbers.size;
+    }
+    res.json({ count });
+  });
+
   // Siparişleri elle şimdi çek (cron beklemeden).
   app.post("/api/admin/marketplaces/:id/pull-orders", requireAdmin, async (req, res) => {
     const mp = await storage.getMarketplace(req.params.id);

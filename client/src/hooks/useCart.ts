@@ -118,7 +118,8 @@ export function useCartProvider() {
   const totalItems = items.reduce((sum, item) => sum + item.quantity, 0);
   
   const subtotal = items.reduce((sum, item) => {
-    const price = item.product?.basePrice || '0';
+    // Varyant fiyatı varsa satır fiyatı odur; sepet sayfasıyla tutarlı.
+    const price = item.variant?.price || item.product?.basePrice || '0';
     return sum + parseFloat(price) * item.quantity;
   }, 0);
 

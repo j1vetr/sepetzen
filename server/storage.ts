@@ -236,6 +236,22 @@ export interface IStorage {
   createProductVariant(variant: InsertProductVariant): Promise<ProductVariant>;
   updateProductVariant(id: string, variant: Partial<InsertProductVariant>): Promise<ProductVariant | undefined>;
   deleteProductVariant(id: string): Promise<void>;
+  reconcileProductVariants(
+    productId: string,
+    rows: Array<{ id?: string; size: string | null; color: string | null; sku: string | null; colorHex?: string | null; price: string; stock: number; isActive: boolean }>,
+  ): Promise<{ retiredCount: number; deletedCount: number }>;
+  updateProductWithVariants(
+    id: string,
+    product: Partial<InsertProduct>,
+    variantRows: Array<{ id?: string; size: string | null; color: string | null; sku: string | null; colorHex?: string | null; price: string; stock: number; isActive: boolean }>,
+    categoryIds: string[] | null,
+  ): Promise<{ product: Product; retiredCount: number; deletedCount: number } | undefined>;
+  createProductWithVariants(
+    product: InsertProduct,
+    variantRows: Array<{ size: string | null; color: string | null; sku: string | null; colorHex?: string | null; price: string; stock: number; isActive: boolean }>,
+    categoryIds: string[] | null,
+  ): Promise<Product>;
+  deleteOrRetireProductVariant(id: string): Promise<{ retired: boolean } | undefined>;
 
   // Product Categories (multi-category support)
   getProductCategoryIds(productId: string): Promise<string[]>;
@@ -826,6 +842,172 @@ export class DbStorage implements IStorage {
 
   async deleteProductVariant(id: string): Promise<void> {
     await db.delete(productVariants).where(eq(productVariants.id, id));
+  }
+
+  /**
+   * Admin ürün formundan gelen varyant listesini TEK transaction içinde
+   * mevcut varyantlarla uzlaştırır:
+   * - id'li satırlar güncellenir, id'siz satırlar oluşturulur,
+   * - listede olmayan varyantlar referans kontrolünden geçer: sipariş,
+   *   sepet veya stok geçmişi kaydı varsa SİLİNMEZ, pasife alınır
+   *   (isActive=false) — müşteri sepetleri ve geçmiş kayıtlar korunur;
+   *   hiç referans yoksa gerçekten silinir.
+   * Herhangi bir adım (örn. SKU çakışması) başarısız olursa tüm varyant
+   * değişiklikleri geri alınır. Push-outbox bildirimi commit SONRASI yapılır.
+   */
+  async reconcileProductVariants(
+    productId: string,
+    rows: Array<{ id?: string; size: string | null; color: string | null; sku: string | null; colorHex?: string | null; price: string; stock: number; isActive: boolean }>,
+  ): Promise<{ retiredCount: number; deletedCount: number }> {
+    const result = await db.transaction(async (tx) => this.reconcileVariantsInTx(tx, productId, rows));
+    // Marketplace push bildirimi transaction başarıyla bittikten sonra.
+    await this.notifyPushOutbox(productId);
+    return result;
+  }
+
+  /**
+   * Admin PATCH'inin tamamı tek transaction: ürün alanları + varyant
+   * uzlaştırma + kategori ataması birlikte kaydedilir; herhangi biri
+   * (örn. SKU çakışması) başarısız olursa hiçbiri uygulanmaz.
+   */
+  async updateProductWithVariants(
+    id: string,
+    product: Partial<InsertProduct>,
+    variantRows: Array<{ id?: string; size: string | null; color: string | null; sku: string | null; colorHex?: string | null; price: string; stock: number; isActive: boolean }>,
+    categoryIds: string[] | null,
+  ): Promise<{ product: Product; retiredCount: number; deletedCount: number } | undefined> {
+    const { createdAt, updatedAt, id: _pid, ...updateData } = product as any;
+    const outcome = await db.transaction(async (tx) => {
+      const [updated] = await tx.update(products).set(updateData).where(eq(products.id, id)).returning();
+      if (!updated) return undefined;
+      const reconcile = await this.reconcileVariantsInTx(tx, id, variantRows);
+      if (categoryIds) {
+        await tx.delete(productCategories).where(eq(productCategories.productId, id));
+        if (categoryIds.length > 0) {
+          await tx.insert(productCategories).values(categoryIds.map(categoryId => ({ productId: id, categoryId })));
+        }
+      }
+      return { product: updated, ...reconcile };
+    });
+    if (outcome) {
+      await this.notifyPushOutbox(id);
+    }
+    return outcome;
+  }
+
+  /**
+   * Yeni ürün + açık varyant listesi + kategoriler tek transaction'da
+   * oluşturulur; herhangi bir adım (örn. SKU çakışması) başarısız olursa
+   * ürün dahil hiçbir kayıt kalmaz (yarım kayıt/slug kilidi oluşmaz).
+   */
+  async createProductWithVariants(
+    product: InsertProduct,
+    variantRows: Array<{ size: string | null; color: string | null; sku: string | null; colorHex?: string | null; price: string; stock: number; isActive: boolean }>,
+    categoryIds: string[] | null,
+  ): Promise<Product> {
+    return db.transaction(async (tx) => {
+      const [newProduct] = await tx.insert(products).values(product).returning();
+      const effectiveCategoryIds = categoryIds && categoryIds.length > 0
+        ? categoryIds
+        : (newProduct.categoryId ? [newProduct.categoryId] : []);
+      if (effectiveCategoryIds.length > 0) {
+        await tx.insert(productCategories).values(
+          effectiveCategoryIds.map(categoryId => ({ productId: newProduct.id, categoryId })),
+        );
+      }
+      for (const v of variantRows) {
+        await tx.insert(productVariants).values({
+          productId: newProduct.id,
+          size: v.size,
+          color: v.color,
+          sku: v.sku,
+          price: v.price,
+          stock: v.stock,
+          isActive: v.isActive,
+        });
+      }
+      return newProduct;
+    });
+  }
+
+  /**
+   * Tekil varyant silme, referans korumalı: sipariş/sepet/stok geçmişi
+   * olan varyant SİLİNMEZ, pasife alınır (cascade veri kaybı önlenir).
+   */
+  async deleteOrRetireProductVariant(id: string): Promise<{ retired: boolean } | undefined> {
+    const outcome = await db.transaction(async (tx) => {
+      const [variant] = await tx.select().from(productVariants).where(eq(productVariants.id, id));
+      if (!variant) return undefined;
+      if (await this.variantHasReferencesInTx(tx, id)) {
+        await tx.update(productVariants).set({ isActive: false }).where(eq(productVariants.id, id));
+        return { retired: true, productId: variant.productId };
+      }
+      await tx.delete(productVariants).where(eq(productVariants.id, id));
+      return { retired: false, productId: variant.productId };
+    });
+    if (!outcome) return undefined;
+    await this.notifyPushOutbox(outcome.productId);
+    return { retired: outcome.retired };
+  }
+
+  private async variantHasReferencesInTx(
+    tx: Pick<typeof db, "select" | "insert" | "update" | "delete">,
+    variantId: string,
+  ): Promise<boolean> {
+    const [orderRef] = await tx.select({ id: orderItems.id }).from(orderItems)
+      .where(eq(orderItems.variantId, variantId)).limit(1);
+    if (orderRef) return true;
+    const [cartRef] = await tx.select({ id: cartItems.id }).from(cartItems)
+      .where(eq(cartItems.variantId, variantId)).limit(1);
+    if (cartRef) return true;
+    const [adjRef] = await tx.select({ id: stockAdjustments.id }).from(stockAdjustments)
+      .where(eq(stockAdjustments.variantId, variantId)).limit(1);
+    return !!adjRef;
+  }
+
+  private async reconcileVariantsInTx(
+    tx: Pick<typeof db, "select" | "insert" | "update" | "delete">,
+    productId: string,
+    rows: Array<{ id?: string; size: string | null; color: string | null; sku: string | null; colorHex?: string | null; price: string; stock: number; isActive: boolean }>,
+  ): Promise<{ retiredCount: number; deletedCount: number }> {
+    {
+      const existing = await tx.select().from(productVariants).where(eq(productVariants.productId, productId));
+      const existingIds = existing.map(v => v.id);
+      const incomingIds = rows
+        .map(r => r.id)
+        .filter((id): id is string => !!id && existingIds.indexOf(id) !== -1);
+
+      for (const r of rows) {
+        const payload = {
+          size: r.size,
+          color: r.color,
+          sku: r.sku,
+          price: r.price,
+          stock: r.stock,
+          isActive: r.isActive,
+          ...(r.colorHex !== undefined ? { colorHex: r.colorHex } : {}),
+        };
+        if (r.id && existingIds.indexOf(r.id) !== -1) {
+          await tx.update(productVariants).set(payload).where(eq(productVariants.id, r.id));
+        } else {
+          await tx.insert(productVariants).values({ productId, ...payload });
+        }
+      }
+
+      let retiredCount = 0;
+      let deletedCount = 0;
+      for (const old of existing) {
+        if (incomingIds.indexOf(old.id) !== -1) continue;
+        if (await this.variantHasReferencesInTx(tx, old.id)) {
+          await tx.update(productVariants).set({ isActive: false }).where(eq(productVariants.id, old.id));
+          retiredCount++;
+        } else {
+          await tx.delete(productVariants).where(eq(productVariants.id, old.id));
+          deletedCount++;
+        }
+      }
+      return { retiredCount, deletedCount };
+    }
   }
 
   // Product Categories (multi-category support)

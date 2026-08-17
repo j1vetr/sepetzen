@@ -37,6 +37,7 @@ import {
   TAB_DESCRIPTIONS,
   getStatusLabel,
 } from './admin/_shared/sidebarConfig';
+import { useQuery } from '@tanstack/react-query';
 import { useAdminDashboardData } from './admin/_shared/useAdminDashboardData';
 import { usePendingReviewsCount } from '@/hooks/useReviews';
 
@@ -112,10 +113,31 @@ export default function AdminDashboard() {
     setActiveTab(tabId);
     const url = new URL(window.location.href);
     url.searchParams.set('tab', tabId);
-    window.history.replaceState({}, '', url.toString());
+    window.history.pushState({ tab: tabId }, '', url.toString());
   };
 
+  // Tarayıcı geri/ileri tuşlarını sekme değişimiyle senkron tut
+  useEffect(() => {
+    const onPopState = (e: PopStateEvent) => {
+      const params = new URLSearchParams(window.location.search);
+      const tab = params.get('tab');
+      if (tab && VALID_TABS.includes(tab as TabType)) {
+        setActiveTab(tab as TabType);
+      }
+    };
+    window.addEventListener('popstate', onPopState);
+    return () => window.removeEventListener('popstate', onPopState);
+  }, []);
+
   const { data: pendingReviewsData } = usePendingReviewsCount(!!adminUser);
+
+  const { data: pendingMpData } = useQuery<{ count: number }>({
+    queryKey: ['/api/admin/marketplace-orders/pending-count'],
+    enabled: !!adminUser,
+    refetchInterval: 5 * 60_000,
+    staleTime: 2 * 60_000,
+  });
+  const pendingMarketplaceOrdersCount = pendingMpData?.count ?? 0;
 
   if (userLoading) {
     return (
@@ -142,6 +164,7 @@ export default function AdminDashboard() {
         onLogout={() => logoutMutation.mutate()}
         pendingOrdersCount={pendingOrdersCount}
         pendingReviewsCount={pendingReviewsCount}
+        pendingMarketplaceOrdersCount={pendingMarketplaceOrdersCount}
         pageTitle={pageTitle}
         pageDescription={TAB_DESCRIPTIONS[activeTab]}
       >
@@ -234,6 +257,7 @@ export default function AdminDashboard() {
           }}
           onSave={(product) => saveProductMutation.mutate(product)}
           isSaving={saveProductMutation.isPending}
+          saveError={saveProductMutation.error ? (saveProductMutation.error as Error).message : null}
         />
       )}
       {showCategoryModal && (
