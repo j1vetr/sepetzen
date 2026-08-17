@@ -6,6 +6,27 @@ import { Footer } from '@/components/Footer';
 import { SEO } from '@/components/SEO';
 import { sanitizeAdminHtml } from '@/lib/sanitizeHtml';
 import { formatBlogDate } from './Blog';
+import { ProductCard } from '@/components/ProductCard';
+
+// Turkish stop words to exclude from keyword matching
+const TR_STOP_WORDS = new Set([
+  've', 'ile', 'bir', 'bu', 'da', 've', 'de', 'mi', 'mu', 'mı', 'mü',
+  'ne', 'en', 'çok', 'için', 'gibi', 'ama', 'ya', 'ya da', 'hem', 'hiç',
+  'her', 'bazı', 'nasıl', 'neden', 'hangi', 'kadar', 'daha', 'çok', 'az',
+  'tam', 'sadece', 'bile', 'artık', 'zaten', 'hep', 'yani', 'şey', 'var',
+  'yok', 'olan', 'ile', 'den', 'dan', 'ten', 'tan', 'nin', 'nın', 'nun',
+  'nün', 'nde', 'nda', 'ın', 'in', 'un', 'ün', 'ı', 'i', 'u', 'ü',
+]);
+
+/** Extract meaningful keywords from a blog post title */
+function extractKeywords(title: string): string[] {
+  return title
+    .toLowerCase()
+    .replace(/[^\w\sğüşıöçĞÜŞİÖÇ]/g, ' ')
+    .split(/\s+/)
+    .filter(w => w.length >= 4 && !TR_STOP_WORDS.has(w))
+    .slice(0, 3);
+}
 
 interface BlogPostDetail {
   id: string;
@@ -18,6 +39,17 @@ interface BlogPostDetail {
   seoDescription: string | null;
   publishedAt: string | null;
   createdAt: string;
+}
+
+interface RelatedProduct {
+  id: string;
+  name: string;
+  slug: string;
+  basePrice: string;
+  images: string[];
+  isNew?: boolean;
+  discountBadge?: string | null;
+  variants?: { id: string; size?: string; color?: string; colorHex?: string; price: string; stock: number; isActive: boolean }[];
 }
 
 export default function BlogPost() {
@@ -33,6 +65,22 @@ export default function BlogPost() {
     },
     enabled: !!slug,
     staleTime: 5 * 60 * 1000,
+  });
+
+  // Extract keywords from the post title for product matching
+  const keywords = post ? extractKeywords(post.title) : [];
+  const searchTerm = keywords[0] ?? '';
+
+  const { data: relatedProducts } = useQuery<RelatedProduct[]>({
+    queryKey: ['/api/products', 'related-blog', searchTerm],
+    queryFn: async () => {
+      const res = await fetch(`/api/products?search=${encodeURIComponent(searchTerm)}&limit=8`);
+      if (!res.ok) return [];
+      const data = await res.json();
+      return Array.isArray(data) ? data.slice(0, 4) : [];
+    },
+    enabled: searchTerm.length >= 4,
+    staleTime: 10 * 60 * 1000,
   });
 
   return (
@@ -120,6 +168,23 @@ export default function BlogPost() {
               dangerouslySetInnerHTML={{ __html: sanitizeAdminHtml(post.content) }}
             />
           </article>
+        )}
+
+        {/* Related products section — only shown when there are keyword matches */}
+        {relatedProducts && relatedProducts.length > 0 && (
+          <section
+            className="mt-16 pt-12 border-t border-white/10"
+            data-testid="section-related-products"
+          >
+            <h2 className="text-xl font-display text-white mb-8 tracking-wide">
+              İlgili Ürünler
+            </h2>
+            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4 lg:gap-6">
+              {relatedProducts.map(product => (
+                <ProductCard key={product.id} product={product} />
+              ))}
+            </div>
+          </section>
         )}
       </main>
 
