@@ -616,37 +616,55 @@ export function Header() {
                         })}
                       </div>
 
-                      {/* Sağ: Alt kategoriler */}
-                      <div className="flex-1 overflow-y-auto p-4">
-                        {activeTopCat && (
-                          <>
-                            <button
-                              type="button"
-                              className="text-[10px] tracking-[0.15em] uppercase font-bold text-white/40 mb-3 flex items-center gap-1.5 hover:text-white/70 transition-colors"
-                              onClick={() => { navigate(`/kategori/${activeTopCat.slug}`); setAllCatsOpen(false); }}
-                            >
-                              {activeTopCat.name}
-                              <ArrowUpRight className="w-2.5 h-2.5" />
-                            </button>
-                            {activeCatChildren.length > 0 ? (
-                              <div className="columns-2 gap-x-4 space-y-0">
-                                {activeCatChildren.map((child) => (
-                                  <div
-                                    key={child.id}
-                                    className="break-inside-avoid py-2 border-b border-white/[0.05] cursor-pointer group"
+                      {/* Sağ: Alt kategoriler - Trendyol stili */}
+                      <div className="flex-1 overflow-y-auto p-5">
+                        {activeTopCat && activeCatChildren.length > 0 ? (
+                          <div className="grid grid-cols-3 gap-x-6 gap-y-5 items-start">
+                            {activeCatChildren.map((child) => {
+                              const grandChildren = childrenByCat.get(child.id) ?? [];
+                              return (
+                                <div key={child.id}>
+                                  {/* L2: bold başlık */}
+                                  <button
+                                    type="button"
+                                    className="flex items-center gap-1 text-[12.5px] font-semibold text-white hover:text-white/70 transition-colors mb-2 text-left"
                                     onClick={() => { navigate(`/kategori/${child.slug}`); setAllCatsOpen(false); }}
                                   >
-                                    <span className="text-[12.5px] text-white/65 group-hover:text-white transition-colors">
-                                      {child.name}
-                                    </span>
-                                  </div>
-                                ))}
-                              </div>
-                            ) : (
-                              <p className="text-[11.5px] text-white/35 italic">Alt kategori yok</p>
-                            )}
-                          </>
-                        )}
+                                    {child.name}
+                                    <ChevronRight className="w-3 h-3 opacity-50 shrink-0" />
+                                  </button>
+                                  {/* L3: alt öğeler */}
+                                  {grandChildren.length > 0 && (
+                                    <ul className="space-y-1.5">
+                                      {grandChildren.map((gc) => (
+                                        <li key={gc.id}>
+                                          <button
+                                            type="button"
+                                            className="text-[12px] text-white/55 hover:text-white transition-colors text-left"
+                                            onClick={() => { navigate(`/kategori/${gc.slug}`); setAllCatsOpen(false); }}
+                                          >
+                                            {gc.name}
+                                          </button>
+                                        </li>
+                                      ))}
+                                    </ul>
+                                  )}
+                                </div>
+                              );
+                            })}
+                          </div>
+                        ) : activeTopCat ? (
+                          <div className="flex items-center justify-center h-full">
+                            <button
+                              type="button"
+                              className="text-[13px] text-white/50 hover:text-white transition-colors flex items-center gap-1.5"
+                              onClick={() => { navigate(`/kategori/${activeTopCat.slug}`); setAllCatsOpen(false); }}
+                            >
+                              {activeTopCat.name} - Tüm ürünleri gör
+                              <ArrowUpRight className="w-3.5 h-3.5" />
+                            </button>
+                          </div>
+                        ) : null}
                       </div>
                     </div>
                   )}
