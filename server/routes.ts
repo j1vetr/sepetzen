@@ -2624,10 +2624,33 @@ KURALLAR:
       // varyantlar ürünün (yeni ya da mevcut) taban fiyatına düşer.
       let explicitVariants: ReturnType<typeof normalizeVariantInputs> | null = null;
       if (variantsInput !== undefined) {
+        const oldBase = String((await storage.getProduct(req.params.id))?.basePrice ?? '');
         const fallbackBase = productData.basePrice !== undefined && String(productData.basePrice).trim() !== ''
           ? String(productData.basePrice)
-          : String((await storage.getProduct(req.params.id))?.basePrice ?? '');
-        explicitVariants = normalizeVariantInputs(variantsInput, fallbackBase);
+          : oldBase;
+        // Taban fiyat DEĞİŞİRKEN, eski taban fiyatı birebir taşıyan varyantlar
+        // yeni taban fiyata geçsin. Aksi hâlde editörde yalnızca "Fiyat" alanı
+        // değiştirildiğinde varyant eski fiyatta kalır; kart yeni basePrice'ı,
+        // detay sayfası eski variant.price'ı gösterir (5000/2000 tutarsızlığı).
+        // Taban fiyat gönderilmemiş ya da değişmemişse varyant fiyatlarına dokunulmaz.
+        const oldBaseNum = Number(oldBase);
+        const newBaseNum = Number(fallbackBase);
+        const baseChanged =
+          productData.basePrice !== undefined &&
+          String(productData.basePrice).trim() !== '' &&
+          !isNaN(oldBaseNum) &&
+          !isNaN(newBaseNum) &&
+          newBaseNum !== oldBaseNum;
+        const adjustedVariantsInput = Array.isArray(variantsInput) && baseChanged
+          ? variantsInput.map((v: any) => {
+              if (!v || v.price == null) return v;
+              const priceStr = String(v.price).trim();
+              // Number('2000x') → NaN: bozuk değerler olduğu gibi bırakılır,
+              // doğrulama normalizeVariantInputs içinde yapılır.
+              return priceStr !== '' && Number(priceStr) === oldBaseNum ? { ...v, price: '' } : v;
+            })
+          : variantsInput;
+        explicitVariants = normalizeVariantInputs(adjustedVariantsInput, fallbackBase);
       }
       if (explicitVariants) {
         // Form varyantları açıkça yönetiyor: ürün alanları + varyant
