@@ -636,7 +636,7 @@ export async function registerRoutes(
     } catch {/* DB hatasında default'a düş */}
     // Default: statik dosyayı sun
     res.setHeader('Cache-Control', 'no-cache');
-    res.sendFile(require('path').resolve(process.cwd(), 'client/public/favicon.png'));
+    res.sendFile(path.resolve(process.cwd(), 'client/public/favicon.png'));
   });
 
   // Dynamic sitemap.xml — categories + products + static pages
