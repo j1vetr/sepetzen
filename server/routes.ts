@@ -616,6 +616,29 @@ export async function registerRoutes(
     }
   });
 
+  // Favicon: admin'de ayarlanan URL'e yönlendir — Google ve tarayıcılar statik <link> etiketini görür,
+  // redirect sayesinde her zaman admin favicon'u yüklenir, varsayılan dosyaya düşülmez.
+  let _cachedFaviconUrl: string | null = null;
+  let _faviconCacheAt = 0;
+  app.get("/favicon.png", async (_req, res) => {
+    try {
+      const now = Date.now();
+      if (!_cachedFaviconUrl || now - _faviconCacheAt > 60_000) {
+        const raw = await storage.getSiteSetting(SITE_IDENTITY_KEY);
+        const parsed = raw ? siteIdentitySchema.safeParse(JSON.parse(raw)) : null;
+        _cachedFaviconUrl = parsed?.success && parsed.data.faviconUrl ? parsed.data.faviconUrl : null;
+        _faviconCacheAt = now;
+      }
+      if (_cachedFaviconUrl && _cachedFaviconUrl !== '/favicon.png') {
+        res.setHeader('Cache-Control', 'no-cache');
+        return res.redirect(302, _cachedFaviconUrl);
+      }
+    } catch {/* DB hatasında default'a düş */}
+    // Default: statik dosyayı sun
+    res.setHeader('Cache-Control', 'no-cache');
+    res.sendFile(require('path').resolve(process.cwd(), 'client/public/favicon.png'));
+  });
+
   // Dynamic sitemap.xml — categories + products + static pages
   app.get(["/sitemap.xml", "/sitemap_index.xml"], async (_req, res) => {
     try {
