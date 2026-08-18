@@ -9156,7 +9156,7 @@ Sitemap: ${baseUrl}/sitemap.xml
       // Build nested structure with category details
       const menuItemsWithDetails = items.map(item => {
         let categoryDetails = null;
-        if (item.type === 'category' && item.categoryId) {
+        if (item.categoryId) {
           const category = categories.find(c => c.id === item.categoryId);
           if (category) {
             categoryDetails = {
@@ -9197,7 +9197,7 @@ Sitemap: ${baseUrl}/sitemap.xml
 
       const menuItemsWithDetails = items.map(item => {
         let categoryDetails = null;
-        if (item.type === 'category' && item.categoryId) {
+        if (item.categoryId) {
           const category = categories.find(c => c.id === item.categoryId);
           if (category) {
             categoryDetails = {
