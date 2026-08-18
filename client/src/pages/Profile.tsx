@@ -70,6 +70,7 @@ interface OrderItem {
   id: string;
   productName: string;
   variantDetails: string;
+  personalizationText?: string | null;
   price: string;
   quantity: number;
   subtotal: string;
@@ -1161,6 +1162,9 @@ export default function Profile() {
                             <p className="font-medium text-white">{item.productName}</p>
                             {item.variantDetails && (
                               <p className="text-sm text-white/45">{item.variantDetails}</p>
+                            )}
+                            {item.personalizationText && (
+                              <p className="text-sm text-white/45">Kişiselleştirme: “{item.personalizationText}”</p>
                             )}
                             <p className="text-sm text-white/55">Adet: {item.quantity}</p>
                           </div>

@@ -294,6 +294,11 @@ function ProductEditor({
     tabDelivery: null as Array<{title: string; rows: Array<{key: string; value: string}>}> | null,
     tabFaq: null as Array<{q: string; a: string}> | null,
     tabInstallmentNote: '',
+    // Kişiselleştirme (isim yazdırma) ayarları
+    persEnabled: false,
+    persFee: '',
+    persLabel: '',
+    persMaxChars: '',
   });
   const [hydrated, setHydrated] = useState(false);
 
@@ -335,6 +340,12 @@ function ProductEditor({
       tabDelivery: (product as any)?.tabDelivery ?? null,
       tabFaq: (product as any)?.tabFaq ?? null,
       tabInstallmentNote: (product as any)?.tabInstallmentNote || '',
+      persEnabled: !!(product as any)?.personalization?.enabled,
+      persFee: (product as any)?.personalization?.fee || '',
+      persLabel: (product as any)?.personalization?.label || '',
+      persMaxChars: (product as any)?.personalization?.maxChars
+        ? String((product as any).personalization.maxChars)
+        : '',
     });
     setColorInput(
       product?.availableColors?.[0]?.name
@@ -576,9 +587,22 @@ function ProductEditor({
     // eklendiyse) payload'a girer; aksi halde sunucu varyantlara dokunmaz.
     const includeVariants = productId ? variantsLoaded : variantRows.length > 0;
 
+    // Form alanlarından personalization jsonb nesnesi kurulur
+    // (kapalıysa null gönderilir; pers* alanları payload'a girmez).
+    const { persEnabled, persFee, persLabel, persMaxChars, ...restFormData } = formData;
+    const personalization = persEnabled
+      ? {
+          enabled: true,
+          ...(persFee.trim() ? { fee: persFee.trim().replace(',', '.') } : {}),
+          ...(persLabel.trim() ? { label: persLabel.trim() } : {}),
+          ...(parseInt(persMaxChars, 10) > 0 ? { maxChars: parseInt(persMaxChars, 10) } : {}),
+        }
+      : null;
+
     saveMutation.mutate({
       ...product,
-      ...formData,
+      ...restFormData,
+      personalization,
       slug: formData.slug || generateSlug(formData.name),
       images: [...formData.images, ...uploadedUrls],
       availableColors: normalizedColors,
@@ -1444,6 +1468,66 @@ function ProductEditor({
                 </p>
               )}
             </div>
+          </div>
+
+          {/* Kişiselleştirme (isim yazdırma) */}
+          <div className="bg-white border border-neutral-200 rounded-xl px-4 py-4 shadow-[0_1px_2px_rgba(0,0,0,0.03)]">
+            <div className="flex items-center justify-between mb-1">
+              <h2 className="text-[13px] font-semibold text-neutral-900">Kişiselleştirme</h2>
+              <button
+                type="button"
+                role="switch"
+                aria-checked={formData.persEnabled}
+                onClick={() => setFormData({ ...formData, persEnabled: !formData.persEnabled })}
+                className={`relative inline-flex h-5 w-9 items-center rounded-full transition-colors ${
+                  formData.persEnabled ? 'bg-neutral-900' : 'bg-neutral-300'
+                }`}
+                data-testid="switch-personalization"
+              >
+                <span
+                  className={`inline-block h-3.5 w-3.5 transform rounded-full bg-white transition-transform ${
+                    formData.persEnabled ? 'translate-x-[18px]' : 'translate-x-[3px]'
+                  }`}
+                />
+              </button>
+            </div>
+            <p className="text-[11px] text-neutral-500 mb-3">
+              Müşteri ürüne yazdırılacak bir isim girebilir; ek ücret fiyata eklenir.
+            </p>
+            {formData.persEnabled && (
+              <div className="space-y-3">
+                <FormField label="Ek Ücret (₺)" hint="Boş bırakılırsa ücretsizdir.">
+                  <TextInput
+                    type="number"
+                    value={formData.persFee}
+                    onChange={(e) => setFormData({ ...formData, persFee: e.target.value })}
+                    placeholder="Örn: 150"
+                    min="0"
+                    step="0.01"
+                    data-testid="input-personalization-fee"
+                  />
+                </FormField>
+                <FormField label="Alan Etiketi" hint='Boşsa "Yazdırılacak isim" gösterilir.'>
+                  <TextInput
+                    type="text"
+                    value={formData.persLabel}
+                    onChange={(e) => setFormData({ ...formData, persLabel: e.target.value })}
+                    placeholder="Örn: Bıçağa yazdırılacak isim"
+                    data-testid="input-personalization-label"
+                  />
+                </FormField>
+                <FormField label="Maks. Karakter" hint="Boşsa 30 kullanılır.">
+                  <TextInput
+                    type="number"
+                    value={formData.persMaxChars}
+                    onChange={(e) => setFormData({ ...formData, persMaxChars: e.target.value })}
+                    placeholder="30"
+                    min="1"
+                    data-testid="input-personalization-maxchars"
+                  />
+                </FormField>
+              </div>
+            )}
           </div>
 
           {/* Kategoriler */}

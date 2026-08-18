@@ -50,8 +50,10 @@ export default function AdminLayout({
     setMobileMenuOpen(false);
   };
 
+  // h-screen + overflow-hidden: sayfa kaydırması yalnızca içerik alanında;
+  // sidebar ve üst bar sabit kalır
   return (
-    <div className="admin-font min-h-screen bg-white text-neutral-900 flex">
+    <div className="admin-font admin-shell overflow-hidden bg-white text-neutral-900 flex">
       {mobileMenuOpen && (
         <div
           className="fixed inset-0 bg-black/30 z-40 md:hidden"
@@ -86,7 +88,7 @@ export default function AdminLayout({
           </button>
         </div>
 
-        <nav className="flex-1 px-3 py-3 overflow-y-auto">
+        <nav className="admin-sidebar-scroll flex-1 px-3 py-3 overflow-y-auto">
           {sidebarCategories.map((category, catIndex) => (
             <div key={category.title} className={catIndex > 0 ? 'mt-4' : ''}>
               <p className="px-2 py-1.5 text-[10px] font-medium text-neutral-400 uppercase tracking-[0.08em]">

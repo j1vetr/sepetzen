@@ -91,6 +91,9 @@ interface OrderItem {
   quantity: number;
   price: string;
   subtotal: string;
+  /** Kişiselleştirme (isim yazdırma) yazısı ve birim ek ücreti (fiyata dahil). */
+  personalizationText?: string | null;
+  personalizationFee?: string | null;
 }
 
 interface OrderNote {
@@ -795,6 +798,14 @@ export default function AdminOrderDetail() {
                       {item.variantDetails && (
                         <p className="text-[11px] text-neutral-500 mt-1">
                           {item.variantDetails}
+                        </p>
+                      )}
+                      {item.personalizationText && (
+                        <p className="text-[11px] text-amber-700 bg-amber-50 border border-amber-200 rounded px-1.5 py-0.5 mt-1 inline-block" data-testid={`text-personalization-${item.productId}`}>
+                          Kişiselleştirme: “{item.personalizationText}”
+                          {item.personalizationFee && parseFloat(item.personalizationFee) > 0 && (
+                            <span className="text-amber-600"> (+₺{formatCurrency(item.personalizationFee)})</span>
+                          )}
                         </p>
                       )}
                       {item.sku && (

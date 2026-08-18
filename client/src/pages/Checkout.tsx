@@ -22,6 +22,7 @@ import { GoogleAuthButton } from '@/components/AuthLayout';
 import { BANK_TRANSFER_INFO } from '@shared/bankInfo';
 import { InvoiceFields, emptyInvoiceForm, invoiceFormFrom, invoicePayload, validateInvoiceForm, type InvoiceFormValue } from '@/components/InvoiceFields';
 import { useShippingSettings } from '@/hooks/useShippingSettings';
+import { ComplementaryProducts } from '@/components/ComplementaryProducts';
 
 interface Product {
   id: string;
@@ -29,6 +30,12 @@ interface Product {
   slug: string;
   basePrice: string;
   images: string[];
+  personalization?: {
+    enabled: boolean;
+    fee?: string;
+    label?: string;
+    maxChars?: number;
+  } | null;
 }
 
 interface UserAddress {
@@ -879,7 +886,14 @@ export default function Checkout() {
 
   const itemsList = (compact: boolean) => (
     <div className="space-y-3">
-      {cartItemsWithProducts.map((item) => (
+      {cartItemsWithProducts.map((item) => {
+        // Satır fiyatı: varyant fiyatı (yoksa taban fiyat) + kişiselleştirme
+        // ek ücreti — sepet sayfası ve useCart.subtotal ile aynı hesap.
+        const persFee = item.personalizationText && item.product?.personalization?.enabled
+          ? parseFloat(item.product.personalization.fee || '0') || 0
+          : 0;
+        const unitPrice = parseFloat(item.variant?.price || item.product?.basePrice || '0') + persFee;
+        return (
         <div key={item.id} className="flex gap-3 items-center min-w-0">
           <div className={`${compact ? 'w-11 h-12' : 'w-14 h-16'} bg-white/8 rounded-md overflow-hidden shrink-0`}>
             {item.product?.images?.[0] && (
@@ -888,13 +902,17 @@ export default function Checkout() {
           </div>
           <div className="flex-1 min-w-0">
             <p className="text-[12.5px] font-medium text-white truncate">{item.product?.name || 'Ürün'}</p>
+            {item.personalizationText && (
+              <p className="text-[11px] text-white/45 mt-0.5 truncate">Kişiselleştirme: “{item.personalizationText}”</p>
+            )}
             <p className="text-[11px] text-white/45 mt-0.5">Adet {item.quantity}</p>
           </div>
           <p className="text-[13px] font-bold text-white tabular-nums shrink-0">
-            {(parseFloat(item.product?.basePrice || '0') * item.quantity).toLocaleString('tr-TR')} ₺
+            {(unitPrice * item.quantity).toLocaleString('tr-TR')} ₺
           </p>
         </div>
-      ))}
+        );
+      })}
     </div>
   );
 
@@ -1114,6 +1132,12 @@ export default function Checkout() {
                 >
                   <div className="px-4 pb-4 pt-3 border-t border-white/8 space-y-4">
                     {itemsList(true)}
+                    {items.length > 0 && !checkoutFormContent && !paymentPageUrl && !paytrIframeUrl && (
+                      <ComplementaryProducts
+                        baseProductIds={items.map(i => i.productId)}
+                        className="rounded-lg overflow-hidden"
+                      />
+                    )}
                     {couponBox}
                     {summaryRows}
                   </div>
@@ -1971,6 +1995,18 @@ export default function Checkout() {
                 <h2 className="font-display text-[17px] tracking-[0.1em] text-white mb-4">SİPARİŞ ÖZETİ</h2>
 
                 <div className="pb-4 border-b border-white/8 max-h-56 overflow-y-auto pr-1">{itemsList(false)}</div>
+
+                {/* Tamamlayıcı ürünler: son fırsat çapraz satış.
+                    Ödeme oturumu (iyzico/PayTR) oluşturulduktan sonra gizlenir;
+                    sepet değişirse oturum tutarıyla uyumsuzluk oluşurdu. */}
+                {items.length > 0 && !checkoutFormContent && !paymentPageUrl && !paytrIframeUrl && (
+                  <div className="py-4 border-b border-white/8">
+                    <ComplementaryProducts
+                      baseProductIds={items.map(i => i.productId)}
+                      className="rounded-lg overflow-hidden"
+                    />
+                  </div>
+                )}
 
                 <div className="py-4 border-b border-white/8">{couponBox}</div>
 

@@ -11,6 +11,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { SEO } from '@/components/SEO';
 import { BANK_TRANSFER_DISCOUNT_RATE } from '@shared/bankInfo';
 import { useShippingSettings } from '@/hooks/useShippingSettings';
+import { ComplementaryProducts } from '@/components/ComplementaryProducts';
 
 export default function Cart() {
   const { items, isLoading, updateQuantity, removeItem, totalItems, subtotal } = useCart();
@@ -119,9 +120,14 @@ export default function Cart() {
 
                 <AnimatePresence mode="popLayout">
                   {items.map((item, index) => {
+                    // Kişiselleştirme yazısı olan satıra ürünün ek ücreti eklenir
+                    // (useCart.subtotal ile aynı hesap).
+                    const persFee = item.personalizationText && item.product?.personalization?.enabled
+                      ? parseFloat(item.product.personalization.fee || '0') || 0
+                      : 0;
                     const itemPrice = parseFloat(
                       item.variant?.price || item.product?.basePrice || '0'
-                    );
+                    ) + persFee;
                     const lineTotal = itemPrice * item.quantity;
                     const product = item.product;
                     const variant = item.variant;
@@ -179,6 +185,14 @@ export default function Cart() {
                                     {variant.color}
                                   </span>
                                 )}
+                              </div>
+                            )}
+                            {item.personalizationText && (
+                              <div className="flex items-center gap-2 mt-1.5 flex-wrap" data-testid={`text-personalization-${item.id}`}>
+                                <span className="text-xs px-2 py-0.5 bg-white/8 rounded text-white/60">
+                                  Kişiselleştirme: “{item.personalizationText}”
+                                  {persFee > 0 && <span className="text-white/45"> (+{persFee.toLocaleString('tr-TR', { maximumFractionDigits: 0 })} ₺)</span>}
+                                </span>
                               </div>
                             )}
                             <p className="text-xs text-white/50 mt-1.5">Tahmini Teslimat: 1–3 İş Günü</p>
@@ -241,6 +255,14 @@ export default function Cart() {
                 </AnimatePresence>
               </div>
 
+              {/* Tamamlayıcı ürünler: sepettekilerle aynı kategoriden hızlı
+                  ekleme. Liste bileşen içinde ilk açılışta sabitlenir; ekleme
+                  yapılınca satır kaybolmaz, işaret geri kaldırılabilir. */}
+              <ComplementaryProducts
+                baseProductIds={items.map(i => i.productId)}
+                className="rounded-lg overflow-hidden"
+              />
+
               {/* Havale info banner */}
               <div className="bg-[#141414] border border-black rounded-lg p-3 flex items-start gap-2 text-sm">
                 <Info size={18} className="text-white/70 shrink-0 mt-0.5" />
@@ -294,7 +316,7 @@ export default function Cart() {
 
                 <Link href="/odeme">
                   <button
-                    className="all-cats-gold w-full py-3.5 rounded-sm font-bold text-base tracking-[0.12em] uppercase mb-3 flex items-center justify-center gap-2"
+                    className="all-cats-gold !rounded-lg w-full py-3.5 font-bold text-base tracking-[0.12em] uppercase mb-3 flex items-center justify-center gap-2"
                     data-testid="button-checkout"
                   >
                     ÖDEMEYE GEÇ
@@ -393,7 +415,7 @@ export default function Cart() {
             </div>
             <Link href="/odeme" className="flex-[1.5]">
               <button
-                className="all-cats-gold w-full font-bold py-3.5 px-4 rounded-sm tracking-[0.12em] uppercase flex items-center justify-center"
+                className="all-cats-gold !rounded-lg w-full font-bold py-3.5 px-4 tracking-[0.12em] uppercase flex items-center justify-center"
                 data-testid="button-checkout-mobile"
               >
                 ÖDEMEYE GEÇ

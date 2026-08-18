@@ -16,7 +16,7 @@ import PDFDocument from "pdfkit";
 import sharp from "sharp";
 import { cache, CACHE_KEYS, CACHE_TTL } from "./cache";
 import { eq, desc, sql, ilike, or, inArray, isNotNull } from "drizzle-orm";
-import { insertAdminUserSchema, insertCategorySchema, insertProductSchema, insertProductVariantSchema, insertCartItemSchema, insertOrderSchema, insertOrderItemSchema, insertUserSchema, adminUpdateUserSchema, couponRedemptions, orders, coupons, products, stockAdjustments, productCategories, productVariants, users, categories, blogPosts, pages, productReviews, orderItems, marketplaceProducts, marketplaces as marketplacesTable } from "@shared/schema";
+import { insertAdminUserSchema, insertCategorySchema, insertProductSchema, insertProductVariantSchema, insertCartItemSchema, insertOrderSchema, insertOrderItemSchema, insertUserSchema, adminUpdateUserSchema, personalizationConfigSchema, couponRedemptions, orders, coupons, products, stockAdjustments, productCategories, productVariants, users, categories, blogPosts, pages, productReviews, orderItems, marketplaceProducts, marketplaces as marketplacesTable } from "@shared/schema";
 import { optimizeImage, optimizeImageBuffer, optimizeUploadedFiles, verifyImageContent } from "./imageOptimizer";
 import {
   sendWelcomeEmail,
@@ -2315,6 +2315,7 @@ KURALLAR:
           id: item.id,
           productName: item.productName,
           variantDetails: item.variantDetails,
+          personalizationText: item.personalizationText,
           quantity: item.quantity,
           subtotal: item.subtotal,
         })),
@@ -2513,6 +2514,84 @@ KURALLAR:
     }
   });
 
+  // Tamamlayıcı ürün önerileri: verilen ürünlerle aynı kategorideki diğer
+  // aktif ürünler (öncelik ortak kategori, yetmezse diğerleri). Tek tıkla
+  // sepete eklenebilmesi için stoktaki varsayılan varyant da döndürülür.
+  app.get("/api/complementary-products", async (req, res) => {
+    try {
+      const ids = String(req.query.ids || '')
+        .split(',')
+        .map((s) => s.trim())
+        .filter(Boolean)
+        .slice(0, 20);
+      if (ids.length === 0) return res.json([]);
+
+      const limit = Math.min(Math.max(parseInt(String(req.query.limit || '3'), 10) || 3, 1), 6);
+
+      // Kaynak ürünlerin kategori kümesi (çoklu kategori + eski categoryId)
+      const baseCategorySet = new Set<string>();
+      for (const id of ids) {
+        const product = await storage.getProduct(id);
+        if (!product) continue;
+        if (product.categoryId) baseCategorySet.add(product.categoryId);
+        for (const cid of await storage.getProductCategoryIds(id)) baseCategorySet.add(cid);
+      }
+
+      const allProducts = await storage.getProducts({});
+      const excluded = new Set(ids);
+      // Aday taraması sınırlandırılır: her aday için varyant + kategori
+      // sorgusu yapıldığından katalog büyüse de istek maliyeti sabit kalır.
+      const MAX_SCAN = 60;
+      let scanned = 0;
+
+      type Row = {
+        id: string; name: string; slug: string; image: string | null;
+        price: string; discountBadge: string | null;
+        variantId: string; requiresSelection: boolean;
+      };
+      const shared: Row[] = [];
+      const fillers: Row[] = [];
+
+      for (const p of allProducts) {
+        if (excluded.has(p.id) || !p.isActive) continue;
+        if (shared.length >= limit || scanned >= MAX_SCAN) break;
+        scanned++;
+
+        const variants = (await storage.getProductVariants(p.id))
+          .filter((v) => v.isActive && v.stock > 0);
+        if (variants.length === 0) continue;
+
+        // Birden fazla seçilebilir seçenek (beden/renk) varsa müşteri ürün
+        // sayfasında seçim yapmalı; otomatik varyant atanmaz.
+        const optionKeys = new Set(variants.map((v) => `${v.size || ''}|${v.color || ''}`));
+        const requiresSelection = optionKeys.size > 1;
+        const defaultVariant = variants[0];
+
+        const catIds = new Set<string>(await storage.getProductCategoryIds(p.id));
+        if (p.categoryId) catIds.add(p.categoryId);
+        const isShared = Array.from(catIds).some((c) => baseCategorySet.has(c));
+
+        const row: Row = {
+          id: p.id,
+          name: p.name,
+          slug: p.slug,
+          image: p.images?.[0] || null,
+          price: defaultVariant.price || p.basePrice,
+          discountBadge: p.discountBadge || null,
+          variantId: defaultVariant.id,
+          requiresSelection,
+        };
+        if (isShared) shared.push(row);
+        else if (fillers.length < limit) fillers.push(row);
+      }
+
+      res.json([...shared, ...fillers].slice(0, limit));
+    } catch (error) {
+      console.error('[Complementary] Error:', error);
+      res.status(500).json({ error: "Öneriler yüklenemedi" });
+    }
+  });
+
   app.post("/api/admin/products", requireAdmin, async (req, res) => {
     try {
       const { categoryIds, initialStock, variants: variantsInput, ...productData } = req.body;
@@ -2619,6 +2698,17 @@ KURALLAR:
     try {
       const { categoryIds, variants: variantsInput, ...productData } = req.body;
       console.log('Updating product:', req.params.id, 'with data:', JSON.stringify(productData, null, 2));
+      // Kişiselleştirme ayarı PATCH ile geldiyse şemadan geçirilir; geçersiz
+      // ücret/etiket/maxChars değerleri kayda hiç ulaşmadan reddedilir.
+      if (productData.personalization !== undefined) {
+        const persParsed = personalizationConfigSchema.safeParse(productData.personalization);
+        if (!persParsed.success) {
+          return res.status(400).json({
+            error: persParsed.error.errors[0]?.message || 'Kişiselleştirme ayarı geçersiz',
+          });
+        }
+        productData.personalization = persParsed.data ?? null;
+      }
       // Doğrulama, ürün güncellenmeden ÖNCE yapılır ki geçersiz varyant
       // verisi yarım kalmış bir kayda yol açmasın. Fiyatı boş bırakılan
       // varyantlar ürünün (yeni ya da mevcut) taban fiyatına düşer.
@@ -3100,11 +3190,27 @@ Bu ürün için 4 bölümlü HTML açıklama üret. Teknik Özellikler bölümü
   app.post("/api/cart", async (req: Request, res) => {
     try {
       const cartToken = getOrCreateCartToken(req, res);
-      const { productId, variantId: rawVariantId, quantity } = req.body;
+      const { productId, variantId: rawVariantId, quantity, personalizationText: rawPersonalization } = req.body;
 
       const product = await storage.getProduct(productId);
       if (!product) {
         return res.status(400).json({ error: "Geçersiz ürün" });
+      }
+
+      // Kişiselleştirme yazısı yalnızca ürün ayarı açıksa kabul edilir.
+      // Ücret istemciden alınmaz; ödeme anında ürün ayarından hesaplanır.
+      let personalizationText: string | null = null;
+      if (typeof rawPersonalization === 'string' && rawPersonalization.trim() !== '') {
+        const pers = product.personalization;
+        if (!pers?.enabled) {
+          return res.status(400).json({ error: "Bu ürün için kişiselleştirme mevcut değil" });
+        }
+        const maxChars = pers.maxChars && pers.maxChars > 0 ? pers.maxChars : 30;
+        const trimmed = rawPersonalization.trim().replace(/\s+/g, ' ');
+        if (trimmed.length > maxChars) {
+          return res.status(400).json({ error: `Kişiselleştirme yazısı en fazla ${maxChars} karakter olabilir` });
+        }
+        personalizationText = trimmed;
       }
 
       // Sepetzen artık varyantsız (her ürün tek başına). Eğer client variant
@@ -3163,6 +3269,7 @@ Bu ürün için 4 bölümlü HTML açıklama üret. Teknik Özellikler bölümü
         variantId,
         quantity: quantity || 1,
         sessionId: cartToken,
+        personalizationText,
       });
       const item = await storage.addToCart(validated);
       res.status(201).json(item);
@@ -3604,6 +3711,20 @@ Bu ürün için 4 bölümlü HTML açıklama üret. Teknik Özellikler bölümü
     }
   });
 
+  // Kişiselleştirme birim ek ücreti: yalnızca ürün ayarı açık VE satırda yazı
+  // varsa uygulanır. Ücret her zaman ürünün GÜNCEL ayarından okunur; istemciden
+  // ya da sepetten gelen tutara güvenilmez.
+  const personalizationFeeFor = (
+    product: { personalization?: { enabled: boolean; fee?: string } | null },
+    text: string | null | undefined,
+  ): number => {
+    if (!text || !product.personalization?.enabled) return 0;
+    const fee = parseFloat(product.personalization.fee || '0');
+    // Yalnızca sonlu ve negatif olmayan değerler; bozuk kayıt = ücretsiz
+    // (kayıt anındaki şema doğrulaması geçersiz değeri zaten reddediyor).
+    return Number.isFinite(fee) && fee > 0 ? fee : 0;
+  };
+
   // iyzico Payment API
   app.post("/api/payment/create", async (req: Request, res) => {
     try {
@@ -3654,6 +3775,8 @@ Bu ürün için 4 bölümlü HTML açıklama üret. Teknik Özellikler bölümü
         productName: string;
         variantDetails: string | null;
         price: string;
+        personalizationText?: string | null;
+        personalizationFee?: string | null;
       }> = [];
 
       const iyzicoBasketItems: IyzicoBasketItem[] = [];
@@ -3684,9 +3807,10 @@ Bu ürün için 4 bölümlü HTML açıklama üret. Teknik Özellikler bölümü
             });
           }
           // Fiyat, seçilen varyantın fiyatıdır (müşterinin gördüğü fiyat);
-          // varyant fiyatı yoksa ürün taban fiyatına düşülür.
-          const unitPriceStr = variant?.price || product.basePrice;
-          const itemPrice = parseFloat(unitPriceStr);
+          // varyant fiyatı yoksa ürün taban fiyatına düşülür. Kişiselleştirme
+          // ek ücreti birim fiyata sunucu tarafında eklenir.
+          const persFee = personalizationFeeFor(product, cartItem.personalizationText);
+          const itemPrice = parseFloat(variant?.price || product.basePrice) + persFee;
           serverSubtotal += itemPrice * cartItem.quantity;
 
           cartItemsForStorage.push({
@@ -3695,7 +3819,9 @@ Bu ürün için 4 bölümlü HTML açıklama üret. Teknik Özellikler bölümü
             quantity: cartItem.quantity,
             productName: product.name,
             variantDetails: variant ? `${variant.size || ''} ${variant.color || ''}`.trim() : null,
-            price: unitPriceStr,
+            price: itemPrice.toFixed(2),
+            personalizationText: cartItem.personalizationText || null,
+            personalizationFee: persFee > 0 ? persFee.toFixed(2) : null,
           });
 
           // iyzico basket: one row per unit so sum(basketItems.price) === price
@@ -4016,6 +4142,8 @@ Bu ürün için 4 bölümlü HTML açıklama üret. Teknik Özellikler bölümü
         productName: string;
         variantDetails: string | null;
         price: string;
+        personalizationText?: string | null;
+        personalizationFee?: string | null;
       }> = [];
 
       for (const cartItem of cartItems) {
@@ -4041,8 +4169,9 @@ Bu ürün için 4 bölümlü HTML açıklama üret. Teknik Özellikler bölümü
             });
           }
           // Varyant fiyatı esas alınır (müşterinin gördüğü fiyat).
-          const unitPriceStr = variant?.price || product.basePrice;
-          const itemPrice = parseFloat(unitPriceStr);
+          // Kişiselleştirme ek ücreti birim fiyata sunucu tarafında eklenir.
+          const persFee = personalizationFeeFor(product, cartItem.personalizationText);
+          const itemPrice = parseFloat(variant?.price || product.basePrice) + persFee;
           serverSubtotal += itemPrice * cartItem.quantity;
           cartItemsForOrder.push({
             productId: product.id,
@@ -4050,7 +4179,9 @@ Bu ürün için 4 bölümlü HTML açıklama üret. Teknik Özellikler bölümü
             quantity: cartItem.quantity,
             productName: product.name,
             variantDetails: variant ? `${variant.size || ''} ${variant.color || ''}`.trim() : null,
-            price: unitPriceStr,
+            price: itemPrice.toFixed(2),
+            personalizationText: cartItem.personalizationText || null,
+            personalizationFee: persFee > 0 ? persFee.toFixed(2) : null,
           });
         }
       }
@@ -4152,6 +4283,8 @@ Bu ürün için 4 bölümlü HTML açıklama üret. Teknik Özellikler bölümü
           price: item.price,
           quantity: item.quantity,
           subtotal: (parseFloat(item.price) * item.quantity).toFixed(2),
+          personalizationText: item.personalizationText || null,
+          personalizationFee: item.personalizationFee || null,
         });
       }
 
@@ -4263,6 +4396,8 @@ Bu ürün için 4 bölümlü HTML açıklama üret. Teknik Özellikler bölümü
         price: item.price,
         quantity: item.quantity,
         subtotal: (parseFloat(item.price) * item.quantity).toFixed(2),
+        personalizationText: item.personalizationText || null,
+        personalizationFee: item.personalizationFee || null,
       });
 
       if (item.variantId) {
@@ -5018,7 +5153,9 @@ Bu ürün için 4 bölümlü HTML açıklama üret. Teknik Özellikler bölümü
             });
           }
           // Varyant fiyatı esas alınır (müşterinin gördüğü fiyat).
-          const itemPrice = parseFloat(variant?.price || product.basePrice);
+          // Kişiselleştirme ek ücreti birim fiyata sunucu tarafında eklenir.
+          const itemPrice = parseFloat(variant?.price || product.basePrice)
+            + personalizationFeeFor(product, cartItem.personalizationText);
           serverSubtotal += itemPrice * cartItem.quantity;
         }
       }
@@ -5112,15 +5249,19 @@ Bu ürün için 4 bölümlü HTML açıklama üret. Teknik Özellikler bölümü
         const product = await storage.getProduct(actualProductId);
 
         if (product) {
+          const persFee = personalizationFeeFor(product, cartItem.personalizationText);
+          const unitPrice = parseFloat(variant?.price || product.basePrice) + persFee;
           await storage.createOrderItem({
             orderId: order.id,
             productId: product.id,
             variantId: variant?.id,
             productName: product.name,
             variantDetails: variant ? `${variant.size || ''} ${variant.color || ''}`.trim() : null,
-            price: variant?.price || product.basePrice,
+            price: unitPrice.toFixed(2),
             quantity: cartItem.quantity,
-            subtotal: ((parseFloat(variant?.price || product.basePrice) * cartItem.quantity).toFixed(2)),
+            subtotal: (unitPrice * cartItem.quantity).toFixed(2),
+            personalizationText: cartItem.personalizationText || null,
+            personalizationFee: persFee > 0 ? persFee.toFixed(2) : null,
           });
 
           // Reduce stock for the variant
@@ -8021,11 +8162,16 @@ window.addEventListener('load', function() {
           // Use variant's productId if available to ensure consistency
           const actualProductId = variant?.productId || item.productId;
           const product = await storage.getProduct(actualProductId);
+          // Birim fiyat: müşterinin gördüğü varyant fiyatı (yoksa taban fiyat)
+          // + kişiselleştirme ek ücreti (yazı varsa ve ayar açıksa).
+          const unitBase = parseFloat(variant?.price || product?.basePrice || '0') || 0;
+          const persFee = product ? personalizationFeeFor(product, item.personalizationText) : 0;
           return {
             productName: product?.name || 'Ürün',
             variantDetails: variant ? `${variant.size || ''} ${variant.color || ''}`.trim() : '',
-            price: product?.basePrice || '0',
+            price: (unitBase + persFee).toFixed(2),
             quantity: item.quantity,
+            personalizationText: item.personalizationText || undefined,
           };
         })
       );

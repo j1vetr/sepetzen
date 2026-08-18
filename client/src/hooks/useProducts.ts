@@ -42,6 +42,14 @@ export interface Product {
 
   } | null;
 
+  // Kişiselleştirme (isim yazdırma) ayarı; null/undefined = kapalı
+  personalization?: {
+    enabled: boolean;
+    fee?: string;
+    label?: string;
+    maxChars?: number;
+  } | null;
+
   createdAt: string;
 
   updatedAt: string;

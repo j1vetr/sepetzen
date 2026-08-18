@@ -400,6 +400,15 @@ function welcomeEmailTemplate(userName: string): string {
 
 type OrderItemForEmail = OrderItem & { productImage?: string | null };
 
+// Kişiselleştirme (isim yazdırma) satırı: yazı ve varsa birim ek ücret.
+function personalizationRowHtml(item: OrderItem): string {
+  if (!item.personalizationText) return '';
+  const feeNote = item.personalizationFee && parseFloat(item.personalizationFee) > 0
+    ? ` (+${escapeHtml(item.personalizationFee)} ₺)`
+    : '';
+  return `<div style="font-family:Helvetica,Arial,sans-serif;color:${BRAND.muted};font-size:12px;line-height:1.5;margin-top:3px;">Kişiselleştirme: &ldquo;${escapeHtml(item.personalizationText)}&rdquo;${feeNote}</div>`;
+}
+
 function orderConfirmationTemplate(order: Order, items: OrderItemForEmail[], siteUrl: string = CONTACT.siteUrl): string {
   const itemRows = items.map(item => {
     const img = item.productImage;
@@ -414,6 +423,7 @@ function orderConfirmationTemplate(order: Order, items: OrderItemForEmail[], sit
       <td style="padding:14px 0;border-bottom:1px solid ${BRAND.borderSoft};vertical-align:top;">
         <div style="font-family:Helvetica,Arial,sans-serif;color:${BRAND.ink};font-size:14px;font-weight:600;line-height:1.4;">${escapeHtml(item.productName)}</div>
         ${item.variantDetails ? `<div style="font-family:Helvetica,Arial,sans-serif;color:${BRAND.muted};font-size:12px;line-height:1.5;margin-top:3px;">${escapeHtml(item.variantDetails)}</div>` : ''}
+        ${personalizationRowHtml(item)}
         <div style="font-family:Helvetica,Arial,sans-serif;color:${BRAND.muted};font-size:12px;line-height:1.5;margin-top:3px;">Adet: ${escapeHtml(item.quantity)}</div>
       </td>
       <td align="right" style="padding:14px 0;border-bottom:1px solid ${BRAND.borderSoft};vertical-align:top;font-family:Helvetica,Arial,sans-serif;color:${BRAND.ink};font-size:14px;font-weight:700;white-space:nowrap;">${escapeHtml(item.subtotal)}&nbsp;₺</td>
@@ -590,6 +600,7 @@ function bankTransferPendingTemplate(order: Order, items: OrderItemForEmail[], s
       <td style="padding:14px 0;border-bottom:1px solid ${BRAND.borderSoft};vertical-align:top;">
         <div style="font-family:Helvetica,Arial,sans-serif;color:${BRAND.ink};font-size:14px;font-weight:600;line-height:1.4;">${escapeHtml(item.productName)}</div>
         ${item.variantDetails ? `<div style="font-family:Helvetica,Arial,sans-serif;color:${BRAND.muted};font-size:12px;line-height:1.5;margin-top:3px;">${escapeHtml(item.variantDetails)}</div>` : ''}
+        ${personalizationRowHtml(item)}
         <div style="font-family:Helvetica,Arial,sans-serif;color:${BRAND.muted};font-size:12px;line-height:1.5;margin-top:3px;">Adet: ${escapeHtml(item.quantity)}</div>
       </td>
       <td align="right" style="padding:14px 0;border-bottom:1px solid ${BRAND.borderSoft};vertical-align:top;font-family:Helvetica,Arial,sans-serif;color:${BRAND.ink};font-size:14px;font-weight:700;white-space:nowrap;">${escapeHtml(item.subtotal)}&nbsp;₺</td>
@@ -685,7 +696,7 @@ function bankTransferPendingTemplate(order: Order, items: OrderItemForEmail[], s
 function adminOrderNotificationTemplate(order: Order, items: OrderItem[]): string {
   const itemRows = items.map(item => `
     <tr>
-      <td style="padding:10px 12px;border-bottom:1px solid ${BRAND.borderSoft};color:${BRAND.ink};font-size:13px;">${escapeHtml(item.productName)}</td>
+      <td style="padding:10px 12px;border-bottom:1px solid ${BRAND.borderSoft};color:${BRAND.ink};font-size:13px;">${escapeHtml(item.productName)}${personalizationRowHtml(item)}</td>
       <td style="padding:10px 12px;border-bottom:1px solid ${BRAND.borderSoft};color:${BRAND.body};font-size:12px;">${escapeHtml(item.variantDetails || '-')}</td>
       <td align="center" style="padding:10px 12px;border-bottom:1px solid ${BRAND.borderSoft};color:${BRAND.body};font-size:13px;">${escapeHtml(item.quantity)}</td>
       <td align="right" style="padding:10px 12px;border-bottom:1px solid ${BRAND.borderSoft};color:${BRAND.ink};font-size:13px;font-weight:700;white-space:nowrap;">${escapeHtml(item.subtotal)}&nbsp;₺</td>
@@ -804,6 +815,8 @@ interface CartItem {
   price: string;
   quantity: number;
   imageUrl?: string;
+  /** Kişiselleştirme yazısı (fiyat alanı ek ücret dahil gelir). */
+  personalizationText?: string;
 }
 
 function abandonedCartTemplate(userName: string, cartItems: CartItem[], cartTotal: number, siteUrl: string = CONTACT.siteUrl, userEmail?: string): string {
@@ -811,6 +824,7 @@ function abandonedCartTemplate(userName: string, cartItems: CartItem[], cartTota
     <tr>
       <td style="padding:12px 0;border-bottom:1px solid ${BRAND.borderSoft};vertical-align:top;">
         <div style="font-family:Helvetica,Arial,sans-serif;color:${BRAND.ink};font-size:14px;font-weight:600;">${escapeHtml(item.productName)}</div>
+        ${item.personalizationText ? `<div style="font-family:Helvetica,Arial,sans-serif;color:${BRAND.muted};font-size:12px;margin-top:3px;">Kişiselleştirme: &ldquo;${escapeHtml(item.personalizationText)}&rdquo;</div>` : ''}
         <div style="font-family:Helvetica,Arial,sans-serif;color:${BRAND.muted};font-size:12px;margin-top:3px;">${escapeHtml(item.variantDetails || '')}${item.variantDetails ? ' · ' : ''}Adet: ${escapeHtml(item.quantity)}</div>
       </td>
       <td align="right" style="padding:12px 0;border-bottom:1px solid ${BRAND.borderSoft};vertical-align:top;font-family:Helvetica,Arial,sans-serif;color:${BRAND.ink};font-size:14px;font-weight:700;white-space:nowrap;">${escapeHtml(item.price)}&nbsp;₺</td>

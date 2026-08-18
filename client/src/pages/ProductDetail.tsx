@@ -79,6 +79,7 @@ import { useFreeShippingThreshold } from '@/hooks/useShippingSettings';
 import { formatShippingThreshold } from '@shared/shipping';
 
 import { getOriginalPrice } from '@/lib/discountPrice';
+import { ComplementaryProducts } from '@/components/ComplementaryProducts';
 import { useProduct, useProducts, useCategories } from '@/hooks/useProducts';
 import { useCart } from '@/hooks/useCart';
 import { useCartModal } from '@/hooks/useCartModal';
@@ -703,6 +704,8 @@ export default function ProductDetail() {
   const [selectedImage, setSelectedImage] = useState(0);
   const [quantity, setQuantity] = useState(1);
   const [isAdding, setIsAdding] = useState(false);
+  // Kişiselleştirme (isim yazdırma) yazısı — ürün ayarı açıksa görünür.
+  const [personalizationText, setPersonalizationText] = useState('');
 
   // ── Varyant seçimi ──
   // Aktif varyantlar arasından beden/renk seçilir; tek aktif varyantta
@@ -923,6 +926,7 @@ export default function ProductDetail() {
     setSelectedImage(0);
     setQuantity(1);
     setShowReviewForm(false);
+    setPersonalizationText('');
   }, [product?.id]);
 
   const handleHeroMove = (e: React.MouseEvent<HTMLDivElement>) => {
@@ -947,8 +951,10 @@ export default function ProductDetail() {
       const variant = showVariantPicker
         ? selectedVariant!
         : activeVariants.find((v) => v.stock > 0) || activeVariants[0];
-      await addToCart(product.id, variant?.id, quantity);
-      const unitPrice = variant?.price ? parseFloat(variant.price) : parseFloat(product.basePrice || '0');
+      const persText = product.personalization?.enabled ? personalizationText.trim() : '';
+      await addToCart(product.id, variant?.id, quantity, persText || undefined);
+      const persFeeApplied = persText ? (parseFloat(product.personalization?.fee || '0') || 0) : 0;
+      const unitPrice = (variant?.price ? parseFloat(variant.price) : parseFloat(product.basePrice || '0')) + persFeeApplied;
       const mainImage = product.images?.[0] ?? 'https://images.unsplash.com/photo-1618354691373-d851c5c3a990?w=600&h=800&fit=crop';
       showModal({ name: product.name, image: mainImage, price: unitPrice * quantity, quantity });
       setJustAdded(true);
@@ -1157,6 +1163,15 @@ export default function ProductDetail() {
     ? parseFloat(selectedVariant.price)
     : parseFloat(product.basePrice || '0');
   const originalPrice = getOriginalPrice(price, product.discountBadge);
+  // Kişiselleştirme ayarı (isim yazdırma): açık ise yazı alanı gösterilir,
+  // yazı girildiyse birim fiyata ek ücret yansıtılır.
+  const personalization = product.personalization;
+  const persEnabled = !!personalization?.enabled;
+  const persFee = persEnabled ? (parseFloat(personalization?.fee || '0') || 0) : 0;
+  const persLabel = personalization?.label?.trim() || 'Yazdırılacak isim';
+  const persMaxChars = personalization?.maxChars && personalization.maxChars > 0 ? personalization.maxChars : 30;
+  const persApplied = persEnabled && personalizationText.trim() !== '';
+  const displayPrice = price + (persApplied ? persFee : 0);
   const visibleDiscountBadge = !isFreeShippingPromotion(product.discountBadge)
     ? product.discountBadge
     : null;
@@ -1751,8 +1766,13 @@ export default function ProductDetail() {
                     className="font-display text-4xl sm:text-5xl lg:text-[42px] xl:text-5xl font-bold text-white tabular-nums tracking-[0.02em]"
                   data-testid="text-product-price"
                 >
-                  {price.toLocaleString('tr-TR', { minimumFractionDigits: 2 })} ₺
+                  {displayPrice.toLocaleString('tr-TR', { minimumFractionDigits: 2 })} ₺
                 </span>
+                {persApplied && (
+                  <span className="text-[11px] text-white/45 tabular-nums" data-testid="text-personalization-fee-note">
+                    isim yazdırma dahil (+{persFee.toLocaleString('tr-TR', { maximumFractionDigits: 0 })} ₺)
+                  </span>
+                )}
               </div>
 
               {/* Varyant seçici (beden/renk) */}
@@ -1856,6 +1876,39 @@ export default function ProductDetail() {
                   <ShippingCountdown />
                 </div>
 
+                {/* Kişiselleştirme: ek ücretli isim yazdırma alanı */}
+                {persEnabled && !isOutOfStock && (
+                  <div className="border border-white/12 bg-white/[0.03] p-3 space-y-2" data-testid="section-personalization">
+                    <div className="flex items-center justify-between gap-2">
+                      <label htmlFor="personalization-input" className="text-[10px] tracking-[0.22em] uppercase text-white/50 font-semibold">
+                        {persLabel}
+                        <span className="ml-1.5 text-white/35 tracking-normal normal-case">(isteğe bağlı)</span>
+                      </label>
+                      {persFee > 0 && (
+                        <span className="text-[11px] font-semibold text-white/70 tabular-nums whitespace-nowrap">
+                          +{persFee.toLocaleString('tr-TR', { maximumFractionDigits: 0 })} ₺
+                        </span>
+                      )}
+                    </div>
+                    <input
+                      id="personalization-input"
+                      type="text"
+                      value={personalizationText}
+                      onChange={(e) => setPersonalizationText(e.target.value.slice(0, persMaxChars))}
+                      maxLength={persMaxChars}
+                      placeholder="Örn: Ahmet"
+                      className="w-full h-10 bg-transparent border border-white/15 focus:border-white/40 outline-none px-3 text-[13px] text-white placeholder:text-white/25 transition-colors"
+                      data-testid="input-personalization"
+                    />
+                    <p className="text-[10.5px] text-white/35">
+                      {personalizationText.trim()
+                        ? `Ürüne "${personalizationText.trim()}" yazdırılacak${persFee > 0 ? ` · fiyata +${persFee.toLocaleString('tr-TR', { maximumFractionDigits: 0 })} ₺ eklenir` : ''}`
+                        : `Boş bırakırsanız yazdırma yapılmaz${persFee > 0 ? ', ek ücret alınmaz' : ''}`}
+                      <span className="text-white/25"> · {personalizationText.length}/{persMaxChars}</span>
+                    </p>
+                  </div>
+                )}
+
                 {/* Quantity + Add to cart */}
                 <div className="flex items-center gap-2">
                   <div className="flex items-center border border-white/12 shrink-0">
@@ -1923,7 +1976,13 @@ export default function ProductDetail() {
                 {/* WhatsApp */}
                 {!isOutOfStock && (
                   <a
-                    href={`https://wa.me/905366301138?text=${encodeURIComponent(`Merhaba, "${product.name}" ürününü sipariş vermek istiyorum. ${typeof window !== 'undefined' ? window.location.href : ''}`)}`}
+                    href={`https://wa.me/905366301138?text=${encodeURIComponent([
+                      `Merhaba, "${product.name}" ürününü sipariş vermek istiyorum.`,
+                      showVariantPicker && selectedVariant ? `Seçim: ${[selectedVariant.size, selectedVariant.color].filter(Boolean).join(' / ')}` : '',
+                      `Adet: ${quantity}`,
+                      persApplied ? `Kişiselleştirme (${persLabel}): "${personalizationText.trim()}"${persFee > 0 ? ` (+${persFee.toLocaleString('tr-TR', { maximumFractionDigits: 0 })} ₺)` : ''}` : '',
+                      typeof window !== 'undefined' ? window.location.href : '',
+                    ].filter(Boolean).join('\n'))}`}
                     target="_blank" rel="noopener noreferrer"
                     className="flex items-center justify-center gap-2 w-full h-10 lg:h-9 border border-[#25D366]/30 text-[#25D366] hover:bg-[#25D366]/6 transition-colors text-[11px] font-semibold tracking-[0.16em] uppercase"
                     data-testid="link-whatsapp-order"
@@ -1931,6 +1990,11 @@ export default function ProductDetail() {
                     <WhatsAppIcon className="w-4 h-4" />
                     WhatsApp ile Sipariş Ver
                   </a>
+                )}
+
+                {/* Tamamlayıcı ürünler: aynı kategoriden hızlı ekleme */}
+                {!isOutOfStock && (
+                  <ComplementaryProducts key={product.id} baseProductIds={[product.id]} className="mt-1" />
                 )}
 
                 {/* Favorilere Ekle + Paylaş */}
@@ -2355,7 +2419,7 @@ export default function ProductDetail() {
             <div className="flex-1 min-w-0">
               <p className="text-[10px] uppercase tracking-[0.16em] text-white/45 leading-tight truncate">{product.name}</p>
               <p className="text-lg font-bold text-white tabular-nums leading-tight">
-                {price.toLocaleString('tr-TR', { minimumFractionDigits: 2 })} ₺
+                {displayPrice.toLocaleString('tr-TR', { minimumFractionDigits: 2 })} ₺
               </p>
             </div>
             <motion.button

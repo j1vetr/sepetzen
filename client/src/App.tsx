@@ -110,6 +110,22 @@ function Router() {
   );
 }
 
+function AppShell() {
+  // Admin rotalarında alt gezinme çubuğu yok; spacer eklenirse sabit
+  // yükseklikli admin düzeninin altında belge kaydırması oluşur.
+  const [location] = useLocation();
+  const isAdmin = location.startsWith('/toov-admin');
+  return (
+    <div className={`relative w-full ${isAdmin ? '' : 'mobile-nav-spacer'}`}>
+      <GoogleAuthNotice />
+      <Toaster />
+      <Router />
+      <CookieConsent />
+      <MobileBottomNav />
+    </div>
+  );
+}
+
 function App() {
   return (
     <QueryClientProvider client={queryClient}>
@@ -117,13 +133,7 @@ function App() {
         <CartProvider>
           <CartModalProvider>
             <TooltipProvider>
-              <div className="relative w-full mobile-nav-spacer">
-                <GoogleAuthNotice />
-                <Toaster />
-                <Router />
-                <CookieConsent />
-                <MobileBottomNav />
-              </div>
+              <AppShell />
             </TooltipProvider>
           </CartModalProvider>
         </CartProvider>

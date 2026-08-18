@@ -55,6 +55,7 @@ interface OrderDetail {
     id: string;
     productName: string;
     variantDetails: string;
+    personalizationText?: string | null;
     quantity: number;
     subtotal: string;
   }>;
@@ -720,6 +721,11 @@ export default function OrderTracking() {
                         {item.variantDetails && (
                           <p className="text-[11px] text-white/50 mt-0.5">
                             {item.variantDetails}
+                          </p>
+                        )}
+                        {item.personalizationText && (
+                          <p className="text-[11px] text-white/50 mt-0.5">
+                            Kişiselleştirme: “{item.personalizationText}”
                           </p>
                         )}
                         <p className="text-[11px] text-white/55 mt-1">Adet: {item.quantity}</p>

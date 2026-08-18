@@ -167,6 +167,15 @@ export const products = pgTable("products", {
   tabDelivery: jsonb("tab_delivery").$type<Array<{title: string; rows: Array<{key: string; value: string}>}>>(),
   tabFaq: jsonb("tab_faq").$type<Array<{q: string; a: string}>>(),
   tabInstallmentNote: text("tab_installment_note"),
+  // Ek ücretli kişiselleştirme (isim yazdırma vb.). null = kapalı.
+  // fee decimal string olarak tutulur ("150.00"); sunucu ödeme anında
+  // ürünün güncel yapılandırmasından ücreti kendisi hesaplar.
+  personalization: jsonb("personalization").$type<{
+    enabled: boolean;
+    fee?: string;
+    label?: string;
+    maxChars?: number;
+  }>(),
   createdAt: timestamp("created_at").defaultNow().notNull(),
   updatedAt: timestamp("updated_at").defaultNow().notNull(),
 });
@@ -197,7 +206,20 @@ export const insertProductSchema = createInsertSchema(products).omit({
   })).nullable().optional(),
   tabFaq: z.array(z.object({ q: z.string(), a: z.string() })).nullable().optional(),
   tabInstallmentNote: z.string().nullable().optional(),
+  personalization: z.object({
+    enabled: z.boolean(),
+    // Ücret: negatif olmayan, en fazla 2 ondalıklı parasal değer.
+    // Serbest metin kabul edilmez; geçersiz değer kayıt anında reddedilir.
+    fee: z.string().regex(/^\d{1,8}([.,]\d{1,2})?$/, 'Kişiselleştirme ücreti geçersiz; örn: 150 veya 150.50')
+      .transform((v) => v.replace(',', '.'))
+      .optional(),
+    label: z.string().max(100).optional(),
+    maxChars: z.number().int().positive().max(200).optional(),
+  }).nullable().optional(),
 });
+
+/** Ürün kişiselleştirme ayarının tek başına doğrulanması için (örn. PATCH). */
+export const personalizationConfigSchema = insertProductSchema.shape.personalization;
 
 export type InsertProduct = z.infer<typeof insertProductSchema>;
 export type Product = typeof products.$inferSelect;
@@ -261,6 +283,9 @@ export const cartItems = pgTable("cart_items", {
   productId: varchar("product_id").references(() => products.id, { onDelete: "cascade" }).notNull(),
   variantId: varchar("variant_id").references(() => productVariants.id, { onDelete: "cascade" }),
   quantity: integer("quantity").default(1).notNull(),
+  // Müşterinin girdiği kişiselleştirme yazısı (ürün ayarı açıksa). Ücret
+  // burada saklanmaz; her zaman ürünün güncel ayarından hesaplanır.
+  personalizationText: text("personalization_text"),
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
 
@@ -350,6 +375,10 @@ export const orderItems = pgTable("order_items", {
   price: decimal("price", { precision: 10, scale: 2 }).notNull(),
   quantity: integer("quantity").notNull(),
   subtotal: decimal("subtotal", { precision: 10, scale: 2 }).notNull(),
+  // Kişiselleştirme anlık görüntüsü: sipariş anındaki yazı ve birim ek ücret.
+  // price alanı ücret DAHİL birim fiyattır; fee yalnızca gösterim içindir.
+  personalizationText: text("personalization_text"),
+  personalizationFee: decimal("personalization_fee", { precision: 10, scale: 2 }),
 });
 
 export const insertOrderItemSchema = createInsertSchema(orderItems).omit({
@@ -687,6 +716,8 @@ export const pendingPayments = pgTable("pending_payments", {
     productName: string;
     variantDetails: string | null;
     price: string;
+    personalizationText?: string | null;
+    personalizationFee?: string | null;
   }>>().notNull(),
   subtotal: decimal("subtotal", { precision: 10, scale: 2 }).notNull(),
   shippingCost: decimal("shipping_cost", { precision: 10, scale: 2 }).notNull(),

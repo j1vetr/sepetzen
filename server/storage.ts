@@ -1089,6 +1089,7 @@ export class DbStorage implements IStorage {
         slug: products.slug,
         basePrice: products.basePrice,
         images: products.images,
+        personalization: products.personalization,
       }).from(products).where(eq(products.id, item.productId));
 
       let variant = null;
@@ -1114,11 +1115,16 @@ export class DbStorage implements IStorage {
   }
 
   async addToCart(item: InsertCartItem): Promise<CartItem> {
+    // Aynı ürün+varyant ama FARKLI kişiselleştirme yazısı ayrı satır kalır;
+    // yalnızca yazısı da birebir aynı olan satırla birleştirilir.
     const existing = await db.select().from(cartItems).where(
       and(
         eq(cartItems.sessionId, item.sessionId),
         eq(cartItems.productId, item.productId),
-        item.variantId ? eq(cartItems.variantId, item.variantId) : sql`${cartItems.variantId} IS NULL`
+        item.variantId ? eq(cartItems.variantId, item.variantId) : sql`${cartItems.variantId} IS NULL`,
+        item.personalizationText
+          ? eq(cartItems.personalizationText, item.personalizationText)
+          : sql`${cartItems.personalizationText} IS NULL`
       )
     );
 
@@ -1610,6 +1616,7 @@ export class DbStorage implements IStorage {
         tabDelivery: r.tab_delivery ?? null,
         tabFaq: r.tab_faq ?? null,
         tabInstallmentNote: r.tab_installment_note ?? null,
+        personalization: r.personalization ?? null,
         createdAt: r.created_at,
         updatedAt: r.updated_at,
       },

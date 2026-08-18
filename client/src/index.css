@@ -315,6 +315,37 @@
   font-family: var(--font-body);
 }
 
+/* Admin kabuğu: görünen viewport yüksekliğine sabitlenir. iOS Safari'de
+   100vh tarayıcı çubukları açıkken taşar; destekleyen tarayıcılarda 100dvh
+   kullanılır. */
+.admin-shell {
+  height: 100vh;
+}
+@supports (height: 100dvh) {
+  .admin-shell {
+    height: 100dvh;
+  }
+}
+
+/* Admin sidebar: ince, göze batmayan kaydırma çubuğu */
+.admin-sidebar-scroll {
+  scrollbar-width: thin;                       /* Firefox */
+  scrollbar-color: #d4d4d4 transparent;
+}
+.admin-sidebar-scroll::-webkit-scrollbar {
+  width: 5px;
+}
+.admin-sidebar-scroll::-webkit-scrollbar-track {
+  background: transparent;
+}
+.admin-sidebar-scroll::-webkit-scrollbar-thumb {
+  background: #d4d4d4;
+  border-radius: 9999px;
+}
+.admin-sidebar-scroll::-webkit-scrollbar-thumb:hover {
+  background: #a3a3a3;
+}
+
 .text-gradient {
   background: linear-gradient(135deg, #fff 0%, #888 100%);
   -webkit-background-clip: text;

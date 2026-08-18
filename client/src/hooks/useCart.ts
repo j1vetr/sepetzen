@@ -7,6 +7,7 @@ interface CartItem {
   productId: string;
   variantId: string | null;
   quantity: number;
+  personalizationText?: string | null;
   createdAt: string;
   product?: {
     id: string;
@@ -14,6 +15,12 @@ interface CartItem {
     slug: string;
     basePrice: string;
     images: string[];
+    personalization?: {
+      enabled: boolean;
+      fee?: string;
+      label?: string;
+      maxChars?: number;
+    } | null;
   };
   variant?: {
     id: string;
@@ -26,7 +33,7 @@ interface CartItem {
 interface CartContextType {
   items: CartItem[];
   isLoading: boolean;
-  addToCart: (productId: string, variantId?: string, quantity?: number) => Promise<void>;
+  addToCart: (productId: string, variantId?: string, quantity?: number, personalizationText?: string) => Promise<void>;
   updateQuantity: (itemId: string, quantity: number) => Promise<void>;
   removeItem: (itemId: string) => Promise<void>;
   clearCart: () => Promise<void>;
@@ -59,11 +66,11 @@ export function useCartProvider() {
   });
 
   const addMutation = useMutation({
-    mutationFn: async ({ productId, variantId, quantity = 1 }: { productId: string; variantId?: string; quantity?: number }) => {
+    mutationFn: async ({ productId, variantId, quantity = 1, personalizationText }: { productId: string; variantId?: string; quantity?: number; personalizationText?: string }) => {
       const res = await fetch('/api/cart', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ productId, variantId, quantity }),
+        body: JSON.stringify({ productId, variantId, quantity, personalizationText }),
         credentials: 'include',
       });
       if (!res.ok) {
@@ -122,15 +129,20 @@ export function useCartProvider() {
   
   const subtotal = items.reduce((sum, item) => {
     // Varyant fiyatı varsa satır fiyatı odur; sepet sayfasıyla tutarlı.
+    // Kişiselleştirme yazısı olan satırlara ürünün ek ücreti eklenir
+    // (sunucu ödeme anında aynı hesabı kendisi de yapar).
     const price = item.variant?.price || item.product?.basePrice || '0';
-    return sum + parseFloat(price) * item.quantity;
+    const persFee = item.personalizationText && item.product?.personalization?.enabled
+      ? parseFloat(item.product.personalization.fee || '0') || 0
+      : 0;
+    return sum + (parseFloat(price) + persFee) * item.quantity;
   }, 0);
 
   return {
     items,
     isLoading,
-    addToCart: async (productId: string, variantId?: string, quantity = 1) => {
-      await addMutation.mutateAsync({ productId, variantId, quantity });
+    addToCart: async (productId: string, variantId?: string, quantity = 1, personalizationText?: string) => {
+      await addMutation.mutateAsync({ productId, variantId, quantity, personalizationText });
       await queryClient.refetchQueries({ queryKey: ['cart'] });
     },
     updateQuantity: async (itemId: string, quantity: number) => {
