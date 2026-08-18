@@ -206,7 +206,7 @@ export default function MenuManagementPanel({ categories }: MenuManagementPanelP
     setBgUploading(true);
     try {
       const fd = new FormData();
-      fd.append('file', file);
+      fd.append('images', file); // sunucu upload.array("images") bekler
       const res = await fetch('/api/admin/upload/branding', {
         method: 'POST',
         credentials: 'include',
@@ -214,7 +214,10 @@ export default function MenuManagementPanel({ categories }: MenuManagementPanelP
       });
       if (!res.ok) throw new Error('Yükleme başarısız');
       const data = await res.json();
-      setFormData((prev) => ({ ...prev, bgImage: data.url }));
+      // sunucu { urls: string[] } döner
+      const url = Array.isArray(data.urls) ? data.urls[0] : data.url;
+      if (!url) throw new Error('Yükleme başarısız');
+      setFormData((prev) => ({ ...prev, bgImage: url }));
     } catch (err) {
       alert('Görsel yüklenemedi: ' + (err instanceof Error ? err.message : 'Bilinmeyen hata'));
     } finally {

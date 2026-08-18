@@ -1427,11 +1427,11 @@ export default function ProductDetail() {
                   <div className="product-gallery-orbit rounded-xl w-full h-full">
                     <div
                       ref={heroImageRef}
-                      className="group/gallery relative w-full h-full rounded-[11px] bg-zinc-900 overflow-hidden cursor-zoom-in border border-white/15"
-                      onMouseEnter={() => setIsZooming(true)}
+                      className={`group/gallery relative w-full h-full rounded-[11px] bg-zinc-900 overflow-hidden border border-white/15 ${isVideoUrl(images[selectedImage]) ? 'cursor-default' : 'cursor-zoom-in'}`}
+                      onMouseEnter={() => { if (!isVideoUrl(images[selectedImage])) setIsZooming(true); }}
                       onMouseLeave={() => setIsZooming(false)}
                       onMouseMove={handleHeroMove}
-                      onClick={() => setLightboxOpen(true)}
+                      onClick={() => { if (!isVideoUrl(images[selectedImage])) setLightboxOpen(true); }}
                       data-testid="img-product-main"
                     >
                       <AnimatePresence mode="wait">
@@ -1456,7 +1456,8 @@ export default function ProductDetail() {
                             />
                             <button
                               type="button"
-                              onClick={toggleVideoSound}
+                              onClick={(e) => { e.stopPropagation(); toggleVideoSound(); }}
+                              onMouseEnter={(e) => e.stopPropagation()}
                               className="absolute bottom-4 left-4 z-20 flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-black/60 backdrop-blur-sm text-white text-[11px] font-medium hover:bg-black/80 transition-colors"
                               title={videoMuted ? 'Sesi aç' : 'Sesi kapat'}
                             >

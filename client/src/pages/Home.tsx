@@ -195,16 +195,27 @@ function HeroSlider({ products, slides }: { products: Product[]; slides: HeroSli
                 return (
                   <Link key={p.id} href={`/urun/${p.slug}`} className="flex flex-col flex-1 min-w-0" data-testid={`link-hero-product-${p.id}`}>
                     <div className="group flex flex-col w-full h-full bg-white/[0.07] hover:bg-white/[0.11] border border-white/[0.09] hover:border-white/[0.22] backdrop-blur-sm transition-all duration-300 cursor-pointer overflow-hidden">
-                      {/* Image — fills remaining height */}
+                      {/* Image/Video — fills remaining height */}
                       <div className="relative overflow-hidden bg-black/25 flex-1 min-h-0">
                         {p.images?.[0] ? (
-                          <img
-                            src={p.images[0]}
-                            alt={p.name}
-                            className="absolute inset-0 w-full h-full object-cover group-hover:scale-110 transition-transform duration-700"
-                            loading="lazy"
-                            decoding="async"
-                          />
+                          /\.(mp4|webm|mov)(\?.*)?$/i.test(p.images[0]) ? (
+                            <video
+                              src={p.images[0]}
+                              className="absolute inset-0 w-full h-full object-cover"
+                              autoPlay
+                              muted
+                              loop
+                              playsInline
+                            />
+                          ) : (
+                            <img
+                              src={p.images[0]}
+                              alt={p.name}
+                              className="absolute inset-0 w-full h-full object-cover group-hover:scale-110 transition-transform duration-700"
+                              loading="lazy"
+                              decoding="async"
+                            />
+                          )
                         ) : (
                           <div className="absolute inset-0 bg-white/5" />
                         )}
@@ -574,12 +585,23 @@ function NewArrivals({ products }: { products: Product[] }) {
                 >
                   {/* Image */}
                   <div className="relative aspect-[3/4] overflow-hidden bg-zinc-900 mb-3">
+                    {p.images?.[0] && /\.(mp4|webm|mov)(\?.*)?$/i.test(p.images[0]) ? (
+                      <video
+                        src={p.images[0]}
+                        className="absolute inset-0 w-full h-full object-cover"
+                        autoPlay
+                        muted
+                        loop
+                        playsInline
+                      />
+                    ) : (
                     <img
                       src={p.images?.[0] || ''}
                       alt={p.name}
                       loading="lazy"
                       className="absolute inset-0 w-full h-full object-cover transition-transform duration-700 ease-out group-hover:scale-105"
                     />
+                    )}
                     {/* Badges — sol üstte dikey yığın */}
                     <div className="absolute top-2.5 left-2.5 z-10 flex flex-col items-start gap-1.5">
                       {!isFreeShippingPromotion(p.discountBadge) && p.discountBadge && (
@@ -827,13 +849,24 @@ function MobileMarquee({ products }: { products: Product[] }) {
             >
               <div className="relative w-32 h-40 overflow-hidden bg-black/20 shrink-0">
                 {p.images?.[0] ? (
-                  <img
-                    src={p.images[0]}
-                    alt={p.name}
-                    loading="lazy"
-                    decoding="async"
-                    className="absolute inset-0 w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
-                  />
+                  /\.(mp4|webm|mov)(\?.*)?$/i.test(p.images[0]) ? (
+                    <video
+                      src={p.images[0]}
+                      className="absolute inset-0 w-full h-full object-cover"
+                      autoPlay
+                      muted
+                      loop
+                      playsInline
+                    />
+                  ) : (
+                    <img
+                      src={p.images[0]}
+                      alt={p.name}
+                      loading="lazy"
+                      decoding="async"
+                      className="absolute inset-0 w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+                    />
+                  )
                 ) : (
                   <div className="absolute inset-0 bg-white/5" />
                 )}

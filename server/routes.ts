@@ -7923,6 +7923,40 @@ window.addEventListener('load', function() {
     }
   });
 
+  // ── Ürün sekme varsayılanları ──────────────────────────────────────────────
+  // Teslimat/İade, SSS ve Taksit sekmelerinin varsayılan içeriğini
+  // site_settings'te saklar. Yeni ürün oluştururken editör bu değerleri çeker.
+  const TAB_DEFAULT_KEYS = ['default_tab_delivery', 'default_tab_faq', 'default_tab_installment_note'] as const;
+
+  app.get("/api/admin/product-tab-defaults", requireAdmin, async (req, res) => {
+    try {
+      const delivery = await storage.getSiteSetting('default_tab_delivery');
+      const faq = await storage.getSiteSetting('default_tab_faq');
+      const installmentNote = await storage.getSiteSetting('default_tab_installment_note');
+      res.json({
+        tabDelivery: delivery ? JSON.parse(delivery) : null,
+        tabFaq: faq ? JSON.parse(faq) : null,
+        tabInstallmentNote: installmentNote ?? '',
+      });
+    } catch (error) {
+      res.status(500).json({ error: "Varsayılan sekme içerikleri alınamadı" });
+    }
+  });
+
+  app.post("/api/admin/product-tab-defaults", requireAdmin, async (req, res) => {
+    try {
+      const { key, value } = req.body as { key: string; value: unknown };
+      if (!TAB_DEFAULT_KEYS.includes(key as any)) {
+        return res.status(400).json({ error: "Geçersiz anahtar" });
+      }
+      const stored = typeof value === 'string' ? value : JSON.stringify(value);
+      await storage.setSiteSetting(key, stored);
+      res.json({ success: true });
+    } catch (error) {
+      res.status(500).json({ error: "Varsayılan kaydedilemedi" });
+    }
+  });
+
   app.post("/api/admin/settings/test-email", requireAdmin, async (req, res) => {
     try {
       const { email } = req.body;
