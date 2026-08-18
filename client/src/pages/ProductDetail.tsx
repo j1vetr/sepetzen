@@ -79,7 +79,6 @@ import { useFreeShippingThreshold } from '@/hooks/useShippingSettings';
 import { formatShippingThreshold } from '@shared/shipping';
 
 import { getOriginalPrice } from '@/lib/discountPrice';
-import { ComplementaryProducts } from '@/components/ComplementaryProducts';
 import { useProduct, useProducts, useCategories } from '@/hooks/useProducts';
 import { useCart } from '@/hooks/useCart';
 import { useCartModal } from '@/hooks/useCartModal';
@@ -1990,11 +1989,6 @@ export default function ProductDetail() {
                     <WhatsAppIcon className="w-4 h-4" />
                     WhatsApp ile Sipariş Ver
                   </a>
-                )}
-
-                {/* Tamamlayıcı ürünler: aynı kategoriden hızlı ekleme */}
-                {!isOutOfStock && (
-                  <ComplementaryProducts key={product.id} baseProductIds={[product.id]} className="mt-1" />
                 )}
 
                 {/* Favorilere Ekle + Paylaş */}

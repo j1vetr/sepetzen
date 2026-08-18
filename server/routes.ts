@@ -2571,11 +2571,16 @@ KURALLAR:
         if (p.categoryId) catIds.add(p.categoryId);
         const isShared = Array.from(catIds).some((c) => baseCategorySet.has(c));
 
+        // Küçük önizleme için video yerine ilk gerçek görsel tercih edilir;
+        // hiç görsel yoksa video URL'si döner (istemci <video> ile gösterir).
+        const isVideoUrl = (u: string) => /\.(mp4|webm|mov)(\?|$)/i.test(u);
+        const firstImage = (p.images || []).find((u) => !isVideoUrl(u)) || p.images?.[0] || null;
+
         const row: Row = {
           id: p.id,
           name: p.name,
           slug: p.slug,
-          image: p.images?.[0] || null,
+          image: firstImage,
           price: defaultVariant.price || p.basePrice,
           discountBadge: p.discountBadge || null,
           variantId: defaultVariant.id,

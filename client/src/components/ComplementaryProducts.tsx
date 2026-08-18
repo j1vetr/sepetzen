@@ -6,6 +6,10 @@ import { AnimatePresence, motion } from 'framer-motion';
 import { useCart } from '@/hooks/useCart';
 import { getOriginalPrice } from '@/lib/discountPrice';
 
+function isVideoUrl(url: string): boolean {
+  return /\.(mp4|webm|mov)(\?|$)/i.test(url);
+}
+
 interface ComplementaryRow {
   id: string;
   name: string;
@@ -107,7 +111,16 @@ export function ComplementaryProducts({ baseProductIds, title = 'Tamamlayıcı �
                 const inner = (
                   <>
                     <div className="w-12 h-14 bg-[#1A1A1A] shrink-0 overflow-hidden">
-                      {row.image ? (
+                      {row.image && isVideoUrl(row.image) ? (
+                        <video
+                          src={row.image}
+                          className="w-full h-full object-cover"
+                          muted
+                          playsInline
+                          preload="metadata"
+                          aria-label={row.name}
+                        />
+                      ) : row.image ? (
                         <img src={row.image} alt={row.name} loading="lazy" className="w-full h-full object-cover" />
                       ) : (
                         <div className="w-full h-full flex items-center justify-center">
