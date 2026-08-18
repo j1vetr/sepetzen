@@ -6811,12 +6811,24 @@ window.addEventListener('load', function() {
     orderId: string,
     order: any,
     data: { trackingNumber: string; trackingUrl?: string; carrierName: string },
-  ) => {
-    await storage.updateOrderTracking(orderId, {
-      trackingNumber: data.trackingNumber,
-      trackingUrl: data.trackingUrl,
-      shippingCarrier: data.carrierName,
-    });
+  ): Promise<boolean> => {
+    // Atomik sahiplenme: takip numarası yalnızca hala boşken yazılır. Sunucu
+    // zamanlayıcısı, tarayıcı sorgusu ve elle sorgu yarışırsa tek kazanan olur;
+    // müşteri bildirimi ve not yalnızca kazanan tarafından gönderilir.
+    const claimed = await db
+      .update(orders)
+      .set({
+        trackingNumber: data.trackingNumber,
+        trackingUrl: data.trackingUrl,
+        shippingCarrier: data.carrierName,
+        updatedAt: new Date(),
+      })
+      .where(and(
+        eq(orders.id, orderId),
+        or(sql`${orders.trackingNumber} IS NULL`, eq(orders.trackingNumber, '')),
+      ))
+      .returning({ id: orders.id });
+    if (claimed.length === 0) return false;
 
     let updatedOrder = order;
     if (order.status !== 'shipped' && order.status !== 'delivered') {
@@ -6835,6 +6847,94 @@ window.addEventListener('load', function() {
     sendShippingNotificationEmail(orderForNotif as any).catch(err =>
       console.error('[Shipping] Email shipping notification failed:', err)
     );
+    return true;
+  };
+
+  /**
+   * Kargo takip bilgisini sağlayıcıdan çeker ve siparişe işler.
+   * Hem "Takip Durumu" ucu hem de gönderi sonrası otomatik sorgular kullanır.
+   */
+  // Aynı sipariş için eşzamanlı takip sorguları tek çağrıda birleşir
+  const trackingRefreshInFlight = new Map<string, Promise<Awaited<ReturnType<typeof doRefreshShipmentTracking>>>>();
+  const refreshShipmentTracking = (orderId: string) => {
+    const existing = trackingRefreshInFlight.get(orderId);
+    if (existing) return existing;
+    const p = doRefreshShipmentTracking(orderId).finally(() => trackingRefreshInFlight.delete(orderId));
+    trackingRefreshInFlight.set(orderId, p);
+    return p;
+  };
+
+  const doRefreshShipmentTracking = async (orderId: string) => {
+    const { getProviderForOrder, arasTrackingUrl } = await import('./shipping/index.js');
+    const order = await storage.getOrder(orderId);
+    if (!order) return null;
+
+    const provider = await getProviderForOrder(order as any);
+    const result = await provider.track({
+      orderNumber: order.orderNumber,
+      shipmentId: (order as any).shipmentId,
+      trackingNumber: order.trackingNumber,
+      labelUrl: (order as any).shipmentLabelUrl,
+    });
+
+    let savedToOrder = false;
+
+    if (result.success && result.labelUrl && result.labelUrl !== (order as any).shipmentLabelUrl) {
+      await storage.updateOrder(order.id, { shipmentLabelUrl: result.labelUrl } as any);
+    }
+
+    if (result.success && result.found && result.trackingNumber && !order.trackingNumber) {
+      const trackingUrl = result.trackingUrl
+        || (provider.id === 'aras' ? arasTrackingUrl(result.trackingNumber) : undefined);
+      const won = await applyShipmentTracking(order.id, order, {
+        trackingNumber: result.trackingNumber,
+        trackingUrl,
+        carrierName: order.shippingCarrier || provider.label,
+      });
+      if (won) {
+        await storage.createOrderNote({
+          orderId: order.id,
+          content: `${provider.label} takip numarası otomatik alındı: ${result.trackingNumber}`,
+          authorId: 'system',
+        });
+        savedToOrder = true;
+      }
+    }
+
+    if (result.success && result.delivered && order.status === 'shipped') {
+      await storage.updateOrder(order.id, { status: 'delivered', deliveredAt: new Date() });
+      await storage.createOrderNote({
+        orderId: order.id,
+        content: `${provider.label} durumu: "${result.statusText || 'Teslim edildi'}" - sipariş teslim edildi olarak işaretlendi.`,
+        authorId: 'system',
+      });
+    }
+
+    return { result, provider, savedToOrder };
+  };
+
+  /**
+   * Takip numarası henüz oluşmamış gönderiler için arka planda birkaç kez
+   * otomatik sorgu yapar. Takip no bulunursa siparişe işlenir (not + bildirim).
+   */
+  const scheduleShipmentTrackingRetries = (orderId: string) => {
+    const delays = [15_000, 60_000, 3 * 60_000, 10 * 60_000, 30 * 60_000];
+    for (const delay of delays) {
+      const timer = setTimeout(async () => {
+        try {
+          const order = await storage.getOrder(orderId);
+          if (!order || order.trackingNumber || !(order as any).shipmentId) return;
+          if (order.status === 'cancelled') return;
+          const out = await refreshShipmentTracking(orderId);
+          if (out?.savedToOrder) {
+            console.log(`[Shipping] Otomatik takip no alındı (sipariş ${order.orderNumber}): ${out.result.trackingNumber}`);
+          }
+        } catch (err) {
+          console.error('[Shipping] Otomatik takip sorgusu hatası:', err);
+        }
+      }, delay);
+      timer.unref?.();
+    }
   };
 
   app.get("/api/admin/shipping/providers", requireAdmin, async (_req, res) => {
@@ -6977,6 +7077,9 @@ window.addEventListener('load', function() {
           trackingUrl,
           carrierName: result.carrierName || provider.label,
         });
+      } else if (!result.trackingNumber && result.shipmentId && provider.id !== 'aras') {
+        // Takip no henüz oluşmadı: arka planda otomatik sorgula, oluşunca siparişe işle
+        scheduleShipmentTrackingRetries(order.id);
       }
 
       res.json({ ...result, provider: provider.id, providerLabel: provider.label });
@@ -6988,49 +7091,9 @@ window.addEventListener('load', function() {
 
   app.get("/api/admin/orders/:id/shipment/status", requireAdmin, async (req, res) => {
     try {
-      const { getProviderForOrder, arasTrackingUrl } = await import('./shipping/index.js');
-      const order = await storage.getOrder(req.params.id);
-      if (!order) return res.status(404).json({ success: false, error: "Sipariş bulunamadı" });
-
-      const provider = await getProviderForOrder(order as any);
-      const result = await provider.track({
-        orderNumber: order.orderNumber,
-        shipmentId: (order as any).shipmentId,
-        trackingNumber: order.trackingNumber,
-        labelUrl: (order as any).shipmentLabelUrl,
-      });
-
-      let savedToOrder = false;
-
-      if (result.success && result.labelUrl && result.labelUrl !== (order as any).shipmentLabelUrl) {
-        await storage.updateOrder(order.id, { shipmentLabelUrl: result.labelUrl } as any);
-      }
-
-      if (result.success && result.found && result.trackingNumber && !order.trackingNumber) {
-        const trackingUrl = result.trackingUrl
-          || (provider.id === 'aras' ? arasTrackingUrl(result.trackingNumber) : undefined);
-        await applyShipmentTracking(order.id, order, {
-          trackingNumber: result.trackingNumber,
-          trackingUrl,
-          carrierName: order.shippingCarrier || provider.label,
-        });
-        await storage.createOrderNote({
-          orderId: order.id,
-          content: `${provider.label} takip numarası otomatik alındı: ${result.trackingNumber}`,
-          authorId: 'system',
-        });
-        savedToOrder = true;
-      }
-
-      if (result.success && result.delivered && order.status === 'shipped') {
-        await storage.updateOrder(order.id, { status: 'delivered', deliveredAt: new Date() });
-        await storage.createOrderNote({
-          orderId: order.id,
-          content: `${provider.label} durumu: "${result.statusText || 'Teslim edildi'}" - sipariş teslim edildi olarak işaretlendi.`,
-          authorId: 'system',
-        });
-      }
-
+      const out = await refreshShipmentTracking(req.params.id);
+      if (!out) return res.status(404).json({ success: false, error: "Sipariş bulunamadı" });
+      const { result, provider, savedToOrder } = out;
       res.json({ ...result, provider: provider.id, providerLabel: provider.label, savedToOrder });
     } catch (error: any) {
       console.error('[Shipping] Track shipment error:', error);

@@ -31,3 +31,13 @@ them honest without live carrier credentials.
 Provider selection is per order, not global: an order stores which provider shipped
 it, and lookups must resolve through that stored value so switching the active
 provider never orphans older shipments.
+
+**Tracking numbers arrive asynchronously (Geliver, likely others):** shipment
+creation often returns only a shipment id; the tracking number appears seconds to
+minutes later via a separate track call. Any "create shipment" flow must (a) persist
+the shipment id so the UI can show progress after reload, (b) follow up automatically
+(server-side timed retries + client-side polling), and (c) claim the tracking number
+with an atomic conditional UPDATE (`WHERE tracking IS NULL OR = ''`) so racing
+retries/polls send customer notifications and order notes exactly once. Geliver also
+returns some errors as HTTP 200 with `result:false` - treat that as an error, and
+surface `message` + `additionalMessage` + HTTP status, not a stripped-down message.

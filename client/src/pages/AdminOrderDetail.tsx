@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useParams, Link } from 'wouter';
 import {
   ChevronLeft,
@@ -39,6 +39,44 @@ import {
 import AdminModal from './admin/_ui/AdminModal';
 import { BANK_TRANSFER_INFO } from '@shared/bankInfo';
 import { formatTRDateTime } from '@shared/dateFormat';
+
+/** Sipariş üzerinde kayıtlı kargo sağlayıcısının okunur adı. */
+const SHIPMENT_PROVIDER_LABELS: Record<string, string> = {
+  geliver: 'Geliver',
+  aras: 'Aras Kargo',
+  shipentegra: 'ShipEntegra',
+};
+
+/** Gönderi aşama satırı: tamamlandı (yeşil), bekleniyor (dönen ikon) veya pasif. */
+function ShipmentStep({
+  state,
+  label,
+  detail,
+}: {
+  state: 'done' | 'waiting' | 'idle';
+  label: string;
+  detail: React.ReactNode;
+}) {
+  return (
+    <div className="flex items-start gap-2.5 px-3 py-2">
+      {state === 'done' ? (
+        <CheckCircle2 className="w-4 h-4 text-emerald-500 shrink-0 mt-0.5" />
+      ) : state === 'waiting' ? (
+        <Loader2 className="w-4 h-4 text-amber-500 animate-spin shrink-0 mt-0.5" />
+      ) : (
+        <Clock className="w-4 h-4 text-neutral-300 shrink-0 mt-0.5" />
+      )}
+      <div className="min-w-0">
+        <div className={`text-[12px] font-semibold ${state === 'idle' ? 'text-neutral-400' : 'text-neutral-900'}`}>
+          {label}
+        </div>
+        <div className={`text-[11px] leading-4 ${state === 'idle' ? 'text-neutral-400' : 'text-neutral-500'}`}>
+          {detail}
+        </div>
+      </div>
+    </div>
+  );
+}
 
 interface OrderItem {
   id: string;
@@ -181,6 +219,10 @@ export default function AdminOrderDetail() {
   const [shipmentAlreadySent, setShipmentAlreadySent] = useState(false);
   const [shipmentDesi, setShipmentDesi] = useState('');
   const [shipmentWeightKg, setShipmentWeightKg] = useState('');
+  // Son takip sorgusundan gelen kargo durumu (aşama göstergesinde kullanılır)
+  const [shipmentStatusInfo, setShipmentStatusInfo] = useState<{ statusText?: string; delivered?: boolean } | null>(null);
+  const autoPollCount = useRef(0);
+  const statusRequestInFlight = useRef(false);
   const [carrier, setCarrier] = useState<{ id: string; label: string; enabled: boolean; configured: boolean; missing?: string } | null>(null);
   useEffect(() => {
     let cancelled = false;
@@ -378,44 +420,90 @@ export default function AdminOrderDetail() {
     }
   };
 
-  const handleShipmentStatus = async () => {
+  const queryShipmentStatus = async (opts: { silent?: boolean } = {}) => {
     if (!order) return;
-    setShipmentQuerying(true);
-    setShipmentMessage(null);
+    const silent = !!opts.silent;
+    if (statusRequestInFlight.current) return;
+    statusRequestInFlight.current = true;
+    if (!silent) {
+      setShipmentQuerying(true);
+      setShipmentMessage(null);
+    }
     try {
       const res = await fetch(`/api/admin/orders/${order.id}/shipment/status`, { credentials: 'include' });
       const data = await res.json();
       const label = data.providerLabel || carrierLabel;
       if (data.success && data.found) {
-        const parts = [
-          data.trackingNumber && `Takip no: ${data.trackingNumber}`,
-          data.statusText && `Durum: ${data.statusText}`,
-          data.deliveredAt && `Teslim: ${data.deliveredAt}`,
-        ].filter(Boolean);
-        setShipmentMessage({
-          type: 'success',
-          text: (data.savedToOrder ? 'Takip bilgisi siparişe kaydedildi. ' : '') + (parts.join(' - ') || `${label} kaydı bulundu.`),
-        });
-        if (data.savedToOrder && data.trackingNumber) {
+        setShipmentStatusInfo({ statusText: data.statusText, delivered: !!data.delivered });
+        if (data.trackingNumber && !order.trackingNumber) {
           setTrackingNumber(data.trackingNumber);
           setStatus('shipped');
-          setOrder(prev => prev ? { ...prev, trackingNumber: data.trackingNumber, status: 'shipped' } as Order : prev);
+          setOrder(prev => prev ? {
+            ...prev,
+            trackingNumber: data.trackingNumber,
+            trackingUrl: data.trackingUrl ?? prev.trackingUrl,
+            status: 'shipped',
+            ...(data.labelUrl ? { shipmentLabelUrl: data.labelUrl } : {}),
+          } as Order : prev);
+          if (silent) {
+            setShipmentMessage({ type: 'success', text: `Takip numarası otomatik alındı ve siparişe kaydedildi: ${data.trackingNumber}` });
+          }
+        } else if (data.labelUrl) {
+          setOrder(prev => prev ? { ...prev, shipmentLabelUrl: data.labelUrl } as Order : prev);
         }
         if (data.delivered) {
           setStatus('delivered');
           setOrder(prev => prev ? { ...prev, status: 'delivered' } as Order : prev);
         }
+        if (!silent) {
+          const parts = [
+            data.trackingNumber && `Takip no: ${data.trackingNumber}`,
+            data.statusText && `Durum: ${data.statusText}`,
+            data.deliveredAt && `Teslim: ${data.deliveredAt}`,
+          ].filter(Boolean);
+          setShipmentMessage({
+            type: 'success',
+            text: (data.savedToOrder ? 'Takip bilgisi siparişe kaydedildi. ' : '') + (parts.join(' - ') || `${label} kaydı bulundu.`),
+          });
+        }
+      } else if (silent) {
+        // Otomatik sorguda hata mesajıyla ekranı meşgul etme; aşama göstergesi zaten "bekleniyor" der
       } else if (data.success && !data.found) {
-        setShipmentMessage({ type: 'warn', text: data.error || `${label} tarafında henüz kayıt görünmüyor. Kargo teslim edildikten sonra tekrar sorgulayın.` });
+        setShipmentMessage({ type: 'warn', text: data.error || `${label} tarafında takip numarası henüz oluşmadı. Birkaç dakika içinde otomatik denenecek.` });
       } else {
         setShipmentMessage({ type: 'error', text: data.error || 'Kargo durumu sorgulanamadı' });
       }
     } catch {
-      setShipmentMessage({ type: 'error', text: 'Bağlantı hatası. Lütfen tekrar deneyin.' });
+      if (!silent) setShipmentMessage({ type: 'error', text: 'Bağlantı hatası. Lütfen tekrar deneyin.' });
     } finally {
-      setShipmentQuerying(false);
+      statusRequestInFlight.current = false;
+      if (!silent) setShipmentQuerying(false);
     }
   };
+
+  const handleShipmentStatus = () => queryShipmentStatus();
+
+  // Gönderi kaydı var ama takip numarası henüz yoksa arayüz kendiliğinden sorgular
+  // (5 sn sonra ilk deneme, sonra 20 sn'de bir, en fazla 15 deneme)
+  useEffect(() => {
+    if (!order?.shipmentId || order.trackingNumber) return;
+    if (order.status === 'cancelled') return;
+    autoPollCount.current = 0;
+    const first = setTimeout(() => queryShipmentStatus({ silent: true }), 5_000);
+    const timer = setInterval(() => {
+      autoPollCount.current += 1;
+      if (autoPollCount.current > 15) {
+        clearInterval(timer);
+        return;
+      }
+      queryShipmentStatus({ silent: true });
+    }, 20_000);
+    return () => {
+      clearTimeout(first);
+      clearInterval(timer);
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [order?.id, order?.shipmentId, order?.trackingNumber, order?.status]);
 
   const handleCancelOrder = async () => {
     if (!order) return;
@@ -965,6 +1053,74 @@ export default function AdminOrderDetail() {
                       : `${carrier.label} ayarları eksik. ${carrier.missing || ''}`}
                   </div>
                 )}
+
+                {/* Gönderi aşamaları - kalıcı durum, sayfa yenilense de görünür */}
+                <div className="rounded-md border border-neutral-200 divide-y divide-neutral-100" data-testid="shipment-pipeline">
+                  <ShipmentStep
+                    state={order.shipmentId ? 'done' : 'idle'}
+                    label="1. Gönderi kaydı"
+                    detail={
+                      order.shipmentId
+                        ? `${SHIPMENT_PROVIDER_LABELS[order.shipmentProvider || ''] || carrierLabel} - Kimlik: ${String(order.shipmentId).slice(0, 18)}${String(order.shipmentId).length > 18 ? '…' : ''}`
+                        : 'Henüz oluşturulmadı. "Gönderi Oluştur" ile başlatın.'
+                    }
+                  />
+                  <ShipmentStep
+                    state={order.trackingNumber ? 'done' : order.shipmentId ? 'waiting' : 'idle'}
+                    label="2. Takip numarası"
+                    detail={
+                      order.trackingNumber ? (
+                        <span className="inline-flex items-center gap-1.5">
+                          <span className="font-mono">{order.trackingNumber}</span>
+                          {order.trackingUrl && (
+                            <a
+                              href={order.trackingUrl}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="inline-flex items-center gap-0.5 text-blue-600 hover:underline"
+                            >
+                              Takip et <ExternalLink className="w-3 h-3" />
+                            </a>
+                          )}
+                        </span>
+                      ) : order.shipmentId ? (
+                        'Kargo firması henüz oluşturmadı. Otomatik sorgulanıyor, oluşunca siparişe işlenecek.'
+                      ) : (
+                        'Gönderi kaydından sonra oluşur.'
+                      )
+                    }
+                  />
+                  <ShipmentStep
+                    state={order.shipmentLabelUrl ? 'done' : order.shipmentId ? 'waiting' : 'idle'}
+                    label="3. Kargo etiketi"
+                    detail={
+                      order.shipmentLabelUrl
+                        ? 'Hazır. "Etiket Yazdır" ile açabilirsiniz.'
+                        : order.shipmentId
+                        ? 'Hazırlanıyor. Takip numarasıyla birlikte gelir.'
+                        : 'Gönderi kaydından sonra oluşur.'
+                    }
+                  />
+                  <ShipmentStep
+                    state={
+                      order.status === 'delivered' || shipmentStatusInfo?.delivered
+                        ? 'done'
+                        : order.status === 'shipped'
+                        ? 'waiting'
+                        : 'idle'
+                    }
+                    label="4. Teslimat"
+                    detail={
+                      order.status === 'delivered' || shipmentStatusInfo?.delivered
+                        ? 'Teslim edildi.'
+                        : shipmentStatusInfo?.statusText
+                        ? `Kargo durumu: ${shipmentStatusInfo.statusText}`
+                        : order.status === 'shipped'
+                        ? 'Kargoda. "Takip Durumu" ile güncel durumu sorgulayabilirsiniz.'
+                        : 'Kargoya verildikten sonra takip edilir.'
+                    }
+                  />
+                </div>
 
                 {/* Ağırlık / desi override - uluslararası gönderilerde önemli */}
                 <div className="flex gap-2">

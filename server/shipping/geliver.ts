@@ -137,15 +137,28 @@ async function request(
     parsed = null;
   }
 
+  // Geliver hata detaylarını tek mesajda topla (message + additionalMessage + kod)
+  const extractError = (): string => {
+    const parts = [
+      parsed?.message,
+      parsed?.additionalMessage,
+      parsed?.error?.message,
+      typeof parsed?.error === 'string' ? parsed.error : undefined,
+      parsed?.data?.message,
+    ].filter((p) => typeof p === 'string' && p.trim());
+    const unique = Array.from(new Set(parts.map((p: string) => p.trim())));
+    if (unique.length) return `${unique.join(' - ')} (HTTP ${response.status})`;
+    if (response.status === 401 || response.status === 403) return `API anahtarı geçersiz veya yetkisiz. (HTTP ${response.status})`;
+    return `Geliver beklenmeyen yanıt döndürdü (HTTP ${response.status})`;
+  };
+
   if (!response.ok) {
-    const message =
-      parsed?.message ||
-      parsed?.error?.message ||
-      parsed?.error ||
-      (response.status === 401 || response.status === 403
-        ? 'API anahtarı geçersiz veya yetkisiz.'
-        : `HTTP ${response.status}`);
-    return { ok: false, status: response.status, data: parsed, error: String(message).slice(0, 300) };
+    return { ok: false, status: response.status, data: parsed, error: extractError().slice(0, 400) };
+  }
+
+  // Geliver bazı hataları HTTP 200 + result:false ile döner; bunlar da hatadır
+  if (parsed && parsed.result === false) {
+    return { ok: false, status: response.status, data: parsed, error: extractError().slice(0, 400) };
   }
 
   return { ok: true, status: response.status, data: parsed?.data ?? parsed };
