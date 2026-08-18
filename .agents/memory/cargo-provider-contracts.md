@@ -41,3 +41,13 @@ with an atomic conditional UPDATE (`WHERE tracking IS NULL OR = ''`) so racing
 retries/polls send customer notifications and order notes exactly once. Geliver also
 returns some errors as HTTP 200 with `result:false` - treat that as an error, and
 surface `message` + `additionalMessage` + HTTP status, not a stripped-down message.
+
+**Geliver one-step purchase is not universal:** POST /transactions with
+`providerServiceCode` can fail with "Teklif bulunamadı - offerId is empty (404)"
+depending on the account/service. The official flow (Go SDK) is two-step:
+POST /shipments (shipment fields at root) -> offers arrive async in
+`offers.list`/`offers.cheapest` (poll GET /shipments/{id}, bounded deadline) ->
+POST /transactions `{offerID}` buys the label. If no offer is ready in time,
+still persist the shipment id and complete the purchase inside the next track
+call (shipment with no `acceptedOfferID` and no barcode = unpurchased) so the
+retry path never creates duplicate shipments.

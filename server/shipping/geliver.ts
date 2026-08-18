@@ -116,7 +116,7 @@ interface GeliverResponse {
 async function request(
   creds: GeliverCredentials,
   path: string,
-  init: { method?: string; body?: any } = {},
+  init: { method?: string; body?: any; timeoutMs?: number } = {},
 ): Promise<GeliverResponse> {
   const response = await fetch(`${BASE_URL}${path}`, {
     method: init.method || 'GET',
@@ -126,7 +126,7 @@ async function request(
       'Accept': 'application/json',
     },
     body: init.body ? JSON.stringify(init.body) : undefined,
-    signal: AbortSignal.timeout(30000),
+    signal: AbortSignal.timeout(init.timeoutMs || 30000),
   });
 
   const text = await response.text();
@@ -162,6 +162,70 @@ async function request(
   }
 
   return { ok: true, status: response.status, data: parsed?.data ?? parsed };
+}
+
+/**
+ * İki adımlı akış: POST /shipments ile gönderi açılır (yanıtta teklifler gelir),
+ * uygun teklif POST /transactions { offerID } ile kabul edilerek etiket satın alınır.
+ * Tek adımlı /transactions akışı "Teklif bulunamadı" verdiğinde bu yol kullanılır.
+ * Kaynak: resmi Go SDK (GeliverApp/geliver-go) - CreateShipment + AcceptOffer.
+ */
+async function createViaOfferFlow(
+  creds: GeliverCredentials,
+  shipmentPayload: any,
+): Promise<GeliverResponse & { note?: string }> {
+  const created = await request(creds, '/shipments', { method: 'POST', body: shipmentPayload });
+  if (!created.ok) {
+    return { ...created, error: `Gönderi kaydı açılamadı: ${created.error}` };
+  }
+  const shipment = created.data?.shipment || created.data;
+  const shipmentId: string = shipment?.id || '';
+  if (!shipmentId) {
+    return { ok: false, status: created.status, data: created.data, error: 'Geliver gönderi kimliği döndürmedi.' };
+  }
+
+  // Teklifler genelde birkaç saniyede hazırlanır. Toplam bekleme ~20 sn ile
+  // sınırlıdır; her ara sorgu kısa zaman aşımı kullanır ve son sorgu da
+  // değerlendirilir. Teklif yetişmezse gönderi kimliği yine döndürülür;
+  // satın alma sonraki otomatik takip sorgusunda tamamlanır (bkz. track()).
+  let chosen: any = pickOffer(shipment, creds.serviceCode);
+  let current = shipment;
+  const deadline = Date.now() + 20_000;
+  while (!chosen?.id && Date.now() < deadline) {
+    await new Promise((r) => setTimeout(r, 2500));
+    const re = await request(creds, `/shipments/${encodeURIComponent(shipmentId)}`, { timeoutMs: 8000 });
+    if (re.ok) {
+      current = re.data?.shipment || re.data;
+      chosen = pickOffer(current, creds.serviceCode);
+    }
+  }
+
+  if (!chosen?.id) {
+    // Gönderi oluştu ama teklif henüz yok: başarı olarak dön ki gönderi kimliği
+    // siparişe kaydedilsin; otomatik takip sorguları satın almayı tamamlayacak.
+    return {
+      ok: true,
+      status: 200,
+      data: current,
+      note: 'Kargo teklifi henüz hazırlanmadı; teklif oluşunca etiket otomatik satın alınacak.',
+    };
+  }
+
+  const tx = await request(creds, '/transactions', { method: 'POST', body: { offerID: chosen.id } });
+  if (!tx.ok) {
+    return { ...tx, error: `Kargo teklifi (${chosen.providerServiceCode || 'bilinmiyor'}) kabul edilemedi: ${tx.error}` };
+  }
+
+  const note = chosen.providerServiceCode && chosen.providerServiceCode !== creds.serviceCode
+    ? `Seçili servis (${creds.serviceCode}) için teklif çıkmadı; en uygun teklif kullanıldı: ${chosen.providerServiceCode}.`
+    : undefined;
+  return { ...tx, note };
+}
+
+/** Tekliflerden önce ayarlardaki servisi, yoksa en ucuzunu, o da yoksa ilkini seçer. */
+function pickOffer(sh: any, serviceCode: string): any {
+  const list = Array.isArray(sh?.offers?.list) ? sh.offers.list : [];
+  return list.find((o: any) => o?.providerServiceCode === serviceCode) || sh?.offers?.cheapest || list[0] || null;
 }
 
 /** Geliver takip durum kodlarının Türkçe karşılıkları. */
@@ -262,7 +326,13 @@ export const geliverProvider: CargoProvider = {
     if (creds.senderAddressId) body.shipment.senderAddressID = creds.senderAddressId;
 
     try {
-      const res = await request(creds, '/transactions', { method: 'POST', body });
+      let res: GeliverResponse & { note?: string } = await request(creds, '/transactions', { method: 'POST', body });
+      if (!res.ok && (res.status === 404 || /offer|teklif/i.test(res.error || ''))) {
+        // Tek adımlı satın alma bu hesap/servis için teklif üretemedi;
+        // resmi akışa geç: gönderi aç, teklifleri bekle, uygun teklifi kabul et
+        console.warn(`[Geliver] Tek adımlı akış başarısız (${res.error}), teklif akışına geçiliyor.`);
+        res = await createViaOfferFlow(creds, body.shipment);
+      }
       if (!res.ok) {
         return { success: false, error: `Geliver gönderi oluşturulamadı: ${res.error}` };
       }
@@ -285,9 +355,12 @@ export const geliverProvider: CargoProvider = {
         labelUrl: labelUrl || undefined,
         carrierName,
         pending: !trackingNumber,
-        message: trackingNumber
-          ? `Geliver gönderisi oluşturuldu. Barkod: ${trackingNumber}`
-          : 'Geliver gönderisi oluşturuldu, takip numarası kısa süre içinde oluşacak.',
+        message: [
+          trackingNumber
+            ? `Geliver gönderisi oluşturuldu. Barkod: ${trackingNumber}`
+            : 'Geliver gönderisi oluşturuldu, takip numarası kısa süre içinde oluşacak.',
+          res.note,
+        ].filter(Boolean).join(' '),
       };
     } catch (error: any) {
       console.error('[Geliver] createShipment error:', error);
@@ -307,7 +380,25 @@ export const geliverProvider: CargoProvider = {
       if (!res.ok) {
         return { success: false, error: `Geliver durum sorgulanamadı: ${res.error}` };
       }
-      const shipment = res.data?.shipment || res.data;
+      let shipment = res.data?.shipment || res.data;
+
+      // Yarım kalmış gönderi: kayıt açılmış ama etiket satın alınmamış.
+      // Teklif hazırsa satın almayı burada tamamla; takip numarası satın
+      // almadan sonra oluşur. Otomatik takip sorguları bu yolu tetikler.
+      const hasTracking = !!(shipment?.trackingNumber || shipment?.barcode);
+      if (!hasTracking && !shipment?.acceptedOfferID) {
+        const offer = pickOffer(shipment, creds.serviceCode);
+        if (offer?.id) {
+          const tx = await request(creds, '/transactions', { method: 'POST', body: { offerID: offer.id } });
+          if (tx.ok) {
+            console.log(`[Geliver] Bekleyen gönderi için etiket satın alındı (shipment: ${ref.shipmentId})`);
+            shipment = tx.data?.shipment || shipment;
+          } else {
+            console.warn(`[Geliver] Bekleyen gönderi satın alınamadı (shipment: ${ref.shipmentId}): ${tx.error}`);
+          }
+        }
+      }
+
       return shipmentToTracking(shipment);
     } catch (error: any) {
       console.error('[Geliver] track error:', error);
