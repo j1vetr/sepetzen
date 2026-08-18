@@ -233,27 +233,6 @@ export function Header() {
     return result;
   })();
 
-  // "Tüm Kategoriler" iki-panel menüsü: sol = ana kategoriler, sağ = alt kategoriler
-  const byOrder = (a: CategoryData, b: CategoryData) => (a.displayOrder ?? 0) - (b.displayOrder ?? 0);
-  const topCatsSorted = useMemo(
-    () => categoriesData.filter(c => !c.parentId && (c.displayOrder ?? 0) < 100).sort(byOrder),
-    [categoriesData],
-  );
-  const childrenByCat = useMemo(() => {
-    const map = new Map<string, CategoryData[]>();
-    categoriesData.forEach(c => {
-      if (c.parentId) {
-        const list = map.get(c.parentId) || [];
-        list.push(c);
-        map.set(c.parentId, list);
-      }
-    });
-    map.forEach((v, k) => map.set(k, v.sort(byOrder)));
-    return map;
-  }, [categoriesData]);
-  const activeTopCatId = hoveredTopCatId ?? topCatsSorted[0]?.id ?? null;
-  const activeTopCat = topCatsSorted.find(c => c.id === activeTopCatId) ?? topCatsSorted[0] ?? null;
-  const activeCatChildren = activeTopCatId ? (childrenByCat.get(activeTopCatId) ?? []) : [];
   // legacy compat (still used elsewhere)
   const ALL_CATS_PREVIEW = 8;
   const hasMoreAllCats = !allCatsExpanded && visibleCategories.length > ALL_CATS_PREVIEW;
@@ -582,92 +561,98 @@ export function Header() {
                   onMouseEnter={cancelAllCatsClose}
                   onMouseLeave={closeAllCats}
                 >
-                  {topCatsSorted.length === 0 ? (
-                    <div
-                      className="text-[11px] tracking-wider uppercase text-white/75 cursor-pointer py-3 px-4 hover:bg-white/5 transition-colors"
-                      onClick={() => { navigate('/magaza'); setAllCatsOpen(false); }}
-                    >
-                      Tüm Ürünler
-                    </div>
-                  ) : (
-                    <div className="flex" style={{ height: Math.min(topCatsSorted.length * 44 + 16, 420) }}>
-                      {/* Sol: Ana kategoriler */}
-                      <div className="w-[200px] shrink-0 border-r border-white/[0.07] overflow-y-auto py-2">
-                        {topCatsSorted.map((cat) => {
-                          const hasChildren = (childrenByCat.get(cat.id) ?? []).length > 0;
-                          const isActive = cat.id === activeTopCatId;
-                          return (
-                            <div
-                              key={cat.id}
-                              className={`flex items-center justify-between gap-2 px-4 py-2.5 cursor-pointer transition-colors select-none ${
-                                isActive
-                                  ? 'bg-white/[0.09] text-white'
-                                  : 'text-white/70 hover:bg-white/[0.05] hover:text-white'
-                              }`}
-                              onMouseEnter={() => setHoveredTopCatId(cat.id)}
-                              onClick={() => { navigate(`/kategori/${cat.slug}`); setAllCatsOpen(false); }}
-                            >
-                              <span className="text-[12px] font-medium truncate">{cat.name}</span>
-                              {hasChildren && (
-                                <ChevronRight className={`w-3 h-3 shrink-0 transition-opacity ${isActive ? 'opacity-60' : 'opacity-30'}`} />
-                              )}
-                            </div>
-                          );
-                        })}
-                      </div>
+                  {(() => {
+                    // Menü ağacından ana kategoriler (type=category, aktif, üst seviye)
+                    const panelRoots = menuRoots.filter(r => r.isActive && r.type === 'category' && r.category);
+                    if (panelRoots.length === 0) {
+                      return (
+                        <div
+                          className="text-[11px] tracking-wider uppercase text-white/75 cursor-pointer py-3 px-4 hover:bg-white/5 transition-colors"
+                          onClick={() => { navigate('/magaza'); setAllCatsOpen(false); }}
+                        >
+                          Tüm Ürünler
+                        </div>
+                      );
+                    }
+                    const activeRootId = hoveredTopCatId ?? panelRoots[0]?.id ?? null;
+                    const activeRoot = panelRoots.find(r => r.id === activeRootId) ?? panelRoots[0];
+                    const activeChildren = (activeRoot?.children ?? []).filter(c => c.isActive);
+                    return (
+                      <div className="flex" style={{ minHeight: 320, maxHeight: 460 }}>
+                        {/* Sol panel: ana kategoriler */}
+                        <div className="w-[200px] shrink-0 border-r border-white/[0.07] overflow-y-auto py-2">
+                          {panelRoots.map((root) => {
+                            const kids = (root.children ?? []).filter(c => c.isActive);
+                            const isActive = root.id === activeRootId;
+                            return (
+                              <div
+                                key={root.id}
+                                className={`flex items-center justify-between gap-2 px-4 py-2.5 cursor-pointer transition-colors select-none ${
+                                  isActive ? 'bg-white/[0.09] text-white' : 'text-white/70 hover:bg-white/[0.05] hover:text-white'
+                                }`}
+                                onMouseEnter={() => setHoveredTopCatId(root.id)}
+                                onClick={() => { if (root.category) navigate(`/kategori/${root.category.slug}`); setAllCatsOpen(false); }}
+                              >
+                                <span className="text-[12px] font-medium truncate">{root.title}</span>
+                                {kids.length > 0 && (
+                                  <ChevronRight className={`w-3 h-3 shrink-0 ${isActive ? 'opacity-60' : 'opacity-25'}`} />
+                                )}
+                              </div>
+                            );
+                          })}
+                        </div>
 
-                      {/* Sağ: Alt kategoriler - Trendyol stili */}
-                      <div className="flex-1 overflow-y-auto p-5">
-                        {activeTopCat && activeCatChildren.length > 0 ? (
-                          <div className="grid grid-cols-3 gap-x-6 gap-y-5 items-start">
-                            {activeCatChildren.map((child) => {
-                              const grandChildren = childrenByCat.get(child.id) ?? [];
-                              return (
-                                <div key={child.id}>
-                                  {/* L2: bold başlık */}
-                                  <button
-                                    type="button"
-                                    className="flex items-center gap-1 text-[12.5px] font-semibold text-white hover:text-white/70 transition-colors mb-2 text-left"
-                                    onClick={() => { navigate(`/kategori/${child.slug}`); setAllCatsOpen(false); }}
-                                  >
-                                    {child.name}
-                                    <ChevronRight className="w-3 h-3 opacity-50 shrink-0" />
-                                  </button>
-                                  {/* L3: alt öğeler */}
-                                  {grandChildren.length > 0 && (
-                                    <ul className="space-y-1.5">
-                                      {grandChildren.map((gc) => (
-                                        <li key={gc.id}>
-                                          <button
-                                            type="button"
-                                            className="text-[12px] text-white/55 hover:text-white transition-colors text-left"
-                                            onClick={() => { navigate(`/kategori/${gc.slug}`); setAllCatsOpen(false); }}
-                                          >
-                                            {gc.name}
-                                          </button>
-                                        </li>
-                                      ))}
-                                    </ul>
-                                  )}
-                                </div>
-                              );
-                            })}
-                          </div>
-                        ) : activeTopCat ? (
-                          <div className="flex items-center justify-center h-full">
-                            <button
-                              type="button"
-                              className="text-[13px] text-white/50 hover:text-white transition-colors flex items-center gap-1.5"
-                              onClick={() => { navigate(`/kategori/${activeTopCat.slug}`); setAllCatsOpen(false); }}
-                            >
-                              {activeTopCat.name} - Tüm ürünleri gör
-                              <ArrowUpRight className="w-3.5 h-3.5" />
-                            </button>
-                          </div>
-                        ) : null}
+                        {/* Sağ panel: alt kategoriler */}
+                        <div className="flex-1 overflow-y-auto p-5">
+                          {activeChildren.length > 0 ? (
+                            <div className={`grid gap-x-6 gap-y-5 items-start ${activeChildren.length > 6 ? 'grid-cols-3' : activeChildren.length > 3 ? 'grid-cols-2' : 'grid-cols-1'}`}>
+                              {activeChildren.map((child) => {
+                                const grandKids = (child.children ?? []).filter(c => c.isActive);
+                                return (
+                                  <div key={child.id}>
+                                    <button
+                                      type="button"
+                                      className="flex items-center gap-1 text-[12.5px] font-semibold text-white hover:text-white/70 transition-colors mb-2 text-left"
+                                      onClick={() => { navigate(hrefForMenu(child)); setAllCatsOpen(false); }}
+                                    >
+                                      {child.title}
+                                      <ChevronRight className="w-3 h-3 opacity-40 shrink-0" />
+                                    </button>
+                                    {grandKids.length > 0 && (
+                                      <ul className="space-y-1.5">
+                                        {grandKids.map((gc) => (
+                                          <li key={gc.id}>
+                                            <button
+                                              type="button"
+                                              className="text-[12px] text-white/55 hover:text-white transition-colors text-left"
+                                              onClick={() => { navigate(hrefForMenu(gc)); setAllCatsOpen(false); }}
+                                            >
+                                              {gc.title}
+                                            </button>
+                                          </li>
+                                        ))}
+                                      </ul>
+                                    )}
+                                  </div>
+                                );
+                              })}
+                            </div>
+                          ) : activeRoot?.category ? (
+                            <div className="flex items-center justify-center h-full">
+                              <button
+                                type="button"
+                                className="text-[13px] text-white/50 hover:text-white transition-colors flex items-center gap-1.5"
+                                onClick={() => { navigate(`/kategori/${activeRoot.category!.slug}`); setAllCatsOpen(false); }}
+                              >
+                                {activeRoot.title} — tüm ürünleri gör
+                                <ArrowUpRight className="w-3.5 h-3.5" />
+                              </button>
+                            </div>
+                          ) : null}
+                        </div>
                       </div>
-                    </div>
-                  )}
+                    );
+                  })()}
                 </DropdownMenuContent>
               </DropdownMenu>
               )}

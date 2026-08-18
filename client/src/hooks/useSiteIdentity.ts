@@ -15,12 +15,23 @@ export function useSiteIdentity(): SiteIdentity {
   const identity = data ?? DEFAULT_SITE_IDENTITY;
 
   useEffect(() => {
-    const favicon = document.querySelector<HTMLLinkElement>('link[rel="icon"]');
-    const shortcut = document.querySelector<HTMLLinkElement>('link[rel="shortcut icon"]');
-    const appleTouch = document.querySelector<HTMLLinkElement>('link[rel="apple-touch-icon"]');
-    [favicon, shortcut, appleTouch].forEach((link) => {
-      if (link) link.href = `${identity.faviconUrl}${identity.faviconUrl.includes('?') ? '&' : '?'}v=${encodeURIComponent(identity.faviconUrl)}`;
-    });
+    if (!identity.faviconUrl) return;
+    const href = `${identity.faviconUrl}${identity.faviconUrl.includes('?') ? '&' : '?'}v=${encodeURIComponent(identity.faviconUrl)}`;
+
+    const ensureLink = (rel: string, type?: string): HTMLLinkElement => {
+      let link = document.querySelector<HTMLLinkElement>(`link[rel="${rel}"]`);
+      if (!link) {
+        link = document.createElement('link');
+        link.rel = rel;
+        if (type) link.type = type;
+        document.head.appendChild(link);
+      }
+      return link;
+    };
+
+    ensureLink('icon', 'image/png').href = href;
+    ensureLink('shortcut icon', 'image/png').href = href;
+    ensureLink('apple-touch-icon').href = href;
   }, [identity.faviconUrl]);
 
   return identity;
