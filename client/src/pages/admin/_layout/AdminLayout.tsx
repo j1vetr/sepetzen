@@ -67,19 +67,19 @@ export default function AdminLayout({
           ${mobileMenuOpen ? 'translate-x-0' : '-translate-x-full'}
         `}
       >
-        <div className="px-5 h-14 border-b border-neutral-200 flex items-center justify-between shrink-0">
+        <div className="relative px-5 h-16 border-b border-neutral-200 flex items-center justify-center shrink-0">
           <a href="/toov-admin" data-testid="link-admin-logo" className="block">
             <img
               src="/uploads/branding/sepetzen-logo-dark.png"
               alt="Sepetzen"
-              className="h-6 w-auto object-contain select-none"
+              className="h-10 w-auto object-contain select-none"
               draggable={false}
               data-testid="text-admin-brand"
             />
           </a>
           <button
             onClick={() => setMobileMenuOpen(false)}
-            className="p-1.5 hover:bg-neutral-100 rounded-md md:hidden"
+            className="absolute right-3 top-1/2 -translate-y-1/2 p-1.5 hover:bg-neutral-100 rounded-md md:hidden"
             aria-label="Menüyü kapat"
           >
             <X className="w-4 h-4 text-neutral-500" />
