@@ -143,6 +143,7 @@ export function Header() {
   const closeTimerRef = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
   const allCatsCloseTimerRef = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
   const [allCatsOpen, setAllCatsOpen] = useState(false);
+  const [hoveredRootId, setHoveredRootId] = useState<string | null>(null);
   const desktopGridRef = useRef<HTMLDivElement>(null);
   const [allCatsDropdownWidth, setAllCatsDropdownWidth] = useState(760);
   const { totalItems, subtotal } = useCart();
@@ -567,53 +568,84 @@ export function Header() {
                 <DropdownMenuContent
                   align="start"
                   sideOffset={12}
-                  className="surface-glass-dark bg-black/90 text-white border border-white/10 shadow-[0_8px_30px_rgba(0,0,0,0.5)] rounded-b-md p-0 z-[9999] overflow-hidden"
+                  className="surface-glass-dark bg-black/92 text-white border border-white/[0.08] shadow-[0_12px_40px_rgba(0,0,0,0.6)] rounded-b-md p-0 z-[9999] overflow-hidden"
                   style={{ width: allCatsDropdownWidth }}
                   onMouseEnter={cancelAllCatsClose}
                   onMouseLeave={closeAllCats}
                 >
-                  {/* 2 sütunlu grid */}
-                  <div className="grid grid-cols-2 border-b border-white/[0.08]">
-                    {shownAllCats.map((cat, i) => (
-                      <div
-                        key={cat.id}
-                        className={`px-6 py-3 cursor-pointer transition-colors hover:bg-white/[0.06] border-white/[0.08] ${
-                          i % 2 === 0 ? 'border-r' : ''
-                        } border-b`}
-                        onClick={() => { navigate(`/kategori/${cat.slug}`); setAllCatsOpen(false); setAllCatsExpanded(false); }}
-                      >
-                        <span className="text-[11px] tracking-[0.12em] uppercase font-medium text-white/80 hover:text-white">
-                          {cat.name}
-                        </span>
+                  {(() => {
+                    // Kategori veya alt menü türünde, category bilgisi olan tüm root öğeler
+                    const panelRoots = menuRoots.filter(r => r.isActive && !!r.category);
+                    const activeId = hoveredRootId ?? panelRoots[0]?.id ?? null;
+                    const activeRoot = panelRoots.find(r => r.id === activeId) ?? panelRoots[0] ?? null;
+                    const activeKids = (activeRoot?.children ?? []).filter(c => c.isActive && !!c.category);
+
+                    return (
+                      <div className="flex" style={{ minHeight: 280 }}>
+                        {/* Sol panel: ana kategoriler */}
+                        <div className="w-[190px] shrink-0 border-r border-white/[0.08] overflow-y-auto py-1.5">
+                          {panelRoots.map(root => {
+                            const isActive = root.id === activeId;
+                            const hasKids = (root.children ?? []).some(c => c.isActive);
+                            return (
+                              <div
+                                key={root.id}
+                                className={`flex items-center justify-between gap-2 px-4 py-2.5 cursor-pointer select-none transition-colors ${
+                                  isActive
+                                    ? 'bg-white/[0.08] text-white'
+                                    : 'text-white/65 hover:bg-white/[0.04] hover:text-white'
+                                }`}
+                                onMouseEnter={() => setHoveredRootId(root.id)}
+                                onClick={() => {
+                                  if (root.category) navigate(`/kategori/${root.category.slug}`);
+                                  setAllCatsOpen(false);
+                                }}
+                              >
+                                <span className="text-[12px] font-medium truncate">{root.title}</span>
+                                {hasKids && (
+                                  <ChevronRight className={`w-3 h-3 shrink-0 transition-opacity ${isActive ? 'opacity-50' : 'opacity-20'}`} />
+                                )}
+                              </div>
+                            );
+                          })}
+                        </div>
+
+                        {/* Sağ panel: alt kategoriler */}
+                        <div className="flex-1 p-6 overflow-y-auto">
+                          {activeKids.length > 0 ? (
+                            <div className={`grid gap-x-8 gap-y-3 content-start ${
+                              activeKids.length > 8 ? 'grid-cols-3' : activeKids.length > 4 ? 'grid-cols-2' : 'grid-cols-1'
+                            }`}>
+                              {activeKids.map(kid => (
+                                <button
+                                  key={kid.id}
+                                  type="button"
+                                  className="flex items-center gap-1.5 text-left group"
+                                  onClick={() => { navigate(hrefForMenu(kid)); setAllCatsOpen(false); }}
+                                >
+                                  <span className="text-[13px] font-semibold text-white/80 group-hover:text-white transition-colors tracking-wide">
+                                    {kid.title}
+                                  </span>
+                                  <ChevronRight className="w-3 h-3 text-white/30 group-hover:text-white/60 transition-colors shrink-0" />
+                                </button>
+                              ))}
+                            </div>
+                          ) : activeRoot?.category ? (
+                            <div className="flex items-center justify-center h-full">
+                              <button
+                                type="button"
+                                className="text-[13px] text-white/40 hover:text-white transition-colors flex items-center gap-1.5"
+                                onClick={() => { navigate(`/kategori/${activeRoot.category!.slug}`); setAllCatsOpen(false); }}
+                              >
+                                {activeRoot.title} — tüm ürünleri gör
+                                <ArrowUpRight className="w-3.5 h-3.5" />
+                              </button>
+                            </div>
+                          ) : null}
+                        </div>
                       </div>
-                    ))}
-                    {/* Tek sayıda öğe varsa sağ hücreyi boş bırak */}
-                    {shownAllCats.length % 2 !== 0 && (
-                      <div className="px-6 py-3 border-b border-white/[0.08]" />
-                    )}
-                  </div>
-                  {/* Tümünü Gör butonu */}
-                  {hasMoreAllCats ? (
-                    <div
-                      className="flex items-center justify-center gap-2 py-3 px-6 cursor-pointer hover:bg-white/[0.05] transition-colors"
-                      onClick={() => setAllCatsExpanded(true)}
-                    >
-                      <span className="text-[11px] tracking-[0.12em] uppercase font-semibold text-white/70">
-                        Tümünü Gör ({visibleCategories.length})
-                      </span>
-                      <ChevronDown className="w-3.5 h-3.5 text-white/50" />
-                    </div>
-                  ) : (
-                    <div
-                      className="flex items-center justify-center gap-2 py-3 px-6 cursor-pointer hover:bg-white/[0.05] transition-colors"
-                      onClick={() => { navigate('/magaza'); setAllCatsOpen(false); }}
-                    >
-                      <span className="text-[11px] tracking-[0.12em] uppercase font-semibold text-white/50">
-                        Tüm Ürünler
-                      </span>
-                      <ArrowUpRight className="w-3.5 h-3.5 text-white/40" />
-                    </div>
-                  )}
+                    );
+                  })()}
                 </DropdownMenuContent>
               </DropdownMenu>
               )}
