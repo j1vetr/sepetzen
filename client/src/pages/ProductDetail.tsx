@@ -50,6 +50,8 @@ import {
   Info,
   ImagePlus,
   Play,
+  Volume2,
+  VolumeX,
   type LucideIcon,
 } from 'lucide-react';
 
@@ -441,10 +443,16 @@ function ProductTabs({
   html,
   specs,
   price,
+  tabDelivery,
+  tabFaq,
+  tabInstallmentNote,
 }: {
   html: string;
   specs?: Record<string, string | undefined> | null;
   price: number;
+  tabDelivery?: Array<{title: string; rows: Array<{key: string; value: string}>}> | null;
+  tabFaq?: Array<{q: string; a: string}> | null;
+  tabInstallmentNote?: string | null;
 }) {
   const reduceMotion = useReducedMotion();
   const [active, setActive] = useState<'desc' | 'installments' | 'delivery' | 'faq'>('desc');
@@ -560,9 +568,8 @@ function ProductTabs({
               ))}
             </dl>
             <p className="mt-4 text-[11.5px] text-white/40 leading-relaxed">
-              Taksit seçenekleri kredi kartıyla ödemelerde geçerlidir. Bankanıza göre taksit
-              sayısı ve tutarlar değişiklik gösterebilir; güncel tutarlar ödeme adımında görüntülenir.
-              Havale/EFT ile ödemelerde %3 indirim uygulanır.
+              {tabInstallmentNote?.trim() ||
+                'Taksit seçenekleri kredi kartıyla ödemelerde geçerlidir. Bankanıza göre taksit sayısı ve tutarlar değişiklik gösterebilir; güncel tutarlar ödeme adımında görüntülenir. Havale/EFT ile ödemelerde %3 indirim uygulanır.'}
             </p>
           </div>
         )}
@@ -570,57 +577,51 @@ function ProductTabs({
         {/* ── Teslimat ve İade ── */}
         {active === 'delivery' && (
           <div className="space-y-8 max-w-2xl">
-            <div>
-              <h3 className="text-[12px] font-semibold text-white/50 mb-4">
-                Kargo & Teslimat
-              </h3>
-              <dl className="divide-y divide-white/8">
-                {[
-                  ['Kargo Süresi', '1–3 iş günü'],
-                  ['Ücretsiz Kargo', `${thresholdText} ₺ ve üzeri siparişlerde`],
-                  ['Kargo Firması', 'MNG Kargo / Yurtiçi Kargo'],
-                  ['Aynı Gün Kargo', 'Hafta içi 14:00\'a kadar verilen siparişler'],
-                ].map(([k, v]) => (
-                  <div key={k} className="flex items-baseline gap-6 py-2.5">
-                    <dt className="text-[12px] text-white/45 w-36 shrink-0">{k}</dt>
-                    <dd className="text-[13px] text-white/80 font-medium">{v}</dd>
-                  </div>
-                ))}
-              </dl>
-            </div>
-            <div>
-              <h3 className="text-[12px] font-semibold text-white/50 mb-4">
-                İade & İptal
-              </h3>
-              <dl className="divide-y divide-white/8">
-                {[
-                  ['İade Süresi', '14 gün içinde'],
-                  ['İade Şartı', 'Açılmamış, kullanılmamış, orijinal ambalajında'],
-                  ['İade Yöntemi', 'Banka havalesi veya kart iadesi'],
-                  ['İptal', 'Kargoya verilmemiş siparişler iptal edilebilir'],
-                ].map(([k, v]) => (
-                  <div key={k} className="flex items-baseline gap-6 py-2.5">
-                    <dt className="text-[12px] text-white/45 w-36 shrink-0">{k}</dt>
-                    <dd className="text-[13px] text-white/80 font-medium">{v}</dd>
-                  </div>
-                ))}
-              </dl>
-            </div>
+            {(tabDelivery ?? [
+              {
+                title: 'Kargo & Teslimat',
+                rows: [
+                  { key: 'Kargo Süresi', value: '1–3 iş günü' },
+                  { key: 'Ücretsiz Kargo', value: `${thresholdText} ₺ ve üzeri siparişlerde` },
+                  { key: 'Kargo Firması', value: 'MNG Kargo / Yurtiçi Kargo' },
+                  { key: 'Aynı Gün Kargo', value: "Hafta içi 14:00'a kadar verilen siparişler" },
+                ],
+              },
+              {
+                title: 'İade & İptal',
+                rows: [
+                  { key: 'İade Süresi', value: '14 gün içinde' },
+                  { key: 'İade Şartı', value: 'Açılmamış, kullanılmamış, orijinal ambalajında' },
+                  { key: 'İade Yöntemi', value: 'Banka havalesi veya kart iadesi' },
+                  { key: 'İptal', value: 'Kargoya verilmemiş siparişler iptal edilebilir' },
+                ],
+              },
+            ] as Array<{title: string; rows: Array<{key: string; value: string}>}>).map((sec) => (
+              <div key={sec.title}>
+                <h3 className="text-[12px] font-semibold text-white/50 mb-4">{sec.title}</h3>
+                <dl className="divide-y divide-white/8">
+                  {sec.rows.map(({ key: k, value: v }) => (
+                    <div key={k} className="flex items-baseline gap-6 py-2.5">
+                      <dt className="text-[12px] text-white/45 w-36 shrink-0">{k}</dt>
+                      <dd className="text-[13px] text-white/80 font-medium">{v}</dd>
+                    </div>
+                  ))}
+                </dl>
+              </div>
+            ))}
           </div>
         )}
 
         {/* ── Sık Sorulan Sorular ── */}
         {active === 'faq' && (
           <div className="space-y-2 max-w-2xl">
-            {(
-              [
-                ['Ürünün garantisi var mı?', 'Evet, tüm ürünlerimiz 2 yıl üretici garantisi kapsamındadır.'],
-                ['Kargo ücreti ne kadar?', `${thresholdText} ₺ ve üzeri siparişlerde kargo tamamen ücretsizdir. Altındaki siparişlerde kargo ücreti sepette hesaplanır.`],
-                ['Havale/EFT ile ödeme yapabilir miyim?', 'Evet. Havale/EFT ile ödeme seçeneğinde sipariş toplamından %3 indirim uygulanır.'],
-                ['Ürünü iade edebilir miyim?', 'Teslim tarihinden itibaren 14 gün içinde, kullanılmamış ve orijinal ambalajında iade edilebilir.'],
-                ['Fatura kesilecek mi?', 'Evet, tüm siparişlerinize e-fatura kesilmektedir.'],
-              ] as [string, string][]
-            ).map(([q, a]) => (
+            {(tabFaq ?? [
+              { q: 'Ürünün garantisi var mı?', a: 'Evet, tüm ürünlerimiz 2 yıl üretici garantisi kapsamındadır.' },
+              { q: 'Kargo ücreti ne kadar?', a: `${thresholdText} ₺ ve üzeri siparişlerde kargo tamamen ücretsizdir. Altındaki siparişlerde kargo ücreti sepette hesaplanır.` },
+              { q: 'Havale/EFT ile ödeme yapabilir miyim?', a: 'Evet. Havale/EFT ile ödeme seçeneğinde sipariş toplamından %3 indirim uygulanır.' },
+              { q: 'Ürünü iade edebilir miyim?', a: 'Teslim tarihinden itibaren 14 gün içinde, kullanılmamış ve orijinal ambalajında iade edilebilir.' },
+              { q: 'Fatura kesilecek mi?', a: 'Evet, tüm siparişlerinize e-fatura kesilmektedir.' },
+            ] as Array<{q: string; a: string}>).map(({ q, a }) => (
               <details key={q} className="group border-b border-white/6 pb-0">
                 <summary className="text-[13px] font-semibold text-white cursor-pointer list-none flex items-center justify-between gap-3 py-4">
                   {q}
@@ -829,6 +830,17 @@ export default function ProductDetail() {
   const ctaSentinelRef = useRef<HTMLDivElement | null>(null);
   const heroImageRef = useRef<HTMLDivElement | null>(null);
   const reviewsSectionRef = useRef<HTMLElement | null>(null);
+  // Video ses kontrolü: autoplay için muted başlar, kullanıcı butona basınca açılır
+  const [videoMuted, setVideoMuted] = useState(true);
+  const desktopVideoRef = useRef<HTMLVideoElement | null>(null);
+  const mobileVideoRef = useRef<HTMLVideoElement | null>(null);
+  const toggleVideoSound = () => {
+    const next = !videoMuted;
+    setVideoMuted(next);
+    // React muted prop'u DOM'a yansıtmaz - ref ile doğrudan set et
+    if (desktopVideoRef.current) desktopVideoRef.current.muted = next;
+    if (mobileVideoRef.current) mobileVideoRef.current.muted = next;
+  };
   const [zoomPos, setZoomPos] = useState({ x: 50, y: 50 });
   const [isZooming, setIsZooming] = useState(false);
 
@@ -1415,7 +1427,7 @@ export default function ProductDetail() {
                   <div className="product-gallery-orbit rounded-xl w-full h-full">
                     <div
                       ref={heroImageRef}
-                      className="relative w-full h-full rounded-[11px] bg-zinc-900 overflow-hidden cursor-zoom-in border border-white/15"
+                      className="group/gallery relative w-full h-full rounded-[11px] bg-zinc-900 overflow-hidden cursor-zoom-in border border-white/15"
                       onMouseEnter={() => setIsZooming(true)}
                       onMouseLeave={() => setIsZooming(false)}
                       onMouseMove={handleHeroMove}
@@ -1432,15 +1444,26 @@ export default function ProductDetail() {
                           transition={{ duration: reduceMotion ? 0 : 0.28, ease: [0.33, 1, 0.68, 1] }}
                         >
                           {isVideoUrl(images[selectedImage]) ? (
+                            <>
                             <video
+                              ref={desktopVideoRef}
                               src={images[selectedImage]}
                               className="absolute inset-0 w-full h-full object-cover"
                               muted
                               autoPlay
                               loop
                               playsInline
-                              controls
                             />
+                            <button
+                              type="button"
+                              onClick={toggleVideoSound}
+                              className="absolute bottom-4 left-4 z-20 flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-black/60 backdrop-blur-sm text-white text-[11px] font-medium hover:bg-black/80 transition-colors"
+                              title={videoMuted ? 'Sesi aç' : 'Sesi kapat'}
+                            >
+                              {videoMuted ? <VolumeX className="w-3.5 h-3.5" /> : <Volume2 className="w-3.5 h-3.5" />}
+                              {videoMuted ? 'Ses Kapalı' : 'Ses Açık'}
+                            </button>
+                            </>
                           ) : (
                             <img
                               src={images[selectedImage]}
@@ -1456,6 +1479,28 @@ export default function ProductDetail() {
                           )}
                         </motion.div>
                       </AnimatePresence>
+                      {/* Sol/Sağ navigasyon okları */}
+                      {images.length > 1 && selectedImage > 0 && (
+                        <button
+                          type="button"
+                          onClick={(e) => { e.stopPropagation(); setSelectedImage((p) => p - 1); }}
+                          className="absolute left-3 top-1/2 -translate-y-1/2 z-20 w-8 h-8 flex items-center justify-center rounded-full bg-black/35 backdrop-blur-sm text-white opacity-0 group-hover/gallery:opacity-100 transition-opacity duration-200 hover:bg-black/55"
+                          aria-label="Önceki görsel"
+                        >
+                          <ChevronLeft className="w-4 h-4" />
+                        </button>
+                      )}
+                      {images.length > 1 && selectedImage < images.length - 1 && (
+                        <button
+                          type="button"
+                          onClick={(e) => { e.stopPropagation(); setSelectedImage((p) => p + 1); }}
+                          className="absolute right-3 top-1/2 -translate-y-1/2 z-20 w-8 h-8 flex items-center justify-center rounded-full bg-black/35 backdrop-blur-sm text-white opacity-0 group-hover/gallery:opacity-100 transition-opacity duration-200 hover:bg-black/55"
+                          aria-label="Sonraki görsel"
+                        >
+                          <ChevronRight className="w-4 h-4" />
+                        </button>
+                      )}
+
                       {/* Badges — sol üstte dikey yığın */}
                       <div className="absolute top-4 left-4 lg:top-3 lg:left-3 z-10 flex flex-col items-start gap-2">
                         {visibleDiscountBadge && (
@@ -1493,7 +1538,9 @@ export default function ProductDetail() {
                             onClick={() => setLightboxOpen(true)}
                           >
                             {isVideoUrl(img) ? (
+                              <>
                               <video
+                                ref={i === images.indexOf(img) ? mobileVideoRef : undefined}
                                 src={img}
                                 className="w-full h-full object-cover"
                                 muted
@@ -1501,6 +1548,16 @@ export default function ProductDetail() {
                                 loop
                                 playsInline
                               />
+                              <button
+                                type="button"
+                                onClick={(e) => { e.stopPropagation(); toggleVideoSound(); }}
+                                className="absolute bottom-4 left-4 z-20 flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-black/60 backdrop-blur-sm text-white text-[11px] font-medium hover:bg-black/80 transition-colors"
+                                title={videoMuted ? 'Sesi aç' : 'Sesi kapat'}
+                              >
+                                {videoMuted ? <VolumeX className="w-3.5 h-3.5" /> : <Volume2 className="w-3.5 h-3.5" />}
+                                {videoMuted ? 'Ses Kapalı' : 'Ses Açık'}
+                              </button>
+                              </>
                             ) : (
                               <img
                                 src={img}
@@ -1966,7 +2023,14 @@ export default function ProductDetail() {
           </div>
 
           {/* ── Description tabs ── */}
-          <ProductTabs html={product.description || ''} specs={product.specs} price={price} />
+          <ProductTabs
+            html={product.description || ''}
+            specs={product.specs}
+            price={price}
+            tabDelivery={(product as any).tabDelivery}
+            tabFaq={(product as any).tabFaq}
+            tabInstallmentNote={(product as any).tabInstallmentNote}
+          />
 
           {/* ── Reviews ── */}
           <motion.section

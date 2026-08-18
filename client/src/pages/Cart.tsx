@@ -294,7 +294,7 @@ export default function Cart() {
 
                 <Link href="/odeme">
                   <button
-                    className="w-full btn-glass text-white py-3.5 rounded-lg font-bold text-lg mb-3 flex items-center justify-center gap-2"
+                    className="all-cats-gold w-full py-3.5 rounded-sm font-bold text-base tracking-[0.12em] uppercase mb-3 flex items-center justify-center gap-2"
                     data-testid="button-checkout"
                   >
                     ÖDEMEYE GEÇ
@@ -393,7 +393,7 @@ export default function Cart() {
             </div>
             <Link href="/odeme" className="flex-[1.5]">
               <button
-                className="w-full btn-glass text-white font-bold py-3.5 px-4 rounded-lg flex items-center justify-center"
+                className="all-cats-gold w-full font-bold py-3.5 px-4 rounded-sm tracking-[0.12em] uppercase flex items-center justify-center"
                 data-testid="button-checkout-mobile"
               >
                 ÖDEMEYE GEÇ

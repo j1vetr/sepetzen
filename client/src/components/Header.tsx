@@ -1,6 +1,6 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useMemo } from 'react';
 import { Link, useLocation } from 'wouter';
-import { ShoppingBag, Search, X, User, LogOut, ChevronDown, ArrowUpRight, Scissors, PawPrint, Tent, Shovel, Wrench, FlameKindling, Backpack, LayoutGrid, Target, Drill, HardHat, Flashlight, Compass, Map, Mountain, Flower, Bird, Fish, Rabbit, TreeDeciduous, TreePine, UtensilsCrossed, Dog, Cat, Layers, Zap, Waves, PackageSearch, CircleHelp } from 'lucide-react';
+import { ShoppingBag, Search, X, User, LogOut, ChevronDown, ChevronRight, ArrowUpRight, Scissors, PawPrint, Tent, Shovel, Wrench, FlameKindling, Backpack, LayoutGrid, Target, Drill, HardHat, Flashlight, Compass, Map as MapIcon, Mountain, Flower, Bird, Fish, Rabbit, TreeDeciduous, TreePine, UtensilsCrossed, Dog, Cat, Layers, Zap, Waves, PackageSearch, CircleHelp } from 'lucide-react';
 
 const PocketKnifeIcon = ({ className, strokeWidth = 1.75 }: { className?: string; strokeWidth?: number }) => (
   <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={strokeWidth} strokeLinecap="round" strokeLinejoin="round" className={className}>
@@ -38,6 +38,7 @@ interface MenuItemData {
   id: string;
   title: string;
   description?: string | null;
+  bgImage?: string | null;
   type: 'category' | 'link' | 'submenu';
   categoryId: string | null;
   url: string | null;
@@ -100,7 +101,7 @@ function getSubIcon(title: string) {
   if (t.includes('sırt') || t.includes('sirt') || t.includes('çanta') || t.includes('canta')) return Backpack;
   if (t.includes('fener') || t.includes('ışık') || t.includes('isik')) return Flashlight;
   if (t.includes('pusula')) return Compass;
-  if (t.includes('harita')) return Map;
+  if (t.includes('harita')) return MapIcon;
   if (t.includes('dağ') || t.includes('dag')) return Mountain;
   if (t.includes('matkap') || t.includes('drill')) return Drill;
   if (t.includes('inşaat') || t.includes('insaat')) return HardHat;
@@ -138,6 +139,7 @@ export function Header() {
   const [megaMenuId, setMegaMenuId] = useState<string | null>(null);
   const [sidebarProductIdx, setSidebarProductIdx] = useState(0);
   const [allCatsExpanded, setAllCatsExpanded] = useState(false);
+  const [hoveredTopCatId, setHoveredTopCatId] = useState<string | null>(null);
   const [sidebarProductKey, setSidebarProductKey] = useState(0);
   const closeTimerRef = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
   const allCatsCloseTimerRef = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
@@ -231,7 +233,28 @@ export function Header() {
     return result;
   })();
 
-  // "Tüm Kategoriler" açılır menüsü: ilk açılışta en fazla 8 kategori, "Tümünü Gör" ile tamamı
+  // "Tüm Kategoriler" iki-panel menüsü: sol = ana kategoriler, sağ = alt kategoriler
+  const byOrder = (a: CategoryData, b: CategoryData) => (a.displayOrder ?? 0) - (b.displayOrder ?? 0);
+  const topCatsSorted = useMemo(
+    () => categoriesData.filter(c => !c.parentId && (c.displayOrder ?? 0) < 100).sort(byOrder),
+    [categoriesData],
+  );
+  const childrenByCat = useMemo(() => {
+    const map = new Map<string, CategoryData[]>();
+    categoriesData.forEach(c => {
+      if (c.parentId) {
+        const list = map.get(c.parentId) || [];
+        list.push(c);
+        map.set(c.parentId, list);
+      }
+    });
+    map.forEach((v, k) => map.set(k, v.sort(byOrder)));
+    return map;
+  }, [categoriesData]);
+  const activeTopCatId = hoveredTopCatId ?? topCatsSorted[0]?.id ?? null;
+  const activeTopCat = topCatsSorted.find(c => c.id === activeTopCatId) ?? topCatsSorted[0] ?? null;
+  const activeCatChildren = activeTopCatId ? (childrenByCat.get(activeTopCatId) ?? []) : [];
+  // legacy compat (still used elsewhere)
   const ALL_CATS_PREVIEW = 8;
   const hasMoreAllCats = !allCatsExpanded && visibleCategories.length > ALL_CATS_PREVIEW;
   const shownAllCats = hasMoreAllCats ? visibleCategories.slice(0, ALL_CATS_PREVIEW) : visibleCategories;
@@ -437,8 +460,8 @@ export function Header() {
             ? megaMenuId
               // Mega panel açıkken header'dan backdrop-filter kaldırılır: ata elemandaki
               // backdrop-filter, altındaki panelin kendi blur'unu bozar (backdrop root).
-              ? 'bg-[#050505]/95 border-b border-white/10 shadow-[0_4px_24px_-8px_rgba(0,0,0,0.45)]'
-              : 'surface-glass-dark border-b border-white/10 shadow-[0_4px_24px_-8px_rgba(0,0,0,0.45)]'
+              ? 'bg-[#050505]/95 border-b border-transparent shadow-[0_4px_24px_-8px_rgba(0,0,0,0.45)]'
+              : 'surface-glass-dark border-b border-transparent shadow-[0_4px_24px_-8px_rgba(0,0,0,0.45)]'
             : 'bg-[#0A0A0A] border-b border-white/8'
         }`}
       >
@@ -554,54 +577,78 @@ export function Header() {
                 <DropdownMenuContent
                   align="start"
                   sideOffset={12}
-                  className="surface-glass-dark bg-black/85 text-white border border-white/10 shadow-[0_8px_30px_rgba(0,0,0,0.5)] rounded-md p-3 z-[9999]"
-                  style={{ minWidth: shownAllCats.length > 6 ? 480 : 240 }}
-                   onMouseEnter={cancelAllCatsClose}
-                   onMouseLeave={closeAllCats}
+                  className="surface-glass-dark bg-black/85 text-white border border-white/10 shadow-[0_8px_30px_rgba(0,0,0,0.5)] rounded-md p-0 z-[9999] overflow-hidden"
+                  style={{ width: 580 }}
+                  onMouseEnter={cancelAllCatsClose}
+                  onMouseLeave={closeAllCats}
                 >
-                  {visibleCategories.length === 0 ? (
-                    <DropdownMenuItem
-                      onClick={() => navigate('/magaza')}
-                      className="text-[11px] tracking-wider uppercase text-white/75 hover:bg-white/5 cursor-pointer py-2.5"
+                  {topCatsSorted.length === 0 ? (
+                    <div
+                      className="text-[11px] tracking-wider uppercase text-white/75 cursor-pointer py-3 px-4 hover:bg-white/5 transition-colors"
+                      onClick={() => { navigate('/magaza'); setAllCatsOpen(false); }}
                     >
                       Tüm Ürünler
-                    </DropdownMenuItem>
-                  ) : (
-                    <>
-                    <div
-                      className="grid gap-x-6"
-                      style={{ gridTemplateColumns: shownAllCats.length > 6 ? 'repeat(2, minmax(0, 1fr))' : '1fr' }}
-                    >
-                      {shownAllCats.map((c, i) => {
-                        const cols = shownAllCats.length > 6 ? 2 : 1;
-                        const isLastRow = i >= shownAllCats.length - cols;
-                        return (
-                          <DropdownMenuItem
-                            key={c.id}
-                            onClick={() => navigate(`/kategori/${c.slug}`)}
-                            className={`text-[11px] tracking-[0.12em] uppercase text-white/75 hover:bg-white/5 hover:text-white cursor-pointer py-3 px-3 rounded-none transition-colors ${isLastRow ? '' : 'border-b border-white/[0.07]'}`}
-                            data-testid={`link-allcat-${c.slug}`}
-                          >
-                            {(c as any).isChild ? (
-                              <span className="pl-3 text-white/60">└ {c.name}</span>
-                            ) : (
-                              c.name
-                            )}
-                          </DropdownMenuItem>
-                        );
-                      })}
                     </div>
-                    {hasMoreAllCats && (
-                      <DropdownMenuItem
-                        onSelect={(e) => { e.preventDefault(); setAllCatsExpanded(true); }}
-                        className="mt-2 text-[10.5px] tracking-[0.14em] uppercase font-bold text-white bg-white/[0.06] hover:bg-white/[0.12] cursor-pointer py-3 px-3 justify-center rounded-md transition-colors"
-                        data-testid="button-allcat-show-all"
-                      >
-                        Tümünü Gör ({visibleCategories.length})
-                        <ChevronDown className="w-3 h-3 ml-1.5 text-white/60" />
-                      </DropdownMenuItem>
-                    )}
-                    </>
+                  ) : (
+                    <div className="flex" style={{ height: Math.min(topCatsSorted.length * 44 + 16, 420) }}>
+                      {/* Sol: Ana kategoriler */}
+                      <div className="w-[200px] shrink-0 border-r border-white/[0.07] overflow-y-auto py-2">
+                        {topCatsSorted.map((cat) => {
+                          const hasChildren = (childrenByCat.get(cat.id) ?? []).length > 0;
+                          const isActive = cat.id === activeTopCatId;
+                          return (
+                            <div
+                              key={cat.id}
+                              className={`flex items-center justify-between gap-2 px-4 py-2.5 cursor-pointer transition-colors select-none ${
+                                isActive
+                                  ? 'bg-white/[0.09] text-white'
+                                  : 'text-white/70 hover:bg-white/[0.05] hover:text-white'
+                              }`}
+                              onMouseEnter={() => setHoveredTopCatId(cat.id)}
+                              onClick={() => { navigate(`/kategori/${cat.slug}`); setAllCatsOpen(false); }}
+                            >
+                              <span className="text-[12px] font-medium truncate">{cat.name}</span>
+                              {hasChildren && (
+                                <ChevronRight className={`w-3 h-3 shrink-0 transition-opacity ${isActive ? 'opacity-60' : 'opacity-30'}`} />
+                              )}
+                            </div>
+                          );
+                        })}
+                      </div>
+
+                      {/* Sağ: Alt kategoriler */}
+                      <div className="flex-1 overflow-y-auto p-4">
+                        {activeTopCat && (
+                          <>
+                            <button
+                              type="button"
+                              className="text-[10px] tracking-[0.15em] uppercase font-bold text-white/40 mb-3 flex items-center gap-1.5 hover:text-white/70 transition-colors"
+                              onClick={() => { navigate(`/kategori/${activeTopCat.slug}`); setAllCatsOpen(false); }}
+                            >
+                              {activeTopCat.name}
+                              <ArrowUpRight className="w-2.5 h-2.5" />
+                            </button>
+                            {activeCatChildren.length > 0 ? (
+                              <div className="columns-2 gap-x-4 space-y-0">
+                                {activeCatChildren.map((child) => (
+                                  <div
+                                    key={child.id}
+                                    className="break-inside-avoid py-2 border-b border-white/[0.05] cursor-pointer group"
+                                    onClick={() => { navigate(`/kategori/${child.slug}`); setAllCatsOpen(false); }}
+                                  >
+                                    <span className="text-[12.5px] text-white/65 group-hover:text-white transition-colors">
+                                      {child.name}
+                                    </span>
+                                  </div>
+                                ))}
+                              </div>
+                            ) : (
+                              <p className="text-[11.5px] text-white/35 italic">Alt kategori yok</p>
+                            )}
+                          </>
+                        )}
+                      </div>
+                    </div>
                   )}
                 </DropdownMenuContent>
               </DropdownMenu>
@@ -826,7 +873,7 @@ export function Header() {
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -6 }}
             transition={{ duration: 0.26, ease: [0.16, 1, 0.3, 1] }}
-            className="mega-menu-panel absolute top-full left-0 right-0 surface-glass-dark border-b border-white/10 shadow-[0_40px_80px_-16px_rgba(0,0,0,0.55)] z-[110] overflow-hidden"
+            className="mega-menu-panel absolute top-full left-0 right-0 surface-glass-dark border-b border-transparent shadow-[0_40px_80px_-16px_rgba(0,0,0,0.55)] z-[110] overflow-hidden"
             style={{
               backgroundColor: 'rgba(9, 9, 9, 0.92)',
               backdropFilter: 'blur(22px) saturate(1.35)',
@@ -838,12 +885,29 @@ export function Header() {
           >
             <div className="max-w-[1400px] mx-auto flex min-h-[340px]">
 
-              {/* ── LEFT: Dark green hero sidebar ── */}
+              {/* ── LEFT: Dark hero sidebar ── */}
               <div className="w-64 xl:w-[288px] shrink-0 bg-white/[0.05] flex flex-col relative overflow-hidden">
-                <div
-                  className="absolute inset-0 opacity-[0.06] pointer-events-none"
-                  style={{ backgroundImage: 'radial-gradient(circle, #fff 1px, transparent 1px)', backgroundSize: '20px 20px' }}
-                />
+                {/* Arka plan görseli (admin'den ayarlanabilir) */}
+                {activeMegaRoot.bgImage && (
+                  <div
+                    className="absolute inset-0 pointer-events-none"
+                    style={{
+                      backgroundImage: `url(${activeMegaRoot.bgImage})`,
+                      backgroundSize: 'cover',
+                      backgroundPosition: 'center',
+                    }}
+                  >
+                    {/* Görselin üstüne karartma - metin okunabilirliğini korur */}
+                    <div className="absolute inset-0 bg-black/55" />
+                  </div>
+                )}
+                {/* Görsel yoksa varsayılan noktalı desen */}
+                {!activeMegaRoot.bgImage && (
+                  <div
+                    className="absolute inset-0 opacity-[0.06] pointer-events-none"
+                    style={{ backgroundImage: 'radial-gradient(circle, #fff 1px, transparent 1px)', backgroundSize: '20px 20px' }}
+                  />
+                )}
                 <div className="relative z-10 flex flex-col h-full">
                   {/* Top: title + desc */}
                   <div className="px-7 pt-8 pb-5">

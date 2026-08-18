@@ -41,7 +41,7 @@ export default function StaticPage() {
       return res.json();
     },
     enabled: !!slug,
-    staleTime: 5 * 60 * 1000,
+    staleTime: 0,
   });
 
   const pageDescription = slug

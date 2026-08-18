@@ -1,6 +1,6 @@
-import { useState } from 'react';
+import { useState, useRef } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { Plus, Edit, Trash2, GripVertical, ExternalLink, Loader2, X, Menu, Tag, ChevronUp, ChevronDown, Wand2, RefreshCw } from 'lucide-react';
+import { Plus, Edit, Trash2, GripVertical, ExternalLink, Loader2, X, Menu, Tag, ChevronUp, ChevronDown, Wand2, RefreshCw, Image as ImageIcon, Trash } from 'lucide-react';
 import type { Category } from './_shared/types';
 
 interface MenuManagementPanelProps {
@@ -11,6 +11,7 @@ interface MenuItemData {
   id: string;
   title: string;
   description: string | null;
+  bgImage: string | null;
   type: 'category' | 'link' | 'submenu';
   categoryId: string | null;
   url: string | null;
@@ -32,6 +33,7 @@ export default function MenuManagementPanel({ categories }: MenuManagementPanelP
   const [formData, setFormData] = useState({
     title: '',
     description: '',
+    bgImage: '',
     type: 'category' as 'category' | 'link' | 'submenu',
     categoryId: '',
     url: '',
@@ -39,6 +41,8 @@ export default function MenuManagementPanel({ categories }: MenuManagementPanelP
     isActive: true,
     openInNewTab: false,
   });
+  const [bgUploading, setBgUploading] = useState(false);
+  const bgFileRef = useRef<HTMLInputElement>(null);
 
   const { data: menuItems = [], isLoading } = useQuery<MenuItemData[]>({
     queryKey: ['admin', 'menu-items'],
@@ -198,12 +202,33 @@ export default function MenuManagementPanel({ categories }: MenuManagementPanelP
     regenerateMutation.mutate(true);
   };
 
+  const handleBgUpload = async (file: File) => {
+    setBgUploading(true);
+    try {
+      const fd = new FormData();
+      fd.append('file', file);
+      const res = await fetch('/api/admin/upload/branding', {
+        method: 'POST',
+        credentials: 'include',
+        body: fd,
+      });
+      if (!res.ok) throw new Error('Yükleme başarısız');
+      const data = await res.json();
+      setFormData((prev) => ({ ...prev, bgImage: data.url }));
+    } catch (err) {
+      alert('Görsel yüklenemedi: ' + (err instanceof Error ? err.message : 'Bilinmeyen hata'));
+    } finally {
+      setBgUploading(false);
+    }
+  };
+
   const closeModal = () => {
     setShowModal(false);
     setEditingItem(null);
     setFormData({
       title: '',
       description: '',
+      bgImage: '',
       type: 'category',
       categoryId: '',
       url: '',
@@ -218,6 +243,7 @@ export default function MenuManagementPanel({ categories }: MenuManagementPanelP
     setFormData({
       title: item.title,
       description: item.description || '',
+      bgImage: item.bgImage || '',
       type: item.type,
       categoryId: item.categoryId || '',
       url: item.url || '',
@@ -548,6 +574,63 @@ export default function MenuManagementPanel({ categories }: MenuManagementPanelP
                       data-testid="input-menu-description"
                     />
                     <p className="text-xs text-neutral-500 mt-1">Boş bırakılırsa otomatik açıklama kullanılır</p>
+                  </div>
+
+                  {/* Mega menü sidebar arka plan görseli */}
+                  <div>
+                    <label className="block text-sm font-medium text-neutral-500 mb-2">Mega Menü Arka Plan Görseli (Opsiyonel)</label>
+                    <input
+                      ref={bgFileRef}
+                      type="file"
+                      accept="image/*"
+                      className="hidden"
+                      onChange={(e) => {
+                        const file = e.target.files?.[0];
+                        if (file) handleBgUpload(file);
+                        e.target.value = '';
+                      }}
+                    />
+                    {formData.bgImage ? (
+                      <div className="relative group rounded-lg overflow-hidden border border-neutral-200 bg-neutral-50">
+                        <img
+                          src={formData.bgImage}
+                          alt="Arka plan önizleme"
+                          className="w-full h-32 object-cover"
+                        />
+                        <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-3">
+                          <button
+                            type="button"
+                            onClick={() => bgFileRef.current?.click()}
+                            disabled={bgUploading}
+                            className="flex items-center gap-1.5 px-3 py-1.5 bg-white text-black rounded-md text-xs font-medium"
+                          >
+                            <ImageIcon className="w-3.5 h-3.5" /> Değiştir
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => setFormData((prev) => ({ ...prev, bgImage: '' }))}
+                            className="flex items-center gap-1.5 px-3 py-1.5 bg-red-600 text-white rounded-md text-xs font-medium"
+                          >
+                            <Trash className="w-3.5 h-3.5" /> Kaldır
+                          </button>
+                        </div>
+                      </div>
+                    ) : (
+                      <button
+                        type="button"
+                        onClick={() => bgFileRef.current?.click()}
+                        disabled={bgUploading}
+                        className="w-full h-24 border-2 border-dashed border-neutral-200 rounded-lg flex flex-col items-center justify-center gap-2 hover:border-neutral-400 hover:bg-neutral-50 transition-colors text-neutral-400 disabled:opacity-50"
+                      >
+                        {bgUploading ? (
+                          <Loader2 className="w-5 h-5 animate-spin" />
+                        ) : (
+                          <ImageIcon className="w-5 h-5" />
+                        )}
+                        <span className="text-xs">{bgUploading ? 'Yükleniyor...' : 'Görsel seç veya sürükle'}</span>
+                      </button>
+                    )}
+                    <p className="text-xs text-neutral-500 mt-1">Mega menünün sol karanlık paneline arka plan olarak eklenir, üstüne yarı saydam karartma uygulanır</p>
                   </div>
                 </>
               )}

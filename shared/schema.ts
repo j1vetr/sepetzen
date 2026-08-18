@@ -163,6 +163,10 @@ export const products = pgTable("products", {
   isNew: boolean("is_new").default(false).notNull(),
   discountBadge: text("discount_badge"),
   brand: text("brand"),
+  // Ürün detay sekme içerikleri (null = site geneli varsayılan gösterilir)
+  tabDelivery: jsonb("tab_delivery").$type<Array<{title: string; rows: Array<{key: string; value: string}>}>>(),
+  tabFaq: jsonb("tab_faq").$type<Array<{q: string; a: string}>>(),
+  tabInstallmentNote: text("tab_installment_note"),
   createdAt: timestamp("created_at").defaultNow().notNull(),
   updatedAt: timestamp("updated_at").defaultNow().notNull(),
 });
@@ -187,6 +191,12 @@ export const insertProductSchema = createInsertSchema(products).omit({
     celikCinsi: z.string().optional(),
     sapCinsi: z.string().optional(),
   }).optional(),
+  tabDelivery: z.array(z.object({
+    title: z.string(),
+    rows: z.array(z.object({ key: z.string(), value: z.string() })),
+  })).nullable().optional(),
+  tabFaq: z.array(z.object({ q: z.string(), a: z.string() })).nullable().optional(),
+  tabInstallmentNote: z.string().nullable().optional(),
 });
 
 export type InsertProduct = z.infer<typeof insertProductSchema>;
@@ -802,6 +812,7 @@ export const menuItems = pgTable("menu_items", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
   title: text("title").notNull(),
   description: text("description"), // mega menü sol panel açıklaması (submenu kökleri için)
+  bgImage: text("bg_image"), // mega menü sol panel arka plan görseli (submenu kökleri için)
   type: text("type").notNull(), // "category", "link", "submenu"
   categoryId: varchar("category_id").references(() => categories.id, { onDelete: "set null" }),
   url: text("url"), // for type "link"

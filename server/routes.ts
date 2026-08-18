@@ -912,6 +912,7 @@ export async function registerRoutes(
     try {
       const page = await storage.getPageBySlug(req.params.slug);
       if (!page || !page.isPublished) return res.status(404).json({ error: "Sayfa bulunamadı" });
+      res.setHeader('Cache-Control', 'no-store');
       res.json(page);
     } catch (err) {
       console.error("[pages] get error:", err);
@@ -9199,7 +9200,7 @@ Sitemap: ${baseUrl}/sitemap.xml
   // Admin: Create menu item
   app.post("/api/admin/menu-items", requireAdmin, async (req, res) => {
     try {
-      const { title, description, type, categoryId, url, parentId, displayOrder, isActive, openInNewTab } = req.body;
+      const { title, description, bgImage, type, categoryId, url, parentId, displayOrder, isActive, openInNewTab } = req.body;
 
       if (!title || !type) {
         return res.status(400).json({ error: "Başlık ve tür zorunludur" });
@@ -9216,6 +9217,7 @@ Sitemap: ${baseUrl}/sitemap.xml
       const menuItem = await storage.createMenuItem({
         title,
         description: description || null,
+        bgImage: bgImage || null,
         type,
         categoryId: categoryId || null,
         url: url || null,
@@ -9235,11 +9237,12 @@ Sitemap: ${baseUrl}/sitemap.xml
   // Admin: Update menu item
   app.put("/api/admin/menu-items/:id", requireAdmin, async (req, res) => {
     try {
-      const { title, description, type, categoryId, url, parentId, displayOrder, isActive, openInNewTab } = req.body;
+      const { title, description, bgImage, type, categoryId, url, parentId, displayOrder, isActive, openInNewTab } = req.body;
 
       const menuItem = await storage.updateMenuItem(req.params.id, {
         title,
         description: description || null,
+        bgImage: bgImage !== undefined ? (bgImage || null) : undefined,
         type,
         categoryId: categoryId || null,
         url: url || null,

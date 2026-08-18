@@ -238,6 +238,9 @@ function ProductEditor({
     initialStock: '',
     brand: '',
     specs: {} as Record<string, string>,
+    tabDelivery: null as Array<{title: string; rows: Array<{key: string; value: string}>}> | null,
+    tabFaq: null as Array<{q: string; a: string}> | null,
+    tabInstallmentNote: '',
   });
   const [hydrated, setHydrated] = useState(false);
 
@@ -251,6 +254,7 @@ function ProductEditor({
   const [isGenerating, setIsGenerating] = useState(false);
   const [generateError, setGenerateError] = useState<string | null>(null);
   const [colorInput, setColorInput] = useState('');
+  const [activeTabEditor, setActiveTabEditor] = useState<'installment' | 'delivery' | 'faq'>('delivery');
 
   // Ürün listeden yüklenince formu bir kez doldur
   useEffect(() => {
@@ -275,6 +279,9 @@ function ProductEditor({
       initialStock: '',
       brand: product?.brand || '',
       specs: (product?.specs || {}) as Record<string, string>,
+      tabDelivery: (product as any)?.tabDelivery ?? null,
+      tabFaq: (product as any)?.tabFaq ?? null,
+      tabInstallmentNote: (product as any)?.tabInstallmentNote || '',
     });
     setColorInput(
       product?.availableColors?.[0]?.name
@@ -798,7 +805,7 @@ function ProductEditor({
                     </div>
 
                     {isVideoUrl(image) ? (
-                      <video src={image} className="w-full h-full object-cover" muted loop preload="metadata" />
+                      <video src={image} className="w-full h-full object-cover" muted loop preload="metadata" draggable={false} />
                     ) : (
                       <img
                         src={image}
@@ -1053,6 +1060,231 @@ function ProductEditor({
                 )}
               </div>
             )}
+          </SectionCard>
+
+          {/* ── Ürün Detay Sekmeleri ── */}
+          <SectionCard
+            icon={<svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.8} d="M4 6h16M4 10h16M4 14h10"/></svg>}
+            title="Ürün Detay Sekmeleri"
+          >
+            {/* Sekme seçici */}
+            <div className="flex border-b border-neutral-200 mb-5 -mx-1">
+              {([
+                { id: 'installment', label: 'Taksit Seçenekleri' },
+                { id: 'delivery', label: 'Teslimat ve İade' },
+                { id: 'faq', label: 'Sık Sorulan Sorular' },
+              ] as const).map((t) => (
+                <button
+                  key={t.id}
+                  type="button"
+                  onClick={() => setActiveTabEditor(t.id)}
+                  className={`px-4 py-2.5 text-[12px] font-medium border-b-2 transition-colors whitespace-nowrap ${
+                    activeTabEditor === t.id
+                      ? 'border-neutral-900 text-neutral-900'
+                      : 'border-transparent text-neutral-400 hover:text-neutral-700'
+                  }`}
+                >
+                  {t.label}
+                </button>
+              ))}
+            </div>
+
+            {/* Taksit Seçenekleri */}
+            {activeTabEditor === 'installment' && (
+              <div className="space-y-3">
+                <p className="text-[11.5px] text-neutral-500">
+                  Taksit tablosu fiyat üzerinden otomatik hesaplanır. Aşağıdaki açıklama notu değiştirilebilir.
+                </p>
+                <label className="block text-[12px] font-medium text-neutral-600 mb-1">Taksit Açıklama Notu</label>
+                <textarea
+                  rows={3}
+                  value={formData.tabInstallmentNote}
+                  onChange={(e) => setFormData((p) => ({ ...p, tabInstallmentNote: e.target.value }))}
+                  placeholder="Taksit seçenekleri kredi kartıyla ödemelerde geçerlidir. Bankanıza göre taksit sayısı ve tutarlar değişiklik gösterebilir; güncel tutarlar ödeme adımında görüntülenir. Havale/EFT ile ödemelerde %3 indirim uygulanır."
+                  className="w-full px-3 py-2.5 border border-neutral-200 rounded-lg text-[13px] text-neutral-900 bg-neutral-50 focus:outline-none focus:border-neutral-400 resize-none"
+                />
+                <p className="text-[11px] text-neutral-400">Boş bırakırsanız varsayılan metin gösterilir.</p>
+              </div>
+            )}
+
+            {/* Teslimat ve İade */}
+            {activeTabEditor === 'delivery' && (() => {
+              const defaultSections = [
+                {
+                  title: 'Kargo & Teslimat',
+                  rows: [
+                    { key: 'Kargo Süresi', value: '1–3 iş günü' },
+                    { key: 'Ücretsiz Kargo', value: 'Belirli tutarın üzeri siparişlerde' },
+                    { key: 'Kargo Firması', value: 'MNG Kargo / Yurtiçi Kargo' },
+                    { key: 'Aynı Gün Kargo', value: "Hafta içi 14:00'a kadar verilen siparişler" },
+                  ],
+                },
+                {
+                  title: 'İade & İptal',
+                  rows: [
+                    { key: 'İade Süresi', value: '14 gün içinde' },
+                    { key: 'İade Şartı', value: 'Açılmamış, kullanılmamış, orijinal ambalajında' },
+                    { key: 'İade Yöntemi', value: 'Banka havalesi veya kart iadesi' },
+                    { key: 'İptal', value: 'Kargoya verilmemiş siparişler iptal edilebilir' },
+                  ],
+                },
+              ];
+              const sections = formData.tabDelivery ?? defaultSections;
+              const updateSections = (next: typeof sections) =>
+                setFormData((p) => ({ ...p, tabDelivery: next }));
+
+              return (
+                <div className="space-y-6">
+                  {sections.map((sec, si) => (
+                    <div key={si} className="border border-neutral-200 rounded-lg overflow-hidden">
+                      <div className="flex items-center gap-2 px-4 py-2.5 bg-neutral-50 border-b border-neutral-200">
+                        <input
+                          value={sec.title}
+                          onChange={(e) => {
+                            const next = sections.map((s, i) => i === si ? { ...s, title: e.target.value } : s);
+                            updateSections(next);
+                          }}
+                          className="flex-1 text-[12px] font-semibold text-neutral-700 bg-transparent border-none outline-none"
+                          placeholder="Bölüm başlığı"
+                        />
+                        {sections.length > 1 && (
+                          <button
+                            type="button"
+                            onClick={() => updateSections(sections.filter((_, i) => i !== si))}
+                            className="text-red-400 hover:text-red-600 text-[11px]"
+                          >
+                            Bölümü Sil
+                          </button>
+                        )}
+                      </div>
+                      <div className="divide-y divide-neutral-100">
+                        {sec.rows.map((row, ri) => (
+                          <div key={ri} className="flex items-center gap-2 px-4 py-2">
+                            <input
+                              value={row.key}
+                              onChange={(e) => {
+                                const next = sections.map((s, i) =>
+                                  i !== si ? s : {
+                                    ...s,
+                                    rows: s.rows.map((r, j) => j === ri ? { ...r, key: e.target.value } : r),
+                                  }
+                                );
+                                updateSections(next);
+                              }}
+                              className="w-36 text-[12px] text-neutral-500 bg-transparent border-none outline-none shrink-0"
+                              placeholder="Etiket"
+                            />
+                            <input
+                              value={row.value}
+                              onChange={(e) => {
+                                const next = sections.map((s, i) =>
+                                  i !== si ? s : {
+                                    ...s,
+                                    rows: s.rows.map((r, j) => j === ri ? { ...r, value: e.target.value } : r),
+                                  }
+                                );
+                                updateSections(next);
+                              }}
+                              className="flex-1 text-[13px] text-neutral-900 bg-transparent border-none outline-none"
+                              placeholder="Değer"
+                            />
+                            <button
+                              type="button"
+                              onClick={() => {
+                                const next = sections.map((s, i) =>
+                                  i !== si ? s : { ...s, rows: s.rows.filter((_, j) => j !== ri) }
+                                );
+                                updateSections(next);
+                              }}
+                              className="text-neutral-300 hover:text-red-400 transition-colors px-1"
+                            >
+                              ×
+                            </button>
+                          </div>
+                        ))}
+                        <div className="px-4 py-2">
+                          <button
+                            type="button"
+                            onClick={() => {
+                              const next = sections.map((s, i) =>
+                                i !== si ? s : { ...s, rows: [...s.rows, { key: '', value: '' }] }
+                              );
+                              updateSections(next);
+                            }}
+                            className="text-[11.5px] text-neutral-400 hover:text-neutral-700"
+                          >
+                            + Satır Ekle
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                  <button
+                    type="button"
+                    onClick={() => updateSections([...sections, { title: 'Yeni Bölüm', rows: [{ key: '', value: '' }] }])}
+                    className="text-[12px] text-neutral-400 hover:text-neutral-700 border border-dashed border-neutral-200 rounded-lg px-4 py-2.5 w-full"
+                  >
+                    + Bölüm Ekle
+                  </button>
+                </div>
+              );
+            })()}
+
+            {/* Sık Sorulan Sorular */}
+            {activeTabEditor === 'faq' && (() => {
+              const defaultItems = [
+                { q: 'Ürünün garantisi var mı?', a: 'Evet, tüm ürünlerimiz 2 yıl üretici garantisi kapsamındadır.' },
+                { q: 'Kargo ücreti ne kadar?', a: 'Belirli tutarın üzeri siparişlerde kargo tamamen ücretsizdir. Altındaki siparişlerde kargo ücreti sepette hesaplanır.' },
+                { q: 'Havale/EFT ile ödeme yapabilir miyim?', a: 'Evet. Havale/EFT ile ödeme seçeneğinde sipariş toplamından %3 indirim uygulanır.' },
+                { q: 'Ürünü iade edebilir miyim?', a: 'Teslim tarihinden itibaren 14 gün içinde, kullanılmamış ve orijinal ambalajında iade edilebilir.' },
+                { q: 'Fatura kesilecek mi?', a: 'Evet, tüm siparişlerinize e-fatura kesilmektedir.' },
+              ];
+              const items = formData.tabFaq ?? defaultItems;
+              const updateItems = (next: typeof items) =>
+                setFormData((p) => ({ ...p, tabFaq: next }));
+
+              return (
+                <div className="space-y-3">
+                  {items.map((item, i) => (
+                    <div key={i} className="border border-neutral-200 rounded-lg overflow-hidden">
+                      <div className="flex items-start gap-2 px-4 py-3 bg-neutral-50 border-b border-neutral-100">
+                        <span className="text-[11px] text-neutral-400 mt-1 shrink-0 font-mono">S:</span>
+                        <input
+                          value={item.q}
+                          onChange={(e) => updateItems(items.map((it, j) => j === i ? { ...it, q: e.target.value } : it))}
+                          className="flex-1 text-[13px] font-semibold text-neutral-800 bg-transparent border-none outline-none"
+                          placeholder="Soru"
+                        />
+                        <button
+                          type="button"
+                          onClick={() => updateItems(items.filter((_, j) => j !== i))}
+                          className="text-neutral-300 hover:text-red-400 transition-colors mt-0.5"
+                        >
+                          ×
+                        </button>
+                      </div>
+                      <div className="flex items-start gap-2 px-4 py-3">
+                        <span className="text-[11px] text-neutral-400 mt-0.5 shrink-0 font-mono">C:</span>
+                        <textarea
+                          rows={2}
+                          value={item.a}
+                          onChange={(e) => updateItems(items.map((it, j) => j === i ? { ...it, a: e.target.value } : it))}
+                          className="flex-1 text-[13px] text-neutral-600 bg-transparent border-none outline-none resize-none"
+                          placeholder="Cevap"
+                        />
+                      </div>
+                    </div>
+                  ))}
+                  <button
+                    type="button"
+                    onClick={() => updateItems([...items, { q: '', a: '' }])}
+                    className="text-[12px] text-neutral-400 hover:text-neutral-700 border border-dashed border-neutral-200 rounded-lg px-4 py-2.5 w-full"
+                  >
+                    + Soru-Cevap Ekle
+                  </button>
+                </div>
+              );
+            })()}
           </SectionCard>
         </div>
 
