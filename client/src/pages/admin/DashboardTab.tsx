@@ -591,9 +591,13 @@ export default function DashboardTab({
                       className="w-full flex items-center gap-3 py-2.5 border-b border-neutral-100 last:border-b-0 text-left hover:bg-neutral-50 -mx-2 px-2 rounded-md transition-colors"
                     >
                       <span className="w-9 h-9 rounded-md bg-neutral-100 overflow-hidden shrink-0">
-                        {p.images?.[0] && (
-                          <img src={p.images[0]} alt="" className="w-full h-full object-cover" loading="lazy" />
-                        )}
+                        {(() => {
+                          const src = p.images?.find((u) => !/\.(mp4|webm|mov)(\?.*)?$/i.test(u)) || p.images?.[0];
+                          if (!src) return null;
+                          return /\.(mp4|webm|mov)(\?.*)?$/i.test(src)
+                            ? <video src={src} muted playsInline preload="metadata" className="w-full h-full object-cover" />
+                            : <img src={src} alt="" className="w-full h-full object-cover" loading="lazy" />;
+                        })()}
                       </span>
                       <span className="flex-1 min-w-0">
                         <span className="block text-[12.5px] font-medium text-neutral-900 truncate">{p.name}</span>

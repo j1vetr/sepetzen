@@ -3,6 +3,17 @@ import { useState, useMemo } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Loader2, Search, AlertTriangle, RefreshCw, Edit, Check, X, ChevronLeft, ChevronRight, Warehouse, Package } from 'lucide-react';
 
+// Ürün küçük önizlemesi: ilk medya video ise varsa ilk fotoğraf tercih
+// edilir; hiç fotoğraf yoksa videonun ilk karesi gösterilir.
+const INV_VIDEO_RE = /\.(mp4|webm|mov)(\?.*)?$/i;
+function renderInventoryThumb(images: string[] | undefined | null) {
+  const src = images?.find((u) => !INV_VIDEO_RE.test(u)) || images?.[0];
+  if (!src) return null;
+  return INV_VIDEO_RE.test(src)
+    ? <video src={src} muted playsInline preload="metadata" className="w-full h-full object-cover" />
+    : <img src={src} alt="" className="w-full h-full object-cover" />;
+}
+
 export default function InventoryPanel() {
   const queryClient = useQueryClient();
   const [lowStockThreshold, setLowStockThreshold] = useState(5);
@@ -236,9 +247,7 @@ export default function InventoryPanel() {
                           <td className="px-6 py-4">
                             <div className="flex items-center gap-3">
                               <div className="w-10 h-10 rounded-lg overflow-hidden bg-neutral-50">
-                                {v.product?.images?.[0] && (
-                                  <img src={v.product.images[0]} alt="" className="w-full h-full object-cover" />
-                                )}
+                                {renderInventoryThumb(v.product?.images)}
                               </div>
                               <span className="text-sm text-neutral-900">{v.product?.name || 'Bilinmeyen'}</span>
                             </div>
@@ -277,9 +286,7 @@ export default function InventoryPanel() {
                     >
                       <div className="flex items-start gap-3">
                         <div className="w-12 h-12 rounded-lg overflow-hidden bg-neutral-100 shrink-0">
-                          {v.product?.images?.[0] && (
-                            <img src={v.product.images[0]} alt="" className="w-full h-full object-cover" />
-                          )}
+                          {renderInventoryThumb(v.product?.images)}
                         </div>
                         <div className="min-w-0 flex-1">
                           <p className="text-sm font-medium text-neutral-900 truncate">

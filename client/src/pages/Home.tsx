@@ -298,7 +298,14 @@ function FeaturedProducts({ products }: { products: Product[] }) {
 
   if (!items.length) return null;
 
-  const promoImage = items[0]?.images?.[0] || '/uploads/products/header_ithal-caki-1.png';
+  // Promo görseli için video olmayan ilk medya tercih edilir; ürünün tek
+  // medyası video ise banner videonun ilk karesini gösterir.
+  const promoVideoRe = /\.(mp4|webm|mov)(\?.*)?$/i;
+  const promoMedia =
+    items[0]?.images?.find((u) => !promoVideoRe.test(u)) ||
+    items[0]?.images?.[0] ||
+    '/uploads/products/header_ithal-caki-1.png';
+  const promoIsVideo = promoVideoRe.test(promoMedia);
 
   return (
     <section
@@ -318,13 +325,24 @@ function FeaturedProducts({ products }: { products: Product[] }) {
             className="relative overflow-hidden bg-zinc-900 min-h-[320px] lg:min-h-0"
             data-testid="promo-banner"
           >
-            <img
-              src={promoImage}
-              alt="Premium Bıçak Koleksiyonu"
-              loading="lazy"
-              decoding="async"
-              className="absolute inset-0 w-full h-full object-cover opacity-55"
-            />
+            {promoIsVideo ? (
+              <video
+                src={promoMedia}
+                muted
+                autoPlay
+                loop
+                playsInline
+                className="absolute inset-0 w-full h-full object-cover opacity-55"
+              />
+            ) : (
+              <img
+                src={promoMedia}
+                alt="Premium Bıçak Koleksiyonu"
+                loading="lazy"
+                decoding="async"
+                className="absolute inset-0 w-full h-full object-cover opacity-55"
+              />
+            )}
             <div className="absolute inset-0 bg-gradient-to-t from-black/85 via-black/35 to-black/20" />
             <div className="relative z-10 flex flex-col justify-end h-full p-7 lg:p-9">
               <p className="text-[10px] font-mono tracking-[0.30em] uppercase text-white/55 mb-3">Yeni Sezon</p>

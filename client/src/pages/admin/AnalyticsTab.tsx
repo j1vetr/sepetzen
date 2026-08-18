@@ -526,9 +526,14 @@ export default function AnalyticsPanel() {
                   <div key={item.product?.id ?? item.productId} className="flex items-center gap-3 px-6 py-3 hover:bg-neutral-50/50 transition-colors">
                     <span className={`w-5 text-xs font-bold text-center flex-shrink-0 ${rankColors[index] || 'text-neutral-400'}`}>{index + 1}</span>
                     <div className="w-10 h-10 rounded-lg overflow-hidden bg-neutral-100 flex-shrink-0">
-                      {item.product?.images?.[0]
-                        ? <img src={item.product?.images?.[0] ?? ''} alt="" className="w-full h-full object-cover" />
-                        : <div className="w-full h-full flex items-center justify-center"><Package className="w-4 h-4 text-neutral-400" /></div>}
+                      {(() => {
+                        const imgs = item.product?.images || [];
+                        const src = imgs.find((u: string) => !/\.(mp4|webm|mov)(\?.*)?$/i.test(u)) || imgs[0];
+                        if (!src) return <div className="w-full h-full flex items-center justify-center"><Package className="w-4 h-4 text-neutral-400" /></div>;
+                        return /\.(mp4|webm|mov)(\?.*)?$/i.test(src)
+                          ? <video src={src} muted playsInline preload="metadata" className="w-full h-full object-cover" />
+                          : <img src={src} alt="" className="w-full h-full object-cover" />;
+                      })()}
                     </div>
                     <div className="flex-1 min-w-0">
                       <p className="text-sm font-medium text-neutral-900 truncate">{item.product?.name ?? item.productName}</p>

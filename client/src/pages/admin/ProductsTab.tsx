@@ -184,8 +184,23 @@ function CategoryChips({
   );
 }
 
+const THUMB_VIDEO_RE = /\.(mp4|webm|mov)(\?.*)?$/i;
+
 function ProductThumb({ product }: { product: Product }) {
-  const src = product.images?.[0];
+  // İlk medya video ise küçük önizlemede ilk fotoğraf tercih edilir;
+  // hiç fotoğraf yoksa videonun ilk karesi gösterilir.
+  const src = product.images?.find((u) => !THUMB_VIDEO_RE.test(u)) || product.images?.[0];
+  if (src && THUMB_VIDEO_RE.test(src)) {
+    return (
+      <video
+        src={src}
+        muted
+        playsInline
+        preload="metadata"
+        className="w-10 h-10 object-cover rounded-md border border-neutral-200 bg-neutral-50 shrink-0"
+      />
+    );
+  }
   if (src) {
     return (
       <img
