@@ -1,11 +1,11 @@
-import { useState } from 'react';
+import { useState, useRef } from 'react';
 import { Link } from 'wouter';
 import { Header } from '@/components/Header';
 import { useCart } from '@/hooks/useCart';
 import {
   Minus, Plus, Trash2, ShoppingBag, Truck,
   ShieldCheck, RotateCcw, ArrowLeft, Package,
-  ChevronDown, ChevronUp, Info
+  ChevronDown, ChevronUp, Info, Pencil, Check, X
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { SEO } from '@/components/SEO';
@@ -14,8 +14,13 @@ import { useShippingSettings } from '@/hooks/useShippingSettings';
 import { ComplementaryProducts } from '@/components/ComplementaryProducts';
 
 export default function Cart() {
-  const { items, isLoading, updateQuantity, removeItem, totalItems, subtotal } = useCart();
+  const { items, isLoading, updateQuantity, updatePersonalizationText, removeItem, totalItems, subtotal } = useCart();
   const [summaryOpen, setSummaryOpen] = useState(false);
+  const [editingPersonalizationId, setEditingPersonalizationId] = useState<string | null>(null);
+  const [editingText, setEditingText] = useState('');
+  const [personalizationError, setPersonalizationError] = useState('');
+  const [savingPersonalization, setSavingPersonalization] = useState(false);
+  const editInputRef = useRef<HTMLInputElement>(null);
   const { freeShippingThreshold, domesticShippingCost } = useShippingSettings();
 
   const shippingCost = subtotal >= freeShippingThreshold ? 0 : domesticShippingCost;
@@ -187,12 +192,94 @@ export default function Cart() {
                                 )}
                               </div>
                             )}
-                            {item.personalizationText && (
-                              <div className="flex items-center gap-2 mt-1.5 flex-wrap" data-testid={`text-personalization-${item.id}`}>
+                            {item.personalizationText && editingPersonalizationId !== item.id && (
+                              <div className="flex items-center gap-1.5 mt-1.5 flex-wrap" data-testid={`text-personalization-${item.id}`}>
                                 <span className="text-xs px-2 py-0.5 bg-white/8 rounded text-white/60">
-                                  Kişiselleştirme: “{item.personalizationText}”
+                                  Kişiselleştirme: "{item.personalizationText}"
                                   {persFee > 0 && <span className="text-white/45"> (+{persFee.toLocaleString('tr-TR', { maximumFractionDigits: 0 })} ₺)</span>}
                                 </span>
+                                {product?.personalization?.enabled && (
+                                  <button
+                                    onClick={() => {
+                                      setEditingPersonalizationId(item.id);
+                                      setEditingText(item.personalizationText ?? '');
+                                      setPersonalizationError('');
+                                      setTimeout(() => editInputRef.current?.focus(), 50);
+                                    }}
+                                    className="p-0.5 text-white/40 hover:text-white/80 transition-colors"
+                                    title="Kişiselleştirme yazısını düzenle"
+                                    data-testid={`button-edit-personalization-${item.id}`}
+                                  >
+                                    <Pencil size={12} />
+                                  </button>
+                                )}
+                              </div>
+                            )}
+                            {editingPersonalizationId === item.id && (
+                              <div className="mt-2 space-y-1.5" data-testid={`form-edit-personalization-${item.id}`}>
+                                <div className="flex items-center gap-1.5">
+                                  <input
+                                    ref={editInputRef}
+                                    type="text"
+                                    value={editingText}
+                                    onChange={e => {
+                                      setEditingText(e.target.value);
+                                      setPersonalizationError('');
+                                    }}
+                                    maxLength={product?.personalization?.maxChars ?? 30}
+                                    placeholder={product?.personalization?.label ?? 'Kişiselleştirme yazısı'}
+                                    className="flex-1 text-xs bg-white/8 border border-white/15 rounded px-2 py-1 text-white placeholder:text-white/30 focus:outline-none focus:border-white/35 min-w-0"
+                                    onKeyDown={async e => {
+                                      if (e.key === 'Enter') {
+                                        e.preventDefault();
+                                        setSavingPersonalization(true);
+                                        try {
+                                          await updatePersonalizationText(item.id, editingText.trim());
+                                          setEditingPersonalizationId(null);
+                                        } catch (err: unknown) {
+                                          setPersonalizationError(err instanceof Error ? err.message : 'Güncelleme başarısız');
+                                        } finally {
+                                          setSavingPersonalization(false);
+                                        }
+                                      } else if (e.key === 'Escape') {
+                                        setEditingPersonalizationId(null);
+                                      }
+                                    }}
+                                  />
+                                  <button
+                                    onClick={async () => {
+                                      setSavingPersonalization(true);
+                                      try {
+                                        await updatePersonalizationText(item.id, editingText.trim());
+                                        setEditingPersonalizationId(null);
+                                      } catch (err: unknown) {
+                                        setPersonalizationError(err instanceof Error ? err.message : 'Güncelleme başarısız');
+                                      } finally {
+                                        setSavingPersonalization(false);
+                                      }
+                                    }}
+                                    disabled={savingPersonalization}
+                                    className="p-1 text-white/70 hover:text-white bg-white/8 rounded transition-colors disabled:opacity-40"
+                                    title="Kaydet"
+                                    data-testid={`button-save-personalization-${item.id}`}
+                                  >
+                                    <Check size={13} />
+                                  </button>
+                                  <button
+                                    onClick={() => setEditingPersonalizationId(null)}
+                                    className="p-1 text-white/40 hover:text-white/70 transition-colors"
+                                    title="İptal"
+                                    data-testid={`button-cancel-personalization-${item.id}`}
+                                  >
+                                    <X size={13} />
+                                  </button>
+                                </div>
+                                {personalizationError && (
+                                  <p className="text-xs text-red-400">{personalizationError}</p>
+                                )}
+                                <p className="text-[10px] text-white/35">
+                                  {editingText.length}/{product?.personalization?.maxChars ?? 30} karakter · Boş bırakırsanız kişiselleştirme kaldırılır
+                                </p>
                               </div>
                             )}
                             <p className="text-xs text-white/50 mt-1.5">Tahmini Teslimat: 1–3 İş Günü</p>

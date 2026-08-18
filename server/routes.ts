@@ -3279,11 +3279,12 @@ Bu ürün için 4 bölümlü HTML açıklama üret. Teknik Özellikler bölümü
     }
   });
 
-  app.patch("/api/cart/:id", async (req, res) => {
+  app.patch("/api/cart/:id", async (req: Request, res) => {
     try {
+      const cartToken = getOrCreateCartToken(req, res);
       const quantity = Math.max(1, parseInt(req.body.quantity, 10) || 1);
       const existingItem = await storage.getCartItem(req.params.id);
-      if (!existingItem) {
+      if (!existingItem || existingItem.sessionId !== cartToken) {
         return res.status(404).json({ error: "Cart item not found" });
       }
       // Yeni adet kalan stoğu aşmasın.
@@ -3302,7 +3303,30 @@ Bu ürün için 4 bölümlü HTML açıklama üret. Teknik Özellikler bölümü
           });
         }
       }
-      const item = await storage.updateCartItem(req.params.id, quantity);
+
+      // Kişiselleştirme yazısı güncelleme (isteğe bağlı alan).
+      let personalizationText: string | null | undefined = undefined; // undefined → dokunma
+      if (Object.prototype.hasOwnProperty.call(req.body, 'personalizationText')) {
+        const raw: string = String(req.body.personalizationText ?? '').replace(/\s+/g, ' ').trim();
+        if (raw === '') {
+          // Boş string → yazıyı temizle (NULL yap)
+          personalizationText = null;
+        } else {
+          // Ürün kişiselleştirme ayarını doğrula
+          const product = await storage.getProduct(existingItem.productId);
+          const persConfig = product?.personalization as { enabled?: boolean; maxChars?: number } | null | undefined;
+          if (!persConfig?.enabled) {
+            return res.status(400).json({ error: "Bu ürün için kişiselleştirme seçeneği kapalı" });
+          }
+          const maxChars = persConfig.maxChars ?? 30;
+          if (raw.length > maxChars) {
+            return res.status(400).json({ error: `Kişiselleştirme yazısı en fazla ${maxChars} karakter olabilir` });
+          }
+          personalizationText = raw;
+        }
+      }
+
+      const item = await storage.updateCartItem(req.params.id, cartToken, quantity, personalizationText);
       if (!item) {
         return res.status(404).json({ error: "Cart item not found" });
       }
@@ -3312,9 +3336,10 @@ Bu ürün için 4 bölümlü HTML açıklama üret. Teknik Özellikler bölümü
     }
   });
 
-  app.delete("/api/cart/:id", async (req, res) => {
+  app.delete("/api/cart/:id", async (req: Request, res) => {
     try {
-      await storage.removeFromCart(req.params.id);
+      const cartToken = getOrCreateCartToken(req, res);
+      await storage.removeFromCart(req.params.id, cartToken);
       res.json({ success: true });
     } catch (error) {
       res.status(500).json({ error: "Failed to remove from cart" });

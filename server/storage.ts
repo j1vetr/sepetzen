@@ -274,8 +274,8 @@ export interface IStorage {
   getCartItems(sessionId: string): Promise<CartItem[]>;
   getCartItem(id: string): Promise<CartItem | undefined>;
   addToCart(item: InsertCartItem): Promise<CartItem>;
-  updateCartItem(id: string, quantity: number): Promise<CartItem | undefined>;
-  removeFromCart(id: string): Promise<void>;
+  updateCartItem(id: string, sessionId: string, quantity: number, personalizationText?: string | null): Promise<CartItem | undefined>;
+  removeFromCart(id: string, sessionId: string): Promise<void>;
   clearCart(sessionId: string): Promise<void>;
   getUsersWithCartItems(): Promise<User[]>;
 
@@ -1141,13 +1141,20 @@ export class DbStorage implements IStorage {
     return newItem;
   }
 
-  async updateCartItem(id: string, quantity: number): Promise<CartItem | undefined> {
-    const [updated] = await db.update(cartItems).set({ quantity }).where(eq(cartItems.id, id)).returning();
+  async updateCartItem(id: string, sessionId: string, quantity: number, personalizationText?: string | null): Promise<CartItem | undefined> {
+    const updateData: Partial<typeof cartItems.$inferInsert> = { quantity };
+    if (personalizationText !== undefined) {
+      // Empty string means clear the personalization; null also clears it.
+      updateData.personalizationText = personalizationText === '' ? null : personalizationText;
+    }
+    const [updated] = await db.update(cartItems).set(updateData)
+      .where(and(eq(cartItems.id, id), eq(cartItems.sessionId, sessionId)))
+      .returning();
     return updated;
   }
 
-  async removeFromCart(id: string): Promise<void> {
-    await db.delete(cartItems).where(eq(cartItems.id, id));
+  async removeFromCart(id: string, sessionId: string): Promise<void> {
+    await db.delete(cartItems).where(and(eq(cartItems.id, id), eq(cartItems.sessionId, sessionId)));
   }
 
   async clearCart(sessionId: string): Promise<void> {

@@ -35,6 +35,7 @@ interface CartContextType {
   isLoading: boolean;
   addToCart: (productId: string, variantId?: string, quantity?: number, personalizationText?: string) => Promise<void>;
   updateQuantity: (itemId: string, quantity: number) => Promise<void>;
+  updatePersonalizationText: (itemId: string, text: string) => Promise<void>;
   removeItem: (itemId: string) => Promise<void>;
   clearCart: () => Promise<void>;
   totalItems: number;
@@ -82,14 +83,19 @@ export function useCartProvider() {
   });
 
   const updateMutation = useMutation({
-    mutationFn: async ({ itemId, quantity }: { itemId: string; quantity: number }) => {
+    mutationFn: async ({ itemId, quantity, personalizationText }: { itemId: string; quantity: number; personalizationText?: string }) => {
+      const body: Record<string, unknown> = { quantity };
+      if (personalizationText !== undefined) body.personalizationText = personalizationText;
       const res = await fetch(`/api/cart/${itemId}`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ quantity }),
+        body: JSON.stringify(body),
         credentials: 'include',
       });
-      if (!res.ok) throw new Error('Güncelleme başarısız');
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}));
+        throw new Error(err?.error || 'Güncelleme başarısız');
+      }
       return res.json();
     },
     onSuccess: () => {
@@ -147,6 +153,12 @@ export function useCartProvider() {
     },
     updateQuantity: async (itemId: string, quantity: number) => {
       await updateMutation.mutateAsync({ itemId, quantity });
+    },
+    updatePersonalizationText: async (itemId: string, text: string) => {
+      // Fetch current quantity to keep it unchanged while updating personalization
+      const currentItem = items.find(i => i.id === itemId);
+      const quantity = currentItem?.quantity ?? 1;
+      await updateMutation.mutateAsync({ itemId, quantity, personalizationText: text });
     },
     removeItem: async (itemId: string) => {
       await removeMutation.mutateAsync(itemId);
