@@ -143,6 +143,8 @@ export function Header() {
   const closeTimerRef = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
   const allCatsCloseTimerRef = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
   const [allCatsOpen, setAllCatsOpen] = useState(false);
+  const desktopGridRef = useRef<HTMLDivElement>(null);
+  const [allCatsDropdownWidth, setAllCatsDropdownWidth] = useState(760);
   const { totalItems, subtotal } = useCart();
   const siteIdentity = useSiteIdentity();
   const freeShippingThreshold = useFreeShippingThreshold();
@@ -283,6 +285,16 @@ export function Header() {
     setSidebarProductIdx(0);
     setSidebarProductKey(k => k + 1);
   }, [megaMenuId]);
+
+  // Tüm Kategoriler dropdown genişliği = desktop nav container genişliği
+  useEffect(() => {
+    const el = desktopGridRef.current;
+    if (!el) return;
+    const ro = new ResizeObserver(() => setAllCatsDropdownWidth(el.offsetWidth));
+    ro.observe(el);
+    setAllCatsDropdownWidth(el.offsetWidth);
+    return () => ro.disconnect();
+  }, []);
 
   const sidebarProduct = megaFeaturedProducts[sidebarProductIdx] ?? null;
   const rightProducts = megaFeaturedProducts.slice(0, 2);
@@ -502,7 +514,7 @@ export function Header() {
           </div>
 
           {/* ── Desktop layout ── */}
-          <div className="hidden lg:grid grid-cols-[auto_1fr_auto] items-center gap-4 2xl:gap-8">
+          <div ref={desktopGridRef} className="hidden lg:grid grid-cols-[auto_1fr_auto] items-center gap-4 2xl:gap-8">
 
             {/* Sol: Tüm Kategoriler + (scroll edilince kompakt logo) */}
             <div className="justify-self-start flex items-center gap-4 min-w-0 h-[44px]">
@@ -555,30 +567,51 @@ export function Header() {
                 <DropdownMenuContent
                   align="start"
                   sideOffset={12}
-                  className="surface-glass-dark bg-black/85 text-white border border-white/10 shadow-[0_8px_30px_rgba(0,0,0,0.5)] rounded-md p-0 z-[9999] overflow-hidden"
-                  style={{ width: 260 }}
+                  className="surface-glass-dark bg-black/90 text-white border border-white/10 shadow-[0_8px_30px_rgba(0,0,0,0.5)] rounded-b-md p-0 z-[9999] overflow-hidden"
+                  style={{ width: allCatsDropdownWidth }}
                   onMouseEnter={cancelAllCatsClose}
                   onMouseLeave={closeAllCats}
                 >
-                  {shownAllCats.map((cat) => (
+                  {/* 2 sütunlu grid */}
+                  <div className="grid grid-cols-2 border-b border-white/[0.08]">
+                    {shownAllCats.map((cat, i) => (
+                      <div
+                        key={cat.id}
+                        className={`px-6 py-3 cursor-pointer transition-colors hover:bg-white/[0.06] border-white/[0.08] ${
+                          i % 2 === 0 ? 'border-r' : ''
+                        } border-b`}
+                        onClick={() => { navigate(`/kategori/${cat.slug}`); setAllCatsOpen(false); setAllCatsExpanded(false); }}
+                      >
+                        <span className="text-[11px] tracking-[0.12em] uppercase font-medium text-white/80 hover:text-white">
+                          {cat.name}
+                        </span>
+                      </div>
+                    ))}
+                    {/* Tek sayıda öğe varsa sağ hücreyi boş bırak */}
+                    {shownAllCats.length % 2 !== 0 && (
+                      <div className="px-6 py-3 border-b border-white/[0.08]" />
+                    )}
+                  </div>
+                  {/* Tümünü Gör butonu */}
+                  {hasMoreAllCats ? (
                     <div
-                      key={cat.id}
-                      className={`text-[11px] tracking-wider uppercase text-white/75 cursor-pointer py-2.5 hover:bg-white/5 transition-colors flex items-center gap-2 ${
-                        cat.isChild ? 'pl-8 pr-4' : 'px-4'
-                      }`}
-                      onClick={() => { navigate(`/kategori/${cat.slug}`); setAllCatsOpen(false); setAllCatsExpanded(false); }}
-                    >
-                      {cat.isChild && <span className="w-1 h-1 rounded-full bg-white/30 shrink-0" />}
-                      {cat.name}
-                    </div>
-                  ))}
-                  {hasMoreAllCats && (
-                    <div
-                      className="text-[10px] tracking-widest uppercase text-white/40 cursor-pointer py-2.5 px-4 hover:bg-white/5 transition-colors border-t border-white/[0.06] flex items-center gap-1.5"
+                      className="flex items-center justify-center gap-2 py-3 px-6 cursor-pointer hover:bg-white/[0.05] transition-colors"
                       onClick={() => setAllCatsExpanded(true)}
                     >
-                      Daha Fazla
-                      <ChevronDown className="w-3 h-3" />
+                      <span className="text-[11px] tracking-[0.12em] uppercase font-semibold text-white/70">
+                        Tümünü Gör ({visibleCategories.length})
+                      </span>
+                      <ChevronDown className="w-3.5 h-3.5 text-white/50" />
+                    </div>
+                  ) : (
+                    <div
+                      className="flex items-center justify-center gap-2 py-3 px-6 cursor-pointer hover:bg-white/[0.05] transition-colors"
+                      onClick={() => { navigate('/magaza'); setAllCatsOpen(false); }}
+                    >
+                      <span className="text-[11px] tracking-[0.12em] uppercase font-semibold text-white/50">
+                        Tüm Ürünler
+                      </span>
+                      <ArrowUpRight className="w-3.5 h-3.5 text-white/40" />
                     </div>
                   )}
                 </DropdownMenuContent>
