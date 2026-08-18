@@ -68,6 +68,17 @@ interface VariantRow {
   isActive: boolean;
 }
 
+/** "Ürün Detay Sekmeleri" bölüm ikonu.
+ *  SectionCard `icon` prop'u BİLEŞEN bekler; hazır JSX (<svg />) geçilirse
+ *  React "Element type is invalid" hatasıyla tüm sayfa beyaz kalır. */
+function TabLinesIcon({ className }: { className?: string }) {
+  return (
+    <svg className={className} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.8} d="M4 6h16M4 10h16M4 14h10" />
+    </svg>
+  );
+}
+
 /** Sayfa bölümü kartı: başlık + ikon + içerik */
 function SectionCard({
   icon: Icon,
@@ -1064,7 +1075,7 @@ function ProductEditor({
 
           {/* ── Ürün Detay Sekmeleri ── */}
           <SectionCard
-            icon={<svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.8} d="M4 6h16M4 10h16M4 14h10"/></svg>}
+            icon={TabLinesIcon}
             title="Ürün Detay Sekmeleri"
           >
             {/* Sekme seçici */}
