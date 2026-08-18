@@ -38,6 +38,41 @@ function isVideoUrl(url: string): boolean {
   return /\.(mp4|webm|mov|avi|mkv)(\?.*)?$/i.test(url);
 }
 
+// Sekme editörlerinin yerleşik şablonları. Hem editör görünümünde hem de
+// "Varsayılan olarak kaydet" akışında aynı kaynak kullanılır; böylece
+// ekranda görünen içerik ile kaydedilen içerik asla ayrışmaz.
+const BUILTIN_TAB_DELIVERY = [
+  {
+    title: 'Kargo & Teslimat',
+    rows: [
+      { key: 'Kargo Süresi', value: '1–3 iş günü' },
+      { key: 'Ücretsiz Kargo', value: 'Belirli tutarın üzeri siparişlerde' },
+      { key: 'Kargo Firması', value: 'MNG Kargo / Yurtiçi Kargo' },
+      { key: 'Aynı Gün Kargo', value: "Hafta içi 14:00'a kadar verilen siparişler" },
+    ],
+  },
+  {
+    title: 'İade & İptal',
+    rows: [
+      { key: 'İade Süresi', value: '14 gün içinde' },
+      { key: 'İade Şartı', value: 'Açılmamış, kullanılmamış, orijinal ambalajında' },
+      { key: 'İade Yöntemi', value: 'Banka havalesi veya kart iadesi' },
+      { key: 'İptal', value: 'Kargoya verilmemiş siparişler iptal edilebilir' },
+    ],
+  },
+];
+
+const BUILTIN_TAB_FAQ = [
+  { q: 'Ürünün garantisi var mı?', a: 'Evet, tüm ürünlerimiz 2 yıl üretici garantisi kapsamındadır.' },
+  { q: 'Kargo ücreti ne kadar?', a: 'Belirli tutarın üzeri siparişlerde kargo tamamen ücretsizdir. Altındaki siparişlerde kargo ücreti sepette hesaplanır.' },
+  { q: 'Havale/EFT ile ödeme yapabilir miyim?', a: 'Evet. Havale/EFT ile ödeme seçeneğinde sipariş toplamından %3 indirim uygulanır.' },
+  { q: 'Ürünü iade edebilir miyim?', a: 'Teslim tarihinden itibaren 14 gün içinde, kullanılmamış ve orijinal ambalajında iade edilebilir.' },
+  { q: 'Fatura kesilecek mi?', a: 'Evet, tüm siparişlerinize e-fatura kesilmektedir.' },
+];
+
+const BUILTIN_INSTALLMENT_NOTE =
+  'Taksit seçenekleri kredi kartıyla ödemelerde geçerlidir. Bankanıza göre taksit sayısı ve tutarlar değişiklik gösterebilir; güncel tutarlar ödeme adımında görüntülenir. Havale/EFT ile ödemelerde %3 indirim uygulanır.';
+
 // Türkçe-uyumlu büyük harf dönüşümü: i → İ, ı → I, vs.
 function toTurkishUpper(value: string): string {
   return value.toLocaleUpperCase('tr-TR');
@@ -238,15 +273,23 @@ function ProductEditor({
         tab === 'delivery' ? 'default_tab_delivery' :
         tab === 'faq' ? 'default_tab_faq' :
         'default_tab_installment_note';
+      // Ekranda O AN görünen içerik kaydedilir: ürüne özel değer yoksa kayıtlı
+      // varsayılan, o da yoksa yerleşik şablon. Boş liste asla kaydedilmez;
+      // aksi hâlde "varsayılan kaydet" sonrası tüm sorular kayboluyordu.
       const value =
-        tab === 'delivery' ? (formData.tabDelivery ?? tabDefaults?.tabDelivery ?? []) :
-        tab === 'faq' ? (formData.tabFaq ?? tabDefaults?.tabFaq ?? []) :
-        formData.tabInstallmentNote;
-      await fetch('/api/admin/product-tab-defaults', {
+        tab === 'delivery' ? (formData.tabDelivery ?? tabDefaults?.tabDelivery ?? BUILTIN_TAB_DELIVERY) :
+        tab === 'faq' ? (formData.tabFaq ?? tabDefaults?.tabFaq ?? BUILTIN_TAB_FAQ) :
+        (formData.tabInstallmentNote || tabDefaults?.tabInstallmentNote || BUILTIN_INSTALLMENT_NOTE);
+      const res = await fetch('/api/admin/product-tab-defaults', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ key, value }),
       });
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}));
+        alert(err.error || 'Varsayılan kaydedilemedi');
+        return;
+      }
       queryClient.invalidateQueries({ queryKey: ['admin', 'product-tab-defaults'] });
       setSavedDefaultFlash(tab);
       setTimeout(() => setSavedDefaultFlash(null), 2000);
@@ -1177,7 +1220,7 @@ function ProductEditor({
                   rows={3}
                   value={formData.tabInstallmentNote}
                   onChange={(e) => setFormData((p) => ({ ...p, tabInstallmentNote: e.target.value }))}
-                  placeholder={tabDefaults?.tabInstallmentNote || "Taksit seçenekleri kredi kartıyla ödemelerde geçerlidir. Bankanıza göre taksit sayısı ve tutarlar değişiklik gösterebilir; güncel tutarlar ödeme adımında görüntülenir. Havale/EFT ile ödemelerde %3 indirim uygulanır."}
+                  placeholder={tabDefaults?.tabInstallmentNote || BUILTIN_INSTALLMENT_NOTE}
                   className="w-full px-3 py-2.5 border border-neutral-200 rounded-lg text-[13px] text-neutral-900 bg-neutral-50 focus:outline-none focus:border-neutral-400 resize-none"
                 />
                 <div className="flex items-center justify-between">
@@ -1196,28 +1239,8 @@ function ProductEditor({
 
             {/* Teslimat ve İade */}
             {activeTabEditor === 'delivery' && (() => {
-              const builtinDefaultSections = [
-                {
-                  title: 'Kargo & Teslimat',
-                  rows: [
-                    { key: 'Kargo Süresi', value: '1–3 iş günü' },
-                    { key: 'Ücretsiz Kargo', value: 'Belirli tutarın üzeri siparişlerde' },
-                    { key: 'Kargo Firması', value: 'MNG Kargo / Yurtiçi Kargo' },
-                    { key: 'Aynı Gün Kargo', value: "Hafta içi 14:00'a kadar verilen siparişler" },
-                  ],
-                },
-                {
-                  title: 'İade & İptal',
-                  rows: [
-                    { key: 'İade Süresi', value: '14 gün içinde' },
-                    { key: 'İade Şartı', value: 'Açılmamış, kullanılmamış, orijinal ambalajında' },
-                    { key: 'İade Yöntemi', value: 'Banka havalesi veya kart iadesi' },
-                    { key: 'İptal', value: 'Kargoya verilmemiş siparişler iptal edilebilir' },
-                  ],
-                },
-              ];
               // Öncelik: ürüne özel değer → kayıtlı varsayılan → yerleşik şablon
-              const defaultSections = tabDefaults?.tabDelivery ?? builtinDefaultSections;
+              const defaultSections = tabDefaults?.tabDelivery ?? BUILTIN_TAB_DELIVERY;
               const sections = formData.tabDelivery ?? defaultSections;
               const updateSections = (next: typeof sections) =>
                 setFormData((p) => ({ ...p, tabDelivery: next }));
@@ -1332,14 +1355,7 @@ function ProductEditor({
 
             {/* Sık Sorulan Sorular */}
             {activeTabEditor === 'faq' && (() => {
-              const builtinDefaultItems = [
-                { q: 'Ürünün garantisi var mı?', a: 'Evet, tüm ürünlerimiz 2 yıl üretici garantisi kapsamındadır.' },
-                { q: 'Kargo ücreti ne kadar?', a: 'Belirli tutarın üzeri siparişlerde kargo tamamen ücretsizdir. Altındaki siparişlerde kargo ücreti sepette hesaplanır.' },
-                { q: 'Havale/EFT ile ödeme yapabilir miyim?', a: 'Evet. Havale/EFT ile ödeme seçeneğinde sipariş toplamından %3 indirim uygulanır.' },
-                { q: 'Ürünü iade edebilir miyim?', a: 'Teslim tarihinden itibaren 14 gün içinde, kullanılmamış ve orijinal ambalajında iade edilebilir.' },
-                { q: 'Fatura kesilecek mi?', a: 'Evet, tüm siparişlerinize e-fatura kesilmektedir.' },
-              ];
-              const defaultItems = tabDefaults?.tabFaq ?? builtinDefaultItems;
+              const defaultItems = tabDefaults?.tabFaq ?? BUILTIN_TAB_FAQ;
               const items = formData.tabFaq ?? defaultItems;
               const updateItems = (next: typeof items) =>
                 setFormData((p) => ({ ...p, tabFaq: next }));

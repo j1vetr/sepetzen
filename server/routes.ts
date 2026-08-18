@@ -8104,9 +8104,20 @@ window.addEventListener('load', function() {
       const delivery = await storage.getSiteSetting('default_tab_delivery');
       const faq = await storage.getSiteSetting('default_tab_faq');
       const installmentNote = await storage.getSiteSetting('default_tab_installment_note');
+      // Boş kaydedilmiş varsayılan ([] / bozuk JSON) "yok" sayılır; böylece
+      // editör ve vitrin yerleşik şablona düşer, içerik kaybolmaz.
+      const parseNonEmpty = (raw: string | undefined | null) => {
+        if (!raw) return null;
+        try {
+          const parsed = JSON.parse(raw);
+          return Array.isArray(parsed) && parsed.length === 0 ? null : parsed;
+        } catch {
+          return null;
+        }
+      };
       res.json({
-        tabDelivery: delivery ? JSON.parse(delivery) : null,
-        tabFaq: faq ? JSON.parse(faq) : null,
+        tabDelivery: parseNonEmpty(delivery),
+        tabFaq: parseNonEmpty(faq),
         tabInstallmentNote: installmentNote ?? '',
       });
     } catch (error) {
@@ -8119,6 +8130,14 @@ window.addEventListener('load', function() {
       const { key, value } = req.body as { key: string; value: unknown };
       if (!TAB_DEFAULT_KEYS.includes(key as any)) {
         return res.status(400).json({ error: "Geçersiz anahtar" });
+      }
+      // Boş içerik varsayılan olarak kaydedilemez; yanlışlıkla tüm ürünlerin
+      // sekme içeriğini silmeye yol açıyordu.
+      if (Array.isArray(value) && value.length === 0) {
+        return res.status(400).json({ error: "Boş içerik varsayılan olarak kaydedilemez" });
+      }
+      if (typeof value === 'string' && value.trim() === '') {
+        return res.status(400).json({ error: "Boş içerik varsayılan olarak kaydedilemez" });
       }
       const stored = typeof value === 'string' ? value : JSON.stringify(value);
       await storage.setSiteSetting(key, stored);
