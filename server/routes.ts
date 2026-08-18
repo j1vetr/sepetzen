@@ -2635,6 +2635,13 @@ KURALLAR:
         return res.status(404).json({ error: "Product not found" });
       }
 
+      // Varyant listesi gönderilmeden yalnızca basePrice değiştiyse, mevcut
+      // aktif varyantların fiyatını da güncelle; aksi hâlde ürün kartı ile
+      // detay sayfası farklı fiyat gösterir (kart basePrice, detay variant.price okur).
+      if (productData.basePrice !== undefined) {
+        await storage.syncVariantPricesToBase(product.id, String(product.basePrice));
+      }
+
       // Auto-create missing variants
       const sizes = product.availableSizes || [];
       const colors = product.availableColors || [];
@@ -2800,6 +2807,9 @@ KURALLAR:
           updateData.discountBadge = badgeText;
         }
         await storage.updateProduct(product.id, updateData);
+        // Varyant fiyatlarını da güncelle; aksi hâlde ürün detay sayfası
+        // eski variant.price'ı, kart ise yeni basePrice'ı gösterir.
+        await storage.syncVariantPricesToBase(product.id, String(newPrice));
         updated++;
       }
 

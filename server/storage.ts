@@ -258,6 +258,13 @@ export interface IStorage {
     categoryIds: string[] | null,
   ): Promise<Product>;
   deleteOrRetireProductVariant(id: string): Promise<{ retired: boolean } | undefined>;
+  /**
+   * basePrice değiştiğinde, varyant listesi gönderilmeden yapılan
+   * tekil veya toplu fiyat güncellemelerinde tüm aktif varyantların
+   * fiyatını yeni taban fiyata eşitler. Ürün detay ve liste kartı
+   * arasındaki fiyat tutarsızlığını önler.
+   */
+  syncVariantPricesToBase(productId: string, newBasePrice: string): Promise<number>;
 
   // Product Categories (multi-category support)
   getProductCategoryIds(productId: string): Promise<string[]>;
@@ -940,6 +947,23 @@ export class DbStorage implements IStorage {
    * Tekil varyant silme, referans korumalı: sipariş/sepet/stok geçmişi
    * olan varyant SİLİNMEZ, pasife alınır (cascade veri kaybı önlenir).
    */
+  async syncVariantPricesToBase(productId: string, newBasePrice: string): Promise<number> {
+    const updated = await db
+      .update(productVariants)
+      .set({ price: newBasePrice })
+      .where(
+        and(
+          eq(productVariants.productId, productId),
+          eq(productVariants.isActive, true),
+        ),
+      )
+      .returning({ id: productVariants.id });
+    if (updated.length > 0) {
+      await this.notifyPushOutbox(productId);
+    }
+    return updated.length;
+  }
+
   async deleteOrRetireProductVariant(id: string): Promise<{ retired: boolean } | undefined> {
     const outcome = await db.transaction(async (tx) => {
       const [variant] = await tx.select().from(productVariants).where(eq(productVariants.id, id));

@@ -13,9 +13,23 @@ export function serveStatic(app: Express) {
   // Serve uploads from client/public/uploads (for production uploaded files)
   const uploadsPath = path.resolve(process.cwd(), "client/public/uploads");
   if (fs.existsSync(uploadsPath)) {
+    // Branding dosyaları (logo, ETBİS vb.) sık güncellenebilir - tarayıcı her seferinde
+    // sunucuyla kontrol etsin; ETag eşleşirse 304 döner, bant genişliği boşa gitmez.
+    const brandingPath = path.resolve(uploadsPath, "branding");
+    if (fs.existsSync(brandingPath)) {
+      app.use("/uploads/branding", express.static(brandingPath, {
+        maxAge: 0,
+        etag: true,
+        lastModified: true,
+        setHeaders: (res) => {
+          res.setHeader('Cache-Control', 'no-cache, must-revalidate');
+        },
+      }));
+    }
+
     app.use("/uploads", express.static(uploadsPath, {
       maxAge: '7d',
-      immutable: true,
+      immutable: false,
       etag: true,
     }));
   }
