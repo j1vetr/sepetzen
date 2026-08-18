@@ -1,4 +1,5 @@
 import { useMemo, useState } from 'react';
+import { useLocation } from 'wouter';
 import { useQueryClient, useQuery } from '@tanstack/react-query';
 import {
   Search,
@@ -63,8 +64,6 @@ interface ProductsTabProps {
   allVariants: ProductVariant[];
   searchQuery: string;
   setSearchQuery: (q: string) => void;
-  setEditingProduct: (p: Product | ProductDraft | null) => void;
-  setShowProductModal: (b: boolean) => void;
   setShowBulkBadgeModal: (b: boolean) => void;
   setShowBulkPriceModal: (b: boolean) => void;
   setBulkPreselectedIds?: (ids: string[]) => void;
@@ -350,8 +349,6 @@ export default function ProductsTab({
   allVariants,
   searchQuery,
   setSearchQuery,
-  setEditingProduct,
-  setShowProductModal,
   setShowBulkBadgeModal,
   setShowBulkPriceModal,
   setBulkPreselectedIds,
@@ -361,6 +358,7 @@ export default function ProductsTab({
   onTrendyolAction,
 }: ProductsTabProps) {
   const queryClient = useQueryClient();
+  const [, navigate] = useLocation();
 
   // Trendyol bağlantı durumu haritası — ürün başına rozet ve aksiyon için
   const { data: trendyolStatusMap } = useQuery<Record<string, TrendyolStatusEntry>>({
@@ -565,15 +563,8 @@ export default function ProductsTab({
   };
 
   const handleDuplicate = (product: Product) => {
-    const draft: ProductDraft = {
-      ...product,
-      id: undefined,
-      name: `${product.name} (Kopya)`,
-      slug: '',
-      sku: product.sku ? `${product.sku}-KOPYA` : undefined,
-    };
-    setEditingProduct(draft);
-    setShowProductModal(true);
+    // Kopya taslağı tam sayfa editörde hazırlanır
+    navigate(`/toov-admin/products/new?duplicate=${product.id}`);
   };
 
   return (
@@ -616,10 +607,7 @@ export default function ProductsTab({
               <span className="sm:hidden">Varyant Kontrol</span>
             </SecondaryButton>
             <PrimaryButton
-              onClick={() => {
-                setEditingProduct(null);
-                setShowProductModal(true);
-              }}
+              onClick={() => navigate('/toov-admin/products/new')}
               data-testid="button-add-product"
             >
               <Plus className="w-3.5 h-3.5" />
@@ -792,10 +780,7 @@ export default function ProductsTab({
               description="İlk ürünü ekleyerek mağazanızı kurmaya başlayın."
               action={
                 <PrimaryButton
-                  onClick={() => {
-                    setEditingProduct(null);
-                    setShowProductModal(true);
-                  }}
+                  onClick={() => navigate('/toov-admin/products/new')}
                 >
                   <Plus className="w-3.5 h-3.5" />
                   Yeni Ürün
@@ -928,10 +913,7 @@ export default function ProductsTab({
                           <RowActions
                             product={product}
                             tyStatus={tyStatus}
-                            onEdit={() => {
-                              setEditingProduct(product);
-                              setShowProductModal(true);
-                            }}
+                            onEdit={() => navigate(`/toov-admin/products/${product.id}`)}
                             onCopy={() => handleDuplicate(product)}
                             onDelete={() => {
                               if (confirm('Bu ürünü silmek istediğinize emin misiniz?')) {
@@ -991,10 +973,7 @@ export default function ProductsTab({
                         <RowActions
                           product={product}
                           tyStatus={tyStatus}
-                          onEdit={() => {
-                            setEditingProduct(product);
-                            setShowProductModal(true);
-                          }}
+                          onEdit={() => navigate(`/toov-admin/products/${product.id}`)}
                           onCopy={() => handleDuplicate(product)}
                           onDelete={() => {
                             if (confirm('Bu ürünü silmek istediğinize emin misiniz?')) {

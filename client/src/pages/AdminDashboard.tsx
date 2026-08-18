@@ -22,7 +22,6 @@ import CouponsTab from './admin/CouponsTab';
 import ReviewsTab from './admin/ReviewsTab';
 import WholesaleTab from './admin/WholesaleTab';
 
-import ProductModal from './admin/modals/ProductModal';
 import CategoryModal from './admin/modals/CategoryModal';
 import UserDetailModal from './admin/modals/UserDetailModal';
 import BulkPriceModal from './admin/modals/BulkPriceModal';
@@ -62,10 +61,8 @@ export default function AdminDashboard() {
   const [blogInitialSelectedId, setBlogInitialSelectedId] = useState('');
   const [pagesInitialSelectedId, setPagesInitialSelectedId] = useState('');
 
-  const [editingProduct, setEditingProduct] = useState<Product | ProductDraft | null>(null);
   const [editingCategory, setEditingCategory] = useState<Category | null>(null);
   const [viewingUser, setViewingUser] = useState<User | null>(null);
-  const [showProductModal, setShowProductModal] = useState(false);
   const [showCategoryModal, setShowCategoryModal] = useState(false);
   const [showBulkPriceModal, setShowBulkPriceModal] = useState(false);
   const [showBulkBadgeModal, setShowBulkBadgeModal] = useState(false);
@@ -74,10 +71,8 @@ export default function AdminDashboard() {
   const data = useAdminDashboardData({
     searchQuery,
     onLoggedOut: () => setLocation('/toov-admin/login'),
-    onProductSaved: () => {
-      setShowProductModal(false);
-      setEditingProduct(null);
-    },
+    // Ürün ekleme/düzenleme artık tam sayfa editörde (/toov-admin/products/...)
+    onProductSaved: () => {},
     onCategorySaved: () => {
       setShowCategoryModal(false);
       setEditingCategory(null);
@@ -244,8 +239,6 @@ export default function AdminDashboard() {
             allVariants={allVariants}
             searchQuery={searchQuery}
             setSearchQuery={setSearchQuery}
-            setEditingProduct={setEditingProduct}
-            setShowProductModal={setShowProductModal}
             setShowBulkBadgeModal={setShowBulkBadgeModal}
             setShowBulkPriceModal={setShowBulkPriceModal}
             setBulkPreselectedIds={setBulkPreselectedIds}
@@ -302,19 +295,6 @@ export default function AdminDashboard() {
         )}
       </AdminLayout>
 
-      {showProductModal && (
-        <ProductModal
-          product={editingProduct}
-          categories={categories}
-          onClose={() => {
-            setShowProductModal(false);
-            setEditingProduct(null);
-          }}
-          onSave={(product) => saveProductMutation.mutate(product)}
-          isSaving={saveProductMutation.isPending}
-          saveError={saveProductMutation.error ? (saveProductMutation.error as Error).message : null}
-        />
-      )}
       {showCategoryModal && (
         <CategoryModal
           category={editingCategory}
