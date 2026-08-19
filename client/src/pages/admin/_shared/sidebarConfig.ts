@@ -17,6 +17,7 @@ import {
   MessageSquare,
   HandCoins,
   Newspaper,
+  Tag,
 } from 'lucide-react';
 import type { SidebarCategory } from '../_layout/AdminLayout';
 import type { TabType } from './types';
@@ -25,6 +26,7 @@ export const VALID_TABS: TabType[] = [
   'dashboard',
   'products',
   'categories',
+  'brands',
   'orders',
   'users',
   'analytics',
@@ -55,6 +57,7 @@ export const SIDEBAR_CATEGORIES: SidebarCategory[] = [
     items: [
       { id: 'products', icon: Package, label: 'Ürünler' },
       { id: 'categories', icon: Grid3x3, label: 'Kategoriler' },
+      { id: 'brands', icon: Tag, label: 'Markalar' },
       { id: 'inventory', icon: Warehouse, label: 'Stok' },
     ],
   },
@@ -105,6 +108,7 @@ export const TAB_DESCRIPTIONS: Record<TabType, string> = {
   analytics: 'Satış ve ziyaret verilerinizin özeti.',
   products: 'Ürünlerinizi ekleyin, düzenleyin ve fiyatlarını yönetin.',
   categories: 'Ürünlerinizi gruplandıran kategorileri düzenleyin.',
+  brands: 'Marka listesini yönetin; ürün formunda tutarlı marka seçimi yapın.',
   inventory: 'Ürün stoklarını tek ekrandan görüp güncelleyin.',
   orders: 'Sitenizden gelen siparişleri görüntüleyin ve yönetin.',
   wholesale: 'Toptan satış müşterileri ve özel fiyatlar.',

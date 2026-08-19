@@ -2375,6 +2375,69 @@ KURALLAR:
     return null;
   }
 
+  // ── Brands CRUD ───────────────────────────────────────────────────────────
+  app.get("/api/admin/brands", requireAdmin, async (_req, res) => {
+    try {
+      const list = await storage.getBrands();
+      res.json(list);
+    } catch (error) {
+      res.status(500).json({ error: "Markalar yüklenemedi" });
+    }
+  });
+
+  app.post("/api/admin/brands", requireAdmin, async (req, res) => {
+    try {
+      const { name, slug, logoUrl, isActive } = req.body;
+      if (!name?.trim()) return res.status(400).json({ error: "Marka adı zorunludur" });
+      if (!slug?.trim()) return res.status(400).json({ error: "Slug zorunludur" });
+      const existing = await storage.getBrandBySlug(slug.trim());
+      if (existing) return res.status(409).json({ error: "Bu slug zaten kullanılıyor" });
+      const brand = await storage.createBrand({
+        name: name.trim(),
+        slug: slug.trim(),
+        logoUrl: logoUrl?.trim() || null,
+        isActive: isActive !== false,
+      });
+      res.status(201).json(brand);
+    } catch (error) {
+      res.status(500).json({ error: "Marka oluşturulamadı" });
+    }
+  });
+
+  app.put("/api/admin/brands/:id", requireAdmin, async (req, res) => {
+    try {
+      const { name, slug, logoUrl, isActive } = req.body;
+      if (!name?.trim()) return res.status(400).json({ error: "Marka adı zorunludur" });
+      if (!slug?.trim()) return res.status(400).json({ error: "Slug zorunludur" });
+      // Slug unique check (başkası kullanıyor mu?)
+      const existing = await storage.getBrandBySlug(slug.trim());
+      if (existing && existing.id !== req.params.id) {
+        return res.status(409).json({ error: "Bu slug zaten kullanılıyor" });
+      }
+      const brand = await storage.updateBrand(req.params.id, {
+        name: name.trim(),
+        slug: slug.trim(),
+        logoUrl: logoUrl?.trim() || null,
+        isActive: isActive !== false,
+      });
+      if (!brand) return res.status(404).json({ error: "Marka bulunamadı" });
+      res.json(brand);
+    } catch (error) {
+      res.status(500).json({ error: "Marka güncellenemedi" });
+    }
+  });
+
+  app.delete("/api/admin/brands/:id", requireAdmin, async (req, res) => {
+    try {
+      await storage.deleteBrand(req.params.id);
+      res.json({ ok: true });
+    } catch (error) {
+      res.status(500).json({ error: "Marka silinemedi" });
+    }
+  });
+
+  // ─────────────────────────────────────────────────────────────────────────
+
   app.post("/api/admin/categories", requireAdmin, async (req, res) => {
     try {
       const validated = insertCategorySchema.parse(req.body);

@@ -30,10 +30,13 @@ import {
   menuItems,
   pages,
   blogPosts,
+  brands,
   type BlogPost,
   type InsertBlogPost,
   type Page,
   type InsertPage,
+  type Brand,
+  type InsertBrand,
   type AdminUser,
   type InsertAdminUser,
   type Category,
@@ -459,6 +462,14 @@ export interface IStorage {
   createBlogPost(post: InsertBlogPost): Promise<BlogPost>;
   updateBlogPost(id: string, post: Partial<InsertBlogPost>): Promise<BlogPost | undefined>;
   deleteBlogPost(id: string): Promise<void>;
+
+  // Brands
+  getBrands(): Promise<(Brand & { productCount: number })[]>;
+  getBrand(id: string): Promise<Brand | undefined>;
+  getBrandBySlug(slug: string): Promise<Brand | undefined>;
+  createBrand(brand: InsertBrand): Promise<Brand>;
+  updateBrand(id: string, brand: Partial<InsertBrand>): Promise<Brand | undefined>;
+  deleteBrand(id: string): Promise<void>;
 }
 
 export class DbStorage implements IStorage {
@@ -3004,6 +3015,49 @@ export class DbStorage implements IStorage {
 
   async deleteBlogPost(id: string): Promise<void> {
     await db.delete(blogPosts).where(eq(blogPosts.id, id));
+  }
+
+  // ─── Brands ──────────────────────────────────────────────────────────────
+  async getBrands(): Promise<(Brand & { productCount: number })[]> {
+    const rows = await db
+      .select({
+        id: brands.id,
+        name: brands.name,
+        slug: brands.slug,
+        logoUrl: brands.logoUrl,
+        isActive: brands.isActive,
+        createdAt: brands.createdAt,
+        productCount: sql<number>`cast(count(${products.id}) as int)`,
+      })
+      .from(brands)
+      .leftJoin(products, eq(products.brand, brands.name))
+      .groupBy(brands.id)
+      .orderBy(asc(brands.name));
+    return rows;
+  }
+
+  async getBrand(id: string): Promise<Brand | undefined> {
+    const [brand] = await db.select().from(brands).where(eq(brands.id, id));
+    return brand;
+  }
+
+  async getBrandBySlug(slug: string): Promise<Brand | undefined> {
+    const [brand] = await db.select().from(brands).where(eq(brands.slug, slug));
+    return brand;
+  }
+
+  async createBrand(brand: InsertBrand): Promise<Brand> {
+    const [created] = await db.insert(brands).values(brand).returning();
+    return created;
+  }
+
+  async updateBrand(id: string, brand: Partial<InsertBrand>): Promise<Brand | undefined> {
+    const [updated] = await db.update(brands).set(brand).where(eq(brands.id, id)).returning();
+    return updated;
+  }
+
+  async deleteBrand(id: string): Promise<void> {
+    await db.delete(brands).where(eq(brands.id, id));
   }
 }
 

@@ -1371,10 +1371,10 @@ export default function ProductDetail() {
                     <button
                       type="button"
                       onClick={() => setSelectedImage(prev => Math.max(0, prev - 1))}
-                      className="w-full h-8 flex items-center justify-center bg-white/15 hover:bg-white/25 rounded-lg transition-colors"
+                      className="w-full h-8 flex items-center justify-center bg-zinc-800/50 hover:bg-zinc-700/50 rounded-lg transition-colors"
                       aria-label="Önceki görsel"
                     >
-                      <ChevronDown className="w-4 h-4 rotate-180 text-white" />
+                      <ChevronDown className="w-4 h-4 rotate-180" />
                     </button>
                   )}
 
@@ -1424,10 +1424,10 @@ export default function ProductDetail() {
                     <button
                       type="button"
                       onClick={() => setSelectedImage(prev => Math.min(images.length - 1, prev + 1))}
-                      className="w-full h-8 flex items-center justify-center bg-white/15 hover:bg-white/25 rounded-lg transition-colors"
+                      className="w-full h-8 flex items-center justify-center bg-zinc-800/50 hover:bg-zinc-700/50 rounded-lg transition-colors"
                       aria-label="Sonraki görsel"
                     >
-                      <ChevronDown className="w-4 h-4 text-white" />
+                      <ChevronDown className="w-4 h-4" />
                     </button>
                   )}
                 </div>
@@ -1952,7 +1952,7 @@ export default function ProductDetail() {
                     disabled={isAdding || isOutOfStock || selectedUnavailable || maxAdditional === 0}
                     whileTap={reduceMotion || isOutOfStock || selectedUnavailable ? undefined : { scale: 0.97 }}
                       className={`flex-1 h-12 lg:h-10 font-semibold text-[11px] uppercase tracking-[0.2em] flex items-center justify-center gap-2 rounded-lg ${
-                       isOutOfStock || selectedUnavailable || maxAdditional === 0 ? 'bg-[#141414]/10 text-white/30 cursor-not-allowed border border-white/10' : 'bg-white hover:bg-white/90 text-black'
+                       isOutOfStock || selectedUnavailable || maxAdditional === 0 ? 'bg-[#141414]/10 text-white/30 cursor-not-allowed border border-white/10' : 'btn-glass'
                     }`}
                     data-testid="button-add-to-cart"
                   >
@@ -2431,8 +2431,8 @@ export default function ProductDetail() {
               onClick={handleAddToCart}
               disabled={isAdding || isOutOfStock || selectedUnavailable}
               whileTap={reduceMotion || isOutOfStock || selectedUnavailable ? undefined : { scale: 0.96 }}
-              className={`h-11 px-5 font-bold text-[11px] uppercase tracking-[0.18em] flex items-center justify-center gap-2 !rounded-lg ${
-                isOutOfStock || selectedUnavailable ? 'bg-[#141414]/10 text-white/35 cursor-not-allowed border border-white/10' : 'all-cats-gold'
+              className={`h-10 px-5 font-semibold text-[11px] uppercase tracking-[0.18em] flex items-center justify-center gap-2 rounded-lg ${
+                isOutOfStock || selectedUnavailable ? 'bg-[#141414]/10 text-white/35 cursor-not-allowed border border-white/10' : 'btn-glass'
               }`}
               data-testid="button-add-to-cart-mobile"
             >

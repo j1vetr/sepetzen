@@ -21,6 +21,7 @@ import BlogTab from './admin/BlogTab';
 import CouponsTab from './admin/CouponsTab';
 import ReviewsTab from './admin/ReviewsTab';
 import WholesaleTab from './admin/WholesaleTab';
+import BrandsTab from './admin/BrandsTab';
 
 import CategoryModal from './admin/modals/CategoryModal';
 import UserDetailModal from './admin/modals/UserDetailModal';
@@ -283,6 +284,7 @@ export default function AdminDashboard() {
             initialProductId={trendyolInitialProductId}
           />
         )}
+        {activeTab === 'brands' && <BrandsTab />}
         {activeTab === 'coupons' && <CouponsTab />}
         {activeTab === 'reviews' && <ReviewsTab />}
         {activeTab === 'wholesale' && (

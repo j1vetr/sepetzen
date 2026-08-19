@@ -19,6 +19,7 @@ import {
   Database,
   Ticket,
   HandCoins,
+  Tag,
   X,
 } from 'lucide-react';
 import { useQuery } from '@tanstack/react-query';
@@ -57,6 +58,7 @@ const TAB_ICONS: Record<TabType, React.ComponentType<{ className?: string }>> = 
   analytics: BarChart3,
   products: Package,
   categories: Grid3x3,
+  brands: Tag,
   inventory: Warehouse,
   orders: ShoppingCart,
   wholesale: HandCoins,

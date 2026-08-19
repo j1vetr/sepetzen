@@ -248,6 +248,16 @@ function ProductEditor({
     enabled: !!adminUser,
   });
 
+  const { data: brandsData = [] } = useQuery<{ id: string; name: string; slug: string; isActive: boolean }[]>({
+    queryKey: ['/api/admin/brands'],
+    queryFn: async () => {
+      const r = await fetch('/api/admin/brands');
+      if (!r.ok) throw new Error('Brands request failed');
+      return r.json();
+    },
+    enabled: !!adminUser,
+  });
+
   // Sekme varsayılanları — site genelinde kaydedilmiş şablon
   const { data: tabDefaults } = useQuery<{
     tabDelivery: Array<{title: string; rows: Array<{key: string; value: string}>}> | null;
@@ -356,6 +366,10 @@ function ProductEditor({
   const [generateError, setGenerateError] = useState<string | null>(null);
   const [colorInput, setColorInput] = useState('');
   const [activeTabEditor, setActiveTabEditor] = useState<'installment' | 'delivery' | 'faq'>('delivery');
+
+  // Marka combobox durumu
+  const [brandDropdownOpen, setBrandDropdownOpen] = useState(false);
+  const [brandSearch, setBrandSearch] = useState('');
 
   // Ürün listeden yüklenince formu bir kez doldur
   useEffect(() => {
@@ -803,14 +817,64 @@ function ProductEditor({
                     data-testid="input-product-sku"
                   />
                 </FormField>
-                <FormField label="Marka">
-                  <TextInput
-                    type="text"
-                    value={formData.brand}
-                    onChange={(e) => setFormData({ ...formData, brand: e.target.value })}
-                    placeholder="Örn: Sepetzen"
-                    data-testid="input-product-brand"
-                  />
+                <FormField label="Marka" hint="Listeden seçin veya serbest metin girin">
+                  <div className="relative">
+                    <input
+                      type="text"
+                      value={brandDropdownOpen ? brandSearch : formData.brand}
+                      onChange={(e) => {
+                        const v = e.target.value;
+                        setBrandSearch(v);
+                        setFormData({ ...formData, brand: v });
+                        setBrandDropdownOpen(true);
+                      }}
+                      onFocus={() => {
+                        setBrandSearch(formData.brand);
+                        setBrandDropdownOpen(true);
+                      }}
+                      onBlur={() => setTimeout(() => setBrandDropdownOpen(false), 150)}
+                      placeholder="Örn: Sepetzen"
+                      data-testid="input-product-brand"
+                      className="w-full h-9 px-3 text-[13px] bg-white border border-neutral-200 rounded-md text-neutral-900 placeholder:text-neutral-400 focus:outline-none focus:ring-2 focus:ring-neutral-900/10 focus:border-neutral-300 disabled:bg-neutral-50 disabled:text-neutral-500"
+                      autoComplete="off"
+                    />
+                    {brandDropdownOpen && (
+                      <div className="absolute z-50 mt-1 w-full bg-white border border-neutral-200 rounded-md shadow-lg max-h-48 overflow-y-auto">
+                        {brandsData
+                          .filter(
+                            (b) =>
+                              b.isActive &&
+                              b.name.toLowerCase().includes((brandSearch || '').toLowerCase()),
+                          )
+                          .map((b) => (
+                            <button
+                              key={b.id}
+                              type="button"
+                              className="w-full text-left px-3 py-2 text-[13px] text-neutral-800 hover:bg-neutral-50 transition-colors"
+                              onMouseDown={() => {
+                                setFormData({ ...formData, brand: b.name });
+                                setBrandDropdownOpen(false);
+                              }}
+                            >
+                              {b.name}
+                            </button>
+                          ))}
+                        {brandsData.filter(
+                          (b) =>
+                            b.isActive &&
+                            b.name.toLowerCase().includes((brandSearch || '').toLowerCase()),
+                        ).length === 0 && (
+                          <div className="px-3 py-2 text-[12px] text-neutral-500">
+                            {brandSearch ? (
+                              <span>"{brandSearch}" serbest metin olarak kaydedilecek. <a href="/toov-admin?tab=brands" target="_blank" className="text-neutral-700 underline">Markalar sekmesinden ekleyin.</a></span>
+                            ) : (
+                              'Marka yok — listeden seçin veya serbest metin girin.'
+                            )}
+                          </div>
+                        )}
+                      </div>
+                    )}
+                  </div>
                 </FormField>
               </div>
               <div>

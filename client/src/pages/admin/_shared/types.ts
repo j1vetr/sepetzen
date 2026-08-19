@@ -199,6 +199,16 @@ export interface AnalyticsCountryRow {
   revenue: number;
 }
 
+export interface Brand {
+  id: string;
+  name: string;
+  slug: string;
+  logoUrl?: string | null;
+  isActive: boolean;
+  createdAt: string;
+  productCount?: number;
+}
+
 export type ProductDraft = Omit<Product, 'id' | 'createdAt'> & {
   id?: string;
   createdAt?: string;
@@ -222,4 +232,5 @@ export type TabType =
   | 'marketplaces'
   | 'coupons'
   | 'reviews'
-  | 'wholesale';
+  | 'wholesale'
+  | 'brands';
