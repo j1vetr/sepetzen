@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
+import { pickThumbUrl, isVideoUrl } from '@/lib/mediaUtils';
 import { useLocation, Link } from 'wouter';
 import { Header } from '@/components/Header';
 import { Button } from '@/components/ui/button';
@@ -896,9 +897,13 @@ export default function Checkout() {
         return (
         <div key={item.id} className="flex gap-3 items-center min-w-0">
           <div className={`${compact ? 'w-11 h-12' : 'w-14 h-16'} bg-white/8 rounded-md overflow-hidden shrink-0`}>
-            {item.product?.images?.[0] && (
-              <img src={item.product.images[0]} alt={item.product.name} className="w-full h-full object-cover" />
-            )}
+            {(() => {
+              const src = pickThumbUrl(item.product?.images);
+              if (!src) return null;
+              return isVideoUrl(src)
+                ? <video src={src} muted playsInline preload="metadata" className="w-full h-full object-cover" />
+                : <img src={src} alt={item.product?.name} className="w-full h-full object-cover" />;
+            })()}
           </div>
           <div className="flex-1 min-w-0">
             <p className="text-[12.5px] font-medium text-white truncate">{item.product?.name || 'Ürün'}</p>

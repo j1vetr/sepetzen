@@ -1,4 +1,5 @@
 import { useState, useMemo, useEffect, useCallback } from 'react';
+import { pickThumbUrl, isVideoUrl } from '@/lib/mediaUtils';
 import { useQueryClient } from '@tanstack/react-query';
 import { Download, Percent, ImageIcon, Loader2, Search, ChevronDown, ChevronUp, Tag, Layers } from 'lucide-react';
 import type { Product, Category, ProductVariant } from './_shared/types';
@@ -453,17 +454,13 @@ export default function WholesaleTab({
                     <td className="px-4 py-3 text-neutral-400">{idx + 1}</td>
                     <td className="px-4 py-3">
                       <div className="flex items-center gap-3">
-                        {product.images?.[0] ? (
-                          <img
-                            src={product.images[0]}
-                            alt={product.name}
-                            className="w-10 h-10 object-cover rounded-md border border-neutral-200 bg-neutral-50 shrink-0"
-                          />
-                        ) : (
-                          <div className="w-10 h-10 rounded-md border border-neutral-200 bg-neutral-50 flex items-center justify-center shrink-0">
-                            <ImageIcon className="w-4 h-4 text-neutral-300" />
-                          </div>
-                        )}
+                        {(() => {
+                          const src = pickThumbUrl(product.images);
+                          if (!src) return <div className="w-10 h-10 rounded-md border border-neutral-200 bg-neutral-50 flex items-center justify-center shrink-0"><ImageIcon className="w-4 h-4 text-neutral-300" /></div>;
+                          return isVideoUrl(src)
+                            ? <video src={src} muted playsInline preload="metadata" className="w-10 h-10 object-cover rounded-md border border-neutral-200 bg-neutral-50 shrink-0" />
+                            : <img src={src} alt={product.name} className="w-10 h-10 object-cover rounded-md border border-neutral-200 bg-neutral-50 shrink-0" />;
+                        })()}
                         <div className="min-w-0">
                           <p className="font-medium text-neutral-900 truncate max-w-[200px] sm:max-w-[300px]">
                             {product.name}
@@ -555,17 +552,13 @@ export default function WholesaleTab({
                 data-testid={`card-wholesale-product-${product.id}`}
               >
                 <div className="flex items-start gap-3">
-                  {product.images?.[0] ? (
-                    <img
-                      src={product.images[0]}
-                      alt={product.name}
-                      className="w-12 h-12 object-cover rounded-md border border-neutral-200 bg-neutral-50 shrink-0"
-                    />
-                  ) : (
-                    <div className="w-12 h-12 rounded-md border border-neutral-200 bg-neutral-50 flex items-center justify-center shrink-0">
-                      <ImageIcon className="w-4 h-4 text-neutral-300" />
-                    </div>
-                  )}
+                  {(() => {
+                    const src = pickThumbUrl(product.images);
+                    if (!src) return <div className="w-12 h-12 rounded-md border border-neutral-200 bg-neutral-50 flex items-center justify-center shrink-0"><ImageIcon className="w-4 h-4 text-neutral-300" /></div>;
+                    return isVideoUrl(src)
+                      ? <video src={src} muted playsInline preload="metadata" className="w-12 h-12 object-cover rounded-md border border-neutral-200 bg-neutral-50 shrink-0" />
+                      : <img src={src} alt={product.name} className="w-12 h-12 object-cover rounded-md border border-neutral-200 bg-neutral-50 shrink-0" />;
+                  })()}
                   <div className="min-w-0 flex-1">
                     <p className="text-[14px] font-medium text-neutral-900 truncate">
                       {product.name}

@@ -8,6 +8,7 @@ interface CartItem {
   variantId: string | null;
   quantity: number;
   personalizationText?: string | null;
+  personalizationFee?: string | null;
   createdAt: string;
   product?: {
     id: string;
@@ -135,11 +136,11 @@ export function useCartProvider() {
   
   const subtotal = items.reduce((sum, item) => {
     // Varyant fiyatı varsa satır fiyatı odur; sepet sayfasıyla tutarlı.
-    // Kişiselleştirme yazısı olan satırlara ürünün ek ücreti eklenir
-    // (sunucu ödeme anında aynı hesabı kendisi de yapar).
+    // Kişiselleştirme ücreti: sunucu tarafından hesaplanıp DB'ye yazılan
+    // personalizationFee'yi kullan; yoksa ürün konfigürasyonundan hesapla.
     const price = item.variant?.price || item.product?.basePrice || '0';
-    const persFee = item.personalizationText && item.product?.personalization?.enabled
-      ? parseFloat(item.product.personalization.fee || '0') || 0
+    const persFee = item.personalizationText
+      ? parseFloat(item.personalizationFee || item.product?.personalization?.fee || '0') || 0
       : 0;
     return sum + (parseFloat(price) + persFee) * item.quantity;
   }, 0);

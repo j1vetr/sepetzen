@@ -1371,10 +1371,10 @@ export default function ProductDetail() {
                     <button
                       type="button"
                       onClick={() => setSelectedImage(prev => Math.max(0, prev - 1))}
-                      className="w-full h-8 flex items-center justify-center bg-zinc-800/50 hover:bg-zinc-700/50 rounded-lg transition-colors"
+                      className="w-full h-8 flex items-center justify-center bg-white/15 hover:bg-white/25 rounded-lg transition-colors"
                       aria-label="Önceki görsel"
                     >
-                      <ChevronDown className="w-4 h-4 rotate-180" />
+                      <ChevronDown className="w-4 h-4 rotate-180 text-white" />
                     </button>
                   )}
 
@@ -1424,10 +1424,10 @@ export default function ProductDetail() {
                     <button
                       type="button"
                       onClick={() => setSelectedImage(prev => Math.min(images.length - 1, prev + 1))}
-                      className="w-full h-8 flex items-center justify-center bg-zinc-800/50 hover:bg-zinc-700/50 rounded-lg transition-colors"
+                      className="w-full h-8 flex items-center justify-center bg-white/15 hover:bg-white/25 rounded-lg transition-colors"
                       aria-label="Sonraki görsel"
                     >
-                      <ChevronDown className="w-4 h-4" />
+                      <ChevronDown className="w-4 h-4 text-white" />
                     </button>
                   )}
                 </div>
@@ -1462,11 +1462,13 @@ export default function ProductDetail() {
                             <video
                               ref={desktopVideoRef}
                               src={images[selectedImage]}
-                              className="absolute inset-0 w-full h-full object-cover"
+                              className="absolute inset-0 w-full h-full object-cover cursor-pointer"
                               muted
                               autoPlay
                               loop
                               playsInline
+                              onClick={(e) => { e.stopPropagation(); toggleVideoSound(); }}
+                              title={videoMuted ? 'Sesi aç' : 'Sesi kapat'}
                             />
                             <button
                               type="button"
@@ -1557,11 +1559,13 @@ export default function ProductDetail() {
                               <video
                                 ref={i === images.indexOf(img) ? mobileVideoRef : undefined}
                                 src={img}
-                                className="w-full h-full object-cover"
+                                className="w-full h-full object-cover cursor-pointer"
                                 muted
                                 autoPlay
                                 loop
                                 playsInline
+                                onClick={(e) => { e.stopPropagation(); toggleVideoSound(); }}
+                                title={videoMuted ? 'Sesi aç' : 'Sesi kapat'}
                               />
                               <button
                                 type="button"
@@ -1709,7 +1713,13 @@ export default function ProductDetail() {
                    />
                  </div>
                  <div>
-                    <p className="font-sans text-[17px] lg:text-[15px] tracking-[0.12em] text-white">SEPETZEN</p>
+                    <p className="font-sans text-[17px] lg:text-[15px] tracking-[0.12em] text-white flex items-center gap-1.5">
+                       SEPETZEN
+                       <svg viewBox="0 0 20 20" fill="none" className="w-[18px] h-[18px] lg:w-4 lg:h-4 shrink-0" aria-label="Doğrulanmış satıcı">
+                         <circle cx="10" cy="10" r="10" fill="#1D9BF0"/>
+                         <path d="M5.5 10.5l3 3 6-6" stroke="#fff" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round"/>
+                       </svg>
+                    </p>
                     <p className="mt-0.5 text-[10px] lg:text-[9px] uppercase tracking-[0.14em] text-white/45">Outdoor Gear · Dalaman / Muğla</p>
                  </div>
                </div>
@@ -1941,8 +1951,8 @@ export default function ProductDetail() {
                     onClick={handleAddToCart}
                     disabled={isAdding || isOutOfStock || selectedUnavailable || maxAdditional === 0}
                     whileTap={reduceMotion || isOutOfStock || selectedUnavailable ? undefined : { scale: 0.97 }}
-                      className={`flex-1 h-12 lg:h-10 font-semibold text-[11px] uppercase tracking-[0.2em] transition-colors flex items-center justify-center gap-2 ${
-                       isOutOfStock || selectedUnavailable || maxAdditional === 0 ? 'bg-[#1A1A1A] text-white/30 cursor-not-allowed' : 'bg-white text-black hover:bg-white/90'
+                      className={`flex-1 h-12 lg:h-10 font-semibold text-[11px] uppercase tracking-[0.2em] flex items-center justify-center gap-2 rounded-lg ${
+                       isOutOfStock || selectedUnavailable || maxAdditional === 0 ? 'bg-[#141414]/10 text-white/30 cursor-not-allowed border border-white/10' : 'bg-white hover:bg-white/90 text-black'
                     }`}
                     data-testid="button-add-to-cart"
                   >
@@ -2406,7 +2416,7 @@ export default function ProductDetail() {
             animate={{ y: 0, opacity: 1 }}
             exit={{ y: 80, opacity: 0 }}
             transition={{ duration: reduceMotion ? 0 : 0.22 }}
-            className="lg:hidden fixed inset-x-0 z-[90] surface-glass-dark border-t shadow-[0_-6px_20px_rgba(0,0,0,0.35)] px-4 py-3 flex items-center gap-3"
+            className="lg:hidden fixed inset-x-0 z-[90] surface-glass-dark border-t border-transparent shadow-[0_-6px_20px_rgba(0,0,0,0.35)] px-4 py-3 flex items-center gap-3"
             style={{ bottom: 'var(--mobile-nav-total, 58px)' }}
             data-testid="mobile-sticky-cta"
           >
@@ -2421,8 +2431,8 @@ export default function ProductDetail() {
               onClick={handleAddToCart}
               disabled={isAdding || isOutOfStock || selectedUnavailable}
               whileTap={reduceMotion || isOutOfStock || selectedUnavailable ? undefined : { scale: 0.96 }}
-              className={`h-10 px-5 font-semibold text-[11px] uppercase tracking-[0.18em] flex items-center justify-center gap-2 rounded-lg ${
-                isOutOfStock || selectedUnavailable ? 'bg-[#141414]/10 text-white/35 cursor-not-allowed border border-white/10' : 'btn-glass'
+              className={`h-11 px-5 font-bold text-[11px] uppercase tracking-[0.18em] flex items-center justify-center gap-2 !rounded-lg ${
+                isOutOfStock || selectedUnavailable ? 'bg-[#141414]/10 text-white/35 cursor-not-allowed border border-white/10' : 'all-cats-gold'
               }`}
               data-testid="button-add-to-cart-mobile"
             >

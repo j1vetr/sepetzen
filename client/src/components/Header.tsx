@@ -39,6 +39,7 @@ interface MenuItemData {
   title: string;
   description?: string | null;
   bgImage?: string | null;
+  measurementGifUrl?: string | null;
   type: 'category' | 'link' | 'submenu';
   categoryId: string | null;
   url: string | null;
@@ -958,6 +959,22 @@ export function Header() {
                           </Link>
                         </motion.div>
                       </AnimatePresence>
+                    </div>
+                  )}
+
+                  {/* Esnek ölçü / boyut rehberi GIF */}
+                  {activeMegaRoot.measurementGifUrl && (
+                    <div className="px-5 pb-3">
+                      <div className="text-[8.5px] tracking-[0.28em] uppercase text-white/30 font-mono mb-2 px-1">Ölçü Rehberi</div>
+                      <div className="rounded-lg overflow-hidden border border-white/10 bg-white/5">
+                        <img
+                          src={activeMegaRoot.measurementGifUrl}
+                          alt="Ölçü rehberi"
+                          className="w-full object-contain max-h-28"
+                          loading="lazy"
+                          decoding="async"
+                        />
+                      </div>
                     </div>
                   )}
 

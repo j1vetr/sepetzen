@@ -3269,12 +3269,22 @@ Bu ürün için 4 bölümlü HTML açıklama üret. Teknik Özellikler bölümü
         });
       }
 
+      // Kişiselleştirme ücreti, ürün ayarından sunucu tarafında hesaplanır
+      // ve cart item'a kalıcı olarak yazılır; istemci bu değeri okur.
+      const calcPersFee = (text: string | null): number => {
+        if (!text || !product.personalization?.enabled) return 0;
+        const fee = parseFloat(product.personalization.fee || '0');
+        return Number.isFinite(fee) && fee > 0 ? fee : 0;
+      };
+      const persFeeAmount = calcPersFee(personalizationText);
+
       const validated = insertCartItemSchema.parse({
         productId,
         variantId,
         quantity: quantity || 1,
         sessionId: cartToken,
         personalizationText,
+        personalizationFee: persFeeAmount > 0 ? persFeeAmount.toFixed(2) : null,
       });
       const item = await storage.addToCart(validated);
       res.status(201).json(item);
@@ -3331,7 +3341,19 @@ Bu ürün için 4 bölümlü HTML açıklama üret. Teknik Özellikler bölümü
         }
       }
 
-      const item = await storage.updateCartItem(req.params.id, cartToken, quantity, personalizationText);
+      // Kişiselleştirme metni değişince fee'yi de güncelle
+      let personalizationFee: string | null | undefined = undefined;
+      if (personalizationText !== undefined) {
+        if (personalizationText === null) {
+          personalizationFee = null;
+        } else {
+          const prod = await storage.getProduct(existingItem.productId);
+          const fee = prod ? personalizationFeeFor(prod, personalizationText) : 0;
+          personalizationFee = fee > 0 ? fee.toFixed(2) : null;
+        }
+      }
+
+      const item = await storage.updateCartItem(req.params.id, cartToken, quantity, personalizationText, personalizationFee);
       if (!item) {
         return res.status(404).json({ error: "Cart item not found" });
       }
@@ -9475,7 +9497,7 @@ Sitemap: ${baseUrl}/sitemap.xml
   // Admin: Create menu item
   app.post("/api/admin/menu-items", requireAdmin, async (req, res) => {
     try {
-      const { title, description, bgImage, type, categoryId, url, parentId, displayOrder, isActive, openInNewTab } = req.body;
+      const { title, description, bgImage, measurementGifUrl, type, categoryId, url, parentId, displayOrder, isActive, openInNewTab } = req.body;
 
       if (!title || !type) {
         return res.status(400).json({ error: "Başlık ve tür zorunludur" });
@@ -9493,6 +9515,7 @@ Sitemap: ${baseUrl}/sitemap.xml
         title,
         description: description || null,
         bgImage: bgImage || null,
+        measurementGifUrl: measurementGifUrl || null,
         type,
         categoryId: categoryId || null,
         url: url || null,
@@ -9512,12 +9535,13 @@ Sitemap: ${baseUrl}/sitemap.xml
   // Admin: Update menu item
   app.put("/api/admin/menu-items/:id", requireAdmin, async (req, res) => {
     try {
-      const { title, description, bgImage, type, categoryId, url, parentId, displayOrder, isActive, openInNewTab } = req.body;
+      const { title, description, bgImage, measurementGifUrl, type, categoryId, url, parentId, displayOrder, isActive, openInNewTab } = req.body;
 
       const menuItem = await storage.updateMenuItem(req.params.id, {
         title,
         description: description || null,
         bgImage: bgImage !== undefined ? (bgImage || null) : undefined,
+        measurementGifUrl: measurementGifUrl !== undefined ? (measurementGifUrl || null) : undefined,
         type,
         categoryId: categoryId || null,
         url: url || null,

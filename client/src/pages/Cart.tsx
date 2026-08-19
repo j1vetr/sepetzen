@@ -1,4 +1,5 @@
 import { useState, useRef } from 'react';
+import { pickThumbUrl, isVideoUrl } from '@/lib/mediaUtils';
 import { Link } from 'wouter';
 import { Header } from '@/components/Header';
 import { useCart } from '@/hooks/useCart';
@@ -127,8 +128,10 @@ export default function Cart() {
                   {items.map((item, index) => {
                     // Kişiselleştirme yazısı olan satıra ürünün ek ücreti eklenir
                     // (useCart.subtotal ile aynı hesap).
-                    const persFee = item.personalizationText && item.product?.personalization?.enabled
-                      ? parseFloat(item.product.personalization.fee || '0') || 0
+                    // DB'ye yazılan personalizationFee'yi kullan; yoksa ürün
+                    // konfigürasyonundan hesapla (eski kayıtlar için yedek yol).
+                    const persFee = item.personalizationText
+                      ? parseFloat(item.personalizationFee || item.product?.personalization?.fee || '0') || 0
                       : 0;
                     const itemPrice = parseFloat(
                       item.variant?.price || item.product?.basePrice || '0'
@@ -151,19 +154,13 @@ export default function Cart() {
                         {/* Image */}
                         <Link href={`/urun/${product?.slug}`}>
                           <div className="w-20 h-24 sm:w-24 sm:h-28 bg-[#151515] rounded-md shrink-0 overflow-hidden cursor-pointer">
-                            {product?.images?.[0] ? (
-                              <img
-                                src={product.images[0]}
-                                alt={product.name}
-                                loading="lazy"
-                                decoding="async"
-                                className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
-                              />
-                            ) : (
-                              <div className="w-full h-full flex items-center justify-center">
-                                 <Package size={24} className="text-white/30" />
-                              </div>
-                            )}
+                            {(() => {
+                              const src = pickThumbUrl(product?.images);
+                              if (!src) return <div className="w-full h-full flex items-center justify-center"><Package size={24} className="text-white/30" /></div>;
+                              return isVideoUrl(src)
+                                ? <video src={src} muted playsInline preload="metadata" className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300" />
+                                : <img src={src} alt={product!.name} loading="lazy" decoding="async" className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300" />;
+                            })()}
                           </div>
                         </Link>
 

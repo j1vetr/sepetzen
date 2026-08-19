@@ -12,6 +12,7 @@ interface MenuItemData {
   title: string;
   description: string | null;
   bgImage: string | null;
+  measurementGifUrl: string | null;
   type: 'category' | 'link' | 'submenu';
   categoryId: string | null;
   url: string | null;
@@ -34,6 +35,7 @@ export default function MenuManagementPanel({ categories }: MenuManagementPanelP
     title: '',
     description: '',
     bgImage: '',
+    measurementGifUrl: '',
     type: 'category' as 'category' | 'link' | 'submenu',
     categoryId: '',
     url: '',
@@ -43,6 +45,8 @@ export default function MenuManagementPanel({ categories }: MenuManagementPanelP
   });
   const [bgUploading, setBgUploading] = useState(false);
   const bgFileRef = useRef<HTMLInputElement>(null);
+  const [gifUploading, setGifUploading] = useState(false);
+  const gifFileRef = useRef<HTMLInputElement>(null);
 
   const { data: menuItems = [], isLoading } = useQuery<MenuItemData[]>({
     queryKey: ['admin', 'menu-items'],
@@ -232,6 +236,7 @@ export default function MenuManagementPanel({ categories }: MenuManagementPanelP
       title: '',
       description: '',
       bgImage: '',
+      measurementGifUrl: '',
       type: 'category',
       categoryId: '',
       url: '',
@@ -247,6 +252,7 @@ export default function MenuManagementPanel({ categories }: MenuManagementPanelP
       title: item.title,
       description: item.description || '',
       bgImage: item.bgImage || '',
+      measurementGifUrl: item.measurementGifUrl || '',
       type: item.type,
       categoryId: item.categoryId || '',
       url: item.url || '',
@@ -255,6 +261,32 @@ export default function MenuManagementPanel({ categories }: MenuManagementPanelP
       openInNewTab: item.openInNewTab,
     });
     setShowModal(true);
+  };
+
+  const handleGifUpload = async (file: File) => {
+    if (!file.type.includes('gif')) {
+      alert('Lütfen bir GIF dosyası seçin (.gif uzantılı)');
+      return;
+    }
+    setGifUploading(true);
+    try {
+      const fd = new FormData();
+      fd.append('images', file);
+      const res = await fetch('/api/admin/upload/branding', {
+        method: 'POST',
+        credentials: 'include',
+        body: fd,
+      });
+      if (!res.ok) throw new Error('Yükleme başarısız');
+      const data = await res.json();
+      const url = Array.isArray(data.urls) ? data.urls[0] : data.url;
+      if (!url) throw new Error('Yükleme başarısız');
+      setFormData((prev) => ({ ...prev, measurementGifUrl: url }));
+    } catch (err) {
+      alert('GIF yüklenemedi: ' + (err instanceof Error ? err.message : 'Bilinmeyen hata'));
+    } finally {
+      setGifUploading(false);
+    }
   };
 
   const handleSubmit = () => {
@@ -634,6 +666,67 @@ export default function MenuManagementPanel({ categories }: MenuManagementPanelP
                       </button>
                     )}
                     <p className="text-xs text-neutral-500 mt-1">Mega menünün sol karanlık paneline arka plan olarak eklenir, üstüne yarı saydam karartma uygulanır</p>
+                  </div>
+
+                  {/* Esnek ölçü / boyut rehberi GIF */}
+                  <div>
+                    <label className="block text-sm font-medium text-neutral-500 mb-2">
+                      Esnek Ölçü / Boyut Rehberi GIF <span className="text-neutral-400 font-normal">(Opsiyonel)</span>
+                    </label>
+                    <input
+                      ref={gifFileRef}
+                      type="file"
+                      accept="image/gif"
+                      className="hidden"
+                      onChange={(e) => {
+                        const file = e.target.files?.[0];
+                        if (file) handleGifUpload(file);
+                        e.target.value = '';
+                      }}
+                    />
+                    {formData.measurementGifUrl ? (
+                      <div className="relative group rounded-lg overflow-hidden border border-neutral-200 bg-neutral-50">
+                        <img
+                          src={formData.measurementGifUrl}
+                          alt="Ölçü GIF önizleme"
+                          className="w-full h-32 object-contain bg-neutral-100"
+                        />
+                        <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-3">
+                          <button
+                            type="button"
+                            onClick={() => gifFileRef.current?.click()}
+                            disabled={gifUploading}
+                            className="flex items-center gap-1.5 px-3 py-1.5 bg-white text-black rounded-md text-xs font-medium"
+                          >
+                            <ImageIcon className="w-3.5 h-3.5" /> Değiştir
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => setFormData((prev) => ({ ...prev, measurementGifUrl: '' }))}
+                            className="flex items-center gap-1.5 px-3 py-1.5 bg-red-600 text-white rounded-md text-xs font-medium"
+                          >
+                            <Trash className="w-3.5 h-3.5" /> Kaldır
+                          </button>
+                        </div>
+                      </div>
+                    ) : (
+                      <button
+                        type="button"
+                        onClick={() => gifFileRef.current?.click()}
+                        disabled={gifUploading}
+                        className="w-full h-24 border-2 border-dashed border-neutral-200 rounded-lg flex flex-col items-center justify-center gap-2 hover:border-neutral-400 hover:bg-neutral-50 transition-colors text-neutral-400 disabled:opacity-50"
+                      >
+                        {gifUploading ? (
+                          <Loader2 className="w-5 h-5 animate-spin" />
+                        ) : (
+                          <span className="text-2xl leading-none">🎞</span>
+                        )}
+                        <span className="text-xs">{gifUploading ? 'Yükleniyor...' : 'GIF seç veya sürükle'}</span>
+                      </button>
+                    )}
+                    <p className="text-xs text-neutral-500 mt-1">
+                      Animasyonlu ölçü / boyut rehberi — mega menünün sol panelinde arka plan görselin altında gösterilir. Yalnızca .gif formatı desteklenir.
+                    </p>
                   </div>
                 </>
               )}

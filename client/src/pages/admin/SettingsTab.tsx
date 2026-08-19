@@ -229,6 +229,198 @@ function ArasSenderAddressPicker({ value, onChange }: { value: string; onChange:
   );
 }
 
+// ── Contact Page Info ────────────────────────────────────────────────────
+// /sayfa/iletisim adresindeki telefon, e-posta ve adres bilgilerini yönetir.
+function ContactInfoSection() {
+  const queryClient = useQueryClient();
+  const [identity, setIdentity] = useState<SiteIdentity | null>(null);
+  const [saving, setSaving] = useState(false);
+  const [msg, setMsg] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
+
+  const { data } = useQuery<SiteIdentity>({ queryKey: ['/api/admin/site-identity'] });
+
+  useEffect(() => {
+    if (data && !identity) setIdentity(data);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [data]);
+
+  if (!identity) {
+    return (
+      <div className="bg-white border border-neutral-200 rounded-xl p-6 flex items-center gap-3 text-neutral-500 text-sm">
+        <Loader2 className="w-4 h-4 animate-spin" /> Yükleniyor…
+      </div>
+    );
+  }
+
+  const set = (patch: Partial<SiteIdentity>) => setIdentity(prev => prev ? { ...prev, ...patch } : prev);
+
+  const handleSave = async () => {
+    if (!identity.phone.trim() || !identity.email.trim()) {
+      setMsg({ type: 'error', text: 'Telefon ve e-posta zorunludur' });
+      return;
+    }
+    const cleaned = {
+      ...identity,
+      addressLines: identity.addressLines.map(a => a.trim()).filter(Boolean),
+    };
+    setSaving(true);
+    setMsg(null);
+    try {
+      const res = await fetch('/api/admin/site-identity', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(cleaned),
+        credentials: 'include',
+      });
+      if (res.ok) {
+        setIdentity(cleaned);
+        setMsg({ type: 'success', text: 'İletişim bilgileri kaydedildi. /sayfa/iletisim sayfasına yansıdı.' });
+        queryClient.invalidateQueries({ queryKey: ['/api/site-identity'] });
+        queryClient.invalidateQueries({ queryKey: ['/api/admin/site-identity'] });
+      } else {
+        const d = await res.json().catch(() => ({}));
+        setMsg({ type: 'error', text: d.error || 'Kaydedilemedi' });
+      }
+    } catch {
+      setMsg({ type: 'error', text: 'Bir hata oluştu' });
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const inputCls = 'w-full px-3 py-2 bg-neutral-50 border border-neutral-200 rounded-lg text-neutral-900 text-sm';
+  const smallBtnCls = 'text-[11px] font-semibold text-neutral-500 hover:text-red-600 transition-colors shrink-0';
+  const addBtnCls = 'text-[12px] font-semibold text-neutral-700 border border-neutral-200 rounded-lg px-3 py-1.5 hover:bg-neutral-50 transition-colors';
+
+  return (
+    <div className="bg-white border border-blue-200 rounded-xl p-6" data-testid="section-contact-info">
+      <div className="flex items-start justify-between gap-4 mb-5">
+        <div className="flex items-center gap-3">
+          <div className="p-2 bg-blue-50 rounded-lg">
+            <MapPin className="w-5 h-5 text-blue-600" />
+          </div>
+          <div>
+            <h3 className="text-lg font-semibold text-neutral-900">İletişim Sayfası Bilgileri</h3>
+            <p className="text-sm text-neutral-500">
+              <a href="/sayfa/iletisim" target="_blank" rel="noopener noreferrer" className="underline underline-offset-2 hover:text-blue-600">/sayfa/iletisim</a>
+              {' '}adresinde görünen telefon, e-posta ve adres
+            </p>
+          </div>
+        </div>
+      </div>
+
+      {msg && (
+        <div className={`flex items-center gap-2 p-3 rounded-lg mb-4 text-sm ${
+          msg.type === 'success' ? 'bg-emerald-50 border border-emerald-200 text-emerald-700' : 'bg-red-50 border border-red-200 text-red-700'
+        }`}>
+          {msg.type === 'success' ? <CheckCircle2 className="w-4 h-4 shrink-0" /> : <XCircle className="w-4 h-4 shrink-0" />}
+          {msg.text}
+        </div>
+      )}
+
+      <div className="space-y-4">
+        {/* Phone */}
+        <div className="grid md:grid-cols-2 gap-4">
+          <div>
+            <label className="block text-sm font-medium text-neutral-700 mb-1.5">
+              Telefon <span className="text-red-500">*</span>
+              <span className="text-neutral-400 font-normal ml-1">(sayfada görünen yazı)</span>
+            </label>
+            <input
+              type="text"
+              value={identity.phone}
+              onChange={e => set({ phone: e.target.value })}
+              placeholder="0536 630 11 38"
+              className={inputCls}
+              data-testid="input-contact-phone"
+            />
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-neutral-700 mb-1.5">
+              Telefon / WhatsApp Linki
+              <span className="text-neutral-400 font-normal ml-1">(+905... formatında)</span>
+            </label>
+            <input
+              type="text"
+              value={identity.phoneHref}
+              onChange={e => set({ phoneHref: e.target.value })}
+              placeholder="+905366301138"
+              className={inputCls}
+              data-testid="input-contact-phone-href"
+            />
+            <p className="text-[11px] text-neutral-400 mt-1">Telefon araması ve WhatsApp linki bu değeri kullanır</p>
+          </div>
+        </div>
+
+        {/* Email */}
+        <div>
+          <label className="block text-sm font-medium text-neutral-700 mb-1.5">
+            E-posta <span className="text-red-500">*</span>
+          </label>
+          <input
+            type="email"
+            value={identity.email}
+            onChange={e => set({ email: e.target.value })}
+            placeholder="sepetzen@gmail.com"
+            className={inputCls}
+            data-testid="input-contact-email"
+          />
+        </div>
+
+        {/* Address */}
+        <div>
+          <label className="block text-sm font-medium text-neutral-700 mb-2">Adres satırları</label>
+          <div className="space-y-2">
+            {identity.addressLines.map((line, i) => (
+              <div key={i} className="flex items-center gap-2">
+                <input
+                  type="text"
+                  value={line}
+                  onChange={e => {
+                    const list = [...identity.addressLines];
+                    list[i] = e.target.value;
+                    set({ addressLines: list });
+                  }}
+                  placeholder={`Adres satırı ${i + 1}`}
+                  className={inputCls}
+                  data-testid={`input-contact-address-${i}`}
+                />
+                <button
+                  type="button"
+                  onClick={() => set({ addressLines: identity.addressLines.filter((_, j) => j !== i) })}
+                  className={smallBtnCls}
+                >
+                  Sil
+                </button>
+              </div>
+            ))}
+          </div>
+          <button
+            type="button"
+            onClick={() => set({ addressLines: [...identity.addressLines, ''] })}
+            className={`${addBtnCls} mt-2`}
+          >
+            + Satır Ekle
+          </button>
+        </div>
+
+        <div className="pt-2 border-t border-neutral-100">
+          <button
+            type="button"
+            onClick={handleSave}
+            disabled={saving}
+            className="flex items-center gap-2 px-5 py-2.5 bg-neutral-900 hover:bg-neutral-700 disabled:opacity-50 text-white text-sm font-semibold rounded-lg transition-colors"
+            data-testid="button-save-contact-info"
+          >
+            {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : <CheckCircle2 className="w-4 h-4" />}
+            {saving ? 'Kaydediliyor…' : 'İletişim Bilgilerini Kaydet'}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 // ── Site Identity (announcements, contact, footer, mobile nav) ────────────
 function SiteIdentitySection() {
   const queryClient = useQueryClient();
@@ -1153,7 +1345,12 @@ export default function SettingsPanel({ initialSection = 'genel', contentOnly = 
         </div>
       )}
 
-      {section === 'genel' && <SiteIdentitySection />}
+      {section === 'genel' && (
+        <div className="space-y-6">
+          <ContactInfoSection />
+          <SiteIdentitySection />
+        </div>
+      )}
 
       {section === 'bildirim' && (<>
       <div className="bg-white border border-neutral-200 rounded-xl p-6">

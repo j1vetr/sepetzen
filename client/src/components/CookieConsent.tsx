@@ -4,13 +4,9 @@ import { X, Cookie } from 'lucide-react';
 
 const STORAGE_KEY = 'sepetzen-cookie-consent';
 
-// Basit çerez onay bildirimi. İlk ziyarette alt kısımda görünür.
-// Kabul veya kapatma tercihi localStorage ile hatırlanır ve tekrar gösterilmez.
 export function CookieConsent() {
   const [location] = useLocation();
   const [visible, setVisible] = useState(false);
-  // Sepet, ödeme ve ürün sayfalarındaki sabit alt aksiyon çubuklarının üstünde
-  // durması için ölçülen ek mesafe (bildirim satın alma butonlarını kapatmasın)
   const [extraOffset, setExtraOffset] = useState(0);
   const wrapperRef = useRef<HTMLDivElement | null>(null);
 
@@ -29,8 +25,6 @@ export function CookieConsent() {
     let frame = 0;
     const measure = () => {
       let extra = 0;
-      // Alt çubuklar da --mobile-nav-total tabanına sabitlenir. Görünür olan
-      // en yüksek çubuğun yüksekliği kadar yukarı kayarız.
       document.querySelectorAll<HTMLElement>('[style*="mobile-nav-total"]').forEach((el) => {
         if (el === wrapperRef.current) return;
         if (el.offsetHeight === 0) return;
@@ -55,56 +49,66 @@ export function CookieConsent() {
     };
   }, [visible]);
 
-  // Admin paneli storefront temasından ayrı, bildirim orada gösterilmez
   if (location.startsWith('/toov-admin')) return null;
   if (!visible) return null;
 
   const remember = (value: 'accepted' | 'dismissed') => {
-    try {
-      localStorage.setItem(STORAGE_KEY, value);
-    } catch {
-      // localStorage kullanılamıyorsa bildirim yalnızca bu oturumda kapanır
-    }
+    try { localStorage.setItem(STORAGE_KEY, value); } catch { /* ignore */ }
     setVisible(false);
   };
 
   return (
     <div
       ref={wrapperRef}
-      className="fixed inset-x-0 z-[120] px-3 pb-3 sm:px-4 sm:pb-4 pointer-events-none"
-      style={{ bottom: `calc(var(--mobile-nav-total, 0px) + ${extraOffset}px)` }}
+      className="fixed left-3 sm:left-4 z-[120] pointer-events-none"
+      style={{ bottom: `calc(var(--mobile-nav-total, 0px) + ${extraOffset}px + 12px)` }}
       role="region"
       aria-label="Çerez bildirimi"
       data-testid="banner-cookie-consent"
     >
-      <div className="pointer-events-auto max-w-3xl mx-auto bg-[#141414] border border-white/10 shadow-[0_8px_30px_rgba(0,0,0,0.5)] p-4 sm:p-5">
-        <div className="flex items-start gap-3">
-          <Cookie className="w-4 h-4 text-white/50 shrink-0 mt-0.5" aria-hidden="true" />
-          <p className="flex-1 text-[12px] sm:text-[13px] leading-relaxed text-white/65">
-            Alışveriş deneyiminizi iyileştirmek ve site performansını ölçmek için çerezler kullanıyoruz.
-            Ayrıntılı bilgi için{' '}
-            <Link href="/sayfa/cerez-politikasi">
-              <span className="underline text-white/85 hover:text-white cursor-pointer" data-testid="link-cookie-policy">
-                Çerez Politikası
-              </span>
-            </Link>{' '}
-            sayfamıza göz atabilirsiniz.
-          </p>
+      <div
+        className="pointer-events-auto w-[260px] sm:w-[300px] rounded-xl overflow-hidden shadow-[0_8px_32px_rgba(0,0,0,0.45)]"
+        style={{
+          background: 'rgba(255,255,255,0.06)',
+          backdropFilter: 'blur(20px)',
+          WebkitBackdropFilter: 'blur(20px)',
+        }}
+      >
+        {/* Header row */}
+        <div className="flex items-center justify-between px-4 pt-3.5 pb-1">
+          <div className="flex items-center gap-2">
+            <Cookie className="w-3.5 h-3.5 text-white/50 shrink-0" aria-hidden="true" />
+            <span className="text-[11px] font-semibold tracking-[0.10em] uppercase text-white/55">
+              Çerez Bildirimi
+            </span>
+          </div>
           <button
             type="button"
             onClick={() => remember('dismissed')}
-            className="shrink-0 w-7 h-7 -mt-1 -mr-1 flex items-center justify-center text-white/40 hover:text-white transition-colors"
+            className="w-6 h-6 flex items-center justify-center text-white/35 hover:text-white transition-colors"
             aria-label="Bildirimi kapat"
             data-testid="button-dismiss-cookies"
           >
-            <X className="w-4 h-4" />
+            <X className="w-3.5 h-3.5" />
           </button>
         </div>
-        <div className="mt-3 flex justify-end">
+
+        {/* Body */}
+        <p className="px-4 pb-3 text-[11px] leading-relaxed text-white/50">
+          Deneyiminizi iyileştirmek için çerezler kullanıyoruz.{' '}
+          <Link href="/sayfa/cerez-politikasi">
+            <span className="text-white/70 underline underline-offset-2 hover:text-white cursor-pointer transition-colors" data-testid="link-cookie-policy">
+              Detay
+            </span>
+          </Link>
+        </p>
+
+        {/* Action */}
+        <div className="px-4 pb-4">
           <button
             type="button"
             onClick={() => remember('accepted')}
-            className="px-5 py-2 bg-white text-black font-semibold text-[11px] uppercase tracking-[0.18em] hover:bg-white/85 transition-colors"
+            className="w-full py-2 rounded-lg bg-white/15 hover:bg-white/25 text-white font-semibold text-[11px] uppercase tracking-[0.16em] transition-colors"
             data-testid="button-accept-cookies"
           >
             Kabul Et

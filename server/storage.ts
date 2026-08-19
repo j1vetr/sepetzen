@@ -1141,11 +1141,14 @@ export class DbStorage implements IStorage {
     return newItem;
   }
 
-  async updateCartItem(id: string, sessionId: string, quantity: number, personalizationText?: string | null): Promise<CartItem | undefined> {
+  async updateCartItem(id: string, sessionId: string, quantity: number, personalizationText?: string | null, personalizationFee?: string | null): Promise<CartItem | undefined> {
     const updateData: Partial<typeof cartItems.$inferInsert> = { quantity };
     if (personalizationText !== undefined) {
       // Empty string means clear the personalization; null also clears it.
       updateData.personalizationText = personalizationText === '' ? null : personalizationText;
+    }
+    if (personalizationFee !== undefined) {
+      updateData.personalizationFee = personalizationFee;
     }
     const [updated] = await db.update(cartItems).set(updateData)
       .where(and(eq(cartItems.id, id), eq(cartItems.sessionId, sessionId)))

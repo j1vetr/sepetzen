@@ -283,9 +283,12 @@ export const cartItems = pgTable("cart_items", {
   productId: varchar("product_id").references(() => products.id, { onDelete: "cascade" }).notNull(),
   variantId: varchar("variant_id").references(() => productVariants.id, { onDelete: "cascade" }),
   quantity: integer("quantity").default(1).notNull(),
-  // Müşterinin girdiği kişiselleştirme yazısı (ürün ayarı açıksa). Ücret
-  // burada saklanmaz; her zaman ürünün güncel ayarından hesaplanır.
+  // Müşterinin girdiği kişiselleştirme yazısı (ürün ayarı açıksa).
   personalizationText: text("personalization_text"),
+  // Ürünün o anki kişiselleştirme ücreti — sepete eklenirken/güncellenirken
+  // sunucu tarafından hesaplanıp yazılır; ürün ayarı sonradan değişse de
+  // sepet satırı bu değeri kullanır.
+  personalizationFee: decimal("personalization_fee", { precision: 10, scale: 2 }),
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
 
@@ -844,6 +847,7 @@ export const menuItems = pgTable("menu_items", {
   title: text("title").notNull(),
   description: text("description"), // mega menü sol panel açıklaması (submenu kökleri için)
   bgImage: text("bg_image"), // mega menü sol panel arka plan görseli (submenu kökleri için)
+  measurementGifUrl: text("measurement_gif_url"), // mega menü sol panelde gösterilen esnek ölçü / boyut rehberi GIF'i
   type: text("type").notNull(), // "category", "link", "submenu"
   categoryId: varchar("category_id").references(() => categories.id, { onDelete: "set null" }),
   url: text("url"), // for type "link"
