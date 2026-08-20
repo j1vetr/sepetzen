@@ -146,6 +146,7 @@ export function ComplementaryProducts({ baseProductIds, title = 'Tamamlayıcı �
 
                 if (row.requiresSelection) {
                   // Beden/renk seçimi gerekli: ürün sayfasına yönlendir
+                  // Görsel tutarlılık için checkbox kutusu göster (boş), tıklayınca ürün sayfasına git
                   return (
                     <Link key={row.id} href={`/urun/${row.slug}`}>
                       <div
@@ -153,7 +154,9 @@ export function ComplementaryProducts({ baseProductIds, title = 'Tamamlayıcı �
                         data-testid={`complementary-link-${row.id}`}
                       >
                         {inner}
-                        <ChevronRight className="w-4 h-4 text-white/40 shrink-0" />
+                        <span className="w-6 h-6 shrink-0 border border-white/25 flex items-center justify-center">
+                          <ChevronRight className="w-3.5 h-3.5 text-white/40" />
+                        </span>
                       </div>
                     </Link>
                   );

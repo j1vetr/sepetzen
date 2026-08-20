@@ -1371,7 +1371,7 @@ export default function ProductDetail() {
                     <button
                       type="button"
                       onClick={() => setSelectedImage(prev => Math.max(0, prev - 1))}
-                      className="w-full h-8 flex items-center justify-center bg-zinc-800/50 hover:bg-zinc-700/50 rounded-lg transition-colors"
+                      className="w-full h-8 flex items-center justify-center bg-white hover:bg-white/90 text-black rounded-lg transition-colors"
                       aria-label="Önceki görsel"
                     >
                       <ChevronDown className="w-4 h-4 rotate-180" />
@@ -1424,7 +1424,7 @@ export default function ProductDetail() {
                     <button
                       type="button"
                       onClick={() => setSelectedImage(prev => Math.min(images.length - 1, prev + 1))}
-                      className="w-full h-8 flex items-center justify-center bg-zinc-800/50 hover:bg-zinc-700/50 rounded-lg transition-colors"
+                      className="w-full h-8 flex items-center justify-center bg-white hover:bg-white/90 text-black rounded-lg transition-colors"
                       aria-label="Sonraki görsel"
                     >
                       <ChevronDown className="w-4 h-4" />
@@ -1705,11 +1705,11 @@ export default function ProductDetail() {
 
                {/* Sepetzen maker mark — the product has a maker, not a generic marketplace */}
                 <div className="mb-7 flex items-center gap-4 border-b border-white/8 pb-5 lg:mb-3 lg:gap-3 lg:pb-3">
-                  <div className="flex h-12 w-12 lg:h-9 lg:w-9 shrink-0 items-center justify-center bg-[#1A1A1A] border border-white/10 p-2">
+                  <div className="flex h-12 w-12 lg:h-9 lg:w-9 shrink-0 items-center justify-center bg-[#1A1A1A] border border-white/10 p-1">
                    <img
-                     src="/uploads/branding/sepetzen-logo-white.png"
+                     src="/favicon.png"
                      alt="Sepetzen"
-                     className="max-h-full max-w-full object-contain"
+                     className="w-full h-full object-cover"
                    />
                  </div>
                  <div>

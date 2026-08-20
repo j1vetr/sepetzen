@@ -327,6 +327,26 @@
   }
 }
 
+/* Storefront sipariş özeti: ince, altın sarısı kaydırma çubuğu */
+.scroll-gold {
+  scrollbar-width: thin;
+  scrollbar-color: rgba(212, 160, 46, 0.7) rgba(0, 0, 0, 0.4);
+}
+.scroll-gold::-webkit-scrollbar {
+  width: 3px;
+}
+.scroll-gold::-webkit-scrollbar-track {
+  background: rgba(0, 0, 0, 0.4);
+  border-radius: 9999px;
+}
+.scroll-gold::-webkit-scrollbar-thumb {
+  background: rgba(212, 160, 46, 0.7);
+  border-radius: 9999px;
+}
+.scroll-gold::-webkit-scrollbar-thumb:hover {
+  background: rgba(212, 160, 46, 1);
+}
+
 /* Admin sidebar: ince, göze batmayan kaydırma çubuğu */
 .admin-sidebar-scroll {
   scrollbar-width: thin;                       /* Firefox */

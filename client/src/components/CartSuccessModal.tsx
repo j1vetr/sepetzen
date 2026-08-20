@@ -105,12 +105,24 @@ export function CartSuccessModal({ isOpen, onClose, product, cartTotal, cartItem
 
                 <div className="flex gap-3.5 bg-white/[0.04] border border-white/10 p-3.5">
                   <div className="relative w-20 h-24 sm:w-24 sm:h-28 overflow-hidden shrink-0 bg-white/[0.04]">
-                    <img
-                      src={product.image}
-                      alt={product.name}
-                      className="w-full h-full object-cover"
-                      loading="eager"
-                    />
+                    {/\.(mp4|webm|mov)$/i.test(product.image) ? (
+                      <video
+                        src={product.image}
+                        className="w-full h-full object-cover"
+                        autoPlay
+                        muted
+                        loop
+                        playsInline
+                        preload="metadata"
+                      />
+                    ) : (
+                      <img
+                        src={product.image}
+                        alt={product.name}
+                        className="w-full h-full object-cover"
+                        loading="eager"
+                      />
+                    )}
                   </div>
                   <div className="flex-1 min-w-0 flex flex-col">
                     <h4

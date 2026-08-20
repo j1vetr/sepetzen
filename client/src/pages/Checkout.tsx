@@ -1999,7 +1999,7 @@ export default function Checkout() {
               <div className="bg-[#111111] border border-white/10 rounded-xl p-5">
                 <h2 className="font-display text-[17px] tracking-[0.1em] text-white mb-4">SİPARİŞ ÖZETİ</h2>
 
-                <div className="pb-4 border-b border-white/8 max-h-56 overflow-y-auto pr-1">{itemsList(false)}</div>
+                <div className="pb-4 border-b border-white/8 max-h-56 overflow-y-auto pr-1 scroll-gold">{itemsList(false)}</div>
 
                 {/* Tamamlayıcı ürünler: son fırsat çapraz satış.
                     Ödeme oturumu (iyzico/PayTR) oluşturulduktan sonra gizlenir;
