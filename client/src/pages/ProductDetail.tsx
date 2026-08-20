@@ -1713,7 +1713,7 @@ export default function ProductDetail() {
                    />
                  </div>
                  <div>
-                    <p className="font-sans text-[17px] lg:text-[15px] tracking-[0.12em] text-white flex items-center gap-1.5">
+                    <p className="font-sans text-[17px] lg:text-[15px] tracking-[0.12em] text-white flex items-center gap-0.5">
                        SEPETZEN
                        <svg viewBox="0 0 20 20" fill="none" className="w-[18px] h-[18px] lg:w-4 lg:h-4 shrink-0" aria-label="Doğrulanmış satıcı">
                          <circle cx="10" cy="10" r="10" fill="#1D9BF0"/>
