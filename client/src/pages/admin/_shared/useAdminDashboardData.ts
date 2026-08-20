@@ -1,5 +1,5 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import type { Product, Category, Order, User, Stats, ProductVariant } from './types';
+import type { Product, Category, Order, User, Stats, ProductVariant, Brand } from './types';
 
 interface UseAdminDashboardDataOptions {
   searchQuery: string;
@@ -66,6 +66,16 @@ export function useAdminDashboardData({
     queryFn: async () => {
       const r = await fetch('/api/categories');
       if (!r.ok) throw new Error('Categories request failed');
+      return r.json();
+    },
+    enabled: !!adminUser,
+  });
+
+  const { data: brands = [] } = useQuery<Brand[]>({
+    queryKey: ['/api/admin/brands'],
+    queryFn: async () => {
+      const r = await fetch('/api/admin/brands');
+      if (!r.ok) throw new Error('Brands request failed');
       return r.json();
     },
     enabled: !!adminUser,
@@ -215,6 +225,7 @@ export function useAdminDashboardData({
     categories,
     categoriesLoading,
     categoriesError,
+    brands,
     orders,
     ordersLoading,
     ordersError,

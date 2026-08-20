@@ -94,6 +94,7 @@ export default function AdminDashboard() {
     categories,
     categoriesLoading,
     categoriesError,
+    brands,
     orders,
     ordersLoading,
     ordersError,
@@ -237,6 +238,7 @@ export default function AdminDashboard() {
           <ProductsTab
             products={products}
             categories={categories}
+            brands={brands}
             allVariants={allVariants}
             searchQuery={searchQuery}
             setSearchQuery={setSearchQuery}

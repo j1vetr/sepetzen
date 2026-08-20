@@ -18,7 +18,7 @@ import {
   ImageIcon,
   ExternalLink,
 } from 'lucide-react';
-import type { Product, Category, ProductVariant, ProductDraft } from './_shared/types';
+import type { Product, Category, ProductVariant, ProductDraft, Brand } from './_shared/types';
 import {
   PageHeader,
   Card,
@@ -61,6 +61,7 @@ type TrendyolStatusEntry = {
 interface ProductsTabProps {
   products: Product[];
   categories: Category[];
+  brands: Brand[];
   allVariants: ProductVariant[];
   searchQuery: string;
   setSearchQuery: (q: string) => void;
@@ -361,6 +362,7 @@ function RowActions({
 export default function ProductsTab({
   products,
   categories,
+  brands,
   allVariants,
   searchQuery,
   setSearchQuery,
@@ -383,6 +385,7 @@ export default function ProductsTab({
   });
 
   const [categoryFilter, setCategoryFilter] = useState<string>('all');
+  const [brandFilter, setBrandFilter] = useState<string>('all');
   const [statusFilter, setStatusFilter] = useState<StatusFilter>('all');
   const [sortKey, setSortKey] = useState<SortKey>('newest');
   const [perPage, setPerPage] = useState<number>(25);
@@ -406,6 +409,7 @@ export default function ProductsTab({
         const inCat = p.categoryId === categoryFilter || (p.categoryIds || []).includes(categoryFilter);
         if (!inCat) return false;
       }
+      if (brandFilter !== 'all' && p.brand !== brandFilter) return false;
       if (statusFilter !== 'all') {
         const stock = getStockSummary(p.id, allVariants);
         if (statusFilter === 'active' && (!p.isActive || (stock.count > 0 && stock.total === 0))) return false;
@@ -432,7 +436,7 @@ export default function ProductsTab({
       }
       return true;
     });
-  }, [products, searchQuery, categoryFilter, statusFilter, allVariants, trendyolStatusMap]);
+  }, [products, searchQuery, categoryFilter, brandFilter, statusFilter, allVariants, trendyolStatusMap]);
 
   const sortedProducts = useMemo(() => {
     const list = [...filteredProducts];
@@ -659,6 +663,23 @@ export default function ProductsTab({
                 {c.name}
               </option>
             ))}
+          </SelectInput>
+          <SelectInput
+            value={brandFilter}
+            onChange={(e) => {
+              setBrandFilter(e.target.value);
+              setPage(1);
+            }}
+            data-testid="select-products-brand"
+          >
+            <option value="all">Tüm markalar</option>
+            {brands
+              .filter((brand) => brand.isActive)
+              .map((brand) => (
+                <option key={brand.id} value={brand.name}>
+                  {brand.name}
+                </option>
+              ))}
           </SelectInput>
           <SelectInput
             value={statusFilter}
