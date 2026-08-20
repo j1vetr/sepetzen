@@ -466,6 +466,11 @@ export interface IStorage {
 
   // Brands
   getBrands(): Promise<(Brand & { productCount: number })[]>;
+  reconcileBrands(apply: boolean): Promise<{
+    matchedCount: number;
+    updatedCount: number;
+    conflictingBrandNames: string[];
+  }>;
   getBrand(id: string): Promise<Brand | undefined>;
   getBrandBySlug(slug: string): Promise<Brand | undefined>;
   createBrand(brand: InsertBrand): Promise<Brand>;
@@ -3039,6 +3044,74 @@ export class DbStorage implements IStorage {
       .groupBy(brands.id)
       .orderBy(asc(brands.name));
     return rows;
+  }
+
+  async reconcileBrands(apply: boolean): Promise<{
+    matchedCount: number;
+    updatedCount: number;
+    conflictingBrandNames: string[];
+  }> {
+    const reconcile = async (executor: Pick<typeof db, "execute">) => {
+      // Aynı harf normalizasyonuna sahip birden fazla kanonik marka varsa hangi
+      // adın seçileceği belirsizdir. Önce bu durumu bildirip hiçbir ürün
+      // güncellemeden yöneticinin kayıtları düzeltmesini isteriz.
+      const conflictsResult = await executor.execute(sql`
+        SELECT LOWER(name) AS normalized_name
+        FROM brands
+        GROUP BY LOWER(name)
+        HAVING COUNT(*) > 1
+        ORDER BY LOWER(name)
+      `);
+      const conflictingBrandNames = conflictsResult.rows
+        .map((row) => (row as { normalized_name?: unknown }).normalized_name)
+        .filter((name): name is string => typeof name === "string");
+
+      if (conflictingBrandNames.length > 0) {
+        return { matchedCount: 0, updatedCount: 0, conflictingBrandNames };
+      }
+
+      // ILIKE'ın % ve _ karakterlerini joker olarak yorumlamaması için burada
+      // tam, büyük/küçük harf duyarsız eşitlik kullanılır.
+      const previewResult = await executor.execute(sql`
+        SELECT COUNT(*)::int AS count
+        FROM products AS p
+        WHERE p.brand IS NOT NULL
+          AND EXISTS (
+            SELECT 1
+            FROM brands AS b
+            WHERE LOWER(p.brand) = LOWER(b.name)
+              AND p.brand IS DISTINCT FROM b.name
+          )
+      `);
+      const matchedCount = Number((previewResult.rows[0] as { count?: number | string } | undefined)?.count ?? 0);
+
+      if (!apply || matchedCount === 0) {
+        return { matchedCount, updatedCount: 0, conflictingBrandNames };
+      }
+
+      const updateResult = await executor.execute(sql`
+        UPDATE products AS p
+        SET brand = (
+          SELECT b.name
+          FROM brands AS b
+          WHERE LOWER(p.brand) = LOWER(b.name)
+            AND p.brand IS DISTINCT FROM b.name
+          LIMIT 1
+        )
+        WHERE p.brand IS NOT NULL
+          AND EXISTS (
+            SELECT 1
+            FROM brands AS b
+            WHERE LOWER(p.brand) = LOWER(b.name)
+              AND p.brand IS DISTINCT FROM b.name
+          )
+        RETURNING p.id
+      `);
+
+      return { matchedCount, updatedCount: updateResult.rows.length, conflictingBrandNames };
+    };
+
+    return apply ? db.transaction(reconcile) : reconcile(db);
   }
 
   async getBrand(id: string): Promise<Brand | undefined> {

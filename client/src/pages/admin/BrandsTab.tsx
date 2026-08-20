@@ -1,6 +1,6 @@
 import { useState, useMemo } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { Tag, Plus, Pencil, Trash2, Loader2, AlertCircle, Image as ImageIcon } from 'lucide-react';
+import { Tag, Plus, Pencil, Trash2, Loader2, AlertCircle, Image as ImageIcon, RefreshCw } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import {
   PageHeader,
@@ -73,6 +73,25 @@ async function deleteBrand(id: string) {
   }
 }
 
+interface ReconcileResult {
+  matchedCount: number;
+  updatedCount: number;
+  conflictingBrandNames: string[];
+}
+
+async function reconcileBrands(apply: boolean): Promise<ReconcileResult> {
+  const res = await fetch('/api/admin/brands/reconcile', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ apply }),
+  });
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}));
+    throw new Error(err.error || 'Marka eşleştirme başarısız');
+  }
+  return res.json();
+}
+
 // ─── Bileşen ─────────────────────────────────────────────────────────────────
 export default function BrandsTab() {
   const qc = useQueryClient();
@@ -84,6 +103,8 @@ export default function BrandsTab() {
   const [draft, setDraft] = useState<BrandDraft>(EMPTY_DRAFT);
   const [deleteTarget, setDeleteTarget] = useState<Brand | null>(null);
   const [formError, setFormError] = useState<string | null>(null);
+  const [reconcileOpen, setReconcileOpen] = useState(false);
+  const [reconcilePreview, setReconcilePreview] = useState<ReconcileResult | null>(null);
 
   const { data: brands = [], isLoading, isError } = useQuery<Brand[]>({
     queryKey: ['/api/admin/brands'],
@@ -106,6 +127,24 @@ export default function BrandsTab() {
       qc.invalidateQueries({ queryKey: ['/api/admin/brands'] });
       setDeleteTarget(null);
       toast({ title: 'Marka silindi' });
+    },
+    onError: (e: Error) => toast({ title: e.message, variant: 'destructive' }),
+  });
+
+  const reconcileMutation = useMutation({
+    mutationFn: reconcileBrands,
+    onSuccess: (result, apply) => {
+      if (!apply) {
+        setReconcilePreview(result);
+        return;
+      }
+      qc.invalidateQueries({ queryKey: ['/api/admin/brands'] });
+      setReconcileOpen(false);
+      setReconcilePreview(null);
+      toast({
+        title: 'Marka eşleştirme tamamlandı',
+        description: `${result.updatedCount} ürünün marka adı standartlaştırıldı.`,
+      });
     },
     onError: (e: Error) => toast({ title: e.message, variant: 'destructive' }),
   });
@@ -156,6 +195,18 @@ export default function BrandsTab() {
     saveMutation.mutate({ id: editingId ?? undefined, draft });
   }
 
+  function openReconcile() {
+    setReconcileOpen(true);
+    setReconcilePreview(null);
+    reconcileMutation.mutate(false);
+  }
+
+  function closeReconcile() {
+    if (reconcileMutation.isPending) return;
+    setReconcileOpen(false);
+    setReconcilePreview(null);
+  }
+
   // ─── render ──────────────────────────────────────────────────────────────
   return (
     <div className="space-y-4">
@@ -163,10 +214,16 @@ export default function BrandsTab() {
         title="Markalar"
         description={`${brands.length} marka kayıtlı`}
         actions={
-          <PrimaryButton onClick={openAdd}>
-            <Plus className="w-3.5 h-3.5" />
-            Marka Ekle
-          </PrimaryButton>
+          <>
+            <SecondaryButton onClick={openReconcile} disabled={reconcileMutation.isPending}>
+              <RefreshCw className="w-3.5 h-3.5" />
+              Mevcut ürünleri eşleştir
+            </SecondaryButton>
+            <PrimaryButton onClick={openAdd}>
+              <Plus className="w-3.5 h-3.5" />
+              Marka Ekle
+            </PrimaryButton>
+          </>
         }
       />
 
@@ -310,6 +367,62 @@ export default function BrandsTab() {
               Aktif (ürün formunda listelensin)
             </label>
           </div>
+        </div>
+      </AdminModal>
+
+      {/* Ürün markalarını eşleştirme */}
+      <AdminModal
+        open={reconcileOpen}
+        onClose={closeReconcile}
+        title="Mevcut ürünleri eşleştir"
+        description="Ürünlerdeki marka yazımlarını kayıtlı marka adlarıyla standartlaştırın."
+        size="sm"
+        closeOnOutsideClick={!reconcileMutation.isPending}
+        footer={
+          <>
+            <SecondaryButton onClick={closeReconcile} disabled={reconcileMutation.isPending}>
+              İptal
+            </SecondaryButton>
+            <PrimaryButton
+              onClick={() => reconcileMutation.mutate(true)}
+              disabled={
+                reconcileMutation.isPending ||
+                reconcilePreview === null ||
+                reconcilePreview.matchedCount === 0 ||
+                reconcilePreview.conflictingBrandNames.length > 0
+              }
+            >
+              {reconcileMutation.isPending && <Loader2 className="w-3.5 h-3.5 animate-spin" />}
+              Eşleştirmeyi uygula
+            </PrimaryButton>
+          </>
+        }
+      >
+        <div className="space-y-3">
+          {reconcileMutation.isPending && reconcilePreview === null ? (
+            <div className="flex items-center gap-2 text-[13px] text-neutral-500 py-4">
+              <Loader2 className="w-4 h-4 animate-spin" />
+              Eşleşecek ürünler kontrol ediliyor…
+            </div>
+          ) : reconcilePreview && reconcilePreview.conflictingBrandNames.length > 0 ? (
+            <InlineAlert tone="error">
+              Aynı marka adı büyük/küçük harf farkıyla birden fazla kez kayıtlı: {' '}
+              <strong>{reconcilePreview.conflictingBrandNames.join(', ')}</strong>. Önce bu kayıtları düzenleyin.
+            </InlineAlert>
+          ) : reconcilePreview?.matchedCount === 0 ? (
+            <InlineAlert tone="success">
+              Standartlaştırılması gereken ürün bulunamadı.
+            </InlineAlert>
+          ) : reconcilePreview ? (
+            <>
+              <InlineAlert tone="warning">
+                <strong>{reconcilePreview.matchedCount} ürün</strong> kayıtlı marka adlarıyla eşleştirilecek.
+              </InlineAlert>
+              <p className="text-[12px] text-neutral-500">
+                Bu işlem, marka adı büyük/küçük harf farkı olan ürünleri düzeltir. Devam etmek için onaylayın.
+              </p>
+            </>
+          ) : null}
         </div>
       </AdminModal>
 

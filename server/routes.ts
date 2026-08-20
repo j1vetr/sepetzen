@@ -2401,6 +2401,23 @@ KURALLAR:
     }
   });
 
+  app.post("/api/admin/brands/reconcile", requireAdmin, async (req, res) => {
+    try {
+      const apply = req.body?.apply === true;
+      const result = await storage.reconcileBrands(apply);
+      if (apply && result.conflictingBrandNames.length > 0) {
+        return res.status(409).json({
+          ...result,
+          error: "Aynı yazıma sahip birden fazla marka kaydı var. Önce bu marka kayıtlarını düzeltin.",
+        });
+      }
+      res.json(result);
+    } catch (error) {
+      console.error("[Brands] Reconcile error:", error);
+      res.status(500).json({ error: "Ürün markaları eşleştirilemedi" });
+    }
+  });
+
   app.post("/api/admin/brands", requireAdmin, async (req, res) => {
     try {
       const { name, slug, logoUrl, isActive } = req.body;
