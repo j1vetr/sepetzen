@@ -208,11 +208,29 @@ export function Footer() {
         </div>
 
         {/* ── Ödeme Yöntemleri ── */}
-        <div className="mt-6 pt-5 border-t border-white/[0.08] flex flex-col sm:flex-row items-center justify-between gap-4">
+        <div className="mt-6 pt-5 border-t border-white/[0.08] flex flex-col sm:grid sm:grid-cols-3 items-center gap-4">
           <span className="text-[10px] font-mono tracking-[0.22em] uppercase text-white/35">
             Güvenli Ödeme — 256bit SSL
           </span>
-          <div className="flex items-center gap-2.5 flex-wrap justify-center" data-testid="footer-payment-methods">
+
+          {/* TOOV Logosu — orta */}
+          <div className="flex justify-center">
+            <a
+              href="https://toov.com.tr"
+              target="_blank"
+              rel="noopener noreferrer"
+              title="toov internet solutions"
+            >
+              <img
+                src="/uploads/branding/toov-logo.png"
+                alt="toov internet solutions"
+                className="h-7 w-auto object-contain opacity-30 hover:opacity-50 transition-opacity"
+                style={{ mixBlendMode: 'screen' }}
+              />
+            </a>
+          </div>
+
+          <div className="flex items-center gap-2.5 flex-wrap justify-center sm:justify-end" data-testid="footer-payment-methods">
             {[
               { src: '/uploads/branding/payments/visa.svg', alt: 'Visa' },
               { src: '/uploads/branding/payments/mastercard.svg', alt: 'Mastercard' },
