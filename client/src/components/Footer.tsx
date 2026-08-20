@@ -224,7 +224,7 @@ export function Footer() {
               <img
                 src="/uploads/branding/toov-logo.png"
                 alt="toov internet solutions"
-                className="h-7 w-auto object-contain opacity-30 hover:opacity-50 transition-opacity"
+                className="h-10 w-auto object-contain opacity-30 hover:opacity-50 transition-opacity"
                 style={{ mixBlendMode: 'screen' }}
               />
             </a>
