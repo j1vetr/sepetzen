@@ -2348,6 +2348,22 @@ KURALLAR:
     }
   });
 
+  // Public: active brand and its active, in-stock products.
+  app.get("/api/brands/:slug", async (req, res) => {
+    try {
+      const brand = await storage.getBrandBySlug(req.params.slug);
+      if (!brand || !brand.isActive) {
+        return res.status(404).json({ error: "Brand not found" });
+      }
+
+      const products = await storage.getProducts({ brand: brand.name });
+      res.json({ brand, products });
+    } catch (error) {
+      console.error("[Brands] Public brand fetch error:", error);
+      res.status(500).json({ error: "Failed to fetch brand" });
+    }
+  });
+
   // Alt kategori kuralları: tek seviye derinlik (ana kategori + alt kategori).
   // Geçersizse Türkçe hata mesajı döner, geçerliyse null.
   async function validateCategoryParent(

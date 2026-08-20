@@ -201,6 +201,7 @@ export interface IStorage {
 
   getProducts(filters?: {
     categoryId?: string;
+    brand?: string;
     isFeatured?: boolean;
     isNew?: boolean;
     search?: string;
@@ -671,6 +672,7 @@ export class DbStorage implements IStorage {
 
   async getProducts(filters?: {
     categoryId?: string;
+    brand?: string;
     isFeatured?: boolean;
     isNew?: boolean;
     search?: string;
@@ -701,6 +703,9 @@ export class DbStorage implements IStorage {
 
     if (filters?.isFeatured !== undefined) {
       conditions.push(eq(products.isFeatured, filters.isFeatured));
+    }
+    if (filters?.brand) {
+      conditions.push(eq(products.brand, filters.brand));
     }
     if (filters?.isNew !== undefined) {
       conditions.push(eq(products.isNew, filters.isNew));

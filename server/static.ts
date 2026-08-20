@@ -1,6 +1,15 @@
-import express, { type Express } from "express";
+import express, { type Express, type Request } from "express";
 import fs from "fs";
 import path from "path";
+import { applyBrandSeo, getBrandSeo } from "./brandSeo";
+
+function getRequestOrigin(req: Request): string {
+  const forwardedProtocol = req.get("x-forwarded-proto")?.split(",")[0]?.trim();
+  const protocol = forwardedProtocol === "http" || forwardedProtocol === "https"
+    ? forwardedProtocol
+    : req.protocol;
+  return `${protocol}://${req.get("host") || "sepetzen.com"}`;
+}
 
 export function serveStatic(app: Express) {
   const distPath = path.resolve(__dirname, "public");
@@ -59,8 +68,17 @@ export function serveStatic(app: Express) {
   }));
 
   // fall through to index.html if the file doesn't exist
-  app.use("*", (_req, res) => {
+  app.use("*", async (req, res) => {
     res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
-    res.sendFile(path.resolve(distPath, "index.html"));
+    const indexPath = path.resolve(distPath, "index.html");
+    const brandSeo = await getBrandSeo(req.originalUrl);
+    if (brandSeo) {
+      const template = await fs.promises.readFile(indexPath, "utf-8");
+      return res.send(applyBrandSeo(template, brandSeo, getRequestOrigin(req)));
+    }
+    if (/^\/marka\/[^/?#]+/.test(req.originalUrl)) {
+      res.status(404);
+    }
+    return res.sendFile(indexPath);
   });
 }

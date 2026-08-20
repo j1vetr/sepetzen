@@ -83,6 +83,14 @@ export interface Category {
   parentId?: string | null;
 }
 
+export interface Brand {
+  id: string;
+  name: string;
+  slug: string;
+  logoUrl?: string | null;
+  isActive: boolean;
+}
+
 export interface ProductFilters {
   categoryId?: string;
   isFeatured?: boolean;
@@ -145,6 +153,22 @@ export function useCategory(slug: string) {
       const response = await fetch(`/api/categories/${slug}`);
       if (!response.ok) throw new Error('Failed to fetch category');
       return response.json() as Promise<Category>;
+    },
+    enabled: !!slug,
+  });
+}
+
+export function useBrand(slug: string) {
+  return useQuery({
+    queryKey: ['brands', slug],
+    queryFn: async () => {
+      const response = await fetch(`/api/brands/${encodeURIComponent(slug)}`);
+      if (!response.ok) {
+        const error = new Error('Failed to fetch brand') as Error & { status?: number };
+        error.status = response.status;
+        throw error;
+      }
+      return response.json() as Promise<{ brand: Brand; products: Product[] }>;
     },
     enabled: !!slug,
   });

@@ -1,12 +1,21 @@
-import { type Express } from "express";
+import { type Express, type Request } from "express";
 import { createServer as createViteServer, createLogger } from "vite";
 import { type Server } from "http";
 import viteConfig from "../vite.config";
 import fs from "fs";
 import path from "path";
 import { nanoid } from "nanoid";
+import { applyBrandSeo, getBrandSeo } from "./brandSeo";
 
 const viteLogger = createLogger();
+
+function getRequestOrigin(req: Request): string {
+  const forwardedProtocol = req.get("x-forwarded-proto")?.split(",")[0]?.trim();
+  const protocol = forwardedProtocol === "http" || forwardedProtocol === "https"
+    ? forwardedProtocol
+    : req.protocol;
+  return `${protocol}://${req.get("host") || "sepetzen.com"}`;
+}
 
 export async function setupVite(server: Server, app: Express) {
   const serverOptions = {
@@ -48,8 +57,14 @@ export async function setupVite(server: Server, app: Express) {
         `src="/src/main.tsx"`,
         `src="/src/main.tsx?v=${nanoid()}"`,
       );
+      const brandSeo = await getBrandSeo(url);
+      if (brandSeo) {
+        template = applyBrandSeo(template, brandSeo, getRequestOrigin(req));
+      } else if (/^\/marka\/[^/?#]+/.test(url)) {
+        res.status(404);
+      }
       const page = await vite.transformIndexHtml(url, template);
-      res.status(200).set({ "Content-Type": "text/html" }).end(page);
+      res.set({ "Content-Type": "text/html" }).end(page);
     } catch (e) {
       vite.ssrFixStacktrace(e as Error);
       next(e);

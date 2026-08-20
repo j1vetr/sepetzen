@@ -15,6 +15,7 @@ import { CookieConsent } from "@/components/CookieConsent";
 
 const Home = lazy(() => import("@/pages/Home"));
 const Category = lazy(() => import("@/pages/Category"));
+const BrandPage = lazy(() => import("@/pages/BrandPage"));
 const ProductDetail = lazy(() => import("@/pages/ProductDetail"));
 const NotFound = lazy(() => import("@/pages/not-found"));
 
@@ -75,6 +76,7 @@ function Router() {
         <Route path="/tum-urunler"><Redirect to="/magaza" /></Route>
         <Route path="/kategori/tum-urunler"><Redirect to="/magaza" /></Route>
         <Route path="/kategori/:slug" component={Category} />
+        <Route path="/marka/:slug" component={BrandPage} />
         <Route path="/urun/:slug" component={ProductDetail} />
         <Route path="/giris" component={Login} />
         <Route path="/kayit" component={Register} />
