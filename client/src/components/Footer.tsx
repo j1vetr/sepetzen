@@ -201,7 +201,7 @@ export function Footer() {
                 src="/uploads/branding/etbis-logo.jpg"
                 alt="ETBİS – Elektronik Ticaret Bilgi Sistemi"
                 data-testid="img-footer-etbis"
-                className="h-14 w-auto object-contain opacity-90 hover:opacity-100 transition-opacity rounded-xl"
+                className="h-14 w-auto object-contain opacity-90 hover:opacity-100 transition-opacity rounded"
               />
             </a>
           </div>
