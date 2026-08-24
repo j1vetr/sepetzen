@@ -264,6 +264,7 @@ function TickerSettingsSection() {
   const [enabled, setEnabled] = useState<boolean>(true);
   const [speed, setSpeed] = useState<number>(28);
   const [color, setColor] = useState<string>('#ffffff');
+  const [announcements, setAnnouncements] = useState<string[]>([]);
   const [saving, setSaving] = useState(false);
   const [msg, setMsg] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
   const [hydrated, setHydrated] = useState(false);
@@ -273,6 +274,7 @@ function TickerSettingsSection() {
       setEnabled(data.tickerEnabled ?? true);
       setSpeed(data.tickerSpeed ?? 28);
       setColor(data.tickerTextColor ?? '#ffffff');
+      setAnnouncements(data.announcements ?? []);
       setHydrated(true);
     }
   }, [data, hydrated]);
@@ -280,7 +282,8 @@ function TickerSettingsSection() {
   const handleSave = async () => {
     setSaving(true); setMsg(null);
     try {
-      await saveSiteIdentityPatch({ tickerEnabled: enabled, tickerSpeed: speed, tickerTextColor: color });
+      const filtered = announcements.filter(a => a.trim().length > 0);
+      await saveSiteIdentityPatch({ tickerEnabled: enabled, tickerSpeed: speed, tickerTextColor: color, announcements: filtered.length > 0 ? filtered : [''] });
       setMsg({ type: 'success', text: 'Ticker ayarları kaydedildi.' });
       qc.invalidateQueries({ queryKey: ['/api/site-identity'] });
       qc.invalidateQueries({ queryKey: ['/api/admin/site-identity'] });
@@ -337,6 +340,45 @@ function TickerSettingsSection() {
             </div>
           </div>
         </div>
+        {/* Duyuru metinleri listesi */}
+        <div>
+          <div className="flex items-center justify-between mb-2">
+            <label className="block text-sm font-medium text-neutral-700">Kayan Yazılar</label>
+            <button
+              type="button"
+              onClick={() => setAnnouncements(a => [...a, ''])}
+              className="flex items-center gap-1 text-xs px-2.5 py-1 rounded-md bg-neutral-100 hover:bg-neutral-200 text-neutral-700 transition-colors"
+            >
+              + Yazı Ekle
+            </button>
+          </div>
+          <div className="space-y-2">
+            {announcements.map((item, idx) => (
+              <div key={idx} className="flex items-center gap-2">
+                <input
+                  type="text"
+                  value={item}
+                  onChange={e => setAnnouncements(a => a.map((v, i) => i === idx ? e.target.value : v))}
+                  placeholder={`Yazı ${idx + 1}`}
+                  className="flex-1 px-3 py-2 bg-neutral-50 border border-neutral-200 rounded-lg text-neutral-900 text-sm"
+                />
+                <button
+                  type="button"
+                  onClick={() => setAnnouncements(a => a.filter((_, i) => i !== idx))}
+                  className="p-2 text-neutral-400 hover:text-red-500 transition-colors"
+                  aria-label="Sil"
+                >
+                  <XCircle className="w-4 h-4" />
+                </button>
+              </div>
+            ))}
+            {announcements.length === 0 && (
+              <p className="text-xs text-neutral-400 italic">Henüz yazı eklenmedi. "+ Yazı Ekle" ile başlayın.</p>
+            )}
+          </div>
+          <p className="text-xs text-neutral-400 mt-1.5">Her satır bandın bir döngüsünde görünür; sıra burada belirlendiği gibidir.</p>
+        </div>
+
         <div className="pt-2 border-t border-neutral-100">
           <button type="button" onClick={handleSave} disabled={saving}
             className="flex items-center gap-2 px-5 py-2.5 bg-neutral-900 hover:bg-neutral-700 disabled:opacity-50 text-white text-sm font-semibold rounded-lg transition-colors"
@@ -1118,6 +1160,7 @@ function SiteIdentitySection() {
 }
 
 type SettingsSection = 'genel' | 'odeme' | 'kargo' | 'bildirim' | 'guvenlik';
+type GenelTab = 'marka' | 'vitrin' | 'iletisim' | 'site';
 
 const SETTINGS_SECTIONS: { key: SettingsSection; label: string; Icon: ComponentType<{ className?: string }> }[] = [
   { key: 'genel', label: 'Genel', Icon: Settings },
@@ -1132,6 +1175,7 @@ export default function SettingsPanel({ initialSection = 'genel', contentOnly = 
   contentOnly?: boolean;
 }) {
   const [section, setSection] = useState<SettingsSection>(initialSection);
+  const [genelTab, setGenelTab] = useState<GenelTab>('marka');
   const [settings, setSettings] = useState<Record<string, string>>({
     smtp_host: '',
     smtp_port: '587',
@@ -1731,13 +1775,50 @@ export default function SettingsPanel({ initialSection = 'genel', contentOnly = 
       )}
 
       {section === 'genel' && (
-        <div className="space-y-6">
-          <ContactInfoSection />
-          <TickerSettingsSection />
-          <TopBannerSection />
-          <PopupBannerSection />
-          <SiteIdentitySection />
-        </div>
+        <>
+          {/* Genel alt sekme navigasyonu */}
+          <div className="flex gap-1 p-1 bg-neutral-100 rounded-xl">
+            {([
+              { key: 'marka',    label: 'Marka'    },
+              { key: 'vitrin',   label: 'Vitrin'   },
+              { key: 'iletisim', label: 'İletişim' },
+              { key: 'site',     label: 'Site'     },
+            ] as { key: GenelTab; label: string }[]).map(({ key, label }) => (
+              <button
+                key={key}
+                type="button"
+                onClick={() => setGenelTab(key)}
+                className={`flex-1 py-1.5 px-3 text-sm font-medium rounded-lg transition-colors ${
+                  genelTab === key
+                    ? 'bg-white text-neutral-900 shadow-sm'
+                    : 'text-neutral-500 hover:text-neutral-700'
+                }`}
+              >
+                {label}
+              </button>
+            ))}
+          </div>
+
+          {genelTab === 'marka' && (
+            <div className="space-y-6">
+              <SiteIdentitySection />
+            </div>
+          )}
+
+          {genelTab === 'vitrin' && (
+            <div className="space-y-6">
+              <TickerSettingsSection />
+              <TopBannerSection />
+              <PopupBannerSection />
+            </div>
+          )}
+
+          {genelTab === 'iletisim' && (
+            <div className="space-y-6">
+              <ContactInfoSection />
+            </div>
+          )}
+        </>
       )}
 
       {section === 'bildirim' && (<>
@@ -1851,7 +1932,7 @@ export default function SettingsPanel({ initialSection = 'genel', contentOnly = 
       </div>
       </>)}
 
-      {section === 'genel' && (
+      {section === 'genel' && genelTab === 'site' && (
       <div className="bg-white border border-neutral-200 rounded-xl p-6" data-testid="card-maintenance-settings">
         <div className="flex items-center gap-3 mb-6">
           <div className="p-2 bg-neutral-50 rounded-lg">
@@ -1921,7 +2002,7 @@ export default function SettingsPanel({ initialSection = 'genel', contentOnly = 
       </div>
       )}
 
-      {section === 'genel' && (
+      {section === 'genel' && genelTab === 'site' && (
       <div className="bg-white border border-neutral-200 rounded-xl p-6" data-testid="card-google-merchant-settings">
         <div className="flex items-center gap-3 mb-6">
           <div className="p-2 bg-neutral-50 rounded-lg">
