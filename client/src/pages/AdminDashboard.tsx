@@ -56,7 +56,7 @@ export default function AdminDashboard() {
     const params = new URLSearchParams(window.location.search);
     return params.get('typroduct') ?? undefined;
   });
-  const [trendyolInitialTab, setTrendyolInitialTab] = useState<'orders' | undefined>(undefined);
+  const [trendyolInitialTab, setTrendyolInitialTab] = useState<'orders' | 'claims' | undefined>(undefined);
   const [searchQuery, setSearchQuery] = useState('');
   // Arama çubuğu navigasyonu için sekmesine özel initial state'ler
   const [ordersInitialSearch, setOrdersInitialSearch] = useState('');
@@ -142,8 +142,12 @@ export default function AdminDashboard() {
   };
 
   const handleMarketplaceOrders = () => {
+    handleMarketplaceTab('orders');
+  };
+
+  const handleMarketplaceTab = (tab: 'orders' | 'claims') => {
     setTrendyolInitialProductId(undefined);
-    setTrendyolInitialTab('orders');
+    setTrendyolInitialTab(tab);
     const url = new URL(window.location.href);
     url.searchParams.set('tab', 'marketplaces');
     url.searchParams.delete('typroduct');
@@ -245,10 +249,12 @@ export default function AdminDashboard() {
         activeTab={activeTab}
         onTabChange={handleTabChange}
         onNavigate={handleSearchNavigate}
+        onMarketplaceNavigate={handleMarketplaceTab}
         onLogout={() => logoutMutation.mutate()}
         pendingOrdersCount={pendingOrdersCount}
         pendingReviewsCount={pendingReviewsCount}
         pendingMarketplaceOrdersCount={pendingMarketplaceOrdersCount}
+        pendingReturnsCount={pendingReturnsCount}
         pageTitle={pageTitle}
         pageDescription={TAB_DESCRIPTIONS[activeTab]}
       >

@@ -8,7 +8,7 @@
  *   Kuyruk:      push kuyruğu (PushQueuePanel)
  *   Ayarlar:     pazaryeri bağlantı ayarları (mevcut MarketplacesTab)
  */
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { apiRequest } from '@/lib/queryClient';
 import { useToast } from '@/hooks/use-toast';
@@ -102,6 +102,14 @@ export default function TrendyolCenter({
   const [tab, setTab] = useState<TabId>(() => (
     initialProductId ? 'products' : initialTab ?? 'overview'
   ));
+
+  useEffect(() => {
+    if (initialProductId) {
+      setTab('products');
+    } else if (initialTab) {
+      setTab(initialTab);
+    }
+  }, [initialProductId, initialTab]);
 
   const mpQuery = useQuery<Marketplace[]>({
     queryKey: ['/api/admin/marketplaces'],

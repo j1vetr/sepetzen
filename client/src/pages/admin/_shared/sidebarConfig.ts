@@ -6,7 +6,6 @@ import {
   BarChart3,
   Package,
   Grid3x3,
-  Warehouse,
   ShoppingCart,
   Users,
   Globe,
@@ -46,31 +45,28 @@ export const VALID_TABS: TabType[] = [
 
 export const SIDEBAR_CATEGORIES: SidebarCategory[] = [
   {
-    title: 'Genel Bakış',
+    title: 'Komuta Merkezi',
     items: [
       { id: 'dashboard', icon: LayoutDashboard, label: 'Genel Bakış' },
-      { id: 'analytics', icon: BarChart3, label: 'Raporlar' },
+      { id: 'analytics', icon: BarChart3, label: 'Raporlar ve Finans' },
     ],
   },
   {
-    title: 'Ürünler ve Kategoriler',
+    title: 'Satış ve Operasyon',
+    items: [
+      { id: 'orders', icon: ShoppingCart, label: 'Site Siparişleri' },
+      { id: 'wholesale', icon: HandCoins, label: 'Toptan Satış' },
+      { id: 'inventory', icon: Package, label: 'Stok' },
+      { id: 'marketplaces', icon: Globe, label: 'Satış Kanalları' },
+    ],
+  },
+  {
+    title: 'Katalog',
     items: [
       { id: 'products', icon: Package, label: 'Ürünler' },
       { id: 'categories', icon: Grid3x3, label: 'Kategoriler' },
       { id: 'brands', icon: Tag, label: 'Markalar' },
-      { id: 'inventory', icon: Warehouse, label: 'Stok' },
     ],
-  },
-  {
-    title: 'Siparişler',
-    items: [
-      { id: 'orders', icon: ShoppingCart, label: 'Site Siparişleri' },
-      { id: 'wholesale', icon: HandCoins, label: 'Toptan Satış' },
-    ],
-  },
-  {
-    title: 'Trendyol',
-    items: [{ id: 'marketplaces', icon: Globe, label: 'Trendyol Merkezi' }],
   },
   {
     title: 'Müşteriler',
@@ -84,7 +80,7 @@ export const SIDEBAR_CATEGORIES: SidebarCategory[] = [
     items: [{ id: 'coupons', icon: Ticket, label: 'Kuponlar' }],
   },
   {
-    title: 'Site İçeriği',
+    title: 'İçerik ve SEO',
     items: [
       { id: 'homepage', icon: Home, label: 'Ana Sayfa' },
       { id: 'menu', icon: MenuIcon, label: 'Menü' },
@@ -94,11 +90,12 @@ export const SIDEBAR_CATEGORIES: SidebarCategory[] = [
     ],
   },
   {
-    title: 'Ayarlar',
-    items: [
-      { id: 'settings', icon: Settings, label: 'Ayarlar' },
-      { id: 'database', icon: Database, label: 'Veritabanı' },
-    ],
+    title: 'Sistem Ayarları',
+    items: [{ id: 'settings', icon: Settings, label: 'Mağaza Ayarları' }],
+  },
+  {
+    title: 'Sistem Araçları',
+    items: [{ id: 'database', icon: Database, label: 'Teknik Veri Araçları' }],
   },
 ];
 
@@ -108,11 +105,11 @@ export const TAB_DESCRIPTIONS: Record<TabType, string> = {
   analytics: 'Satış ve ziyaret verilerinizin özeti.',
   products: 'Ürünlerinizi ekleyin, düzenleyin ve fiyatlarını yönetin.',
   categories: 'Ürünlerinizi gruplandıran kategorileri düzenleyin.',
-  brands: 'Marka listesini yönetin; ürün formunda tutarlı marka seçimi yapın.',
+  brands: 'Marka listesini yönetin, ürün formunda tutarlı marka seçimi yapın.',
   inventory: 'Ürün stoklarını tek ekrandan görüp güncelleyin.',
   orders: 'Sitenizden gelen siparişleri görüntüleyin ve yönetin.',
   wholesale: 'Toptan satış müşterileri ve özel fiyatlar.',
-  marketplaces: 'Senkron sağlığı, ürünler, siparişler, sorular ve iadeler tek merkezde.',
+  marketplaces: 'Trendyol ve diğer satış kanallarının bağlantı, ürün ve sipariş yönetimi.',
   users: 'Kayıtlı müşterilerinizi görüntüleyin.',
   reviews: 'Müşteri yorumlarını onaylayın veya kaldırın.',
   coupons: 'İndirim kuponları oluşturun ve takip edin.',
@@ -121,8 +118,8 @@ export const TAB_DESCRIPTIONS: Record<TabType, string> = {
   pages: 'Yasal ve bilgilendirme sayfalarınızın içeriklerini düzenleyin.',
   blog: 'Blog yazılarınızı oluşturun, düzenleyin ve yayınlayın.',
   menu: 'Sitenizin üst menüsünü düzenleyin.',
-  settings: 'Mağaza bilgileri ve genel ayarlar.',
-  database: 'Teknik veri araçları. Gerekmedikçe kullanmanıza gerek yok.',
+  settings: 'Mağaza bilgileri, ödeme, kargo ve genel ayarlar.',
+  database: 'Yetkili kullanıcılar için teknik veri araçları.',
 };
 
 export const ALL_SIDEBAR_ITEMS = SIDEBAR_CATEGORIES.flatMap((c) => c.items);
