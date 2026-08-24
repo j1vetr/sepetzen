@@ -36,9 +36,18 @@ import {
   TAB_DESCRIPTIONS,
   getStatusLabel,
 } from './admin/_shared/sidebarConfig';
-import { useQuery } from '@tanstack/react-query';
+import { useQueries, useQuery } from '@tanstack/react-query';
 import { useAdminDashboardData } from './admin/_shared/useAdminDashboardData';
 import { usePendingReviewsCount } from '@/hooks/useReviews';
+
+type DashboardMarketplace = {
+  id: string;
+  isActive: boolean;
+};
+
+type MarketplaceSyncRun = {
+  status: string;
+};
 
 export default function AdminDashboard() {
   const [, setLocation] = useLocation();
@@ -60,6 +69,7 @@ export default function AdminDashboard() {
   const [searchQuery, setSearchQuery] = useState('');
   // Arama çubuğu navigasyonu için sekmesine özel initial state'ler
   const [ordersInitialSearch, setOrdersInitialSearch] = useState('');
+  const [ordersInitialFilter, setOrdersInitialFilter] = useState<'all' | 'overdue'>('all');
   const [blogInitialSelectedId, setBlogInitialSelectedId] = useState('');
   const [pagesInitialSelectedId, setPagesInitialSelectedId] = useState('');
 
@@ -129,7 +139,14 @@ export default function AdminDashboard() {
     url.searchParams.delete('typroduct');
     window.history.pushState({ tab: tabId }, '', url.toString());
     if (tabId !== 'marketplaces') setTrendyolInitialProductId(undefined);
+    if (tabId === 'orders') setOrdersInitialFilter('all');
     setTrendyolInitialTab(undefined);
+  };
+
+  const handleOverdueOrders = () => {
+    handleTabChange('orders');
+    setOrdersInitialSearch('');
+    setOrdersInitialFilter('overdue');
   };
 
   const handleTrendyolAction = (productId: string) => {
@@ -217,6 +234,45 @@ export default function AdminDashboard() {
   const pendingMarketplaceOrdersCount = pendingMpData?.count ?? 0;
 
   const {
+    data: marketplacesData,
+    isLoading: marketplacesLoading,
+    isError: marketplacesError,
+  } = useQuery<DashboardMarketplace[]>({
+    queryKey: ['/api/admin/marketplaces'],
+    queryFn: async () => {
+      const response = await fetch('/api/admin/marketplaces', { credentials: 'include' });
+      if (!response.ok) throw new Error('Pazaryerleri alınamadı');
+      return response.json();
+    },
+    enabled: !!adminUser && activeTab === 'dashboard',
+    staleTime: 30_000,
+    refetchInterval: 60_000,
+  });
+  const activeMarketplaces = (marketplacesData ?? []).filter((marketplace) => marketplace.isActive);
+  const marketplaceSyncQueries = useQueries({
+    queries: activeMarketplaces.map((marketplace) => ({
+      queryKey: ['/api/admin/marketplaces', marketplace.id, 'sync-runs', 'latest'],
+      queryFn: async (): Promise<MarketplaceSyncRun[]> => {
+        const response = await fetch(`/api/admin/marketplaces/${marketplace.id}/sync-runs?limit=1`, {
+          credentials: 'include',
+        });
+        if (!response.ok) throw new Error('Senkron geçmişi alınamadı');
+        return response.json();
+      },
+      enabled: !!adminUser && activeTab === 'dashboard',
+      staleTime: 30_000,
+      refetchInterval: 60_000,
+    })),
+  });
+  const marketplaceSyncFailureCount = marketplaceSyncQueries.filter(
+    (query) => query.data?.[0]?.status === 'failed',
+  ).length;
+  const marketplaceSyncLoading =
+    marketplacesLoading || marketplaceSyncQueries.some((query) => query.isLoading);
+  const marketplaceSyncError =
+    marketplacesError || marketplaceSyncQueries.some((query) => query.isError);
+
+  const {
     data: pendingReturnsData,
     isLoading: pendingReturnsLoading,
     isError: pendingReturnsError,
@@ -266,6 +322,7 @@ export default function AdminDashboard() {
             allVariants={allVariants}
             getStatusLabel={getStatusLabel}
             onNavigate={handleTabChange}
+            onOverdueOrders={handleOverdueOrders}
             onMarketplaceOrders={handleMarketplaceOrders}
             pendingReviewsCount={pendingReviewsCount}
             pendingMarketplaceOrdersCount={pendingMarketplaceOrdersCount}
@@ -279,6 +336,9 @@ export default function AdminDashboard() {
             pendingReviewsError={pendingReviewsError}
             pendingMarketplaceOrdersLoading={pendingMarketplaceOrdersLoading}
             pendingMarketplaceOrdersError={pendingMarketplaceOrdersError}
+            marketplaceSyncFailureCount={marketplaceSyncFailureCount}
+            marketplaceSyncLoading={marketplaceSyncLoading}
+            marketplaceSyncError={marketplaceSyncError}
             pendingReturnsLoading={pendingReturnsLoading}
             pendingReturnsError={pendingReturnsError}
             statsError={statsError}
@@ -313,7 +373,9 @@ export default function AdminDashboard() {
             categoriesError={categoriesError}
           />
         )}
-        {activeTab === 'orders' && <OrdersTab initialSearch={ordersInitialSearch} />}
+        {activeTab === 'orders' && (
+          <OrdersTab initialSearch={ordersInitialSearch} initialFilter={ordersInitialFilter} />
+        )}
         {activeTab === 'users' && (
           <UsersTab
             users={users}

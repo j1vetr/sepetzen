@@ -104,6 +104,18 @@ const SORT_OPTIONS = [
   { value: 'amount-asc', label: 'Düşük tutar' },
 ];
 
+const OVERDUE_ORDER_AFTER_MS = 24 * 60 * 60 * 1000;
+const UNFULFILLED_ORDER_STATUSES = new Set(['pending', 'confirmed', 'processing']);
+
+function isOverdueOrder(order: Order, now = Date.now()): boolean {
+  const createdAt = new Date(order.createdAt).getTime();
+  return (
+    Number.isFinite(createdAt) &&
+    UNFULFILLED_ORDER_STATUSES.has(order.status) &&
+    now - createdAt >= OVERDUE_ORDER_AFTER_MS
+  );
+}
+
 function timeAgo(dateStr: string): string {
   const diff = (Date.now() - new Date(dateStr).getTime()) / 1000;
   if (diff < 60) return 'Az önce';
@@ -296,18 +308,25 @@ function TableSkeletonRow() {
 
 interface OrdersTabProps {
   initialSearch?: string;
+  initialFilter?: 'all' | 'overdue';
 }
 
-export default function OrdersPanel({ initialSearch = '' }: OrdersTabProps) {
+export default function OrdersPanel({ initialSearch = '', initialFilter = 'all' }: OrdersTabProps) {
   const queryClient = useQueryClient();
   const [, navigate] = useLocation();
   const [statusFilter, setStatusFilter] = useState('all');
+  const [overdueOnly, setOverdueOnly] = useState(initialFilter === 'overdue');
   const [search, setSearch] = useState(initialSearch);
 
   // Arama çubuğundan navigasyon geldiğinde search state'ini güncelle
   useEffect(() => {
     if (initialSearch) setSearch(initialSearch);
   }, [initialSearch]);
+  useEffect(() => {
+    const shouldShowOverdue = initialFilter === 'overdue';
+    setOverdueOnly(shouldShowOverdue);
+    if (shouldShowOverdue) setSort('date-asc');
+  }, [initialFilter]);
   const [sort, setSort] = useState('date-desc');
   const [dateFrom, setDateFrom] = useState('');
   const [dateTo, setDateTo] = useState('');
@@ -430,6 +449,7 @@ export default function OrdersPanel({ initialSearch = '' }: OrdersTabProps) {
   const filtered = useMemo(() => {
     let list = orders;
     if (statusFilter !== 'all') list = list.filter((o) => o.status === statusFilter);
+    if (overdueOnly) list = list.filter((o) => isOverdueOrder(o));
     if (search.trim()) {
       const q = search.toLowerCase();
       list = list.filter(
@@ -464,7 +484,7 @@ export default function OrdersPanel({ initialSearch = '' }: OrdersTabProps) {
       }
     });
     return sorted;
-  }, [orders, statusFilter, search, sort, dateFrom, dateTo]);
+  }, [orders, statusFilter, overdueOnly, search, sort, dateFrom, dateTo]);
 
   const statusCounts = useMemo(() => {
     const counts: Record<string, number> = { all: orders.length };
@@ -473,9 +493,10 @@ export default function OrdersPanel({ initialSearch = '' }: OrdersTabProps) {
     });
     return counts;
   }, [orders]);
+  const overdueCount = useMemo(() => orders.filter((order) => isOverdueOrder(order)).length, [orders]);
 
   const filtersActive =
-    statusFilter !== 'all' || !!search.trim() || !!dateFrom || !!dateTo;
+    statusFilter !== 'all' || overdueOnly || !!search.trim() || !!dateFrom || !!dateTo;
 
   return (
     <div className="space-y-5" data-testid="tab-orders">
@@ -505,6 +526,23 @@ export default function OrdersPanel({ initialSearch = '' }: OrdersTabProps) {
           </SecondaryButton>
         }
       />
+
+      {overdueOnly && (
+        <Card className="flex flex-wrap items-center justify-between gap-3 border-amber-200 bg-amber-50 p-4" data-testid="orders-overdue-filter">
+          <div className="flex items-start gap-2.5">
+            <Clock className="mt-0.5 h-4 w-4 shrink-0 text-amber-700" />
+            <div>
+              <p className="text-[13px] font-semibold text-amber-900">Geciken işlem görünümü açık</p>
+              <p className="mt-0.5 text-[12px] text-amber-800">
+                24 saati aşan ve henüz kargoya verilmemiş siparişler en eski önce listelenir.
+              </p>
+            </div>
+          </div>
+          <SecondaryButton onClick={() => setOverdueOnly(false)} data-testid="button-clear-overdue-filter">
+            Tüm siparişler
+          </SecondaryButton>
+        </Card>
+      )}
 
       {/* KPI grid */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
@@ -682,6 +720,23 @@ export default function OrdersPanel({ initialSearch = '' }: OrdersTabProps) {
                 </button>
               );
             })}
+            <button
+              type="button"
+              onClick={() => setOverdueOnly((value) => !value)}
+              data-testid="filter-overdue"
+              className={`inline-flex h-7 items-center gap-1.5 rounded-md px-2.5 text-[12px] font-medium transition-colors ${
+                overdueOnly
+                  ? 'bg-amber-600 text-white'
+                  : 'bg-amber-50 text-amber-800 hover:bg-amber-100'
+              }`}
+            >
+              Geciken
+              {overdueCount > 0 && (
+                <span className={`text-[10px] tabular-nums ${overdueOnly ? 'text-white/80' : 'text-amber-700'}`}>
+                  {overdueCount}
+                </span>
+              )}
+            </button>
           </div>
         </Toolbar>
         <div className="flex flex-col sm:flex-row gap-2 sm:items-center">
@@ -813,6 +868,7 @@ export default function OrdersPanel({ initialSearch = '' }: OrdersTabProps) {
                 <SecondaryButton
                   onClick={() => {
                     setStatusFilter('all');
+                    setOverdueOnly(false);
                     setSearch('');
                     setDateFrom('');
                     setDateTo('');
