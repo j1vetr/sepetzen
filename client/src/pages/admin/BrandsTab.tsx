@@ -1,6 +1,6 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useRef } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { Tag, Plus, Pencil, Trash2, Loader2, AlertCircle, Image as ImageIcon, RefreshCw } from 'lucide-react';
+import { Tag, Plus, Pencil, Trash2, Loader2, AlertCircle, Image as ImageIcon, RefreshCw, Upload, X } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import {
   PageHeader,
@@ -105,6 +105,8 @@ export default function BrandsTab() {
   const [formError, setFormError] = useState<string | null>(null);
   const [reconcileOpen, setReconcileOpen] = useState(false);
   const [reconcilePreview, setReconcilePreview] = useState<ReconcileResult | null>(null);
+  const [uploadingLogo, setUploadingLogo] = useState(false);
+  const logoInputRef = useRef<HTMLInputElement>(null);
 
   const { data: brands = [], isLoading, isError } = useQuery<Brand[]>({
     queryKey: ['/api/admin/brands'],
@@ -193,6 +195,22 @@ export default function BrandsTab() {
     if (!draft.slug.trim()) { setFormError('Slug zorunludur.'); return; }
     setFormError(null);
     saveMutation.mutate({ id: editingId ?? undefined, draft });
+  }
+
+  async function handleLogoUpload(file: File) {
+    setUploadingLogo(true);
+    try {
+      const formData = new FormData();
+      formData.append('images', file);
+      const res = await fetch('/api/admin/upload/branding', { method: 'POST', body: formData, credentials: 'include' });
+      const payload = await res.json().catch(() => ({}));
+      if (!res.ok || !payload.urls?.[0]) throw new Error(payload.error || 'Görsel yüklenemedi');
+      setDraft((d) => ({ ...d, logoUrl: payload.urls[0] }));
+    } catch (e) {
+      setFormError(e instanceof Error ? e.message : 'Görsel yüklenemedi');
+    } finally {
+      setUploadingLogo(false);
+    }
   }
 
   function openReconcile() {
@@ -347,13 +365,53 @@ export default function BrandsTab() {
             />
           </FormField>
 
-          <FormField label="Logo URL" hint="Boş bırakılabilir. Harici bir resim adresi girin.">
-            <TextInput
-              value={draft.logoUrl}
-              onChange={(e) => setDraft((d) => ({ ...d, logoUrl: e.target.value }))}
-              placeholder="https://example.com/logo.png"
+          {/* Logo Upload */}
+          <div>
+            <label className="block text-sm font-medium text-neutral-700 mb-1.5">Logo</label>
+            <input
+              ref={logoInputRef}
+              type="file"
+              accept="image/*"
+              className="hidden"
+              onChange={(e) => { const f = e.target.files?.[0]; if (f) handleLogoUpload(f); e.target.value = ''; }}
             />
-          </FormField>
+            {draft.logoUrl ? (
+              <div className="flex items-center gap-3 p-3 bg-neutral-50 border border-neutral-200 rounded-lg">
+                <img src={draft.logoUrl} alt="Logo" className="h-10 w-16 object-contain bg-white rounded border border-neutral-200 p-1" />
+                <div className="flex-1 min-w-0">
+                  <p className="text-xs text-neutral-500 truncate">{draft.logoUrl.split('/').pop()}</p>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => logoInputRef.current?.click()}
+                  disabled={uploadingLogo}
+                  className="text-xs font-medium text-neutral-600 hover:text-neutral-900 border border-neutral-200 rounded px-2 py-1 transition-colors"
+                >
+                  {uploadingLogo ? <Loader2 className="w-3 h-3 animate-spin" /> : 'Değiştir'}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setDraft((d) => ({ ...d, logoUrl: '' }))}
+                  className="text-neutral-400 hover:text-red-500 transition-colors"
+                  title="Logoyu kaldır"
+                >
+                  <X className="w-4 h-4" />
+                </button>
+              </div>
+            ) : (
+              <button
+                type="button"
+                onClick={() => logoInputRef.current?.click()}
+                disabled={uploadingLogo}
+                className="w-full flex flex-col items-center justify-center gap-2 p-6 border-2 border-dashed border-neutral-200 rounded-lg hover:border-neutral-400 hover:bg-neutral-50 transition-colors"
+              >
+                {uploadingLogo
+                  ? <Loader2 className="w-5 h-5 animate-spin text-neutral-400" />
+                  : <Upload className="w-5 h-5 text-neutral-400" />}
+                <span className="text-sm text-neutral-500">{uploadingLogo ? 'Yükleniyor…' : 'Bilgisayardan logo seç'}</span>
+              </button>
+            )}
+          </div>
 
           <div className="flex items-center gap-2">
             <input
