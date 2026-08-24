@@ -474,19 +474,21 @@ export function registerMarketplaceRoutes(
     };
     const since = new Date(Date.now() - 30 * 24 * 60 * 60_000);
     const marketplaces = await storage.getMarketplaces();
-    let count = 0;
-    for (const mp of marketplaces.filter((m) => m.isActive)) {
-      const lines = await storage.listMarketplaceOrderLines(mp.id, 10_000, since);
-      const orderNumbers = new Set<string>();
-      for (const line of lines) {
-        const g = groupOf(line.status);
-        if (g === "new" || g === "preparing") {
-          orderNumbers.add(line.orderNumber);
-        }
+    // Trendyol Merkezi varsayılan olarak ilk aktif Trendyol bağlantısını açar.
+    // Sayaç da aynı mağazayı baz alır ki karttaki sayı hedef ekrandaki listeyle
+    // tutarlı olsun. Çoklu mağaza toplamı için ayrı bir birleşik görünüm gerekir.
+    const marketplace = marketplaces.find((m) => m.isActive && m.type === "trendyol");
+    if (!marketplace) return res.json({ count: 0, marketplaceName: null });
+
+    const lines = await storage.listMarketplaceOrderLines(marketplace.id, 10_000, since);
+    const orderNumbers = new Set<string>();
+    for (const line of lines) {
+      const g = groupOf(line.status);
+      if (g === "new" || g === "preparing") {
+        orderNumbers.add(line.orderNumber);
       }
-      count += orderNumbers.size;
     }
-    res.json({ count });
+    res.json({ count: orderNumbers.size, marketplaceName: marketplace.name });
   });
 
   // Siparişleri elle şimdi çek (cron beklemeden).

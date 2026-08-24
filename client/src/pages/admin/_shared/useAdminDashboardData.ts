@@ -1,7 +1,8 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import type { Product, Category, Order, User, Stats, ProductVariant, Brand } from './types';
+import type { Product, Category, Order, User, Stats, ProductVariant, Brand, TabType } from './types';
 
 interface UseAdminDashboardDataOptions {
+  activeTab: TabType;
   searchQuery: string;
   onLoggedOut: () => void;
   onProductSaved: () => void;
@@ -9,12 +10,30 @@ interface UseAdminDashboardDataOptions {
 }
 
 export function useAdminDashboardData({
+  activeTab,
   searchQuery,
   onLoggedOut,
   onProductSaved,
   onCategorySaved,
 }: UseAdminDashboardDataOptions) {
   const queryClient = useQueryClient();
+  const isDashboard = activeTab === 'dashboard';
+  const needsProducts = isDashboard || activeTab === 'products' || activeTab === 'wholesale';
+  const needsInventory =
+    isDashboard ||
+    activeTab === 'products' ||
+    activeTab === 'inventory' ||
+    activeTab === 'wholesale';
+  const needsCategories = [
+    'products',
+    'categories',
+    'menu',
+    'marketplaces',
+    'wholesale',
+  ].includes(activeTab);
+  const needsBrands = activeTab === 'products' || activeTab === 'brands';
+  const needsOrders = isDashboard;
+  const needsUsers = activeTab === 'users';
 
   const { data: adminUser, isLoading: userLoading } = useQuery({
     queryKey: ['admin', 'me'],
@@ -44,17 +63,24 @@ export function useAdminDashboardData({
       if (!r.ok) throw new Error('Products request failed');
       return r.json();
     },
-    enabled: !!adminUser,
+    enabled: !!adminUser && needsProducts,
   });
 
-  const { data: allVariants = [] } = useQuery<ProductVariant[]>({
+  const {
+    data: allVariants = [],
+    isLoading: allVariantsLoading,
+    isError: allVariantsError,
+  } = useQuery<ProductVariant[]>({
     queryKey: ['admin-inventory'],
     queryFn: async () => {
       const res = await fetch('/api/admin/inventory', { credentials: 'include' });
       if (!res.ok) throw new Error('Failed to fetch inventory');
       return res.json();
     },
-    enabled: !!adminUser,
+    enabled: !!adminUser && needsInventory,
+    staleTime: 30_000,
+    refetchInterval: 60_000,
+    refetchIntervalInBackground: true,
   });
 
   const {
@@ -68,7 +94,7 @@ export function useAdminDashboardData({
       if (!r.ok) throw new Error('Categories request failed');
       return r.json();
     },
-    enabled: !!adminUser,
+    enabled: !!adminUser && needsCategories,
   });
 
   const { data: brands = [] } = useQuery<Brand[]>({
@@ -78,7 +104,7 @@ export function useAdminDashboardData({
       if (!r.ok) throw new Error('Brands request failed');
       return r.json();
     },
-    enabled: !!adminUser,
+    enabled: !!adminUser && needsBrands,
   });
 
   const {
@@ -93,7 +119,7 @@ export function useAdminDashboardData({
       if (!r.ok) throw new Error('Orders request failed');
       return r.json();
     },
-    enabled: !!adminUser,
+    enabled: !!adminUser && needsOrders,
     refetchInterval: 30000,
     refetchIntervalInBackground: true,
   });
@@ -106,7 +132,7 @@ export function useAdminDashboardData({
         : '/api/admin/users';
       return (await fetch(url)).json();
     },
-    enabled: !!adminUser,
+    enabled: !!adminUser && needsUsers,
   });
 
   const logoutMutation = useMutation({
@@ -222,6 +248,8 @@ export function useAdminDashboardData({
     productsLoading,
     productsError,
     allVariants,
+    allVariantsLoading,
+    allVariantsError,
     categories,
     categoriesLoading,
     categoriesError,

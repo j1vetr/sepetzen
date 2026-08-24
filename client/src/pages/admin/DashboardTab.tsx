@@ -18,19 +18,31 @@ import {
   Truck,
   XCircle,
   PackageOpen,
+  AlertTriangle,
+  RefreshCw,
 } from 'lucide-react';
 import type { ReactNode, ComponentType } from 'react';
-import type { Stats, Order, Product, TabType } from './_shared/types';
+import type { Stats, Order, Product, ProductVariant, TabType } from './_shared/types';
 
 interface DashboardTabProps {
   stats: Stats | null | undefined;
   orders: Order[];
   products: Product[];
+  allVariants: ProductVariant[];
   getStatusLabel: (status: string) => string;
   onNavigate: (tab: TabType) => void;
+  onMarketplaceOrders: () => void;
+  pendingReviewsCount?: number;
+  pendingMarketplaceOrdersCount?: number;
   statsLoading?: boolean;
   ordersLoading?: boolean;
   productsLoading?: boolean;
+  allVariantsLoading?: boolean;
+  allVariantsError?: boolean;
+  pendingReviewsLoading?: boolean;
+  pendingReviewsError?: boolean;
+  pendingMarketplaceOrdersLoading?: boolean;
+  pendingMarketplaceOrdersError?: boolean;
   statsError?: boolean;
   ordersError?: boolean;
   productsError?: boolean;
@@ -92,6 +104,7 @@ function KpiCard({
   value,
   sub,
   loading,
+  error = false,
   onClick,
 }: {
   icon: ComponentType<{ className?: string }>;
@@ -99,6 +112,7 @@ function KpiCard({
   value: string;
   sub?: string;
   loading: boolean;
+  error?: boolean;
   onClick?: () => void;
 }) {
   const Wrapper: any = onClick ? 'button' : 'div';
@@ -121,13 +135,17 @@ function KpiCard({
       <div className="mt-3 min-h-[40px] flex items-end">
         {loading ? (
           <span className="block h-7 sm:h-8 w-24 rounded bg-neutral-100" aria-hidden="true" />
+        ) : error ? (
+          <span className="text-[26px] sm:text-[30px] font-semibold tracking-tight text-red-500 leading-none" aria-label={`${label} alınamadı`}>
+            ?
+          </span>
         ) : (
           <span className="text-[26px] sm:text-[30px] font-semibold tracking-tight text-neutral-900 tabular-nums leading-none">
             {value}
           </span>
         )}
       </div>
-      {sub && !loading && (
+      {sub && !loading && !error && (
         <p className="mt-2 text-[12px] text-neutral-500">{sub}</p>
       )}
     </Wrapper>
@@ -253,15 +271,85 @@ const QUICK_ACTIONS: { tab: TabType; label: string; desc: string; Icon: Componen
   { tab: 'settings', label: 'Ayarlar', desc: 'Sistem ayarları', Icon: Settings },
 ];
 
+function ActionQueueCard({
+  label,
+  count,
+  description,
+  icon: Icon,
+  tone,
+  onClick,
+  loading = false,
+  error = false,
+}: {
+  label: string;
+  count: number;
+  description: string;
+  icon: ComponentType<{ className?: string }>;
+  tone: 'amber' | 'red' | 'blue' | 'purple' | 'neutral';
+  onClick: () => void;
+  loading?: boolean;
+  error?: boolean;
+}) {
+  const tones = {
+    amber: 'border-amber-200 bg-amber-50 hover:bg-amber-100 text-amber-800',
+    red: 'border-red-200 bg-red-50 hover:bg-red-100 text-red-800',
+    blue: 'border-blue-200 bg-blue-50 hover:bg-blue-100 text-blue-800',
+    purple: 'border-purple-200 bg-purple-50 hover:bg-purple-100 text-purple-800',
+    neutral: 'border-neutral-200 bg-neutral-50 hover:bg-neutral-100 text-neutral-800',
+  };
+  const iconTones = {
+    amber: 'text-amber-600',
+    red: 'text-red-600',
+    blue: 'text-blue-600',
+    purple: 'text-purple-600',
+    neutral: 'text-neutral-600',
+  };
+
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      className={`group flex min-h-[104px] flex-col justify-between rounded-xl border p-4 text-left transition-colors ${tones[tone]}`}
+    >
+      <div className="flex items-start justify-between gap-3">
+        <span className={`rounded-lg bg-white/70 p-2 ${iconTones[tone]}`}>
+          <Icon className="h-4 w-4" />
+        </span>
+        {loading ? (
+          <span className="h-7 w-8 rounded bg-white/70" aria-label={`${label} yükleniyor`} />
+        ) : (
+          <span className="text-2xl font-semibold tabular-nums" aria-label={error ? `${label} alınamadı` : undefined}>
+            {error ? '?' : formatNumber(count)}
+          </span>
+        )}
+      </div>
+      <div className="mt-3">
+        <p className="text-[13px] font-semibold">{label}</p>
+        <p className="mt-0.5 text-[11px] opacity-75">{description}</p>
+      </div>
+    </button>
+  );
+}
+
 export default function DashboardTab({
   stats,
   orders,
   products,
+  allVariants,
   getStatusLabel,
   onNavigate,
+  onMarketplaceOrders,
+  pendingReviewsCount = 0,
+  pendingMarketplaceOrdersCount = 0,
   statsLoading = false,
   ordersLoading = false,
   productsLoading = false,
+  allVariantsLoading = false,
+  allVariantsError = false,
+  pendingReviewsLoading = false,
+  pendingReviewsError = false,
+  pendingMarketplaceOrdersLoading = false,
+  pendingMarketplaceOrdersError = false,
   statsError = false,
   ordersError = false,
   productsError = false,
@@ -269,6 +357,7 @@ export default function DashboardTab({
   const recentOrders = orders.slice(0, 6);
   const activeProducts = products.filter((p) => p.isActive).length;
   const showStatsLoading = statsLoading && !stats && !statsError;
+  const showStatsError = statsError && !stats;
 
   const now = new Date();
   const todayOrders = orders.filter((o) => isSameDay(new Date(o.createdAt), now));
@@ -279,6 +368,36 @@ export default function DashboardTab({
   const weekRevenue = weekOrders
     .filter((o) => o.status !== 'cancelled')
     .reduce((sum, o) => sum + (Number(o.total) || 0), 0);
+
+  const pendingOrderCount = orders.filter(
+    (order) => order.status === 'pending' || order.status === 'confirmed',
+  ).length;
+  const processingOrderCount = orders.filter((order) => order.status === 'processing').length;
+  const activeVariants = allVariants.filter((variant) => variant.product?.isActive !== false);
+  const outOfStockCount = activeVariants.filter((variant) => (variant.stock ?? 0) <= 0).length;
+  const lowStockCount = allVariants.filter(
+    (variant) =>
+      variant.product?.isActive !== false &&
+      (variant.stock ?? 0) > 0 &&
+      (variant.stock ?? 0) <= 5,
+  ).length;
+  const totalStock = activeVariants.reduce((sum, variant) => sum + (variant.stock ?? 0), 0);
+  const queueTotal =
+    pendingOrderCount +
+    processingOrderCount +
+    outOfStockCount +
+    lowStockCount +
+    pendingReviewsCount +
+    pendingMarketplaceOrdersCount;
+  const queueDataReady =
+    !ordersLoading &&
+    !ordersError &&
+    !allVariantsLoading &&
+    !allVariantsError &&
+    !pendingReviewsLoading &&
+    !pendingReviewsError &&
+    !pendingMarketplaceOrdersLoading &&
+    !pendingMarketplaceOrdersError;
 
   const statusCounts = orders.reduce<Record<string, number>>((acc, o) => {
     acc[o.status] = (acc[o.status] ?? 0) + 1;
@@ -341,6 +460,90 @@ export default function DashboardTab({
         </button>
       )}
 
+      <PageSection
+        title="Öncelikli İşler"
+        description={
+          !queueDataReady
+            ? 'Bazı sayaçlar güncelleniyor'
+            : queueTotal > 0
+            ? `${formatNumber(queueTotal)} işlem kontrol bekliyor`
+            : 'Şu anda bekleyen kritik işlem yok'
+        }
+        action={
+          <span className="inline-flex items-center gap-1 text-[11px] text-neutral-500">
+            <RefreshCw className="h-3 w-3" />
+            Otomatik güncellenir
+          </span>
+        }
+      >
+        <div className="grid grid-cols-2 gap-3 md:grid-cols-3 xl:grid-cols-6">
+          <ActionQueueCard
+            label="Yeni sipariş"
+            count={pendingOrderCount}
+            description="İşleme alınacak"
+            icon={Clock}
+            tone="amber"
+            onClick={() => onNavigate('orders')}
+            loading={ordersLoading}
+            error={ordersError}
+          />
+          <ActionQueueCard
+            label="Hazırlanacak"
+            count={processingOrderCount}
+            description="Paketleme bekliyor"
+            icon={PackageOpen}
+            tone="blue"
+            onClick={() => onNavigate('orders')}
+            loading={ordersLoading}
+            error={ordersError}
+          />
+          <ActionQueueCard
+            label="Stok bitti"
+            count={outOfStockCount}
+            description={allVariantsError ? 'Stok verisi alınamadı' : 'Aktif varyantlarda stok yok'}
+            icon={XCircle}
+            tone="red"
+            onClick={() => onNavigate('inventory')}
+            loading={allVariantsLoading}
+            error={allVariantsError}
+          />
+          <ActionQueueCard
+            label="Stok kritik"
+            count={lowStockCount}
+            description={
+              allVariantsError ? 'Stok verisi alınamadı' : `Aktif varyantlarda toplam ${formatNumber(totalStock)} adet`
+            }
+            icon={AlertTriangle}
+            tone="amber"
+            onClick={() => onNavigate('inventory')}
+            loading={allVariantsLoading}
+            error={allVariantsError}
+          />
+          <ActionQueueCard
+            label="Yorum bekliyor"
+            count={pendingReviewsCount}
+            description={pendingReviewsError ? 'Yorum sayısı alınamadı' : 'Onay veya ret'}
+            icon={Star}
+            tone="purple"
+            onClick={() => onNavigate('reviews')}
+            loading={pendingReviewsLoading}
+            error={pendingReviewsError}
+          />
+          <ActionQueueCard
+            label="Trendyol siparişi"
+            count={pendingMarketplaceOrdersCount}
+            description={
+              pendingMarketplaceOrdersError ? 'Sipariş sayısı alınamadı' : 'Kontrol bekleyen siparişler'
+            }
+            icon={Store}
+            tone="neutral"
+            onClick={onMarketplaceOrders}
+            loading={pendingMarketplaceOrdersLoading}
+            error={pendingMarketplaceOrdersError}
+          />
+        </div>
+      </PageSection>
+
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
         <KpiCard
           icon={Wallet}
@@ -348,6 +551,7 @@ export default function DashboardTab({
           value={formatCurrency(stats?.totalRevenue ?? 0)}
           sub={`Bu hafta ${formatCurrency(weekRevenue)}`}
           loading={showStatsLoading}
+          error={showStatsError}
         />
         <KpiCard
           icon={ShoppingCart}
@@ -355,6 +559,7 @@ export default function DashboardTab({
           value={formatNumber(stats?.totalOrders ?? 0)}
           sub={`${formatNumber(stats?.pendingOrders ?? 0)} bekleyen`}
           loading={showStatsLoading}
+          error={showStatsError}
           onClick={() => onNavigate('orders')}
         />
         <KpiCard
@@ -363,6 +568,7 @@ export default function DashboardTab({
           value={formatNumber(stats?.totalProducts ?? 0)}
           sub={`${formatNumber(activeProducts)} aktif · ${formatNumber(stats?.totalCategories ?? 0)} kategori`}
           loading={showStatsLoading}
+          error={showStatsError}
           onClick={() => onNavigate('products')}
         />
         <KpiCard
@@ -371,6 +577,7 @@ export default function DashboardTab({
           value={formatNumber(stats?.totalUsers ?? 0)}
           sub="Kayıtlı müşteri"
           loading={showStatsLoading}
+          error={showStatsError}
           onClick={() => onNavigate('users')}
         />
       </div>

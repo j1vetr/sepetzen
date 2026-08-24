@@ -56,6 +56,7 @@ export default function AdminDashboard() {
     const params = new URLSearchParams(window.location.search);
     return params.get('typroduct') ?? undefined;
   });
+  const [trendyolInitialTab, setTrendyolInitialTab] = useState<'orders' | undefined>(undefined);
   const [searchQuery, setSearchQuery] = useState('');
   // Arama çubuğu navigasyonu için sekmesine özel initial state'ler
   const [ordersInitialSearch, setOrdersInitialSearch] = useState('');
@@ -70,6 +71,7 @@ export default function AdminDashboard() {
   const [bulkPreselectedIds, setBulkPreselectedIds] = useState<string[] | undefined>(undefined);
 
   const data = useAdminDashboardData({
+    activeTab,
     searchQuery,
     onLoggedOut: () => setLocation('/toov-admin/login'),
     // Ürün ekleme/düzenleme artık tam sayfa editörde (/toov-admin/products/...)
@@ -91,6 +93,8 @@ export default function AdminDashboard() {
     productsLoading,
     productsError,
     allVariants,
+    allVariantsLoading,
+    allVariantsError,
     categories,
     categoriesLoading,
     categoriesError,
@@ -125,6 +129,7 @@ export default function AdminDashboard() {
     url.searchParams.delete('typroduct');
     window.history.pushState({ tab: tabId }, '', url.toString());
     if (tabId !== 'marketplaces') setTrendyolInitialProductId(undefined);
+    setTrendyolInitialTab(undefined);
   };
 
   const handleTrendyolAction = (productId: string) => {
@@ -132,6 +137,16 @@ export default function AdminDashboard() {
     const url = new URL(window.location.href);
     url.searchParams.set('tab', 'marketplaces');
     url.searchParams.set('typroduct', productId);
+    window.history.pushState({ tab: 'marketplaces' }, '', url.toString());
+    setActiveTab('marketplaces');
+  };
+
+  const handleMarketplaceOrders = () => {
+    setTrendyolInitialProductId(undefined);
+    setTrendyolInitialTab('orders');
+    const url = new URL(window.location.href);
+    url.searchParams.set('tab', 'marketplaces');
+    url.searchParams.delete('typroduct');
     window.history.pushState({ tab: 'marketplaces' }, '', url.toString());
     setActiveTab('marketplaces');
   };
@@ -179,9 +194,17 @@ export default function AdminDashboard() {
     return () => window.removeEventListener('popstate', onPopState);
   }, []);
 
-  const { data: pendingReviewsData } = usePendingReviewsCount(!!adminUser);
+  const {
+    data: pendingReviewsData,
+    isLoading: pendingReviewsLoading,
+    isError: pendingReviewsError,
+  } = usePendingReviewsCount(!!adminUser);
 
-  const { data: pendingMpData } = useQuery<{ count: number }>({
+  const {
+    data: pendingMpData,
+    isLoading: pendingMarketplaceOrdersLoading,
+    isError: pendingMarketplaceOrdersError,
+  } = useQuery<{ count: number }>({
     queryKey: ['/api/admin/marketplace-orders/pending-count'],
     enabled: !!adminUser,
     refetchInterval: 5 * 60_000,
@@ -198,9 +221,7 @@ export default function AdminDashboard() {
   }
   if (!adminUser) return null;
 
-  const pendingOrdersCount = orders.filter(
-    (o) => o.status === 'pending' || o.status === 'confirmed',
-  ).length;
+  const pendingOrdersCount = stats?.pendingOrders ?? 0;
   const pendingReviewsCount = pendingReviewsData?.count ?? 0;
   const pageTitle = ALL_SIDEBAR_ITEMS.find((i) => i.id === activeTab)?.label ?? '';
 
@@ -224,11 +245,21 @@ export default function AdminDashboard() {
             stats={stats}
             orders={orders}
             products={products}
+            allVariants={allVariants}
             getStatusLabel={getStatusLabel}
             onNavigate={handleTabChange}
+            onMarketplaceOrders={handleMarketplaceOrders}
+            pendingReviewsCount={pendingReviewsCount}
+            pendingMarketplaceOrdersCount={pendingMarketplaceOrdersCount}
             statsLoading={statsLoading}
             ordersLoading={ordersLoading}
             productsLoading={productsLoading}
+            allVariantsLoading={allVariantsLoading}
+            allVariantsError={allVariantsError}
+            pendingReviewsLoading={pendingReviewsLoading}
+            pendingReviewsError={pendingReviewsError}
+            pendingMarketplaceOrdersLoading={pendingMarketplaceOrdersLoading}
+            pendingMarketplaceOrdersError={pendingMarketplaceOrdersError}
             statsError={statsError}
             ordersError={ordersError}
             productsError={productsError}
@@ -284,6 +315,7 @@ export default function AdminDashboard() {
           <TrendyolCenter
             siteCategories={categories.map((c) => ({ id: c.id, name: c.name, slug: c.slug }))}
             initialProductId={trendyolInitialProductId}
+            initialTab={trendyolInitialTab}
           />
         )}
         {activeTab === 'brands' && <BrandsTab />}

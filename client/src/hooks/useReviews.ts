@@ -152,7 +152,7 @@ export function usePendingReviewsCount(enabled: boolean = true) {
       const response = await fetch('/api/admin/reviews/pending-count', {
         credentials: 'include',
       });
-      if (!response.ok) return { count: 0 };
+      if (!response.ok) throw new Error('Bekleyen yorum sayısı alınamadı');
       return response.json() as Promise<{ count: number }>;
     },
     refetchInterval: 60_000,

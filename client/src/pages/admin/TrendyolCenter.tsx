@@ -91,12 +91,17 @@ type Capabilities = {
 export default function TrendyolCenter({
   siteCategories,
   initialProductId,
+  initialTab,
 }: {
   siteCategories: SiteCategory[];
   /** Ürünler sayfasından tek tıkla gelirken doğrudan açılacak site product ID */
   initialProductId?: string;
+  /** Operasyon merkezinden doğrudan açılacak Trendyol çalışma alanı */
+  initialTab?: TabId;
 }) {
-  const [tab, setTab] = useState<TabId>(() => (initialProductId ? 'products' : 'overview'));
+  const [tab, setTab] = useState<TabId>(() => (
+    initialProductId ? 'products' : initialTab ?? 'overview'
+  ));
 
   const mpQuery = useQuery<Marketplace[]>({
     queryKey: ['/api/admin/marketplaces'],
