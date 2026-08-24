@@ -222,6 +222,92 @@ function returnEligibleAmount(request: ReturnRequest): number {
     .reduce((sum, item) => sum + Math.max(0, Number(item.unitRefundAmount) * item.approvedQuantity - Number(item.refundAmount || 0)), 0);
 }
 
+function paymentLabel(method?: string | null): string {
+  if (method === 'bank_transfer') return 'Havale / EFT';
+  if (method === 'credit_card') return 'Kart ile ödeme';
+  if (method === 'iyzico') return 'iyzico';
+  if (method === 'paytr') return 'PayTR';
+  return method || 'Ödeme yöntemi belirtilmedi';
+}
+
+function paymentStatusLabel(status?: string | null): string {
+  if (status === 'awaiting_transfer') return 'Havale onayı bekliyor';
+  if (['paid', 'completed', 'success'].includes(status || '')) return 'Ödendi';
+  if (['failed', 'rejected'].includes(status || '')) return 'Ödeme alınamadı';
+  if (status === 'pending') return 'Ödeme kontrol ediliyor';
+  return status || 'Durum bilgisi yok';
+}
+
+function OperationFlow({
+  order,
+  status,
+  returnRequests,
+}: {
+  order: Order;
+  status: string;
+  returnRequests: ReturnRequest[];
+}) {
+  const isPaid = ['paid', 'completed', 'success'].includes(order.paymentStatus || '');
+  const hasShipment = Boolean(order.shipmentId || order.trackingNumber);
+  const delivered = status === 'delivered' || status === 'completed';
+  const activeReturn = returnRequests.find((request) => !['rejected', 'refunded'].includes(request.status));
+  const stages = [
+    {
+      label: 'Sipariş alındı',
+      detail: formatTRDateTime(order.createdAt),
+      state: 'done',
+    },
+    {
+      label: 'Ödeme',
+      detail: paymentStatusLabel(order.paymentStatus),
+      state: isPaid ? 'done' : order.paymentStatus === 'awaiting_transfer' ? 'current' : 'idle',
+    },
+    {
+      label: 'Hazırlama',
+      detail: status === 'cancelled' ? 'İptal edildi' : status === 'confirmed' || status === 'pending' ? 'İşlem bekliyor' : 'Hazırlama başladı',
+      state: ['processing', 'shipped', 'delivered', 'completed'].includes(status) ? 'done' : ['confirmed', 'pending'].includes(status) ? 'current' : 'idle',
+    },
+    {
+      label: 'Kargo',
+      detail: delivered ? 'Teslim edildi' : hasShipment ? 'Takip bilgisi mevcut' : 'Gönderi bekliyor',
+      state: delivered ? 'done' : status === 'shipped' || hasShipment ? 'current' : 'idle',
+    },
+    {
+      label: 'İade',
+      detail: activeReturn ? (RETURN_STATUS[activeReturn.status]?.label || 'İade işlemi sürüyor') : returnRequests.length > 0 ? 'İade tamamlandı' : 'İade talebi yok',
+      state: activeReturn ? 'current' : returnRequests.length > 0 ? 'done' : 'idle',
+    },
+  ];
+  return (
+    <Card className="mb-5 p-4 sm:p-5" data-testid="card-order-operation-flow">
+      <div className="mb-3 flex flex-wrap items-start justify-between gap-2">
+        <div>
+          <h2 className="text-[14px] font-semibold text-neutral-900">İşlem akışı</h2>
+          <p className="mt-0.5 text-[12px] text-neutral-500">Ödeme, hazırlama, teslimat ve iade aynı akışta takip edilir.</p>
+        </div>
+        {status === 'cancelled' && <StatusBadge tone="red">Sipariş iptal edildi</StatusBadge>}
+      </div>
+      <ol className="grid gap-2 sm:grid-cols-5">
+        {stages.map((stage, index) => (
+          <li key={stage.label} className="relative min-w-0 rounded-lg border border-neutral-200 bg-neutral-50 px-3 py-2.5">
+            <span className={`mb-2 flex h-5 w-5 items-center justify-center rounded-full text-[10px] font-semibold ${
+              stage.state === 'done'
+                ? 'bg-emerald-600 text-white'
+                : stage.state === 'current'
+                  ? 'bg-neutral-900 text-white'
+                  : 'bg-neutral-200 text-neutral-500'
+            }`}>
+              {stage.state === 'done' ? <CheckCircle2 className="h-3 w-3" /> : index + 1}
+            </span>
+            <p className="text-[12px] font-semibold text-neutral-800">{stage.label}</p>
+            <p className="mt-0.5 truncate text-[10.5px] text-neutral-500" title={stage.detail}>{stage.detail}</p>
+          </li>
+        ))}
+      </ol>
+    </Card>
+  );
+}
+
 function DetailSkeleton() {
   return (
     <div className="min-h-screen bg-neutral-50">
@@ -790,6 +876,15 @@ export default function AdminOrderDetail() {
   const canShip = !isTerminal;
   const canCancel = !isTerminal;
   const isInfluencer = order.couponCode && couponInfo?.isInfluencerCode;
+  const paymentCollected = ['paid', 'completed', 'success'].includes(order.paymentStatus || '');
+  const paymentTone: StatusTone =
+    paymentCollected
+      ? 'emerald'
+      : ['failed', 'rejected'].includes(order.paymentStatus || '')
+        ? 'red'
+        : order.paymentStatus === 'awaiting_transfer' || order.paymentStatus === 'pending'
+          ? 'amber'
+          : 'neutral';
 
   return (
     <div className="admin-font min-h-screen bg-neutral-50 pb-24 sm:pb-8">
@@ -915,6 +1010,8 @@ export default function AdminOrderDetail() {
             </div>
           </Card>
         )}
+
+        <OperationFlow order={order} status={status} returnRequests={returnRequests} />
 
         <div className="grid lg:grid-cols-[1fr_320px] gap-5">
           {/* LEFT COLUMN */}
@@ -1253,6 +1350,40 @@ export default function AdminOrderDetail() {
 
           {/* RIGHT COLUMN */}
           <div className="space-y-5">
+            <Card className="p-5" data-testid="card-payment-summary">
+              <SectionHeading title="Ödeme" description="Siparişin finansal durumu" />
+              <dl className="space-y-2.5 text-[12px]">
+                <div className="flex items-center justify-between gap-3">
+                  <dt className="text-neutral-500">Yöntem</dt>
+                  <dd className="font-medium text-neutral-800">{paymentLabel(order.paymentMethod)}</dd>
+                </div>
+                <div className="flex items-center justify-between gap-3">
+                  <dt className="text-neutral-500">Durum</dt>
+                  <dd>
+                    <StatusBadge tone={paymentTone}>
+                      {paymentStatusLabel(order.paymentStatus)}
+                    </StatusBadge>
+                  </dd>
+                </div>
+                <div className="flex items-center justify-between gap-3">
+                  <dt className="text-neutral-500">Sipariş toplamı</dt>
+                  <dd className="font-semibold tabular-nums text-neutral-900">₺{formatCurrency(order.total)}</dd>
+                </div>
+                {paymentCollected && (
+                  <div className="flex items-center justify-between gap-3 border-t border-neutral-100 pt-2.5">
+                    <dt className="text-neutral-500">Tahsil edilen</dt>
+                    <dd className="font-semibold tabular-nums text-emerald-700">₺{formatCurrency(order.total)}</dd>
+                  </div>
+                )}
+                {Number(order.refundedAmount || 0) > 0 && (
+                  <div className="flex items-center justify-between gap-3 border-t border-neutral-100 pt-2.5">
+                    <dt className="text-neutral-500">Geri ödenen</dt>
+                    <dd className="font-semibold tabular-nums text-emerald-700">₺{formatCurrency(order.refundedAmount || '0')}</dd>
+                  </div>
+                )}
+              </dl>
+            </Card>
+
             {/* Customer */}
             <Card className="p-5">
               <SectionHeading title="Müşteri" />

@@ -54,9 +54,9 @@ type Marketplace = {
   lastDeltaSyncAt?: string | null;
 };
 
-type TabId = 'overview' | 'products' | 'orders' | 'questions' | 'claims' | 'queue' | 'settings';
+export type TrendyolCenterTab = 'overview' | 'products' | 'orders' | 'questions' | 'claims' | 'queue' | 'settings';
 
-const TABS: Array<{ id: TabId; label: string; icon: typeof Activity; description: string }> = [
+const TABS: Array<{ id: TrendyolCenterTab; label: string; icon: typeof Activity; description: string }> = [
   { id: 'overview', label: 'Genel Bakış', icon: Activity, description: 'Bağlantı ve senkron sağlığını tek bakışta kontrol edin, sorunları tek tıkla düzeltin.' },
   { id: 'products', label: 'Ürünler', icon: Send, description: 'Ürün bağlantılarını yönetin, yeni ürünleri sihirbazla Trendyol\'a gönderin.' },
   { id: 'orders', label: 'Siparişler', icon: ShoppingCart, description: 'Trendyol siparişlerini görüntüleyin, paket durumlarını ve faturaları yönetin.' },
@@ -97,9 +97,9 @@ export default function TrendyolCenter({
   /** Ürünler sayfasından tek tıkla gelirken doğrudan açılacak site product ID */
   initialProductId?: string;
   /** Operasyon merkezinden doğrudan açılacak Trendyol çalışma alanı */
-  initialTab?: TabId;
+  initialTab?: TrendyolCenterTab;
 }) {
-  const [tab, setTab] = useState<TabId>(() => (
+  const [tab, setTab] = useState<TrendyolCenterTab>(() => (
     initialProductId ? 'products' : initialTab ?? 'overview'
   ));
 
@@ -110,6 +110,14 @@ export default function TrendyolCenter({
       setTab(initialTab);
     }
   }, [initialProductId, initialTab]);
+
+  const handleTabChange = (nextTab: TrendyolCenterTab) => {
+    setTab(nextTab);
+    const url = new URL(window.location.href);
+    url.searchParams.set('tab', 'marketplaces');
+    url.searchParams.set('marketplaceTab', nextTab);
+    window.history.pushState({ tab: 'marketplaces', marketplaceTab: nextTab }, '', url.toString());
+  };
 
   const mpQuery = useQuery<Marketplace[]>({
     queryKey: ['/api/admin/marketplaces'],
@@ -257,7 +265,7 @@ export default function TrendyolCenter({
               <button
                 key={t.id}
                 type="button"
-                onClick={() => setTab(t.id)}
+                onClick={() => handleTabChange(t.id)}
                 className={`inline-flex items-center gap-1.5 whitespace-nowrap rounded-lg border px-3 py-2 text-[12.5px] font-medium transition-colors ${
                   active
                     ? 'border-neutral-900 bg-neutral-900 text-white'
@@ -293,7 +301,7 @@ export default function TrendyolCenter({
       {effectiveTab === 'overview' && mpId && (
         <OverviewPanel
           marketplaceId={mpId}
-          onGoTab={setTab}
+          onGoTab={handleTabChange}
           quickNavTabs={visibleTabs.filter((t) => t.id !== 'overview')}
           pendingOrders={pendingOrders}
         />
@@ -301,7 +309,7 @@ export default function TrendyolCenter({
       {effectiveTab === 'products' && mpId && (
         <ProductLinksPanel marketplaceId={mpId} initialProductId={initialProductId} />
       )}
-      {effectiveTab === 'orders' && <MarketplaceOrdersTab marketplaceId={mpId} />}
+      {effectiveTab === 'orders' && <MarketplaceOrdersTab marketplaceId={mpId} marketplaceName={selectedMp?.name} />}
       {effectiveTab === 'questions' && mpId && <QuestionsPanel marketplaceId={mpId} />}
       {effectiveTab === 'claims' && mpId && <ClaimsPanel marketplaceId={mpId} />}
       {effectiveTab === 'queue' && mpId && <PushQueuePanel marketplaceId={mpId} />}
@@ -345,8 +353,8 @@ function OverviewPanel({
   pendingOrders,
 }: {
   marketplaceId: string;
-  onGoTab: (t: TabId) => void;
-  quickNavTabs: Array<{ id: TabId; label: string; icon: typeof Activity; description: string }>;
+  onGoTab: (t: TrendyolCenterTab) => void;
+  quickNavTabs: Array<{ id: TrendyolCenterTab; label: string; icon: typeof Activity; description: string }>;
   pendingOrders: number;
 }) {
   const qc = useQueryClient();
@@ -466,6 +474,7 @@ function OverviewPanel({
               label="Uyuşmazlık"
               value={mismatches.length}
               tone={mismatches.length > 0 ? 'red' : 'emerald'}
+              onClick={() => onGoTab('products')}
             />
             <StatCard
               label="Kuyrukta bekleyen"

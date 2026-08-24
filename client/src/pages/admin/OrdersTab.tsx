@@ -48,6 +48,8 @@ interface Order {
   status: string;
   paymentMethod?: string | null;
   paymentStatus?: string | null;
+  refundStatus?: string | null;
+  refundedAmount?: string | null;
   createdAt: string;
 }
 
@@ -103,6 +105,8 @@ const SORT_OPTIONS = [
   { value: 'amount-desc', label: 'Yüksek tutar' },
   { value: 'amount-asc', label: 'Düşük tutar' },
 ];
+
+type SavedView = 'all' | 'incoming' | 'preparing' | 'shipping' | 'overdue';
 
 const OVERDUE_ORDER_AFTER_MS = 24 * 60 * 60 * 1000;
 const UNFULFILLED_ORDER_STATUSES = new Set(['pending', 'confirmed', 'processing']);
@@ -317,6 +321,12 @@ export default function OrdersPanel({ initialSearch = '', initialFilter = 'all' 
   const [statusFilter, setStatusFilter] = useState('all');
   const [overdueOnly, setOverdueOnly] = useState(initialFilter === 'overdue');
   const [search, setSearch] = useState(initialSearch);
+  const [sort, setSort] = useState(initialFilter === 'overdue' ? 'date-asc' : 'date-desc');
+  const [dateFrom, setDateFrom] = useState('');
+  const [dateTo, setDateTo] = useState('');
+  const [savedView, setSavedView] = useState<SavedView>(initialFilter === 'overdue' ? 'overdue' : 'all');
+  const [selectedOrderIds, setSelectedOrderIds] = useState<string[]>([]);
+  const [bulkFeedback, setBulkFeedback] = useState<string | null>(null);
 
   // Arama çubuğundan navigasyon geldiğinde search state'ini güncelle
   useEffect(() => {
@@ -325,11 +335,9 @@ export default function OrdersPanel({ initialSearch = '', initialFilter = 'all' 
   useEffect(() => {
     const shouldShowOverdue = initialFilter === 'overdue';
     setOverdueOnly(shouldShowOverdue);
+    setSavedView(shouldShowOverdue ? 'overdue' : 'all');
     if (shouldShowOverdue) setSort('date-asc');
   }, [initialFilter]);
-  const [sort, setSort] = useState('date-desc');
-  const [dateFrom, setDateFrom] = useState('');
-  const [dateTo, setDateTo] = useState('');
 
   const {
     data: orders = [],
@@ -368,11 +376,42 @@ export default function OrdersPanel({ initialSearch = '', initialFilter = 'all' 
         credentials: 'include',
         body: JSON.stringify({ status }),
       });
+      if (!r.ok) throw new Error('Sipariş durumu güncellenemedi');
       return r.json();
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['admin', 'orders'] });
       queryClient.invalidateQueries({ queryKey: ['admin', 'stats'] });
+    },
+  });
+
+  const bulkPrepareMutation = useMutation({
+    mutationFn: async (ids: string[]) => {
+      const results = await Promise.allSettled(
+        ids.map(async (id) => {
+          const response = await fetch(`/api/admin/orders/${id}/status`, {
+            method: 'PATCH',
+            headers: { 'Content-Type': 'application/json' },
+            credentials: 'include',
+            body: JSON.stringify({ status: 'processing' }),
+          });
+          if (!response.ok) throw new Error('Sipariş durumu güncellenemedi');
+        }),
+      );
+      return {
+        succeeded: results.filter((result) => result.status === 'fulfilled').length,
+        failed: results.filter((result) => result.status === 'rejected').length,
+      };
+    },
+    onSuccess: ({ succeeded, failed }) => {
+      queryClient.invalidateQueries({ queryKey: ['admin', 'orders'] });
+      queryClient.invalidateQueries({ queryKey: ['admin', 'stats'] });
+      setSelectedOrderIds([]);
+      setBulkFeedback(
+        failed > 0
+          ? `${succeeded} sipariş hazırlamaya alındı, ${failed} sipariş güncellenemedi. Liste yenilendi.`
+          : `${succeeded} sipariş hazırlamaya alındı.`,
+      );
     },
   });
 
@@ -449,6 +488,9 @@ export default function OrdersPanel({ initialSearch = '', initialFilter = 'all' 
   const filtered = useMemo(() => {
     let list = orders;
     if (statusFilter !== 'all') list = list.filter((o) => o.status === statusFilter);
+    if (savedView === 'incoming') list = list.filter((o) => o.status === 'confirmed' || o.status === 'pending');
+    if (savedView === 'preparing') list = list.filter((o) => o.status === 'processing');
+    if (savedView === 'shipping') list = list.filter((o) => o.status === 'shipped');
     if (overdueOnly) list = list.filter((o) => isOverdueOrder(o));
     if (search.trim()) {
       const q = search.toLowerCase();
@@ -484,7 +526,7 @@ export default function OrdersPanel({ initialSearch = '', initialFilter = 'all' 
       }
     });
     return sorted;
-  }, [orders, statusFilter, overdueOnly, search, sort, dateFrom, dateTo]);
+  }, [orders, statusFilter, savedView, overdueOnly, search, sort, dateFrom, dateTo]);
 
   const statusCounts = useMemo(() => {
     const counts: Record<string, number> = { all: orders.length };
@@ -494,6 +536,42 @@ export default function OrdersPanel({ initialSearch = '', initialFilter = 'all' 
     return counts;
   }, [orders]);
   const overdueCount = useMemo(() => orders.filter((order) => isOverdueOrder(order)).length, [orders]);
+  const savedViews = useMemo(
+    () => [
+      { id: 'all' as const, label: 'Tüm siparişler', count: orders.length },
+      {
+        id: 'incoming' as const,
+        label: 'Yeni işler',
+        count: orders.filter((order) => order.status === 'confirmed' || order.status === 'pending').length,
+      },
+      { id: 'preparing' as const, label: 'Hazırlanacak', count: orders.filter((order) => order.status === 'processing').length },
+      { id: 'shipping' as const, label: 'Kargoda', count: orders.filter((order) => order.status === 'shipped').length },
+      { id: 'overdue' as const, label: 'Geciken', count: overdueCount },
+    ],
+    [orders, overdueCount],
+  );
+
+  const applySavedView = (view: SavedView) => {
+    setSavedView(view);
+    setSearch('');
+    setDateFrom('');
+    setDateTo('');
+    setOverdueOnly(view === 'overdue');
+    setSort(view === 'overdue' ? 'date-asc' : 'date-desc');
+    setStatusFilter('all');
+  };
+
+  useEffect(() => {
+    setSelectedOrderIds((current) => current.filter((id) => filtered.some((order) => order.id === id)));
+  }, [filtered]);
+
+  const allVisibleSelected = filtered.length > 0 && filtered.every((order) => selectedOrderIds.includes(order.id));
+  const eligibleSelectedOrders = orders.filter(
+    (order) => selectedOrderIds.includes(order.id) && (order.status === 'confirmed' || order.status === 'pending'),
+  );
+  const toggleOrderSelection = (id: string) => {
+    setSelectedOrderIds((current) => (current.includes(id) ? current.filter((orderId) => orderId !== id) : [...current, id]));
+  };
 
   const filtersActive =
     statusFilter !== 'all' || overdueOnly || !!search.trim() || !!dateFrom || !!dateTo;
@@ -538,7 +616,13 @@ export default function OrdersPanel({ initialSearch = '', initialFilter = 'all' 
               </p>
             </div>
           </div>
-          <SecondaryButton onClick={() => setOverdueOnly(false)} data-testid="button-clear-overdue-filter">
+          <SecondaryButton
+            onClick={() => {
+              setOverdueOnly(false);
+              setSavedView('all');
+            }}
+            data-testid="button-clear-overdue-filter"
+          >
             Tüm siparişler
           </SecondaryButton>
         </Card>
@@ -691,6 +775,32 @@ export default function OrdersPanel({ initialSearch = '', initialFilter = 'all' 
 
       {/* Toolbar */}
       <Card className="p-3">
+        <div className="mb-3 border-b border-neutral-100 pb-3">
+          <p className="mb-2 text-[11px] font-semibold uppercase tracking-wide text-neutral-500">Kayıtlı görünümler</p>
+          <div className="flex flex-wrap gap-1.5">
+            {savedViews.map((view) => {
+              const active = savedView === view.id;
+              return (
+                <button
+                  key={view.id}
+                  type="button"
+                  onClick={() => applySavedView(view.id)}
+                  className={`inline-flex h-8 items-center gap-1.5 rounded-md border px-2.5 text-[12px] font-medium transition-colors ${
+                    active
+                      ? view.id === 'overdue'
+                        ? 'border-amber-600 bg-amber-600 text-white'
+                        : 'border-neutral-900 bg-neutral-900 text-white'
+                      : 'border-neutral-200 bg-white text-neutral-600 hover:border-neutral-300 hover:text-neutral-900'
+                  }`}
+                  data-testid={`saved-view-${view.id}`}
+                >
+                  {view.label}
+                  <span className={`tabular-nums text-[10px] ${active ? 'text-white/75' : 'text-neutral-400'}`}>{view.count}</span>
+                </button>
+              );
+            })}
+          </div>
+        </div>
         <Toolbar>
           <div className="flex items-center gap-1 flex-wrap">
             {STATUS_OPTIONS.map((opt) => {
@@ -699,7 +809,10 @@ export default function OrdersPanel({ initialSearch = '', initialFilter = 'all' 
               return (
                 <button
                   key={opt.value}
-                  onClick={() => setStatusFilter(opt.value)}
+                  onClick={() => {
+                    setStatusFilter(opt.value);
+                    setSavedView('all');
+                  }}
                   data-testid={`filter-status-${opt.value}`}
                   className={`inline-flex items-center gap-1.5 h-7 px-2.5 rounded-md text-[12px] font-medium transition-colors ${
                     active
@@ -722,7 +835,14 @@ export default function OrdersPanel({ initialSearch = '', initialFilter = 'all' 
             })}
             <button
               type="button"
-              onClick={() => setOverdueOnly((value) => !value)}
+              onClick={() => {
+                setOverdueOnly((value) => {
+                  const nextValue = !value;
+                  setSavedView(nextValue ? 'overdue' : 'all');
+                  if (nextValue) setSort('date-asc');
+                  return nextValue;
+                });
+              }}
               data-testid="filter-overdue"
               className={`inline-flex h-7 items-center gap-1.5 rounded-md px-2.5 text-[12px] font-medium transition-colors ${
                 overdueOnly
@@ -780,6 +900,48 @@ export default function OrdersPanel({ initialSearch = '', initialFilter = 'all' 
           </SelectInput>
         </div>
       </Card>
+
+      {selectedOrderIds.length > 0 && (
+        <Card className="flex flex-wrap items-center gap-3 border-neutral-300 bg-neutral-50 p-3" data-testid="orders-bulk-actions">
+          <span className="text-[12px] font-semibold text-neutral-800">
+            {selectedOrderIds.length} sipariş seçildi
+          </span>
+          <div className="flex flex-1 flex-wrap items-center justify-end gap-2">
+            <SecondaryButton
+              onClick={() => {
+                if (eligibleSelectedOrders.length === 0) return;
+                const confirmed = window.confirm(
+                  `${eligibleSelectedOrders.length} yeni veya bekleyen sipariş hazırlamaya alınacak. Devam etmek istiyor musunuz?`,
+                );
+                if (confirmed) bulkPrepareMutation.mutate(eligibleSelectedOrders.map((order) => order.id));
+              }}
+              disabled={eligibleSelectedOrders.length === 0 || bulkPrepareMutation.isPending}
+              data-testid="button-bulk-prepare-orders"
+            >
+              {bulkPrepareMutation.isPending && <Loader2 className="h-3.5 w-3.5 animate-spin" />}
+              {eligibleSelectedOrders.length} siparişi hazırlamaya al
+            </SecondaryButton>
+            <button
+              type="button"
+              onClick={() => setSelectedOrderIds([])}
+              className="text-[12px] font-medium text-neutral-500 hover:text-neutral-900"
+            >
+              Seçimi temizle
+            </button>
+          </div>
+          {eligibleSelectedOrders.length !== selectedOrderIds.length && (
+            <p className="w-full text-[11px] text-neutral-500">
+              Yalnızca yeni veya bekleyen siparişler toplu olarak hazırlamaya alınabilir.
+            </p>
+          )}
+        </Card>
+      )}
+
+      {bulkFeedback && (
+        <div className="rounded-lg border border-emerald-200 bg-emerald-50 px-3 py-2 text-[12px] text-emerald-800" role="status">
+          {bulkFeedback}
+        </div>
+      )}
 
       {/* Orders list */}
       <Card className="overflow-hidden">
@@ -887,6 +1049,16 @@ export default function OrdersPanel({ initialSearch = '', initialFilter = 'all' 
               <table className="w-full" data-testid="table-orders">
                 <thead>
                   <tr className="border-b border-neutral-200 bg-neutral-50/50">
+                    <th className="w-10 px-3 py-3">
+                      <input
+                        type="checkbox"
+                        checked={allVisibleSelected}
+                        onChange={() => setSelectedOrderIds(allVisibleSelected ? [] : filtered.map((order) => order.id))}
+                        aria-label="Görünen siparişlerin tümünü seç"
+                        className="h-4 w-4 rounded border-neutral-300"
+                        data-testid="checkbox-select-all-orders"
+                      />
+                    </th>
                     <th className="text-left px-5 py-3 text-[11px] font-semibold text-neutral-500 uppercase tracking-wider">
                       Müşteri
                     </th>
@@ -932,6 +1104,19 @@ export default function OrdersPanel({ initialSearch = '', initialFilter = 'all' 
                         navigate(`/toov-admin/orders/${order.id}`);
                       }}
                     >
+                      <td
+                        className="px-3 py-3.5"
+                        onClick={(event) => event.stopPropagation()}
+                      >
+                        <input
+                          type="checkbox"
+                          checked={selectedOrderIds.includes(order.id)}
+                          onChange={() => toggleOrderSelection(order.id)}
+                          aria-label={`${order.orderNumber} siparişini seç`}
+                          className="h-4 w-4 rounded border-neutral-300"
+                          data-testid={`checkbox-order-${order.id}`}
+                        />
+                      </td>
                       <td className="px-5 py-3.5">
                         <div className="flex items-center gap-3">
                           <div className="w-8 h-8 rounded-md bg-neutral-100 border border-neutral-200 flex items-center justify-center text-neutral-700 text-[11px] font-semibold shrink-0">
@@ -954,6 +1139,9 @@ export default function OrdersPanel({ initialSearch = '', initialFilter = 'all' 
                           </span>
                           {order.paymentMethod === 'bank_transfer' && (
                             <BankTransferBadge awaitingTransfer={order.paymentStatus === 'awaiting_transfer'} />
+                          )}
+                          {order.refundStatus && order.refundStatus !== 'none' && (
+                            <StatusBadge tone={order.refundStatus.includes('failed') ? 'red' : 'emerald'}>İade var</StatusBadge>
                           )}
                         </div>
                       </td>
@@ -1009,14 +1197,27 @@ export default function OrdersPanel({ initialSearch = '', initialFilter = 'all' 
             {/* Mobile Cards */}
             <div className="md:hidden divide-y divide-neutral-100">
               {filtered.map((order) => (
-                <Link
+                <div
                   key={order.id}
-                  href={`/toov-admin/orders/${order.id}`}
-                  className="block p-4 hover:bg-neutral-50/60 transition-colors"
-                  data-testid={`card-order-${order.id}`}
+                  className="flex items-start gap-2.5 p-4 hover:bg-neutral-50/60 transition-colors"
                 >
-                  <div className="flex items-start justify-between gap-3 mb-2.5">
-                    <div className="flex items-center gap-3 min-w-0">
+                  <div className="pt-1">
+                      <input
+                        type="checkbox"
+                        checked={selectedOrderIds.includes(order.id)}
+                        onChange={() => toggleOrderSelection(order.id)}
+                        aria-label={`${order.orderNumber} siparişini seç`}
+                        className="h-4 w-4 shrink-0 rounded border-neutral-300"
+                        data-testid={`checkbox-order-mobile-${order.id}`}
+                      />
+                  </div>
+                  <Link
+                    href={`/toov-admin/orders/${order.id}`}
+                    className="min-w-0 flex-1"
+                    data-testid={`card-order-${order.id}`}
+                  >
+                    <div className="flex items-start justify-between gap-3 mb-2.5">
+                    <div className="flex items-center gap-2.5 min-w-0">
                       <div className="w-9 h-9 rounded-md bg-neutral-100 border border-neutral-200 flex items-center justify-center text-neutral-700 text-[11px] font-semibold shrink-0">
                         {getInitials(order.customerName)}
                       </div>
@@ -1037,8 +1238,8 @@ export default function OrdersPanel({ initialSearch = '', initialFilter = 'all' 
                     <span className="text-[13px] font-semibold text-neutral-900 shrink-0 tabular-nums">
                       ₺{formatCurrency(order.total)}
                     </span>
-                  </div>
-                  <div className="flex items-center justify-between">
+                    </div>
+                    <div className="flex items-center justify-between">
                     <div
                       className="flex items-center gap-2"
                       onClick={(e) => {
@@ -1070,8 +1271,9 @@ export default function OrdersPanel({ initialSearch = '', initialFilter = 'all' 
                         <Eye className="w-3.5 h-3.5" />
                       </span>
                     </div>
-                  </div>
-                </Link>
+                    </div>
+                  </Link>
+                </div>
               ))}
             </div>
           </>

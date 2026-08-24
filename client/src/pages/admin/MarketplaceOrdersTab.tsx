@@ -118,9 +118,11 @@ function fmtDate(d: string | null): string {
 
 export default function MarketplaceOrdersTab({
   marketplaceId,
+  marketplaceName,
 }: {
   /** Verilirse pazaryeri seçimi bu id'ye sabitlenir (Trendyol Merkezi içinden). */
   marketplaceId?: string | null;
+  marketplaceName?: string | null;
 } = {}) {
   const qc = useQueryClient();
   const { toast } = useToast();
@@ -201,8 +203,8 @@ export default function MarketplaceOrdersTab({
   if (marketplaces.length === 0) {
     return (
       <EmptyState
-        title="Pazaryeri yok"
-        description="Trendyol siparişlerini görmek için önce Pazaryerleri sekmesinden bir bağlantı ekleyin."
+          title="Satış kanalı yok"
+          description="Pazaryeri siparişlerini görmek için önce satış kanalı bağlantısı ekleyin."
       />
     );
   }
@@ -210,7 +212,10 @@ export default function MarketplaceOrdersTab({
   return (
     <div className="space-y-4" data-testid="tab-marketplace-orders">
       <div className="flex flex-wrap items-center gap-2">
-        <h2 className="text-lg font-semibold text-neutral-900 mr-auto">Trendyol Siparişleri</h2>
+        <div className="mr-auto">
+          <h2 className="text-lg font-semibold text-neutral-900">{marketplaceName || 'Trendyol'} siparişleri</h2>
+          <p className="mt-0.5 text-[12px] text-neutral-500">Paket, kargo, fatura ve stok etkisini aynı akışta yönetin.</p>
+        </div>
         {!marketplaceId && marketplaces.length > 1 && (
           <SelectInput
             value={mpId ?? ''}

@@ -35,6 +35,7 @@ interface DashboardTabProps {
   onNavigate: (tab: TabType) => void;
   onOverdueOrders: () => void;
   onMarketplaceOrders: () => void;
+  onMarketplaceSyncIssues: () => void;
   pendingReviewsCount?: number;
   pendingMarketplaceOrdersCount?: number;
   pendingReturnsCount?: number;
@@ -471,6 +472,7 @@ export default function DashboardTab({
   onNavigate,
   onOverdueOrders,
   onMarketplaceOrders,
+  onMarketplaceSyncIssues,
   pendingReviewsCount = 0,
   pendingMarketplaceOrdersCount = 0,
   pendingReturnsCount = 0,
@@ -575,7 +577,7 @@ export default function DashboardTab({
       tone: 'red' as Tone,
       loading: marketplaceSyncLoading,
       error: marketplaceSyncError,
-      onClick: () => onNavigate('marketplaces'),
+      onClick: onMarketplaceSyncIssues,
       priority: 1,
     },
     {

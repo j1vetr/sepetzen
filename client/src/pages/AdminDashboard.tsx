@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { useLocation } from 'wouter';
 
 import OrdersTab from './admin/OrdersTab';
-import TrendyolCenter from './admin/TrendyolCenter';
+import TrendyolCenter, { type TrendyolCenterTab } from './admin/TrendyolCenter';
 import AdminLayout from './admin/_layout/AdminLayout';
 
 import DashboardTab from './admin/DashboardTab';
@@ -65,7 +65,12 @@ export default function AdminDashboard() {
     const params = new URLSearchParams(window.location.search);
     return params.get('typroduct') ?? undefined;
   });
-  const [trendyolInitialTab, setTrendyolInitialTab] = useState<'orders' | 'claims' | undefined>(undefined);
+  const [trendyolInitialTab, setTrendyolInitialTab] = useState<TrendyolCenterTab | undefined>(() => {
+    const initialTab = new URLSearchParams(window.location.search).get('marketplaceTab');
+    return ['overview', 'products', 'orders', 'questions', 'claims', 'queue', 'settings'].includes(initialTab || '')
+      ? initialTab as TrendyolCenterTab
+      : undefined;
+  });
   const [searchQuery, setSearchQuery] = useState('');
   // Arama çubuğu navigasyonu için sekmesine özel initial state'ler
   const [ordersInitialSearch, setOrdersInitialSearch] = useState('');
@@ -137,6 +142,7 @@ export default function AdminDashboard() {
     url.searchParams.set('tab', tabId);
     // typroduct parametresini temizle — sekme değişiminde sihirbaz otomatik açılmasın
     url.searchParams.delete('typroduct');
+    if (tabId !== 'marketplaces') url.searchParams.delete('marketplaceTab');
     window.history.pushState({ tab: tabId }, '', url.toString());
     if (tabId !== 'marketplaces') setTrendyolInitialProductId(undefined);
     if (tabId === 'orders') setOrdersInitialFilter('all');
@@ -154,6 +160,7 @@ export default function AdminDashboard() {
     const url = new URL(window.location.href);
     url.searchParams.set('tab', 'marketplaces');
     url.searchParams.set('typroduct', productId);
+    url.searchParams.set('marketplaceTab', 'products');
     window.history.pushState({ tab: 'marketplaces' }, '', url.toString());
     setActiveTab('marketplaces');
   };
@@ -162,13 +169,14 @@ export default function AdminDashboard() {
     handleMarketplaceTab('orders');
   };
 
-  const handleMarketplaceTab = (tab: 'orders' | 'claims') => {
+  const handleMarketplaceTab = (tab: TrendyolCenterTab) => {
     setTrendyolInitialProductId(undefined);
     setTrendyolInitialTab(tab);
     const url = new URL(window.location.href);
     url.searchParams.set('tab', 'marketplaces');
     url.searchParams.delete('typroduct');
-    window.history.pushState({ tab: 'marketplaces' }, '', url.toString());
+    url.searchParams.set('marketplaceTab', tab);
+    window.history.pushState({ tab: 'marketplaces', marketplaceTab: tab }, '', url.toString());
     setActiveTab('marketplaces');
   };
 
@@ -209,6 +217,15 @@ export default function AdminDashboard() {
         setActiveTab('marketplaces');
       } else if (tab && VALID_TABS.includes(tab as TabType)) {
         setActiveTab(tab as TabType);
+      }
+      const marketplaceTab = params.get('marketplaceTab');
+      if (tab === 'marketplaces' || tab === 'marketplaceOrders') {
+        setTrendyolInitialProductId(params.get('typroduct') ?? undefined);
+        setTrendyolInitialTab(
+          marketplaceTab && ['overview', 'products', 'orders', 'questions', 'claims', 'queue', 'settings'].includes(marketplaceTab)
+            ? marketplaceTab as TrendyolCenterTab
+            : 'overview',
+        );
       }
     };
     window.addEventListener('popstate', onPopState);
@@ -324,6 +341,7 @@ export default function AdminDashboard() {
             onNavigate={handleTabChange}
             onOverdueOrders={handleOverdueOrders}
             onMarketplaceOrders={handleMarketplaceOrders}
+            onMarketplaceSyncIssues={() => handleMarketplaceTab('queue')}
             pendingReviewsCount={pendingReviewsCount}
             pendingMarketplaceOrdersCount={pendingMarketplaceOrdersCount}
             pendingReturnsCount={pendingReturnsCount}

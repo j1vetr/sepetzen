@@ -1,7 +1,27 @@
 import type { ProductVariant } from './_shared/types';
 import { useState, useMemo } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { Loader2, Search, AlertTriangle, RefreshCw, Edit, Check, X, ChevronLeft, ChevronRight, Warehouse, Package } from 'lucide-react';
+import { Loader2, Search, AlertTriangle, RefreshCw, ChevronLeft, ChevronRight, Warehouse, Package, History, CircleAlert } from 'lucide-react';
+
+type StockView = 'all' | 'available' | 'critical' | 'out';
+
+type StockAdjustment = {
+  id: string;
+  variantId: string;
+  previousStock: number;
+  newStock: number;
+  adjustmentType: string;
+  reason?: string | null;
+  createdAt: string;
+};
+
+const ADJUSTMENT_LABELS: Record<string, string> = {
+  manual: 'Manuel güncelleme',
+  sale: 'Satış',
+  return: 'İade teslim alındı',
+  restock: 'Stok girişi',
+  correction: 'Düzeltme',
+};
 
 // Ürün küçük önizlemesi: ilk medya video ise varsa ilk fotoğraf tercih
 // edilir; hiç fotoğraf yoksa videonun ilk karesi gösterilir.
@@ -20,6 +40,8 @@ export default function InventoryPanel() {
   const [selectedVariants, setSelectedVariants] = useState<{ id: string; stock: number }[]>([]);
   const [searchQuery, setSearchQuery] = useState('');
   const [currentPage, setCurrentPage] = useState(1);
+  const [stockView, setStockView] = useState<StockView>('all');
+  const [historyVariantId, setHistoryVariantId] = useState<string | null>(null);
   const itemsPerPage = 20;
 
   const { data: allVariants = [], isLoading: variantsLoading } = useQuery({
@@ -31,11 +53,12 @@ export default function InventoryPanel() {
     },
   });
 
-  const { data: lowStockVariants = [], isLoading: lowStockLoading } = useQuery({
-    queryKey: ['admin-low-stock', lowStockThreshold],
+  const { data: adjustments = [], isLoading: adjustmentsLoading } = useQuery<StockAdjustment[]>({
+    queryKey: ['admin-inventory-adjustments', historyVariantId],
     queryFn: async () => {
-      const res = await fetch(`/api/admin/inventory/low-stock?threshold=${lowStockThreshold}`, { credentials: 'include' });
-      if (!res.ok) throw new Error('Failed to fetch low stock');
+      const params = historyVariantId ? `?variantId=${encodeURIComponent(historyVariantId)}` : '';
+      const res = await fetch(`/api/admin/inventory/adjustments${params}`, { credentials: 'include' });
+      if (!res.ok) throw new Error('Failed to fetch stock adjustments');
       return res.json();
     },
   });
@@ -53,7 +76,7 @@ export default function InventoryPanel() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['admin-inventory'] });
-      queryClient.invalidateQueries({ queryKey: ['admin-low-stock'] });
+      queryClient.invalidateQueries({ queryKey: ['admin-inventory-adjustments'] });
       setSelectedVariants([]);
     },
   });
@@ -77,10 +100,43 @@ export default function InventoryPanel() {
     })));
   };
 
+  const totalStock = useMemo(
+    () => allVariants.reduce((sum: number, variant: ProductVariant) => sum + Math.max(0, variant.stock || 0), 0),
+    [allVariants],
+  );
+  const outOfStockCount = useMemo(
+    () => allVariants.filter((variant: ProductVariant) => (variant.stock || 0) === 0).length,
+    [allVariants],
+  );
+  const criticalVariants = useMemo(
+    () => allVariants.filter((variant: ProductVariant) => {
+      const stock = variant.stock || 0;
+      return stock > 0 && stock <= lowStockThreshold;
+    }),
+    [allVariants, lowStockThreshold],
+  );
+  const visibleVariants = useMemo(() => {
+    const term = searchQuery.trim().toLocaleLowerCase('tr-TR');
+    return allVariants.filter((variant: ProductVariant) => {
+      const matchesSearch =
+        !term ||
+        variant.product?.name?.toLocaleLowerCase('tr-TR').includes(term) ||
+        variant.size?.toLocaleLowerCase('tr-TR').includes(term) ||
+        variant.color?.toLocaleLowerCase('tr-TR').includes(term);
+      if (!matchesSearch) return false;
+      const stock = variant.stock || 0;
+      if (stockView === 'out') return stock === 0;
+      if (stockView === 'critical') return stock > 0 && stock <= lowStockThreshold;
+      if (stockView === 'available') return stock > lowStockThreshold;
+      return true;
+    });
+  }, [allVariants, lowStockThreshold, searchQuery, stockView]);
+  const historyVariant = allVariants.find((variant: ProductVariant) => variant.id === historyVariantId);
+
   return (
     <div className="space-y-6">
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-        <div className="bg-neutral-50 border border-neutral-200 rounded-xl p-6">
+      <div className="grid grid-cols-2 xl:grid-cols-4 gap-3">
+        <div className="bg-neutral-50 border border-neutral-200 rounded-xl p-4">
           <div className="flex items-center gap-3">
             <Warehouse className="w-8 h-8 text-blue-400" />
             <div>
@@ -89,46 +145,55 @@ export default function InventoryPanel() {
             </div>
           </div>
         </div>
-        <div className="bg-neutral-50 border border-neutral-200 rounded-xl p-6">
+        <div className="bg-neutral-50 border border-neutral-200 rounded-xl p-4">
           <div className="flex items-center gap-3">
             <AlertTriangle className="w-8 h-8 text-yellow-400" />
             <div>
-              <p className="text-sm text-neutral-500">Düşük Stok</p>
-              <p className="text-2xl font-bold text-yellow-400">{lowStockVariants.length}</p>
+              <p className="text-sm text-neutral-500">Kritik stok</p>
+              <p className="text-2xl font-bold text-amber-600">{criticalVariants.length}</p>
             </div>
           </div>
         </div>
-        <div className="bg-neutral-50 border border-neutral-200 rounded-xl p-6">
+        <div className="bg-neutral-50 border border-neutral-200 rounded-xl p-4">
           <div className="flex items-center gap-3">
             <Package className="w-8 h-8 text-neutral-400" />
             <div>
               <p className="text-sm text-neutral-500">Toplam Stok</p>
               <p className="text-2xl font-bold text-neutral-900">
-                {allVariants.reduce((sum: number, v: ProductVariant) => sum + (v.stock || 0), 0)}
+                {totalStock}
               </p>
+            </div>
+          </div>
+        </div>
+        <div className="bg-neutral-50 border border-neutral-200 rounded-xl p-4">
+          <div className="flex items-center gap-3">
+            <CircleAlert className="w-7 h-7 text-red-500" />
+            <div>
+              <p className="text-sm text-neutral-500">Tükenen</p>
+              <p className="text-2xl font-bold text-red-600">{outOfStockCount}</p>
             </div>
           </div>
         </div>
       </div>
 
-      {lowStockVariants.length > 0 && (
+      {criticalVariants.length > 0 && (
         <div className="bg-yellow-500/10 border border-yellow-500/20 rounded-xl p-6">
           <div className="flex items-start gap-3">
             <AlertTriangle className="w-5 h-5 text-yellow-400 shrink-0 mt-0.5" />
             <div>
-              <h3 className="font-medium text-yellow-400">Düşük Stok Uyarısı</h3>
+              <h3 className="font-medium text-amber-800">Kritik stok uyarısı</h3>
               <p className="text-sm text-neutral-500 mt-1">
-                {lowStockVariants.length} varyantın stoğu {lowStockThreshold} adetten az.
+                {criticalVariants.length} varyantın stoğu 1 ile {lowStockThreshold} adet arasında.
               </p>
               <div className="mt-4 flex flex-wrap gap-2">
-                {lowStockVariants.slice(0, 5).map((v: ProductVariant) => (
+                {criticalVariants.slice(0, 5).map((v: ProductVariant) => (
                   <span key={v.id} className="px-3 py-1 bg-neutral-50 rounded-lg text-sm text-neutral-900">
-                    {v.product?.name} - {v.size} ({v.stock} adet)
+                    {v.product?.name} · {v.size} ({v.stock} adet)
                   </span>
                 ))}
-                {lowStockVariants.length > 5 && (
+                {criticalVariants.length > 5 && (
                   <span className="px-3 py-1 bg-neutral-200 rounded-lg text-sm text-neutral-500">
-                    +{lowStockVariants.length - 5} daha
+                    +{criticalVariants.length - 5} daha
                   </span>
                 )}
               </div>
@@ -138,9 +203,11 @@ export default function InventoryPanel() {
       )}
 
       <div className="bg-neutral-50 border border-neutral-200 rounded-xl overflow-hidden">
-        <div className="p-6 border-b border-neutral-200 flex flex-col md:flex-row md:items-center gap-4">
+          <div className="p-5 border-b border-neutral-200 space-y-3">
+            <div className="flex flex-col md:flex-row md:items-center gap-4">
           <div className="flex-1">
-            <h3 className="text-lg font-semibold text-neutral-900 mb-3 md:mb-0">Stok Yönetimi</h3>
+              <h3 className="text-lg font-semibold text-neutral-900">Stok yönetimi</h3>
+              <p className="mt-0.5 text-[12px] text-neutral-500">Eldeki stok, riskteki varyantlar ve son hareketler aynı çalışma alanında.</p>
           </div>
           <div className="flex flex-wrap items-center gap-3">
             <button
@@ -207,6 +274,47 @@ export default function InventoryPanel() {
               </button>
             )}
           </div>
+            </div>
+            <div className="flex flex-wrap items-center gap-2">
+              <span className="text-[11px] font-semibold uppercase tracking-wide text-neutral-500">Görünüm</span>
+              {([
+                ['all', 'Tümü', allVariants.length],
+                ['available', 'Eldeki stok', allVariants.filter((v: ProductVariant) => (v.stock || 0) > lowStockThreshold).length],
+                ['critical', 'Kritik', allVariants.filter((v: ProductVariant) => (v.stock || 0) > 0 && (v.stock || 0) <= lowStockThreshold).length],
+                ['out', 'Tükenen', outOfStockCount],
+              ] as Array<[StockView, string, number]>).map(([value, label, count]) => (
+                <button
+                  key={value}
+                  type="button"
+                  onClick={() => {
+                    setStockView(value);
+                    setCurrentPage(1);
+                  }}
+                  className={`inline-flex h-8 items-center gap-1.5 rounded-md border px-2.5 text-[12px] font-medium ${
+                    stockView === value
+                      ? value === 'out' ? 'border-red-600 bg-red-600 text-white' : 'border-neutral-900 bg-neutral-900 text-white'
+                      : 'border-neutral-200 bg-white text-neutral-600 hover:border-neutral-300'
+                  }`}
+                  data-testid={`inventory-view-${value}`}
+                >
+                  {label} <span className={stockView === value ? 'text-white/75' : 'text-neutral-400'}>{count}</span>
+                </button>
+              ))}
+              <label className="ml-auto flex items-center gap-2 text-[12px] text-neutral-600">
+                Kritik eşik
+                <select
+                  value={lowStockThreshold}
+                  onChange={(event) => {
+                    setLowStockThreshold(Number(event.target.value));
+                    setCurrentPage(1);
+                  }}
+                  className="h-8 rounded-md border border-neutral-200 bg-white px-2 text-[12px] text-neutral-900"
+                  data-testid="select-low-stock-threshold"
+                >
+                  {[1, 3, 5, 10, 15].map((threshold) => <option key={threshold} value={threshold}>{threshold} adet</option>)}
+                </select>
+              </label>
+            </div>
         </div>
 
         {variantsLoading ? (
@@ -214,11 +322,7 @@ export default function InventoryPanel() {
             <Loader2 className="w-6 h-6 animate-spin text-neutral-500" />
           </div>
         ) : (() => {
-          const filteredVariants = allVariants.filter((v: ProductVariant) =>
-            v.product?.name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-            v.size?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-            v.color?.toLowerCase().includes(searchQuery.toLowerCase())
-          );
+          const filteredVariants = visibleVariants;
           const totalPages = Math.ceil(filteredVariants.length / itemsPerPage);
           const paginatedVariants = filteredVariants.slice(
             (currentPage - 1) * itemsPerPage,
@@ -236,6 +340,7 @@ export default function InventoryPanel() {
                       <th className="px-6 py-3 text-left text-xs font-medium text-neutral-500 uppercase">Renk</th>
                       <th className="px-6 py-3 text-left text-xs font-medium text-neutral-500 uppercase">Fiyat</th>
                       <th className="px-6 py-3 text-left text-xs font-medium text-neutral-500 uppercase">Stok</th>
+                       <th className="px-6 py-3" />
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-neutral-200">
@@ -267,6 +372,17 @@ export default function InventoryPanel() {
                               } border`}
                             />
                           </td>
+                           <td className="px-6 py-4 text-right">
+                             <button
+                               type="button"
+                               onClick={() => setHistoryVariantId(v.id)}
+                               className="inline-flex h-8 items-center gap-1.5 rounded-md border border-neutral-200 bg-white px-2.5 text-[11px] font-medium text-neutral-600 hover:border-neutral-300 hover:text-neutral-900"
+                               data-testid={`button-stock-history-${v.id}`}
+                             >
+                               <History className="h-3.5 w-3.5" />
+                               Geçmiş
+                             </button>
+                           </td>
                         </tr>
                       );
                     })}
@@ -314,6 +430,15 @@ export default function InventoryPanel() {
                           } border`}
                           data-testid={`card-input-stock-${v.id}`}
                         />
+                         <button
+                           type="button"
+                           onClick={() => setHistoryVariantId(v.id)}
+                           className="inline-flex h-9 items-center gap-1.5 rounded-md border border-neutral-200 bg-white px-3 text-[11px] font-medium text-neutral-600"
+                           data-testid={`button-stock-history-mobile-${v.id}`}
+                         >
+                           <History className="h-3.5 w-3.5" />
+                           Geçmiş
+                         </button>
                       </div>
                     </div>
                   );
@@ -376,6 +501,50 @@ export default function InventoryPanel() {
             </div>
           );
         })()}
+      </div>
+
+      <div className="bg-white border border-neutral-200 rounded-xl overflow-hidden">
+        <div className="flex flex-wrap items-center gap-3 border-b border-neutral-200 px-5 py-4">
+          <div className="mr-auto">
+            <h3 className="text-[14px] font-semibold text-neutral-900">Stok hareketleri</h3>
+            <p className="mt-0.5 text-[12px] text-neutral-500">
+              {historyVariant
+                ? `${historyVariant.product?.name || 'Varyant'} · ${historyVariant.size || '-'} için geçmiş`
+                : 'Son 100 stok hareketi'}
+            </p>
+          </div>
+          {historyVariantId && (
+            <button type="button" onClick={() => setHistoryVariantId(null)} className="text-[12px] font-medium text-neutral-500 hover:text-neutral-900">
+              Tüm hareketler
+            </button>
+          )}
+        </div>
+        {adjustmentsLoading ? (
+          <div className="flex justify-center p-8"><Loader2 className="h-5 w-5 animate-spin text-neutral-400" /></div>
+        ) : adjustments.length === 0 ? (
+          <p className="p-6 text-[12px] text-neutral-500">Bu seçim için stok hareketi bulunmuyor.</p>
+        ) : (
+          <div className="divide-y divide-neutral-100">
+            {adjustments.slice(0, 12).map((adjustment) => {
+              const variant = allVariants.find((item: ProductVariant) => item.id === adjustment.variantId);
+              const difference = adjustment.newStock - adjustment.previousStock;
+              return (
+                <div key={adjustment.id} className="flex flex-wrap items-center gap-x-4 gap-y-1 px-5 py-3 text-[12px]">
+                  <div className="min-w-[170px] flex-1">
+                    <p className="font-medium text-neutral-800">{variant?.product?.name || 'Varyant'}</p>
+                    <p className="text-[11px] text-neutral-500">{variant?.size || '-'} {variant?.color ? `· ${variant.color}` : ''}</p>
+                  </div>
+                  <span className="text-neutral-600">{ADJUSTMENT_LABELS[adjustment.adjustmentType] || adjustment.adjustmentType}</span>
+                  <span className={`font-semibold tabular-nums ${difference < 0 ? 'text-red-600' : difference > 0 ? 'text-emerald-600' : 'text-neutral-600'}`}>
+                    {adjustment.previousStock} → {adjustment.newStock} ({difference > 0 ? '+' : ''}{difference})
+                  </span>
+                  <span className="text-[11px] text-neutral-500">{adjustment.reason || 'Sebep belirtilmedi'}</span>
+                  <span className="ml-auto text-[11px] text-neutral-400">{new Date(adjustment.createdAt).toLocaleString('tr-TR')}</span>
+                </div>
+              );
+            })}
+          </div>
+        )}
       </div>
     </div>
   );
