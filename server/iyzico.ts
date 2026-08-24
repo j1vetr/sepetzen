@@ -10,6 +10,8 @@ async function getApiKey(): Promise<string> {
   return (await storage.getSiteSetting('iyzico_api_key')) || process.env.IYZICO_API_KEY || '';
 }
 
+// End of iyzico helper module.
+export {};
 async function getSecretKey(): Promise<string> {
   return (await storage.getSiteSetting('iyzico_secret_key')) || process.env.IYZICO_SECRET_KEY || '';
 }
@@ -235,3 +237,4 @@ export async function retrieveCheckoutForm(
     });
   });
 }
+

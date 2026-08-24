@@ -2267,9 +2267,59 @@ KURALLAR:
         return res.status(403).json({ error: "Bu siparişe erişim yetkiniz yok" });
       }
       const items = await storage.getOrderItems(order.id);
-      res.json({ ...order, items });
+      const returnRequests = await storage.getReturnRequestsByOrder(order.id);
+      res.json({ ...order, items, returnRequests });
     } catch (error) {
       res.status(500).json({ error: "Sipariş yüklenemedi" });
+    }
+  });
+
+  app.post("/api/orders/my/:id/returns", async (req: Request, res) => {
+    const payload = await getAuthPayload(req, res);
+    if (!payload || payload.type !== 'user' || !payload.userId) {
+      return res.status(401).json({ error: "Giriş yapılmamış" });
+    }
+
+    const parsed = z.object({
+      reason: z.string().trim().min(5, 'İade nedenini en az 5 karakter yazın').max(1000),
+      items: z.array(z.object({
+        orderItemId: z.string().uuid(),
+        quantity: z.number().int().positive(),
+      })).min(1, 'En az bir ürün seçin'),
+    }).safeParse(req.body);
+    if (!parsed.success) {
+      return res.status(400).json({ error: parsed.error.issues[0]?.message || 'İade talebi geçersiz' });
+    }
+
+    try {
+      const [user, order] = await Promise.all([
+        storage.getUser(payload.userId),
+        storage.getOrder(req.params.id),
+      ]);
+      if (!user || !order || order.customerEmail !== user.email) {
+        return res.status(404).json({ error: "Sipariş bulunamadı" });
+      }
+      if (!['delivered', 'completed'].includes(order.status)) {
+        return res.status(409).json({ error: "İade talebi yalnız teslim edilmiş siparişler için oluşturulabilir" });
+      }
+      const request = await storage.createReturnRequest({
+        orderId: order.id,
+        customerId: user.id,
+        reason: parsed.data.reason,
+        items: parsed.data.items,
+      });
+      await storage.createOrderNote({
+        orderId: order.id,
+        authorId: user.id,
+        authorType: 'customer',
+        noteType: 'customer_service',
+        content: `Müşteri iade talebi oluşturdu. Sebep: ${parsed.data.reason}`,
+        isPrivate: false,
+      });
+      res.status(201).json(request);
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'İade talebi oluşturulamadı';
+      res.status(400).json({ error: message });
     }
   });
 
@@ -4263,6 +4313,24 @@ Bu ürün için 4 bölümlü HTML açıklama üret. Teknik Özellikler bölümü
     }
   });
 
+  // Net ürün iade havuzunu sipariş kalemlerine oranlı dağıtır. Böylece
+  // indirimli siparişlerin kısmi iadeleri indirim payını doğru taşır.
+  function allocateRefundableAmounts(
+    items: Array<{ price: string; quantity: number }>,
+    merchandiseRefundPool: number,
+  ): number[] {
+    const lineSubtotal = items.reduce((sum, item) => sum + parseFloat(item.price) * item.quantity, 0);
+    const pool = Math.max(0, merchandiseRefundPool);
+    let allocated = 0;
+    return items.map((item, index) => {
+      const amount = index === items.length - 1
+        ? Math.max(0, pool - allocated)
+        : Math.max(0, Math.round(((parseFloat(item.price) * item.quantity) / Math.max(lineSubtotal, 0.01)) * pool * 100) / 100);
+      allocated += amount;
+      return amount;
+    });
+  }
+
   // ── Havale (Bank Transfer) Ödeme ──────────────────────────────────────
   // Müşteri havale (EFT) seçtiğinde sepet doğrulanır, %10 indirim uygulanır,
   // sipariş 'pending' / 'awaiting_transfer' olarak oluşturulur. Stok düşmez,
@@ -4448,7 +4516,14 @@ Bu ürün için 4 bölümlü HTML açıklama üret. Teknik Özellikler bölümü
       });
 
       // Create order items but DO NOT reduce stock yet — admin must confirm transfer first.
-      for (const item of cartItemsForOrder) {
+      const bankTransferRefundableAmounts = allocateRefundableAmounts(
+        cartItemsForOrder,
+        serverSubtotal <= 0
+          ? 0
+          : (serverSubtotal / (serverSubtotal + shippingCost)) * serverTotal,
+      );
+      for (let index = 0; index < cartItemsForOrder.length; index++) {
+        const item = cartItemsForOrder[index];
         await storage.createOrderItem({
           orderId: order.id,
           productId: item.productId,
@@ -4458,6 +4533,7 @@ Bu ürün için 4 bölümlü HTML açıklama üret. Teknik Özellikler bölümü
           price: item.price,
           quantity: item.quantity,
           subtotal: (parseFloat(item.price) * item.quantity).toFixed(2),
+          refundableAmount: bankTransferRefundableAmounts[index].toFixed(2),
           personalizationText: item.personalizationText || null,
           personalizationFee: item.personalizationFee || null,
         });
@@ -4560,8 +4636,17 @@ Bu ürün için 4 bölümlü HTML açıklama üret. Teknik Özellikler bölümü
       console.error(`[finalize] ${orderNumber} availability issues:`, availabilityIssues.join('; '));
     }
 
+    const refundableAmounts = allocateRefundableAmounts(
+      pendingPayment.cartItems,
+      parseFloat(pendingPayment.subtotal) <= 0
+        ? 0
+        : (parseFloat(pendingPayment.subtotal) / (parseFloat(pendingPayment.subtotal) + parseFloat(pendingPayment.shippingCost || '0')))
+          * parseFloat(pendingPayment.total),
+    );
+
     // Create order items and reduce stock
-    for (const item of pendingPayment.cartItems) {
+    for (let index = 0; index < pendingPayment.cartItems.length; index++) {
+      const item = pendingPayment.cartItems[index];
       await storage.createOrderItem({
         orderId: order.id,
         productId: item.productId,
@@ -4571,6 +4656,7 @@ Bu ürün için 4 bölümlü HTML açıklama üret. Teknik Özellikler bölümü
         price: item.price,
         quantity: item.quantity,
         subtotal: (parseFloat(item.price) * item.quantity).toFixed(2),
+        refundableAmount: refundableAmounts[index].toFixed(2),
         personalizationText: item.personalizationText || null,
         personalizationFee: item.personalizationFee || null,
       });
@@ -5282,9 +5368,168 @@ Bu ürün için 4 bölümlü HTML açıklama üret. Teknik Özellikler bölümü
         })
       );
 
-      res.json({ ...order, items: itemsWithDetails });
+      const returnRequests = await storage.getReturnRequestsByOrder(order.id);
+      res.json({ ...order, items: itemsWithDetails, returnRequests });
     } catch (error) {
       res.status(500).json({ error: "Failed to fetch order" });
+    }
+  });
+
+  app.get("/api/admin/returns", requireAdmin, async (req, res) => {
+    try {
+      const rawStatus = typeof req.query.status === 'string' ? req.query.status : undefined;
+      const supportedStatuses = new Set([
+        'pending', 'approved', 'rejected', 'received', 'refund_pending',
+        'refunded', 'partially_refunded', 'refund_failed',
+      ]);
+      const requests = await storage.getReturnRequests(
+        rawStatus && rawStatus !== 'all' && supportedStatuses.has(rawStatus) ? rawStatus : undefined,
+      );
+      const orderIds = Array.from(new Set(requests.map((request) => request.orderId)));
+      const orderRows = await Promise.all(orderIds.map((id) => storage.getOrder(id)));
+      const ordersById = new Map(orderRows.filter(Boolean).map((order) => [order!.id, order!]));
+      res.json(requests.map((request) => {
+        const order = ordersById.get(request.orderId);
+        return {
+          ...request,
+          order: order ? {
+            id: order.id,
+            orderNumber: order.orderNumber,
+            customerName: order.customerName,
+            customerEmail: order.customerEmail,
+            total: order.total,
+            paymentMethod: order.paymentMethod,
+            paymentStatus: order.paymentStatus,
+          } : null,
+        };
+      }));
+    } catch (error) {
+      console.error('[returns] list error:', error);
+      res.status(500).json({ error: 'İade talepleri alınamadı' });
+    }
+  });
+
+  app.get("/api/admin/returns/pending-count", requireAdmin, async (_req, res) => {
+    try {
+      const requests = await storage.getReturnRequests('pending');
+      res.json({ count: requests.length });
+    } catch {
+      res.status(500).json({ error: 'Bekleyen iade sayısı alınamadı' });
+    }
+  });
+
+  app.post("/api/admin/returns/:id/decision", requireAdmin, async (req, res) => {
+    const parsed = z.object({
+      decision: z.enum(['approved', 'rejected']),
+      rejectionReason: z.string().trim().max(1000).optional().nullable(),
+      items: z.array(z.object({
+        id: z.string().uuid(),
+        approvedQuantity: z.number().int().min(0),
+      })).default([]),
+    }).safeParse(req.body);
+    if (!parsed.success) {
+      return res.status(400).json({ error: parsed.error.issues[0]?.message || 'İade kararı geçersiz' });
+    }
+    try {
+      const request = await storage.decideReturnRequest({
+        id: req.params.id,
+        adminId: getAdminId(req),
+        ...parsed.data,
+      });
+      await storage.createOrderNote({
+        orderId: request.orderId,
+        authorId: getAdminId(req),
+        authorType: 'admin',
+        noteType: 'customer_service',
+        content: request.status === 'approved'
+          ? 'İade talebi kabul edildi. Ürünler teslim alındığında stok geri girişi yapılacak.'
+          : `İade talebi reddedildi. Sebep: ${request.rejectionReason || 'Belirtilmedi'}`,
+        isPrivate: false,
+      });
+      res.json(request);
+    } catch (error) {
+      res.status(409).json({ error: error instanceof Error ? error.message : 'İade talebi güncellenemedi' });
+    }
+  });
+
+  app.post("/api/admin/returns/:id/received", requireAdmin, async (req, res) => {
+    try {
+      const request = await storage.receiveReturnRequest(req.params.id, getAdminId(req));
+      await storage.createOrderNote({
+        orderId: request.orderId,
+        authorId: getAdminId(req),
+        authorType: 'admin',
+        noteType: 'customer_service',
+        content: 'İade ürünleri teslim alındı. Kabul edilen kalemlerin stokları geri eklendi.',
+        isPrivate: false,
+      });
+      res.json(request);
+    } catch (error) {
+      res.status(409).json({ error: error instanceof Error ? error.message : 'İade teslim alınamadı' });
+    }
+  });
+
+  app.post("/api/admin/returns/:id/refund", requireAdmin, async (req, res) => {
+    const body = z.object({
+      amount: z.number().positive().optional(),
+      manualConfirmed: z.boolean().optional(),
+      reference: z.string().trim().max(255).optional(),
+    }).safeParse(req.body);
+    if (!body.success) {
+      return res.status(400).json({ error: body.error.issues[0]?.message || 'Geri ödeme bilgisi geçersiz' });
+    }
+    let claimedRequestId: string | null = null;
+    try {
+      const existing = await storage.getReturnRequest(req.params.id);
+      if (!existing) return res.status(404).json({ error: 'İade talebi bulunamadı' });
+      const order = await storage.getOrder(existing.orderId);
+      if (!order) return res.status(404).json({ error: 'Sipariş bulunamadı' });
+      const eligible = existing.items
+        .filter((item) => item.status === 'received')
+        .reduce((sum, item) => sum + Math.max(0, Number(item.unitRefundAmount) * item.approvedQuantity - Number(item.refundAmount || 0)), 0);
+      const amount = body.data.amount ?? eligible;
+      if (!Number.isFinite(amount) || amount <= 0 || amount > eligible + 0.001) {
+        return res.status(400).json({ error: 'Geri ödeme tutarı kabul edilen kalemleri aşamaz' });
+      }
+      if (!body.data.manualConfirmed) {
+        return res.status(409).json({
+          error: `${order.paymentMethod === 'iyzico' ? 'iyzico' : order.paymentMethod === 'paytr' ? 'PayTR' : 'Ödeme sağlayıcısı'} geri ödemesini sağlayıcı panelinden tamamlayın, sonra bu kaydı onaylayın.`,
+        });
+      }
+
+      const claimed = await storage.claimReturnRefund(existing.id);
+      if (!claimed) {
+        return res.status(409).json({ error: 'Bu iade için geri ödeme şu anda başlatılamaz' });
+      }
+      claimedRequestId = claimed.id;
+
+      const provider = order.paymentMethod || 'manual';
+      const reference = body.data.reference || `MANUAL-${order.orderNumber}-${Date.now()}`;
+
+      const request = await storage.completeReturnRefund({
+        id: claimed.id,
+        amount,
+        provider,
+        reference,
+      });
+      await storage.createOrderNote({
+        orderId: request.orderId,
+        authorId: getAdminId(req),
+        authorType: 'admin',
+        noteType: 'payment',
+        content: `₺${amount.toFixed(2)} geri ödeme tamamlandı.${reference ? ` Referans: ${reference}` : ''}`,
+        isPrivate: false,
+      });
+      res.json(request);
+    } catch (error) {
+      console.error('[returns] refund error:', error);
+      if (claimedRequestId) {
+        await storage.failReturnRefund(
+          claimedRequestId,
+          `Finans kaydı tamamlanamadı: ${error instanceof Error ? error.message : 'Bilinmeyen hata'}`,
+        ).catch((failureError) => console.error('[returns] refund failure state error:', failureError));
+      }
+      res.status(500).json({ error: error instanceof Error ? error.message : 'Geri ödeme tamamlanamadı' });
     }
   });
 
@@ -5414,8 +5659,12 @@ Bu ürün için 4 bölümlü HTML açıklama üret. Teknik Özellikler bölümü
         }
       }
 
+      const directRefundablePool = Math.max(0, serverSubtotal - discountAmount);
+      let directAllocatedRefund = 0;
+
       // Create order items and reduce stock
-      for (const cartItem of cartItems) {
+      for (let index = 0; index < cartItems.length; index++) {
+        const cartItem = cartItems[index];
         const variant = cartItem.variantId
           ? await storage.getProductVariant(cartItem.variantId)
           : null;
@@ -5426,6 +5675,11 @@ Bu ürün için 4 bölümlü HTML açıklama üret. Teknik Özellikler bölümü
         if (product) {
           const persFee = personalizationFeeFor(product, cartItem.personalizationText);
           const unitPrice = parseFloat(variant?.price || product.basePrice) + persFee;
+          const lineSubtotal = unitPrice * cartItem.quantity;
+          const refundableAmount = index === cartItems.length - 1
+            ? Math.max(0, directRefundablePool - directAllocatedRefund)
+            : Math.max(0, Math.round((lineSubtotal / Math.max(serverSubtotal, 0.01)) * directRefundablePool * 100) / 100);
+          directAllocatedRefund += refundableAmount;
           await storage.createOrderItem({
             orderId: order.id,
             productId: product.id,
@@ -5434,7 +5688,8 @@ Bu ürün için 4 bölümlü HTML açıklama üret. Teknik Özellikler bölümü
             variantDetails: variant ? `${variant.size || ''} ${variant.color || ''}`.trim() : null,
             price: unitPrice.toFixed(2),
             quantity: cartItem.quantity,
-            subtotal: (unitPrice * cartItem.quantity).toFixed(2),
+            subtotal: lineSubtotal.toFixed(2),
+            refundableAmount: refundableAmount.toFixed(2),
             personalizationText: cartItem.personalizationText || null,
             personalizationFee: persFee > 0 ? persFee.toFixed(2) : null,
           });

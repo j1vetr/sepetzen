@@ -8,6 +8,8 @@
 
 - [Payment providers](payment-providers.md) — iyzico + PayTR live-only, keys in site_settings not env, provider toggles, shared finalizer, PayTR OK-ack only on terminal state.
 
+- [Returns and refunds](returns-and-refunds.md) — supplier-side refund must be manually confirmed until payment transactions are durably mapped to order lines.
+
 - [Cargo provider contracts](cargo-provider-contracts.md) — carrier endpoints come from vendor SDKs, not doc sites; ShipEntegra `/orders/manual`, Geliver `/transactions` root-level service code.
 
 - [drizzle-zod jsonb types](drizzle-zod-jsonb-types.md) — jsonb `$type` is lost by createInsertSchema; re-declare the field with `.extend()` or insert calls fail typecheck elsewhere.

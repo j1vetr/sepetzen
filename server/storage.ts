@@ -8,6 +8,8 @@ import {
   cartItems,
   orders,
   orderItems,
+  returnRequests,
+  returnRequestItems,
   users,
   userAddresses,
   woocommerceSettings,
@@ -51,6 +53,8 @@ import {
   type InsertOrder,
   type OrderItem,
   type InsertOrderItem,
+  type ReturnRequest,
+  type ReturnRequestItem,
   type User,
   type InsertUser,
   type UserAddress,
@@ -156,6 +160,10 @@ export interface AdminStats {
   totalUsers: number;
   totalRevenue: number;
   pendingOrders: number;
+}
+
+export interface ReturnRequestWithItems extends ReturnRequest {
+  items: ReturnRequestItem[];
 }
 
 export interface IStorage {
@@ -292,6 +300,32 @@ export interface IStorage {
 
   getOrderItems(orderId: string): Promise<OrderItem[]>;
   createOrderItem(item: InsertOrderItem): Promise<OrderItem>;
+
+  getReturnRequests(status?: string): Promise<ReturnRequestWithItems[]>;
+  getReturnRequestsByOrder(orderId: string): Promise<ReturnRequestWithItems[]>;
+  getReturnRequest(id: string): Promise<ReturnRequestWithItems | undefined>;
+  createReturnRequest(input: {
+    orderId: string;
+    customerId: string;
+    reason: string;
+    items: Array<{ orderItemId: string; quantity: number }>;
+  }): Promise<ReturnRequestWithItems>;
+  decideReturnRequest(input: {
+    id: string;
+    adminId: string;
+    decision: 'approved' | 'rejected';
+    rejectionReason?: string | null;
+    items: Array<{ id: string; approvedQuantity: number }>;
+  }): Promise<ReturnRequestWithItems>;
+  receiveReturnRequest(id: string, adminId: string): Promise<ReturnRequestWithItems>;
+  claimReturnRefund(id: string): Promise<ReturnRequestWithItems | undefined>;
+  completeReturnRefund(input: {
+    id: string;
+    amount: number;
+    provider: string;
+    reference?: string | null;
+  }): Promise<ReturnRequestWithItems>;
+  failReturnRefund(id: string, reason: string): Promise<ReturnRequestWithItems | undefined>;
 
   // Pending Payments (iyzico Checkout Form)
   createPendingPayment(payment: Omit<PendingPayment, 'id' | 'createdAt'>): Promise<PendingPayment>;
@@ -1237,6 +1271,292 @@ export class DbStorage implements IStorage {
   async createOrderItem(item: InsertOrderItem): Promise<OrderItem> {
     const [newItem] = await db.insert(orderItems).values(item).returning();
     return newItem;
+  }
+
+  private async attachReturnItems(requests: ReturnRequest[]): Promise<ReturnRequestWithItems[]> {
+    if (requests.length === 0) return [];
+    const ids = requests.map((request) => request.id);
+    const items = await db
+      .select()
+      .from(returnRequestItems)
+      .where(inArray(returnRequestItems.returnRequestId, ids));
+    const byRequest = new Map<string, ReturnRequestItem[]>();
+    for (const item of items) {
+      const list = byRequest.get(item.returnRequestId) ?? [];
+      list.push(item);
+      byRequest.set(item.returnRequestId, list);
+    }
+    return requests.map((request) => ({ ...request, items: byRequest.get(request.id) ?? [] }));
+  }
+
+  async getReturnRequests(status?: string): Promise<ReturnRequestWithItems[]> {
+    const rows = await db
+      .select()
+      .from(returnRequests)
+      .where(status ? eq(returnRequests.status, status) : undefined)
+      .orderBy(desc(returnRequests.createdAt));
+    return this.attachReturnItems(rows);
+  }
+
+  async getReturnRequestsByOrder(orderId: string): Promise<ReturnRequestWithItems[]> {
+    const rows = await db
+      .select()
+      .from(returnRequests)
+      .where(eq(returnRequests.orderId, orderId))
+      .orderBy(desc(returnRequests.createdAt));
+    return this.attachReturnItems(rows);
+  }
+
+  async getReturnRequest(id: string): Promise<ReturnRequestWithItems | undefined> {
+    const [request] = await db.select().from(returnRequests).where(eq(returnRequests.id, id));
+    if (!request) return undefined;
+    const [withItems] = await this.attachReturnItems([request]);
+    return withItems;
+  }
+
+  async createReturnRequest(input: {
+    orderId: string;
+    customerId: string;
+    reason: string;
+    items: Array<{ orderItemId: string; quantity: number }>;
+  }): Promise<ReturnRequestWithItems> {
+    return db.transaction(async (tx) => {
+      // Same-order requests are serialized so a concurrent request cannot reserve
+      // the same quantity twice.
+      await tx.execute(sql`SELECT id FROM orders WHERE id = ${input.orderId} FOR UPDATE`);
+      const orderLines = await tx.select().from(orderItems).where(eq(orderItems.orderId, input.orderId));
+      const lineById = new Map(orderLines.map((line) => [line.id, line]));
+      const requestedByLine = new Map<string, number>();
+      for (const requested of input.items) {
+        requestedByLine.set(
+          requested.orderItemId,
+          (requestedByLine.get(requested.orderItemId) ?? 0) + requested.quantity,
+        );
+      }
+      const priorRequests = await tx
+        .select({ id: returnRequests.id, status: returnRequests.status })
+        .from(returnRequests)
+        .where(eq(returnRequests.orderId, input.orderId));
+      const priorIds = priorRequests
+        .filter((request) => request.status !== 'rejected')
+        .map((request) => request.id);
+      const priorItems = priorIds.length
+        ? await tx.select().from(returnRequestItems).where(inArray(returnRequestItems.returnRequestId, priorIds))
+        : [];
+      const reservedByLine = new Map<string, number>();
+      for (const item of priorItems) {
+        reservedByLine.set(item.orderItemId, (reservedByLine.get(item.orderItemId) ?? 0) + item.requestedQuantity);
+      }
+
+      for (const [orderItemId, quantity] of Array.from(requestedByLine.entries())) {
+        const line = lineById.get(orderItemId);
+        if (!line || quantity < 1) throw new Error('İade kalemi geçersiz');
+        const available = line.quantity - (reservedByLine.get(line.id) ?? 0);
+        if (quantity > available) {
+          throw new Error(`"${line.productName}" için iade edilebilir adet aşıldı`);
+        }
+      }
+
+      const [request] = await tx.insert(returnRequests).values({
+        orderId: input.orderId,
+        customerId: input.customerId,
+        reason: input.reason,
+      }).returning();
+
+      const insertedItems = await tx.insert(returnRequestItems).values(
+        Array.from(requestedByLine.entries()).map(([orderItemId, quantity]) => {
+          const line = lineById.get(orderItemId)!;
+          return {
+            returnRequestId: request.id,
+            orderItemId: line.id,
+            productId: line.productId,
+            variantId: line.variantId,
+            productName: line.productName,
+            variantDetails: line.variantDetails,
+            requestedQuantity: quantity,
+            unitPrice: line.price,
+            unitRefundAmount: (Number(line.refundableAmount || line.subtotal) / line.quantity).toFixed(4),
+          };
+        }),
+      ).returning();
+      return { ...request, items: insertedItems };
+    });
+  }
+
+  async decideReturnRequest(input: {
+    id: string;
+    adminId: string;
+    decision: 'approved' | 'rejected';
+    rejectionReason?: string | null;
+    items: Array<{ id: string; approvedQuantity: number }>;
+  }): Promise<ReturnRequestWithItems> {
+    return db.transaction(async (tx) => {
+      const [request] = await tx.select().from(returnRequests).where(eq(returnRequests.id, input.id));
+      if (!request) throw new Error('İade talebi bulunamadı');
+      if (request.status !== 'pending') throw new Error('Bu iade talebi daha önce sonuçlandırıldı');
+      const lines = await tx.select().from(returnRequestItems).where(eq(returnRequestItems.returnRequestId, request.id));
+      const decisionById = new Map(input.items.map((item) => [item.id, item.approvedQuantity]));
+
+      if (input.decision === 'approved') {
+        const approvedTotal = lines.reduce((total, line) => total + (decisionById.get(line.id) ?? 0), 0);
+        if (approvedTotal < 1) throw new Error('En az bir iade kalemi kabul edilmelidir');
+        for (const line of lines) {
+          const approvedQuantity = decisionById.get(line.id) ?? 0;
+          if (!Number.isInteger(approvedQuantity) || approvedQuantity < 0 || approvedQuantity > line.requestedQuantity) {
+            throw new Error(`"${line.productName}" için kabul edilen adet geçersiz`);
+          }
+          await tx.update(returnRequestItems).set({
+            approvedQuantity,
+            status: approvedQuantity > 0 ? 'approved' : 'rejected',
+          }).where(eq(returnRequestItems.id, line.id));
+        }
+      } else {
+        await tx.update(returnRequestItems).set({
+          approvedQuantity: 0,
+          status: 'rejected',
+        }).where(eq(returnRequestItems.returnRequestId, request.id));
+      }
+
+      const [updated] = await tx.update(returnRequests).set({
+        status: input.decision,
+        rejectionReason: input.decision === 'rejected' ? (input.rejectionReason?.trim() || 'İade talebi kabul edilmedi') : null,
+        reviewedBy: input.adminId,
+        reviewedAt: new Date(),
+        updatedAt: new Date(),
+      }).where(eq(returnRequests.id, request.id)).returning();
+      const updatedItems = await tx.select().from(returnRequestItems).where(eq(returnRequestItems.returnRequestId, request.id));
+      return { ...updated, items: updatedItems };
+    });
+  }
+
+  async receiveReturnRequest(id: string, adminId: string): Promise<ReturnRequestWithItems> {
+    const result = await db.transaction(async (tx) => {
+      const [request] = await tx.update(returnRequests).set({
+        status: 'received',
+        receivedAt: new Date(),
+        updatedAt: new Date(),
+      }).where(and(eq(returnRequests.id, id), eq(returnRequests.status, 'approved'))).returning();
+      if (!request) throw new Error('Yalnız kabul edilen iadeler teslim alınabilir');
+
+      const items = await tx.select().from(returnRequestItems).where(eq(returnRequestItems.returnRequestId, id));
+      const changedProductIds = new Set<string>();
+      for (const item of items) {
+        if (item.status !== 'approved' || item.approvedQuantity < 1) continue;
+        if (item.variantId) {
+          const [variant] = await tx.update(productVariants).set({
+            stock: sql`${productVariants.stock} + ${item.approvedQuantity}`,
+          }).where(eq(productVariants.id, item.variantId)).returning();
+          if (variant) {
+            const previousStock = variant.stock - item.approvedQuantity;
+            await tx.insert(stockAdjustments).values({
+              variantId: variant.id,
+              previousStock,
+              newStock: variant.stock,
+              adjustmentType: 'return',
+              reason: `İade teslim alındı: ${id}`,
+              authorId: adminId,
+            });
+            changedProductIds.add(variant.productId);
+          }
+        }
+        await tx.update(returnRequestItems).set({ status: 'received' }).where(eq(returnRequestItems.id, item.id));
+      }
+      const updatedItems = await tx.select().from(returnRequestItems).where(eq(returnRequestItems.returnRequestId, id));
+      return { request, items: updatedItems, changedProductIds: Array.from(changedProductIds) };
+    });
+    for (const productId of result.changedProductIds) await this.notifyPushOutbox(productId);
+    return { ...result.request, items: result.items };
+  }
+
+  async claimReturnRefund(id: string): Promise<ReturnRequestWithItems | undefined> {
+    const [request] = await db.update(returnRequests).set({
+      status: 'refund_pending',
+      updatedAt: new Date(),
+    }).where(and(
+      eq(returnRequests.id, id),
+      inArray(returnRequests.status, ['received', 'partially_refunded', 'refund_failed']),
+    )).returning();
+    if (!request) return undefined;
+    const [withItems] = await this.attachReturnItems([request]);
+    return withItems;
+  }
+
+  async completeReturnRefund(input: {
+    id: string;
+    amount: number;
+    provider: string;
+    reference?: string | null;
+  }): Promise<ReturnRequestWithItems> {
+    return db.transaction(async (tx) => {
+      const [request] = await tx.select().from(returnRequests).where(eq(returnRequests.id, input.id));
+      if (!request || request.status !== 'refund_pending') throw new Error('Geri ödeme işlemi beklenmiyor');
+      // All refunds for one order share a lock, making the paid-total cap and
+      // cumulative ledger update safe across separate return requests.
+      await tx.execute(sql`SELECT id FROM orders WHERE id = ${request.orderId} FOR UPDATE`);
+      const lines = await tx.select().from(returnRequestItems).where(eq(returnRequestItems.returnRequestId, request.id));
+      const [order] = await tx.select().from(orders).where(eq(orders.id, request.orderId));
+      const acceptedTotal = lines
+        .filter((line) => line.approvedQuantity > 0)
+        .reduce((sum, line) => sum + Number(line.unitRefundAmount) * line.approvedQuantity, 0);
+      const eligible = lines
+        .filter((line) => line.status === 'received')
+        .reduce((sum, line) => sum + Math.max(0, Number(line.unitRefundAmount) * line.approvedQuantity - Number(line.refundAmount || 0)), 0);
+      const remainingOrderAmount = Math.max(0, Number(order.total) - Number(order.refundedAmount || 0));
+      if (!Number.isFinite(input.amount) || input.amount <= 0 || input.amount > eligible + 0.001 || input.amount > remainingOrderAmount + 0.001) {
+        throw new Error('Geri ödeme tutarı kabul edilen kalemleri aşamaz');
+      }
+      const cumulativeRequestAmount = Number(request.refundAmount || 0) + input.amount;
+      const isPartial = cumulativeRequestAmount < acceptedTotal - 0.001;
+      const [updated] = await tx.update(returnRequests).set({
+        status: isPartial ? 'partially_refunded' : 'refunded',
+        refundAmount: cumulativeRequestAmount.toFixed(2),
+        refundProvider: input.provider,
+        refundReference: input.reference || null,
+        refundFailureReason: null,
+        refundedAt: new Date(),
+        updatedAt: new Date(),
+      }).where(eq(returnRequests.id, request.id)).returning();
+
+      let remaining = input.amount;
+      for (const line of lines) {
+        if (line.status !== 'received') continue;
+        const lineAmount = Number(line.unitRefundAmount) * line.approvedQuantity;
+        const alreadyRefunded = Number(line.refundAmount || 0);
+        const refunded = Math.min(lineAmount - alreadyRefunded, remaining);
+        remaining -= refunded;
+        const cumulativeLineRefund = alreadyRefunded + refunded;
+        await tx.update(returnRequestItems).set({
+          status: cumulativeLineRefund >= lineAmount - 0.001 ? 'refunded' : 'received',
+          refundAmount: cumulativeLineRefund.toFixed(2),
+        }).where(eq(returnRequestItems.id, line.id));
+      }
+
+      const cumulative = Number(order.refundedAmount || 0) + input.amount;
+      const [updatedOrder] = await tx.update(orders).set({
+        refundedAmount: cumulative.toFixed(2),
+        refundStatus: cumulative >= Number(order.total) - 0.001 ? 'full' : 'partial',
+        paymentStatus: cumulative >= Number(order.total) - 0.001 ? 'refunded' : 'partially_refunded',
+        updatedAt: new Date(),
+      }).where(and(
+        eq(orders.id, order.id),
+        sql`${orders.refundedAmount} + ${input.amount.toFixed(2)} <= ${orders.total}`,
+      )).returning();
+      if (!updatedOrder) throw new Error('Sipariş toplamını aşan geri ödeme kaydedilemez');
+
+      const updatedItems = await tx.select().from(returnRequestItems).where(eq(returnRequestItems.returnRequestId, request.id));
+      return { ...updated, items: updatedItems };
+    });
+  }
+
+  async failReturnRefund(id: string, reason: string): Promise<ReturnRequestWithItems | undefined> {
+    const [request] = await db.update(returnRequests).set({
+      status: 'refund_failed',
+      refundFailureReason: reason,
+      updatedAt: new Date(),
+    }).where(and(eq(returnRequests.id, id), eq(returnRequests.status, 'refund_pending'))).returning();
+    if (!request) return undefined;
+    const [withItems] = await this.attachReturnItems([request]);
+    return withItems;
   }
 
   // WooCommerce Settings

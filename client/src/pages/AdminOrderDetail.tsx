@@ -22,6 +22,10 @@ import {
   Send,
   RefreshCw,
   Printer,
+  RotateCcw,
+  PackageCheck,
+  Wallet,
+  AlertTriangle,
 } from 'lucide-react';
 import {
   Card,
@@ -136,6 +140,8 @@ interface Order {
   status: string;
   paymentMethod?: string | null;
   paymentStatus: string;
+  refundStatus?: string;
+  refundedAmount?: string;
   trackingNumber?: string;
   trackingUrl?: string;
   shippingCarrier?: string;
@@ -144,6 +150,35 @@ interface Order {
   shipmentLabelUrl?: string | null;
   createdAt: string;
   items: OrderItem[];
+  returnRequests?: ReturnRequest[];
+}
+
+interface ReturnRequestItem {
+  id: string;
+  productName: string;
+  variantDetails?: string | null;
+  requestedQuantity: number;
+  approvedQuantity: number;
+  status: string;
+  unitPrice: string;
+  unitRefundAmount: string;
+  refundAmount: string;
+}
+
+interface ReturnRequest {
+  id: string;
+  reason: string;
+  status: string;
+  rejectionReason?: string | null;
+  reviewedAt?: string | null;
+  receivedAt?: string | null;
+  refundedAt?: string | null;
+  refundAmount: string;
+  refundProvider?: string | null;
+  refundReference?: string | null;
+  refundFailureReason?: string | null;
+  createdAt: string;
+  items: ReturnRequestItem[];
 }
 
 type StatusTone = 'neutral' | 'amber' | 'blue' | 'indigo' | 'emerald' | 'red' | 'orange';
@@ -168,6 +203,23 @@ function formatCurrency(amount: string | number): string {
     minimumFractionDigits: 2,
     maximumFractionDigits: 2,
   });
+}
+
+const RETURN_STATUS: Record<string, { label: string; tone: StatusTone }> = {
+  pending: { label: 'İnceleme bekliyor', tone: 'amber' },
+  approved: { label: 'Kabul edildi', tone: 'blue' },
+  rejected: { label: 'Reddedildi', tone: 'red' },
+  received: { label: 'Teslim alındı', tone: 'indigo' },
+  refund_pending: { label: 'Geri ödeme işleniyor', tone: 'orange' },
+  refunded: { label: 'Geri ödendi', tone: 'emerald' },
+  partially_refunded: { label: 'Kısmi geri ödeme', tone: 'emerald' },
+  refund_failed: { label: 'Geri ödeme hatası', tone: 'red' },
+};
+
+function returnEligibleAmount(request: ReturnRequest): number {
+  return request.items
+    .filter((item) => item.status === 'received')
+    .reduce((sum, item) => sum + Math.max(0, Number(item.unitRefundAmount) * item.approvedQuantity - Number(item.refundAmount || 0)), 0);
 }
 
 function DetailSkeleton() {
@@ -224,6 +276,10 @@ export default function AdminOrderDetail() {
   const [shipmentWeightKg, setShipmentWeightKg] = useState('');
   // Son takip sorgusundan gelen kargo durumu (aşama göstergesinde kullanılır)
   const [shipmentStatusInfo, setShipmentStatusInfo] = useState<{ statusText?: string; delivered?: boolean } | null>(null);
+  const [returnRequests, setReturnRequests] = useState<ReturnRequest[]>([]);
+  const [returnUpdatingId, setReturnUpdatingId] = useState<string | null>(null);
+  const [returnMessage, setReturnMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
+  const [approvalQuantities, setApprovalQuantities] = useState<Record<string, number>>({});
   const autoPollCount = useRef(0);
   const statusRequestInFlight = useRef(false);
   const [carrier, setCarrier] = useState<{ id: string; label: string; enabled: boolean; configured: boolean; missing?: string } | null>(null);
@@ -241,6 +297,14 @@ export default function AdminOrderDetail() {
         const data = await res.json();
         if (cancelled) return;
         setOrder(data);
+        setReturnRequests(data.returnRequests || []);
+        setApprovalQuantities(
+          Object.fromEntries(
+            (data.returnRequests || []).flatMap((request: ReturnRequest) =>
+              request.items.map((item) => [item.id, item.requestedQuantity]),
+            ),
+          ),
+        );
         setStatus(data.status);
         setTrackingNumber(data.trackingNumber || '');
         setTrackingUrl(data.trackingUrl || '');
@@ -599,6 +663,100 @@ export default function AdminOrderDetail() {
     }
   };
 
+  const replaceReturnRequest = (updated: ReturnRequest) => {
+    setReturnRequests((current) => current.map((request) => request.id === updated.id ? updated : request));
+  };
+
+  const handleReturnDecision = async (request: ReturnRequest, decision: 'approved' | 'rejected') => {
+    const rejectionReason = decision === 'rejected'
+      ? window.prompt('Reddetme sebebi:', 'İade koşulları karşılanmadı')
+      : null;
+    if (decision === 'rejected' && rejectionReason === null) return;
+    setReturnUpdatingId(request.id);
+    setReturnMessage(null);
+    try {
+      const response = await fetch(`/api/admin/returns/${request.id}/decision`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify({
+          decision,
+          rejectionReason,
+          items: request.items.map((item) => ({
+            id: item.id,
+            approvedQuantity: decision === 'approved'
+              ? Math.max(0, Math.min(item.requestedQuantity, approvalQuantities[item.id] ?? item.requestedQuantity))
+              : 0,
+          })),
+        }),
+      });
+      const data = await response.json();
+      if (!response.ok) throw new Error(data.error || 'İade talebi güncellenemedi');
+      replaceReturnRequest(data);
+      setReturnMessage({ type: 'success', text: decision === 'approved' ? 'İade talebi kabul edildi.' : 'İade talebi reddedildi.' });
+    } catch (error) {
+      setReturnMessage({ type: 'error', text: error instanceof Error ? error.message : 'İade talebi güncellenemedi' });
+    } finally {
+      setReturnUpdatingId(null);
+    }
+  };
+
+  const handleReturnReceived = async (request: ReturnRequest) => {
+    if (!window.confirm('Kabul edilen ürünlerin teslim alındığını onaylıyor musunuz? Stoklar geri eklenecek.')) return;
+    setReturnUpdatingId(request.id);
+    setReturnMessage(null);
+    try {
+      const response = await fetch(`/api/admin/returns/${request.id}/received`, {
+        method: 'POST',
+        credentials: 'include',
+      });
+      const data = await response.json();
+      if (!response.ok) throw new Error(data.error || 'İade teslim alınamadı');
+      replaceReturnRequest(data);
+      setReturnMessage({ type: 'success', text: 'İade teslim alındı ve kabul edilen kalemlerin stokları güncellendi.' });
+    } catch (error) {
+      setReturnMessage({ type: 'error', text: error instanceof Error ? error.message : 'İade teslim alınamadı' });
+    } finally {
+      setReturnUpdatingId(null);
+    }
+  };
+
+  const handleReturnRefund = async (request: ReturnRequest) => {
+    const eligible = returnEligibleAmount(request);
+    const entered = window.prompt('Geri ödeme tutarı (TL):', eligible.toFixed(2));
+    if (entered === null) return;
+    const amount = Number(entered.replace(',', '.'));
+    if (!Number.isFinite(amount) || amount <= 0 || amount > eligible + 0.001) {
+      setReturnMessage({ type: 'error', text: 'Tutar kabul edilen ve teslim alınan kalemleri aşamaz.' });
+      return;
+    }
+    const manualConfirmed = window.confirm('Geri ödemeyi ödeme sağlayıcısı panelinden tamamladığınızı onaylıyor musunuz?');
+    if (manualConfirmed === false) return;
+    setReturnUpdatingId(request.id);
+    setReturnMessage(null);
+    try {
+      const response = await fetch(`/api/admin/returns/${request.id}/refund`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify({ amount, manualConfirmed }),
+      });
+      const data = await response.json();
+      if (!response.ok) throw new Error(data.error || 'Geri ödeme tamamlanamadı');
+      replaceReturnRequest(data);
+      setOrder((current) => current ? {
+        ...current,
+        refundedAmount: (Number(current.refundedAmount || 0) + amount).toFixed(2),
+        refundStatus: Number(current.refundedAmount || 0) + amount >= Number(current.total) ? 'full' : 'partial',
+      } : current);
+      setReturnMessage({ type: 'success', text: 'Geri ödeme sonucu siparişe kaydedildi.' });
+    } catch (error) {
+      setReturnMessage({ type: 'error', text: error instanceof Error ? error.message : 'Geri ödeme tamamlanamadı' });
+    } finally {
+      setReturnUpdatingId(null);
+    }
+  };
+
   if (isLoading) return <DetailSkeleton />;
 
   if (loadError || !order) {
@@ -669,6 +827,12 @@ export default function AdminOrderDetail() {
                     🏦 Havale
                     {order.paymentStatus === 'awaiting_transfer' && ' · Bekliyor'}
                   </span>
+                )}
+                {Number(order.refundedAmount || 0) > 0 && (
+                  <StatusBadge tone="emerald">
+                    <Wallet className="w-3 h-3 mr-1" />
+                    {order.refundStatus === 'full' ? 'Tam geri ödeme' : 'Kısmi geri ödeme'} ₺{formatCurrency(order.refundedAmount || '0')}
+                  </StatusBadge>
                 )}
               </div>
               <p className="text-[12px] text-neutral-500 flex flex-wrap items-center gap-x-3 gap-y-0.5">
@@ -876,6 +1040,158 @@ export default function AdminOrderDetail() {
                       </a>
                     )}
                   </InlineAlert>
+                </div>
+              )}
+            </Card>
+
+            <Card className="p-5" data-testid="card-return-requests">
+              <SectionHeading
+                title="İade ve Geri Ödeme"
+                description={returnRequests.length ? `${returnRequests.length} iade talebi` : 'Bu sipariş için iade talebi yok'}
+              />
+              {returnMessage && (
+                <div className="mb-3">
+                  <InlineAlert tone={returnMessage.type === 'success' ? 'success' : 'error'}>
+                    {returnMessage.type === 'error' && <AlertTriangle className="w-3.5 h-3.5 inline mr-1" />}
+                    {returnMessage.text}
+                  </InlineAlert>
+                </div>
+              )}
+              {returnRequests.length === 0 ? (
+                <p className="text-[12px] text-neutral-500">
+                  Müşteri teslim edilmiş siparişinden iade talebi oluşturduğunda burada görünür.
+                </p>
+              ) : (
+                <div className="space-y-3">
+                  {returnRequests.map((request) => {
+                    const config = RETURN_STATUS[request.status] || { label: request.status, tone: 'neutral' as StatusTone };
+                    const isUpdatingReturn = returnUpdatingId === request.id;
+                    const eligible = returnEligibleAmount(request);
+                    return (
+                      <div key={request.id} className="rounded-md border border-neutral-200 overflow-hidden">
+                        <div className="flex flex-wrap items-start justify-between gap-2 px-3 py-3 bg-neutral-50 border-b border-neutral-200">
+                          <div className="min-w-0">
+                            <div className="flex items-center gap-2 flex-wrap">
+                              <p className="text-[12.5px] font-semibold text-neutral-900">İade talebi</p>
+                              <StatusBadge tone={config.tone}>{config.label}</StatusBadge>
+                            </div>
+                            <p className="text-[11px] text-neutral-500 mt-1">
+                              {formatTRDateTime(request.createdAt)} · {request.reason}
+                            </p>
+                          </div>
+                          {Number(request.refundAmount || 0) > 0 && (
+                            <span className="text-[12px] font-semibold text-neutral-800 tabular-nums">
+                              ₺{formatCurrency(request.refundAmount)}
+                            </span>
+                          )}
+                        </div>
+                        <div className="divide-y divide-neutral-100">
+                          {request.items.map((item) => (
+                            <div key={item.id} className="px-3 py-2.5 flex flex-col sm:flex-row sm:items-center gap-2">
+                              <div className="flex-1 min-w-0">
+                                <p className="text-[12px] font-medium text-neutral-800 truncate">{item.productName}</p>
+                                <p className="text-[11px] text-neutral-500">
+                                  {item.variantDetails ? `${item.variantDetails} · ` : ''}
+                                  Talep: {item.requestedQuantity} adet · Birim: ₺{formatCurrency(item.unitPrice)}
+                                  {item.approvedQuantity > 0 && ` · Kabul: ${item.approvedQuantity} adet`}
+                                </p>
+                              </div>
+                              {request.status === 'pending' ? (
+                                <label className="flex items-center gap-1.5 text-[11px] text-neutral-600 shrink-0">
+                                  Kabul
+                                  <input
+                                    type="number"
+                                    min={0}
+                                    max={item.requestedQuantity}
+                                    value={approvalQuantities[item.id] ?? item.requestedQuantity}
+                                    onChange={(event) => setApprovalQuantities((current) => ({
+                                      ...current,
+                                      [item.id]: Number(event.target.value),
+                                    }))}
+                                    className="w-14 h-8 px-2 border border-neutral-200 rounded text-[12px] text-neutral-900"
+                                    aria-label={`${item.productName} kabul adedi`}
+                                    data-testid={`input-return-quantity-${item.id}`}
+                                  />
+                                </label>
+                              ) : (
+                                <StatusBadge tone={item.status === 'rejected' ? 'red' : item.status === 'refunded' ? 'emerald' : 'neutral'}>
+                                  {item.status === 'rejected' ? 'Reddedildi' : item.status === 'refunded' ? 'Geri ödendi' : item.status === 'received' ? 'Teslim alındı' : 'Kabul edildi'}
+                                </StatusBadge>
+                              )}
+                            </div>
+                          ))}
+                        </div>
+                        {request.rejectionReason && (
+                          <p className="px-3 py-2 text-[11.5px] text-red-700 bg-red-50 border-t border-red-100">
+                            Red sebebi: {request.rejectionReason}
+                          </p>
+                        )}
+                        {request.refundFailureReason && (
+                          <p className="px-3 py-2 text-[11.5px] text-red-700 bg-red-50 border-t border-red-100">
+                            Geri ödeme hatası: {request.refundFailureReason}
+                          </p>
+                        )}
+                        <div className="px-3 py-3 border-t border-neutral-200 flex flex-wrap items-center justify-between gap-2">
+                          <div className="text-[10.5px] text-neutral-500 flex flex-wrap gap-x-3 gap-y-1">
+                            <span>Talep: {formatTRDateTime(request.createdAt)}</span>
+                            {request.reviewedAt && <span>Karar: {formatTRDateTime(request.reviewedAt)}</span>}
+                            {request.receivedAt && <span>Teslim alındı: {formatTRDateTime(request.receivedAt)}</span>}
+                            {request.refundedAt && <span>Geri ödeme: {formatTRDateTime(request.refundedAt)}</span>}
+                          </div>
+                          <div className="flex items-center gap-2">
+                            {request.status === 'pending' && (
+                              <>
+                                <button
+                                  type="button"
+                                  disabled={isUpdatingReturn}
+                                  onClick={() => handleReturnDecision(request, 'rejected')}
+                                  className="inline-flex items-center gap-1 h-8 px-2.5 rounded border border-red-200 text-red-700 bg-white hover:bg-red-50 text-[11px] font-semibold disabled:opacity-50"
+                                  data-testid={`button-reject-return-${request.id}`}
+                                >
+                                  <XCircle className="w-3.5 h-3.5" />
+                                  Reddet
+                                </button>
+                                <button
+                                  type="button"
+                                  disabled={isUpdatingReturn}
+                                  onClick={() => handleReturnDecision(request, 'approved')}
+                                  className="inline-flex items-center gap-1 h-8 px-2.5 rounded bg-neutral-900 text-white hover:bg-neutral-700 text-[11px] font-semibold disabled:opacity-50"
+                                  data-testid={`button-approve-return-${request.id}`}
+                                >
+                                  <CheckCircle2 className="w-3.5 h-3.5" />
+                                  Kabul Et
+                                </button>
+                              </>
+                            )}
+                            {request.status === 'approved' && (
+                              <button
+                                type="button"
+                                disabled={isUpdatingReturn}
+                                onClick={() => handleReturnReceived(request)}
+                                className="inline-flex items-center gap-1 h-8 px-2.5 rounded bg-neutral-900 text-white hover:bg-neutral-700 text-[11px] font-semibold disabled:opacity-50"
+                                data-testid={`button-receive-return-${request.id}`}
+                              >
+                                <PackageCheck className="w-3.5 h-3.5" />
+                                Teslim Alındı
+                              </button>
+                            )}
+                            {(request.status === 'received' || request.status === 'partially_refunded' || request.status === 'refund_failed') && (
+                              <button
+                                type="button"
+                                disabled={isUpdatingReturn || eligible <= 0}
+                                onClick={() => handleReturnRefund(request)}
+                                className="inline-flex items-center gap-1 h-8 px-2.5 rounded bg-neutral-900 text-white hover:bg-neutral-700 text-[11px] font-semibold disabled:opacity-50"
+                                data-testid={`button-refund-return-${request.id}`}
+                              >
+                                {isUpdatingReturn ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Wallet className="w-3.5 h-3.5" />}
+                                ₺{formatCurrency(eligible)} geri öde
+                              </button>
+                            )}
+                          </div>
+                        </div>
+                      </div>
+                    );
+                  })}
                 </div>
               )}
             </Card>

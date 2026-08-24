@@ -18,6 +18,7 @@ import {
   RefreshCw,
   Banknote,
   Loader2,
+  RotateCcw,
 } from 'lucide-react';
 import {
   PageHeader,
@@ -48,6 +49,18 @@ interface Order {
   paymentMethod?: string | null;
   paymentStatus?: string | null;
   createdAt: string;
+}
+
+interface PendingReturn {
+  id: string;
+  reason: string;
+  createdAt: string;
+  items: Array<{ id: string; productName: string; requestedQuantity: number }>;
+  order: {
+    id: string;
+    orderNumber: string;
+    customerName: string;
+  } | null;
 }
 
 function BankTransferBadge({ awaitingTransfer = false }: { awaitingTransfer?: boolean }) {
@@ -316,6 +329,19 @@ export default function OrdersPanel({ initialSearch = '' }: OrdersTabProps) {
     refetchInterval: 30000,
   });
 
+  const {
+    data: pendingReturns = [],
+    isLoading: pendingReturnsLoading,
+  } = useQuery<PendingReturn[]>({
+    queryKey: ['admin', 'returns', 'pending'],
+    queryFn: async () => {
+      const r = await fetch('/api/admin/returns?status=pending', { credentials: 'include' });
+      if (!r.ok) throw new Error('Returns request failed');
+      return r.json();
+    },
+    refetchInterval: 30_000,
+  });
+
   const updateStatusMutation = useMutation({
     mutationFn: async ({ id, status }: { id: string; status: string }) => {
       const r = await fetch(`/api/admin/orders/${id}/status`, {
@@ -524,6 +550,47 @@ export default function OrdersPanel({ initialSearch = '' }: OrdersTabProps) {
           value={`₺${formatCurrency(stats.avgOrder)}`}
         />
       </div>
+
+      {(pendingReturnsLoading || pendingReturns.length > 0) && (
+        <Card className="p-5" data-testid="card-pending-returns">
+          <div className="flex items-center justify-between gap-3 mb-3">
+            <div>
+              <h3 className="text-[13px] font-semibold text-neutral-900 flex items-center gap-2">
+                <RotateCcw className="w-4 h-4" />
+                İnceleme Bekleyen İadeler
+              </h3>
+              <p className="text-[11px] text-neutral-500 mt-0.5">
+                Müşteri taleplerini açıp kalem bazında kabul veya ret verin.
+              </p>
+            </div>
+            <StatusBadge tone="amber">{pendingReturnsLoading ? 'Yükleniyor' : `${pendingReturns.length} talep`}</StatusBadge>
+          </div>
+          {pendingReturnsLoading ? (
+            <div className="h-10 bg-neutral-50 rounded animate-pulse" />
+          ) : (
+            <div className="divide-y divide-neutral-100">
+              {pendingReturns.slice(0, 5).map((request) => (
+                <Link
+                  key={request.id}
+                  href={`/toov-admin/orders/${request.order?.id}`}
+                  className="py-2.5 flex items-center justify-between gap-3 hover:bg-neutral-50 -mx-2 px-2 rounded-md"
+                  data-testid={`link-pending-return-${request.id}`}
+                >
+                  <div className="min-w-0">
+                    <p className="text-[12px] font-semibold text-neutral-800">
+                      {request.order?.orderNumber || 'Sipariş bulunamadı'} · {request.order?.customerName || 'Müşteri'}
+                    </p>
+                    <p className="text-[11px] text-neutral-500 truncate">
+                      {request.items.map((item) => `${item.productName} (${item.requestedQuantity})`).join(', ')}
+                    </p>
+                  </div>
+                  <span className="text-[11px] text-neutral-500 whitespace-nowrap">{timeAgo(request.createdAt)}</span>
+                </Link>
+              ))}
+            </div>
+          )}
+        </Card>
+      )}
 
       {/* Monthly Chart */}
       <Card className="p-5">

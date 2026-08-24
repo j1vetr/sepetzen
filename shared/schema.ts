@@ -324,6 +324,8 @@ export const orders = pgTable("orders", {
   status: text("status").default("pending").notNull(),
   paymentMethod: text("payment_method"),
   paymentStatus: text("payment_status").default("pending").notNull(),
+  refundStatus: text("refund_status").default("none").notNull(), // 'none' | 'pending' | 'partial' | 'full' | 'failed'
+  refundedAmount: decimal("refunded_amount", { precision: 10, scale: 2 }).default("0").notNull(),
   notes: text("notes"),
   trackingNumber: text("tracking_number"),
   trackingUrl: text("tracking_url"),
@@ -380,6 +382,8 @@ export const orderItems = pgTable("order_items", {
   price: decimal("price", { precision: 10, scale: 2 }).notNull(),
   quantity: integer("quantity").notNull(),
   subtotal: decimal("subtotal", { precision: 10, scale: 2 }).notNull(),
+  // Kargo hariç, sipariş indirimi dağıtılmış iade üst sınırı.
+  refundableAmount: decimal("refundable_amount", { precision: 10, scale: 2 }).default("0").notNull(),
   // Kişiselleştirme anlık görüntüsü: sipariş anındaki yazı ve birim ek ücret.
   // price alanı ücret DAHİL birim fiyattır; fee yalnızca gösterim içindir.
   personalizationText: text("personalization_text"),
@@ -392,6 +396,58 @@ export const insertOrderItemSchema = createInsertSchema(orderItems).omit({
 
 export type InsertOrderItem = z.infer<typeof insertOrderItemSchema>;
 export type OrderItem = typeof orderItems.$inferSelect;
+
+// Return requests and refund operations
+export const returnRequests = pgTable("return_requests", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  orderId: varchar("order_id").references(() => orders.id, { onDelete: "cascade" }).notNull(),
+  customerId: varchar("customer_id").references(() => users.id, { onDelete: "set null" }),
+  reason: text("reason").notNull(),
+  status: text("status").default("pending").notNull(), // 'pending' | 'approved' | 'rejected' | 'received' | 'refund_pending' | 'refunded' | 'partially_refunded' | 'refund_failed'
+  rejectionReason: text("rejection_reason"),
+  reviewedBy: varchar("reviewed_by"),
+  reviewedAt: timestamp("reviewed_at"),
+  receivedAt: timestamp("received_at"),
+  refundAmount: decimal("refund_amount", { precision: 10, scale: 2 }).default("0").notNull(),
+  refundProvider: text("refund_provider"),
+  refundReference: text("refund_reference"),
+  refundFailureReason: text("refund_failure_reason"),
+  refundedAt: timestamp("refunded_at"),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+});
+
+export const insertReturnRequestSchema = createInsertSchema(returnRequests).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+export type InsertReturnRequest = z.infer<typeof insertReturnRequestSchema>;
+export type ReturnRequest = typeof returnRequests.$inferSelect;
+
+export const returnRequestItems = pgTable("return_request_items", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  returnRequestId: varchar("return_request_id").references(() => returnRequests.id, { onDelete: "cascade" }).notNull(),
+  orderItemId: varchar("order_item_id").references(() => orderItems.id, { onDelete: "cascade" }).notNull(),
+  productId: varchar("product_id").references(() => products.id, { onDelete: "set null" }),
+  variantId: varchar("variant_id").references(() => productVariants.id, { onDelete: "set null" }),
+  productName: text("product_name").notNull(),
+  variantDetails: text("variant_details"),
+  requestedQuantity: integer("requested_quantity").notNull(),
+  approvedQuantity: integer("approved_quantity").default(0).notNull(),
+  status: text("status").default("pending").notNull(), // 'pending' | 'approved' | 'rejected' | 'received' | 'refunded'
+  unitPrice: decimal("unit_price", { precision: 10, scale: 2 }).notNull(),
+  unitRefundAmount: decimal("unit_refund_amount", { precision: 10, scale: 4 }).notNull(),
+  refundAmount: decimal("refund_amount", { precision: 10, scale: 2 }).default("0").notNull(),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
+export const insertReturnRequestItemSchema = createInsertSchema(returnRequestItems).omit({
+  id: true,
+  createdAt: true,
+});
+export type InsertReturnRequestItem = z.infer<typeof insertReturnRequestItemSchema>;
+export type ReturnRequestItem = typeof returnRequestItems.$inferSelect;
 
 // WooCommerce Integration
 export const woocommerceSettings = pgTable("woocommerce_settings", {

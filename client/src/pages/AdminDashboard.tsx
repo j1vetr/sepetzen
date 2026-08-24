@@ -212,6 +212,18 @@ export default function AdminDashboard() {
   });
   const pendingMarketplaceOrdersCount = pendingMpData?.count ?? 0;
 
+  const {
+    data: pendingReturnsData,
+    isLoading: pendingReturnsLoading,
+    isError: pendingReturnsError,
+  } = useQuery<{ count: number }>({
+    queryKey: ['/api/admin/returns/pending-count'],
+    enabled: !!adminUser,
+    refetchInterval: 60_000,
+    staleTime: 30_000,
+  });
+  const pendingReturnsCount = pendingReturnsData?.count ?? 0;
+
   if (userLoading) {
     return (
       <div className="min-h-screen bg-white flex items-center justify-center">
@@ -251,6 +263,7 @@ export default function AdminDashboard() {
             onMarketplaceOrders={handleMarketplaceOrders}
             pendingReviewsCount={pendingReviewsCount}
             pendingMarketplaceOrdersCount={pendingMarketplaceOrdersCount}
+            pendingReturnsCount={pendingReturnsCount}
             statsLoading={statsLoading}
             ordersLoading={ordersLoading}
             productsLoading={productsLoading}
@@ -260,6 +273,8 @@ export default function AdminDashboard() {
             pendingReviewsError={pendingReviewsError}
             pendingMarketplaceOrdersLoading={pendingMarketplaceOrdersLoading}
             pendingMarketplaceOrdersError={pendingMarketplaceOrdersError}
+            pendingReturnsLoading={pendingReturnsLoading}
+            pendingReturnsError={pendingReturnsError}
             statsError={statsError}
             ordersError={ordersError}
             productsError={productsError}

@@ -29,7 +29,8 @@ import {
   Heart,
   Plus,
   Trash2,
-  Home
+  Home,
+  RotateCcw,
 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { SEO } from '@/components/SEO';
@@ -64,6 +65,7 @@ interface Order {
   trackingUrl?: string;
   shippingCarrier?: string;
   items?: OrderItem[];
+  returnRequests?: ReturnRequest[];
 }
 
 interface OrderItem {
@@ -75,6 +77,36 @@ interface OrderItem {
   quantity: number;
   subtotal: string;
 }
+
+interface ReturnRequest {
+  id: string;
+  reason: string;
+  status: string;
+  rejectionReason?: string | null;
+  refundAmount: string;
+  createdAt: string;
+  reviewedAt?: string | null;
+  receivedAt?: string | null;
+  refundedAt?: string | null;
+  items: Array<{
+    id: string;
+    productName: string;
+    requestedQuantity: number;
+    approvedQuantity: number;
+    status: string;
+  }>;
+}
+
+const returnStatusLabels: Record<string, string> = {
+  pending: 'İnceleme bekliyor',
+  approved: 'Kabul edildi',
+  rejected: 'Reddedildi',
+  received: 'Teslim alındı',
+  refund_pending: 'Geri ödeme işleniyor',
+  refunded: 'Geri ödendi',
+  partially_refunded: 'Kısmi geri ödeme yapıldı',
+  refund_failed: 'Geri ödeme bekliyor',
+};
 
 interface UserAddress {
   id: string;
@@ -118,6 +150,9 @@ export default function Profile() {
     }
   }, [location]);
   const [selectedOrder, setSelectedOrder] = useState<Order | null>(null);
+  const [showReturnForm, setShowReturnForm] = useState(false);
+  const [returnReason, setReturnReason] = useState('');
+  const [returnQuantities, setReturnQuantities] = useState<Record<string, number>>({});
   const [isEditing, setIsEditing] = useState(false);
   const [profileForm, setProfileForm] = useState({
     firstName: '',
@@ -145,6 +180,35 @@ export default function Profile() {
       return res.json();
     },
     enabled: !!selectedOrder?.id,
+  });
+
+  const createReturnMutation = useMutation({
+    mutationFn: async (data: { orderId: string; reason: string; items: Array<{ orderItemId: string; quantity: number }> }) => {
+      const res = await fetch(`/api/orders/my/${data.orderId}/returns`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify({ reason: data.reason, items: data.items }),
+      });
+      const result = await res.json();
+      if (!res.ok) throw new Error(result.error || 'İade talebi oluşturulamadı');
+      return result;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['my-order', selectedOrder?.id] });
+      queryClient.invalidateQueries({ queryKey: ['my-orders'] });
+      setShowReturnForm(false);
+      setReturnReason('');
+      setReturnQuantities({});
+      toast({ title: 'İade talebiniz alındı', description: 'Talebiniz incelendikten sonra size bilgi verilecektir.' });
+    },
+    onError: (error) => {
+      toast({
+        title: 'İade talebi oluşturulamadı',
+        description: error instanceof Error ? error.message : 'Lütfen tekrar deneyin.',
+        variant: 'destructive',
+      });
+    },
   });
 
   const updateProfileMutation = useMutation({
@@ -1174,6 +1238,116 @@ export default function Profile() {
                     </div>
                   )}
                 </div>
+
+                {orderDetail && ['delivered', 'completed'].includes(selectedOrder.status) && (
+                  <div>
+                    <div className="flex items-center justify-between gap-3 mb-3">
+                      <h4 className="text-sm font-medium text-white/55 uppercase tracking-wider">İade ve Geri Ödeme</h4>
+                      {!showReturnForm && (
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setShowReturnForm(true);
+                            setReturnQuantities(
+                              Object.fromEntries((orderDetail.items || []).map((item) => [item.id, item.quantity])),
+                            );
+                          }}
+                          className="inline-flex items-center gap-1.5 px-3 py-2 text-xs font-semibold rounded-lg bg-white text-black hover:bg-white/90"
+                          data-testid="button-start-return"
+                        >
+                          <RotateCcw className="w-3.5 h-3.5" />
+                          İade Talebi Oluştur
+                        </button>
+                      )}
+                    </div>
+
+                    {(orderDetail.returnRequests || []).map((request) => (
+                      <div key={request.id} className="p-4 mb-2 bg-white/5 rounded-xl border border-white/10">
+                        <div className="flex items-center justify-between gap-3">
+                          <p className="text-sm font-semibold text-white">{returnStatusLabels[request.status] || request.status}</p>
+                          {Number(request.refundAmount || 0) > 0 && (
+                            <p className="text-sm font-semibold text-white">₺{request.refundAmount} geri ödeme</p>
+                          )}
+                        </div>
+                        <p className="text-xs text-white/55 mt-1">{formatTRDateTime(request.createdAt)} · {request.reason}</p>
+                        {request.rejectionReason && <p className="text-xs text-red-300 mt-2">Red sebebi: {request.rejectionReason}</p>}
+                        <div className="flex flex-wrap gap-x-3 gap-y-1 mt-3 text-[11px] text-white/45">
+                          {request.reviewedAt && <span>Karar: {formatTRDateTime(request.reviewedAt)}</span>}
+                          {request.receivedAt && <span>Teslim alındı: {formatTRDateTime(request.receivedAt)}</span>}
+                          {request.refundedAt && <span>Geri ödeme: {formatTRDateTime(request.refundedAt)}</span>}
+                        </div>
+                      </div>
+                    ))}
+
+                    {showReturnForm && (
+                      <form
+                        className="p-4 bg-white/5 rounded-xl border border-white/10 space-y-3"
+                        onSubmit={(event) => {
+                          event.preventDefault();
+                          const items = (orderDetail.items || [])
+                            .map((item) => ({ orderItemId: item.id, quantity: returnQuantities[item.id] || 0 }))
+                            .filter((item) => item.quantity > 0);
+                          createReturnMutation.mutate({
+                            orderId: selectedOrder.id,
+                            reason: returnReason,
+                            items,
+                          });
+                        }}
+                      >
+                        <p className="text-sm font-medium text-white">İade etmek istediğiniz ürünleri seçin</p>
+                        <div className="space-y-2">
+                          {(orderDetail.items || []).map((item) => (
+                            <label key={item.id} className="flex items-center justify-between gap-3 text-sm text-white/70">
+                              <span className="truncate">{item.productName}</span>
+                              <span className="flex items-center gap-2 shrink-0">
+                                <span className="text-xs text-white/45">Adet</span>
+                                <input
+                                  type="number"
+                                  min={0}
+                                  max={item.quantity}
+                                  value={returnQuantities[item.id] ?? 0}
+                                  onChange={(event) => setReturnQuantities((current) => ({
+                                    ...current,
+                                    [item.id]: Math.max(0, Math.min(item.quantity, Number(event.target.value))),
+                                  }))}
+                                  className="w-14 h-8 rounded-md bg-black/25 border border-white/15 px-2 text-sm text-white"
+                                  aria-label={`${item.productName} iade adedi`}
+                                />
+                              </span>
+                            </label>
+                          ))}
+                        </div>
+                        <textarea
+                          value={returnReason}
+                          onChange={(event) => setReturnReason(event.target.value)}
+                          minLength={5}
+                          required
+                          placeholder="İade nedeninizi yazın"
+                          className="w-full min-h-20 rounded-lg bg-black/25 border border-white/15 px-3 py-2 text-sm text-white placeholder:text-white/35"
+                          data-testid="input-return-reason"
+                        />
+                        <div className="flex justify-end gap-2">
+                          <button
+                            type="button"
+                            onClick={() => setShowReturnForm(false)}
+                            className="px-3 py-2 text-xs font-semibold text-white/65 hover:text-white"
+                          >
+                            Vazgeç
+                          </button>
+                          <button
+                            type="submit"
+                            disabled={createReturnMutation.isPending}
+                            className="inline-flex items-center gap-1.5 px-3 py-2 text-xs font-semibold rounded-lg bg-white text-black disabled:opacity-50"
+                            data-testid="button-submit-return"
+                          >
+                            {createReturnMutation.isPending && <Loader2 className="w-3.5 h-3.5 animate-spin" />}
+                            Talebi Gönder
+                          </button>
+                        </div>
+                      </form>
+                    )}
+                  </div>
+                )}
 
                 <div>
                   <h4 className="text-sm font-medium text-white/55 mb-3 uppercase tracking-wider">Teslimat Adresi</h4>

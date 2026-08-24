@@ -20,6 +20,7 @@ import {
   PackageOpen,
   AlertTriangle,
   RefreshCw,
+  RotateCcw,
 } from 'lucide-react';
 import type { ReactNode, ComponentType } from 'react';
 import type { Stats, Order, Product, ProductVariant, TabType } from './_shared/types';
@@ -34,6 +35,7 @@ interface DashboardTabProps {
   onMarketplaceOrders: () => void;
   pendingReviewsCount?: number;
   pendingMarketplaceOrdersCount?: number;
+  pendingReturnsCount?: number;
   statsLoading?: boolean;
   ordersLoading?: boolean;
   productsLoading?: boolean;
@@ -43,6 +45,8 @@ interface DashboardTabProps {
   pendingReviewsError?: boolean;
   pendingMarketplaceOrdersLoading?: boolean;
   pendingMarketplaceOrdersError?: boolean;
+  pendingReturnsLoading?: boolean;
+  pendingReturnsError?: boolean;
   statsError?: boolean;
   ordersError?: boolean;
   productsError?: boolean;
@@ -341,6 +345,7 @@ export default function DashboardTab({
   onMarketplaceOrders,
   pendingReviewsCount = 0,
   pendingMarketplaceOrdersCount = 0,
+  pendingReturnsCount = 0,
   statsLoading = false,
   ordersLoading = false,
   productsLoading = false,
@@ -350,6 +355,8 @@ export default function DashboardTab({
   pendingReviewsError = false,
   pendingMarketplaceOrdersLoading = false,
   pendingMarketplaceOrdersError = false,
+  pendingReturnsLoading = false,
+  pendingReturnsError = false,
   statsError = false,
   ordersError = false,
   productsError = false,
@@ -388,7 +395,8 @@ export default function DashboardTab({
     outOfStockCount +
     lowStockCount +
     pendingReviewsCount +
-    pendingMarketplaceOrdersCount;
+    pendingMarketplaceOrdersCount +
+    pendingReturnsCount;
   const queueDataReady =
     !ordersLoading &&
     !ordersError &&
@@ -397,7 +405,9 @@ export default function DashboardTab({
     !pendingReviewsLoading &&
     !pendingReviewsError &&
     !pendingMarketplaceOrdersLoading &&
-    !pendingMarketplaceOrdersError;
+    !pendingMarketplaceOrdersError &&
+    !pendingReturnsLoading &&
+    !pendingReturnsError;
 
   const statusCounts = orders.reduce<Record<string, number>>((acc, o) => {
     acc[o.status] = (acc[o.status] ?? 0) + 1;
@@ -476,7 +486,7 @@ export default function DashboardTab({
           </span>
         }
       >
-        <div className="grid grid-cols-2 gap-3 md:grid-cols-3 xl:grid-cols-6">
+        <div className="grid grid-cols-2 gap-3 md:grid-cols-3 xl:grid-cols-7">
           <ActionQueueCard
             label="Yeni sipariş"
             count={pendingOrderCount}
@@ -528,6 +538,16 @@ export default function DashboardTab({
             onClick={() => onNavigate('reviews')}
             loading={pendingReviewsLoading}
             error={pendingReviewsError}
+          />
+          <ActionQueueCard
+            label="İade bekliyor"
+            count={pendingReturnsCount}
+            description={pendingReturnsError ? 'İade sayısı alınamadı' : 'İnceleme bekleyen talepler'}
+            icon={RotateCcw}
+            tone="amber"
+            onClick={() => onNavigate('orders')}
+            loading={pendingReturnsLoading}
+            error={pendingReturnsError}
           />
           <ActionQueueCard
             label="Trendyol siparişi"
