@@ -132,13 +132,22 @@ function StatusSelect({
   onChange: (id: string, status: string) => void;
 }) {
   const [open, setOpen] = useState(false);
-  const [rect, setRect] = useState<DOMRect | null>(null);
+  const [menuPos, setMenuPos] = useState<{ top: number; left: number } | null>(null);
   const btnRef = useRef<HTMLButtonElement>(null);
   const cfg = STATUS_CONFIG[currentStatus] || STATUS_CONFIG.pending;
 
+  const MENU_HEIGHT = Object.keys(STATUS_CONFIG).length * 34 + 8; // ~seçenek sayısı × satır + padding
+
   const openDropdown = (e: React.MouseEvent) => {
     e.stopPropagation();
-    if (!open && btnRef.current) setRect(btnRef.current.getBoundingClientRect());
+    if (!open && btnRef.current) {
+      const r = btnRef.current.getBoundingClientRect();
+      const spaceBelow = window.innerHeight - r.bottom;
+      const top = spaceBelow < MENU_HEIGHT + 8
+        ? r.top - MENU_HEIGHT - 4   // yukarı aç
+        : r.bottom + 4;              // aşağı aç
+      setMenuPos({ top, left: r.left });
+    }
     setOpen((v) => !v);
   };
 
@@ -172,7 +181,7 @@ function StatusSelect({
         <StatusBadge tone={cfg.tone}>{cfg.label}</StatusBadge>
         <ChevronDown className="w-3 h-3 text-neutral-400" />
       </button>
-      {open && rect && createPortal(
+      {open && menuPos && createPortal(
         <>
           {/* backdrop */}
           <div
@@ -182,7 +191,7 @@ function StatusSelect({
           <div
             role="menu"
             aria-label="Sipariş durumu seç"
-            style={{ top: rect.bottom + 4, left: rect.left }}
+            style={{ top: menuPos.top, left: menuPos.left }}
             className="fixed z-[999] bg-white border border-neutral-200 rounded-md shadow-lg overflow-hidden min-w-[150px] py-1"
           >
             {Object.entries(STATUS_CONFIG).map(([val, conf]) => (

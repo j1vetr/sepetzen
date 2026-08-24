@@ -6,6 +6,8 @@ import { Link, useLocation } from 'wouter';
 import { useQuery } from '@tanstack/react-query';
 import { FreeShippingBadge } from './FreeShippingBadge';
 import { isFreeShippingPromotion } from '@/lib/promotionBadge';
+import { isDiscountBadgeActive } from '@/lib/discountBadgeActive';
+import { getOriginalPrice } from '@/lib/discountPrice';
 import { useFreeShippingThreshold } from '@/hooks/useShippingSettings';
 
 interface SearchProduct {
@@ -16,6 +18,10 @@ interface SearchProduct {
   images: string[];
   isNew?: boolean;
   discountBadge?: string | null;
+  discountBadgeStartDate?: string | null;
+  discountBadgeEndDate?: string | null;
+  avgRating?: number | null;
+  reviewCount?: number | null;
 }
 
 interface SearchCategory {
@@ -302,8 +308,8 @@ export function SearchOverlay({ isOpen, onClose }: SearchOverlayProps) {
                               {product.isNew && (
                                 <span className="storefront-new-badge storefront-new-badge--compact">Yeni</span>
                               )}
-                              {!isFreeShippingPromotion(product.discountBadge) && product.discountBadge && (
-                                <span className="rounded-sm bg-white px-1.5 py-0.5 text-[8px] font-bold uppercase tracking-[0.14em] text-black">
+                              {!isFreeShippingPromotion(product.discountBadge) && isDiscountBadgeActive(product.discountBadge, product.discountBadgeStartDate, product.discountBadgeEndDate) && (
+                                <span className="backdrop-blur-sm bg-red-600/70 text-white px-1.5 py-0.5 text-[8px] font-bold uppercase tracking-[0.14em]">
                                   {product.discountBadge}
                                 </span>
                               )}
@@ -317,24 +323,46 @@ export function SearchOverlay({ isOpen, onClose }: SearchOverlayProps) {
                             />
 
                             {/* Fiyat altta */}
-                            <div className="absolute inset-x-0 bottom-0 px-2.5 pb-2.5">
-                              <p
-                                className="text-[13px] font-bold text-white"
-                                data-testid={`text-search-price-${product.id}`}
-                              >
-                                {formatPrice(product.basePrice)} ₺
-                              </p>
-                            </div>
+                            {(() => {
+                              const pr = parseFloat(product.basePrice || '0') || 0;
+                              const activeDiscount = !isFreeShippingPromotion(product.discountBadge) && isDiscountBadgeActive(product.discountBadge, product.discountBadgeStartDate, product.discountBadgeEndDate);
+                              const origPr = activeDiscount ? getOriginalPrice(pr, product.discountBadge) : null;
+                              return (
+                                <div className="absolute inset-x-0 bottom-0 px-2.5 pb-2.5 flex items-baseline gap-1.5">
+                                  {origPr && (
+                                    <span className="text-[10px] text-white/40 line-through">{origPr.toLocaleString('tr-TR', { maximumFractionDigits: 0 })} ₺</span>
+                                  )}
+                                  <p
+                                    className={`text-[13px] font-bold ${origPr ? 'text-amber-400' : 'text-white'}`}
+                                    data-testid={`text-search-price-${product.id}`}
+                                  >
+                                    {formatPrice(product.basePrice)} ₺
+                                  </p>
+                                </div>
+                              );
+                            })()}
                           </div>
 
-                          {/* İsim */}
-                          <div className="px-2.5 py-2">
+                          {/* İsim + Rating */}
+                          <div className="px-2.5 py-2 space-y-1">
                             <h4
                               className="line-clamp-2 text-[11.5px] font-medium leading-snug text-white/75 transition-colors group-hover:text-white"
                               data-testid={`text-search-name-${product.id}`}
                             >
                               {product.name}
                             </h4>
+                            {!!product.reviewCount && product.reviewCount > 0 && !!product.avgRating && product.avgRating > 0 && (
+                              <div className="flex items-center gap-1">
+                                {[1,2,3,4,5].map(s => (
+                                  <svg key={s} viewBox="0 0 12 12" className="w-2.5 h-2.5 shrink-0">
+                                    <polygon points="6,1 7.5,4.5 11,4.8 8.5,7 9.2,11 6,9 2.8,11 3.5,7 1,4.8 4.5,4.5"
+                                      fill={product.avgRating! >= s ? '#F59E0B' : 'none'}
+                                      stroke="#F59E0B" strokeWidth={product.avgRating! >= s ? 0 : 0.8} opacity={product.avgRating! >= s ? 1 : 0.3} />
+                                  </svg>
+                                ))}
+                                <span className="text-[9px] text-white/40">({product.reviewCount})</span>
+                              </div>
+                            )}
                           </div>
                         </Link>
                       ))}

@@ -24,9 +24,30 @@ export const mobileNavItemSchema = z.object({
   icon: z.enum(["home", "store", "cart", "user", "heart", "search", "phone", "grid"]),
 });
 
+export const topBannerSchema = z.object({
+  enabled: z.boolean().default(false),
+  imageUrl: z.string().default(''),
+  linkUrl: z.string().default(''),
+});
+
+export const popupBannerSchema = z.object({
+  enabled: z.boolean().default(false),
+  imageUrl: z.string().default(''),
+  linkUrl: z.string().default(''),
+  title: z.string().default(''),
+  body: z.string().default(''),
+  showAfterSeconds: z.number().int().min(0).default(3),
+  showOnce: z.boolean().default(true),
+});
+
 export const siteIdentitySchema = z.object({
   logoUrl: z.string().min(1),
   faviconUrl: z.string().min(1),
+  tickerEnabled: z.boolean().default(true),
+  tickerSpeed: z.number().int().min(5).max(120).default(28),
+  tickerTextColor: z.string().default('#ffffff'),
+  topBanner: topBannerSchema.default({}),
+  popupBanner: popupBannerSchema.default({}),
   announcements: z.array(z.string().min(1)).min(1),
   phone: z.string().min(1),
   phoneHref: z.string().min(1),
@@ -43,11 +64,18 @@ export const siteIdentitySchema = z.object({
 export type FooterLink = z.infer<typeof footerLinkSchema>;
 export type SocialLink = z.infer<typeof socialLinkSchema>;
 export type MobileNavItem = z.infer<typeof mobileNavItemSchema>;
+export type TopBanner = z.infer<typeof topBannerSchema>;
+export type PopupBanner = z.infer<typeof popupBannerSchema>;
 export type SiteIdentity = z.infer<typeof siteIdentitySchema>;
 
 export const DEFAULT_SITE_IDENTITY: SiteIdentity = {
   logoUrl: "/uploads/branding/sepetzen-logo-white.png",
   faviconUrl: "/favicon.png",
+  tickerEnabled: true,
+  tickerSpeed: 28,
+  tickerTextColor: "#ffffff",
+  topBanner: { enabled: false, imageUrl: "", linkUrl: "" },
+  popupBanner: { enabled: false, imageUrl: "", linkUrl: "", title: "", body: "", showAfterSeconds: 3, showOnce: true },
   announcements: [
     "1500 TL ve Üzeri Ücretsiz Kargo!",
     "İlk Siparişinize Sepette %10 İndirim!",

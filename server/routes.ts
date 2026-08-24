@@ -15,7 +15,7 @@ import fs from "fs";
 import PDFDocument from "pdfkit";
 import sharp from "sharp";
 import { cache, CACHE_KEYS, CACHE_TTL } from "./cache";
-import { eq, desc, sql, ilike, or, inArray, isNotNull } from "drizzle-orm";
+import { eq, desc, sql, ilike, or, inArray, isNotNull, avg, count } from "drizzle-orm";
 import { insertAdminUserSchema, insertCategorySchema, insertProductSchema, insertProductVariantSchema, insertCartItemSchema, insertOrderSchema, insertOrderItemSchema, insertUserSchema, adminUpdateUserSchema, personalizationConfigSchema, couponRedemptions, orders, coupons, products, stockAdjustments, productCategories, productVariants, users, categories, blogPosts, pages, productReviews, orderItems, marketplaceProducts, marketplaces as marketplacesTable } from "@shared/schema";
 import { optimizeImage, optimizeImageBuffer, optimizeUploadedFiles, verifyImageContent } from "./imageOptimizer";
 import {
@@ -1625,12 +1625,12 @@ KURALLAR:
   });
 
   // Allowed upload types for security
-  const ALLOWED_UPLOAD_TYPES = ['products', 'categories', 'hero', 'branding', 'blog'];
+  const ALLOWED_UPLOAD_TYPES = ['products', 'categories', 'hero', 'branding', 'blog', 'videos'];
 
   // File Upload Route with type validation and image optimization
   app.post("/api/admin/upload/:type", requireAdmin, (req, res, next) => {
-    // Ürün yüklemelerinde resim + video desteklenir; diğer tipler yalnızca resim
-    const multerMiddleware = req.params.type === 'products'
+    // products ve videos tiplerinde resim + video desteklenir; diğer tipler yalnızca resim
+    const multerMiddleware = (req.params.type === 'products' || req.params.type === 'videos')
       ? productMediaUpload.array("images", 20)
       : upload.array("images", 20);
     multerMiddleware(req, res, (err) => {
@@ -2590,7 +2590,34 @@ KURALLAR:
         sort: sort as 'price_asc' | 'price_desc' | 'newest' | 'popular' | undefined,
         limit: limit ? parseInt(limit as string, 10) : undefined,
       });
-      res.json(products);
+
+      // Tek sorguda tüm ürünlerin ortalama puanı ve yorum sayısı
+      const productIds = products.map(p => p.id);
+      let ratingsMap: Record<string, { avgRating: number; reviewCount: number }> = {};
+      if (productIds.length > 0) {
+        const ratingRows = await db
+          .select({
+            productId: productReviews.productId,
+            avgRating: avg(productReviews.rating),
+            reviewCount: count(productReviews.id),
+          })
+          .from(productReviews)
+          .where(inArray(productReviews.productId, productIds))
+          .groupBy(productReviews.productId);
+        for (const row of ratingRows) {
+          ratingsMap[row.productId] = {
+            avgRating: Math.round((Number(row.avgRating) || 0) * 10) / 10,
+            reviewCount: Number(row.reviewCount) || 0,
+          };
+        }
+      }
+
+      const productsWithRating = products.map(p => ({
+        ...p,
+        avgRating: ratingsMap[p.id]?.avgRating ?? 0,
+        reviewCount: ratingsMap[p.id]?.reviewCount ?? 0,
+      }));
+      res.json(productsWithRating);
     } catch (error) {
       res.status(500).json({ error: "Failed to fetch products" });
     }

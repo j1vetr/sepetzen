@@ -12,6 +12,7 @@ import { ScrollToTop } from "@/components/ScrollToTop";
 import { MobileBottomNav } from "@/components/MobileBottomNav";
 import { GoogleAuthNotice } from "@/components/GoogleAuthNotice";
 import { CookieConsent } from "@/components/CookieConsent";
+import { PopupBanner } from "@/components/PopupBanner";
 
 const Home = lazy(() => import("@/pages/Home"));
 const Category = lazy(() => import("@/pages/Category"));
@@ -124,6 +125,7 @@ function AppShell() {
       <Router />
       <CookieConsent />
       <MobileBottomNav />
+      {!isAdmin && <PopupBanner />}
     </div>
   );
 }

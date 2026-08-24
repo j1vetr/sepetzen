@@ -71,7 +71,7 @@ export function ShippingCountdown() {
 
   return (
     <div className="flex items-center gap-2 min-w-0">
-      <div className="flex-shrink-0 w-7 h-7 bg-white/8 border border-white/10 flex items-center justify-center">
+      <div className="flex-shrink-0 w-7 h-7 bg-white/8 border border-white/10 rounded-[15px] flex items-center justify-center">
         <Truck className="w-3.5 h-3.5 text-white/50" />
       </div>
       <p className="text-xs text-white/65 leading-tight min-w-0">

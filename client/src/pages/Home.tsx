@@ -279,6 +279,9 @@ function HeroSlider({ products, slides }: { products: Product[]; slides: HeroSli
 
       </div>
 
+      {/* Desktop hero marquee — masaüstünde, hero altında */}
+      <DesktopHeroMarquee products={products} />
+
       {/* Mobile marquee — hero içinde, altta */}
       <MobileMarquee products={products} />
     </section>
@@ -835,6 +838,94 @@ function TrustStrip({ items: rawItems }: { items: TrustItem[] }) {
         </div>
       </div>
     </section>
+  );
+}
+
+// ─── DESKTOP HERO MARQUEE (masaüstü — hero altı kayan ürün şeridi) ────────────
+
+function DesktopHeroMarquee({ products }: { products: Product[] }) {
+  const freeShippingThreshold = useFreeShippingThreshold();
+  const items = useMemo(() => {
+    const withImages = products.filter(p => p.images?.length);
+    const shuffled = [...withImages].sort(() => Math.random() - 0.5);
+    return shuffled.slice(0, 16);
+  }, [products]);
+
+  if (!items.length) return null;
+
+  const doubled = [...items, ...items];
+
+  return (
+    <div
+      className="hidden lg:block overflow-hidden py-4"
+      style={{
+        background: 'rgba(255,255,255,0.045)',
+        backdropFilter: 'blur(20px)',
+        WebkitBackdropFilter: 'blur(20px)',
+        maskImage: 'linear-gradient(to right, transparent, black 80px, black calc(100% - 80px), transparent)',
+        WebkitMaskImage: 'linear-gradient(to right, transparent, black 80px, black calc(100% - 80px), transparent)',
+      }}
+      data-testid="scene-desktop-hero-marquee"
+    >
+      <div
+        className="marquee-track gap-3 px-4"
+        style={{ animationDuration: '42s' }}
+      >
+        {doubled.map((p, i) => {
+          const price = parseFloat(String(p.basePrice || '0')) || 0;
+          const isVideo = /\.(mp4|webm|mov)(\?.*)?$/i.test(p.images?.[0] || '');
+          return (
+            <Link
+              key={`desk-${p.id}-${i}`}
+              href={`/urun/${p.slug}`}
+              className="group shrink-0 w-[150px] flex flex-col overflow-hidden hover:scale-[1.04] transition-transform duration-300"
+              data-testid={`link-desktop-marquee-${p.id}`}
+            >
+              {/* Görsel */}
+              <div className="relative w-[150px] h-[190px] overflow-hidden bg-black/20 shrink-0">
+                {p.images?.[0] ? (
+                  isVideo ? (
+                    <video
+                      src={p.images[0]}
+                      className="absolute inset-0 w-full h-full object-cover"
+                      autoPlay muted loop playsInline
+                    />
+                  ) : (
+                    <img
+                      src={p.images[0]}
+                      alt={p.name}
+                      loading="lazy"
+                      decoding="async"
+                      className="absolute inset-0 w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+                    />
+                  )
+                ) : (
+                  <div className="absolute inset-0 bg-white/5" />
+                )}
+                {/* badges */}
+                <div className="absolute top-1.5 left-1.5 flex flex-col gap-1">
+                  {p.isNew && (
+                    <span className="text-[7px] tracking-[0.18em] uppercase text-white bg-[#141414]/80 px-1.5 py-0.5 font-bold">
+                      Yeni
+                    </span>
+                  )}
+                  <FreeShippingBadge size="compact" productPrice={price} threshold={freeShippingThreshold} />
+                </div>
+              </div>
+              {/* Bilgi */}
+              <div className="px-2.5 py-2 flex-1 bg-black/25">
+                <p className="text-[10.5px] font-medium text-white/80 group-hover:text-white transition-colors leading-snug line-clamp-2 mb-1">
+                  {p.name}
+                </p>
+                <p className="text-[12.5px] font-bold text-white leading-none">
+                  {price.toLocaleString('tr-TR', { maximumFractionDigits: 0 })} ₺
+                </p>
+              </div>
+            </Link>
+          );
+        })}
+      </div>
+    </div>
   );
 }
 

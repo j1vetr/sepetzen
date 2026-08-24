@@ -27,6 +27,7 @@ import { useSiteIdentity } from '@/hooks/useSiteIdentity';
 import { useFreeShippingThreshold } from '@/hooks/useShippingSettings';
 import { bindShippingThresholdText } from '@shared/shipping';
 import { SearchOverlay } from '@/components/SearchOverlay';
+import { TopBanner } from '@/components/TopBanner';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -301,9 +302,17 @@ export function Header() {
   const sidebarProduct = megaFeaturedProducts[sidebarProductIdx] ?? null;
   const rightProducts = megaFeaturedProducts.slice(0, 2);
 
+  const tickerEnabled = siteIdentity.tickerEnabled ?? true;
+  const tickerDuration = `${siteIdentity.tickerSpeed ?? 28}s`;
+  const tickerColor = siteIdentity.tickerTextColor ?? '#ffffff';
+
   return (
     <>
+      {/* ── Top Banner (image/GIF) ── */}
+      <TopBanner />
+
       {/* ── Top utility strip (desktop) ── */}
+      {tickerEnabled && (
       <div className="hidden lg:block bg-black text-white border-b border-white/8" data-testid="utility-strip">
         <div className="max-w-[1400px] mx-auto px-8 h-10 flex items-center justify-between">
           <div
@@ -311,13 +320,13 @@ export function Header() {
             style={{ maskImage: 'linear-gradient(to right, transparent, black 24px, black calc(100% - 24px), transparent)', WebkitMaskImage: 'linear-gradient(to right, transparent, black 24px, black calc(100% - 24px), transparent)' }}
             data-testid="utility-marquee"
           >
-            <div className="marquee-track motion-reduce:animate-none text-[11px] tracking-[0.04em] font-medium" style={{ animationDuration: '28s' }}>
+            <div className="marquee-track motion-reduce:animate-none text-[11px] tracking-[0.04em] font-medium" style={{ animationDuration: tickerDuration }}>
               {[0, 1].map((copy) => (
                 <div key={copy} className="flex shrink-0 items-center" aria-hidden={copy === 1}>
                   {announcements.map((msg) => (
                     <span key={msg} className="flex items-center whitespace-nowrap">
-                      <span className="px-5 text-white hover:text-white/70 transition-colors cursor-default">{msg}</span>
-                      <span className="text-white/30">✦</span>
+                      <span className="px-5 hover:opacity-70 transition-opacity cursor-default" style={{ color: tickerColor }}>{msg}</span>
+                      <span style={{ color: tickerColor, opacity: 0.3 }}>✦</span>
                     </span>
                   ))}
                 </div>
@@ -334,25 +343,28 @@ export function Header() {
           </div>
         </div>
       </div>
+      )}
 
       {/* ── Announcement Bar (mobile) ── */}
+      {tickerEnabled && (
       <div
-        className="lg:hidden bg-gradient-to-r from-black via-zinc-950 to-black text-white py-2 text-[11px] tracking-[0.04em] font-medium overflow-hidden"
+        className="lg:hidden bg-gradient-to-r from-black via-zinc-950 to-black py-2 text-[11px] tracking-[0.04em] font-medium overflow-hidden"
         data-testid="announcement-bar"
       >
-        <div className="marquee-track motion-reduce:animate-none" style={{ animationDuration: '28s' }} aria-hidden={false}>
+        <div className="marquee-track motion-reduce:animate-none" style={{ animationDuration: tickerDuration }} aria-hidden={false}>
           {[0, 1].map((copy) => (
             <div key={copy} className="flex shrink-0 items-center" aria-hidden={copy === 1}>
               {announcements.map((msg) => (
                 <span key={msg} className="flex items-center whitespace-nowrap">
-                  <span className="px-5 text-white hover:text-white/70 transition-colors cursor-default">{msg}</span>
-                  <span className="text-white/30">✦</span>
+                  <span className="px-5 hover:opacity-70 transition-opacity cursor-default" style={{ color: tickerColor }}>{msg}</span>
+                  <span style={{ color: tickerColor, opacity: 0.3 }}>✦</span>
                 </span>
               ))}
             </div>
           ))}
         </div>
       </div>
+      )}
 
       {/* ── Brand bar (desktop): Logo · Arama · Hesap/Sepet ── */}
       <div className="hidden lg:block bg-[#0A0A0A] border-b border-white/8">

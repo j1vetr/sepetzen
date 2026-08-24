@@ -14,6 +14,7 @@ import { FreeShippingBadge } from './FreeShippingBadge';
 import { getOriginalPrice } from '@/lib/discountPrice';
 import { useFreeShippingThreshold } from '@/hooks/useShippingSettings';
 import { isFreeShippingPromotion } from '@/lib/promotionBadge';
+import { isDiscountBadgeActive } from '@/lib/discountBadgeActive';
 
 interface ProductVariant {
   id: string;
@@ -33,6 +34,10 @@ interface Product {
   images: string[];
   isNew?: boolean;
   discountBadge?: string | null;
+  discountBadgeStartDate?: string | null;
+  discountBadgeEndDate?: string | null;
+  avgRating?: number | null;
+  reviewCount?: number | null;
   variants?: ProductVariant[];
   availableSizes?: string[];
   availableColors?: { name: string; hex: string | null }[];
@@ -52,9 +57,11 @@ export const ProductCard = memo(function ProductCard({ product }: ProductCardPro
   const price = parseFloat(product.basePrice || '0') || 0;
   const originalPrice = getOriginalPrice(price, product.discountBadge);
   const freeShippingThreshold = useFreeShippingThreshold();
-  const visibleDiscountBadge = !isFreeShippingPromotion(product.discountBadge)
-    ? product.discountBadge
-    : null;
+  const visibleDiscountBadge =
+    !isFreeShippingPromotion(product.discountBadge) &&
+    isDiscountBadgeActive(product.discountBadge, product.discountBadgeStartDate, product.discountBadgeEndDate)
+      ? product.discountBadge
+      : null;
   const mainImage = product.images && product.images.length > 0
     ? product.images[0]
     : 'https://images.unsplash.com/photo-1618354691373-d851c5c3a990?w=600&h=800&fit=crop';
@@ -123,7 +130,7 @@ export const ProductCard = memo(function ProductCard({ product }: ProductCardPro
               <div className="absolute top-3 left-3 z-10 flex flex-col items-start gap-1.5">
                 {visibleDiscountBadge && (
                   <span
-                    className="bg-white text-black text-[10px] font-bold tracking-wider px-2.5 py-1 uppercase"
+                    className="backdrop-blur-sm bg-red-600/70 text-white text-[10px] font-bold tracking-wider px-2.5 py-1 uppercase"
                     data-testid={`badge-discount-${product.id}`}
                   >
                     {visibleDiscountBadge}
@@ -182,15 +189,49 @@ export const ProductCard = memo(function ProductCard({ product }: ProductCardPro
           </div>
 
           {/* Info */}
-          <div className="mt-3 space-y-1">
+          <div className="mt-3 space-y-1.5">
             <h3
               className="text-sm font-medium text-white line-clamp-1 leading-snug"
               data-testid={`text-product-name-${product.id}`}
             >
               {product.name}
             </h3>
+
+            {/* Yıldız puanı */}
+            {!!product.reviewCount && product.reviewCount > 0 && !!product.avgRating && product.avgRating > 0 && (
+              <div className="flex items-center gap-1.5" data-testid={`rating-${product.id}`}>
+                <div className="flex items-center gap-0.5">
+                  {[1, 2, 3, 4, 5].map(star => {
+                    const filled = product.avgRating! >= star;
+                    const half = !filled && product.avgRating! >= star - 0.5;
+                    return (
+                      <svg key={star} viewBox="0 0 12 12" className="w-3 h-3 shrink-0">
+                        <defs>
+                          <linearGradient id={`half-${product.id}-${star}`} x1="0" x2="1" y1="0" y2="0">
+                            <stop offset="50%" stopColor="#F59E0B" />
+                            <stop offset="50%" stopColor="transparent" />
+                          </linearGradient>
+                        </defs>
+                        <polygon
+                          points="6,1 7.5,4.5 11,4.8 8.5,7 9.2,11 6,9 2.8,11 3.5,7 1,4.8 4.5,4.5"
+                          fill={filled ? '#F59E0B' : half ? `url(#half-${product.id}-${star})` : 'none'}
+                          stroke="#F59E0B"
+                          strokeWidth={filled || half ? 0 : 0.8}
+                          opacity={filled || half ? 1 : 0.3}
+                        />
+                      </svg>
+                    );
+                  })}
+                </div>
+                <span className="text-[10px] text-white/45 leading-none">
+                  {product.avgRating!.toFixed(1)} <span className="text-white/25">({product.reviewCount})</span>
+                </span>
+              </div>
+            )}
+
+            {/* Fiyat */}
             <div className="flex items-center gap-2">
-              {originalPrice && (
+              {originalPrice && visibleDiscountBadge && (
                 <span
                   className="text-xs text-white/35 line-through"
                   data-testid={`text-original-price-${product.id}`}
@@ -199,7 +240,7 @@ export const ProductCard = memo(function ProductCard({ product }: ProductCardPro
                 </span>
               )}
               <span
-                className="text-sm font-semibold text-white"
+                className={`text-sm font-semibold ${originalPrice && visibleDiscountBadge ? 'text-amber-400' : 'text-white'}`}
                 data-testid={`text-price-${product.id}`}
               >
                 {price.toLocaleString('tr-TR')} ₺

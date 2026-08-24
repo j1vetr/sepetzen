@@ -162,6 +162,8 @@ export const products = pgTable("products", {
   isFeatured: boolean("is_featured").default(false).notNull(),
   isNew: boolean("is_new").default(false).notNull(),
   discountBadge: text("discount_badge"),
+  discountBadgeStartDate: text("discount_badge_start_date"), // ISO date string YYYY-MM-DD
+  discountBadgeEndDate: text("discount_badge_end_date"),     // ISO date string YYYY-MM-DD
   brand: text("brand"),
   // Ürün detay sekme içerikleri (null = site geneli varsayılan gösterilir)
   tabDelivery: jsonb("tab_delivery").$type<Array<{title: string; rows: Array<{key: string; value: string}>}>>(),

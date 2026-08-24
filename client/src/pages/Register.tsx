@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { useLocation } from 'wouter';
+import { useLocation, Link } from 'wouter';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -227,9 +227,9 @@ export default function Register() {
 
          <p className="text-[11px] text-white/55 text-center pt-1 leading-relaxed">
           Kayıt olarak{' '}
-           <span className="underline underline-offset-2 hover:text-white transition-colors cursor-pointer">Kullanım Koşulları</span>
+           <Link href="/sayfa/uyelik-sozlesmesi" className="underline underline-offset-2 hover:text-white transition-colors">Kullanım Koşulları</Link>
           {' '}ve{' '}
-           <span className="underline underline-offset-2 hover:text-white transition-colors cursor-pointer">Gizlilik Politikası</span>
+           <Link href="/sayfa/gizlilik-guvenlik" className="underline underline-offset-2 hover:text-white transition-colors">Gizlilik Politikası</Link>
           'nı kabul etmiş olursunuz.
         </p>
       </form>

@@ -1,8 +1,8 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import {
   Loader2, Plus, Trash2, ChevronUp, ChevronDown, Save, Upload,
-  Image as ImageIcon, Truck, ShieldCheck, Star, Eye, EyeOff,
+  Image as ImageIcon, Truck, ShieldCheck, Star, Eye, EyeOff, Video,
 } from 'lucide-react';
 import {
   DEFAULT_HOMEPAGE_CONTENT,
@@ -135,6 +135,25 @@ export default function HomepageTab() {
     const cards = [...content.videoCards];
     cards[i] = { ...cards[i], ...patch };
     update({ videoCards: cards });
+  };
+
+  const [uploadingVideo, setUploadingVideo] = useState<number | null>(null);
+  const videoFileRefs = useRef<(HTMLInputElement | null)[]>([]);
+
+  const handleVideoUpload = async (index: number, file: File) => {
+    setUploadingVideo(index);
+    try {
+      const fd = new FormData();
+      fd.append('images', file);
+      const res = await fetch('/api/admin/upload/videos', { method: 'POST', body: fd, credentials: 'include' });
+      const data = await res.json();
+      if (!res.ok || !data.urls?.[0]) throw new Error(data.error || 'Yükleme başarısız');
+      setVideo(index, { src: data.urls[0] });
+    } catch (e) {
+      alert(e instanceof Error ? e.message : 'Video yüklenemedi');
+    } finally {
+      setUploadingVideo(null);
+    }
   };
   const setTrust = (i: number, patch: Partial<TrustItem>) => {
     const items = [...content.trustItems];
@@ -282,8 +301,51 @@ export default function HomepageTab() {
                 </div>
               </div>
               <div className="sm:col-span-2">
-                <label className={labelCls}>Video URL (örn. /videos/dosya.mp4)</label>
-                <input className={inputCls} value={v.src} onChange={e => setVideo(i, { src: e.target.value })} data-testid={`input-video-src-${i}`} />
+                <label className={labelCls}>Video</label>
+                <input
+                  type="file"
+                  accept="video/mp4,video/webm,video/quicktime,.mp4,.webm,.mov"
+                  className="hidden"
+                  ref={el => { videoFileRefs.current[i] = el; }}
+                  onChange={e => { const f = e.target.files?.[0]; if (f) handleVideoUpload(i, f); e.target.value = ''; }}
+                />
+                {v.src ? (
+                  <div className="space-y-2">
+                    <video src={v.src} className="w-full max-h-40 rounded-lg border border-neutral-200 bg-black object-contain" muted playsInline />
+                    <div className="flex gap-2 items-center">
+                      <button type="button" onClick={() => videoFileRefs.current[i]?.click()} disabled={uploadingVideo === i}
+                        className="flex items-center gap-1.5 text-xs font-medium text-neutral-600 hover:text-neutral-900 border border-neutral-200 rounded px-2 py-1 transition-colors disabled:opacity-50">
+                        {uploadingVideo === i ? <Loader2 className="w-3 h-3 animate-spin" /> : <Upload className="w-3 h-3" />}
+                        {uploadingVideo === i ? 'Yükleniyor…' : 'Değiştir'}
+                      </button>
+                      <button type="button" onClick={() => setVideo(i, { src: '' })} className="text-xs text-red-500 hover:text-red-700 border border-red-200 rounded px-2 py-1">Kaldır</button>
+                      <span className="text-[10px] text-neutral-400 truncate flex-1 font-mono">{v.src}</span>
+                    </div>
+                  </div>
+                ) : (
+                  <div
+                    onClick={() => videoFileRefs.current[i]?.click()}
+                    className="flex flex-col items-center justify-center gap-2 p-6 border-2 border-dashed border-neutral-200 rounded-lg hover:border-neutral-400 hover:bg-neutral-50 transition-colors cursor-pointer"
+                    data-testid={`video-upload-zone-${i}`}
+                  >
+                    {uploadingVideo === i
+                      ? <Loader2 className="w-6 h-6 animate-spin text-neutral-400" />
+                      : <Video className="w-6 h-6 text-neutral-400" />}
+                    <span className="text-sm text-neutral-500 font-medium">
+                      {uploadingVideo === i ? 'Yükleniyor…' : 'Video yükle'}
+                    </span>
+                    <span className="text-xs text-neutral-400">MP4, WebM, MOV — max 200 MB</span>
+                    <span className="text-xs text-neutral-300">veya URL yaz:</span>
+                    <input
+                      className={`${inputCls} text-center text-xs`}
+                      value={v.src}
+                      onChange={e => setVideo(i, { src: e.target.value })}
+                      placeholder="/videos/dosya.mp4"
+                      onClick={e => e.stopPropagation()}
+                      data-testid={`input-video-src-${i}`}
+                    />
+                  </div>
+                )}
               </div>
               <div>
                 <label className={labelCls}>Başlık</label>

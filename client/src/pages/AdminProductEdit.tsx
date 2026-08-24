@@ -352,6 +352,9 @@ function ProductEditor({
     persFee: '',
     persLabel: '',
     persMaxChars: '',
+    discountBadge: '',
+    discountBadgeStartDate: '',
+    discountBadgeEndDate: '',
   });
   const [hydrated, setHydrated] = useState(false);
 
@@ -403,6 +406,9 @@ function ProductEditor({
       persMaxChars: (product as any)?.personalization?.maxChars
         ? String((product as any).personalization.maxChars)
         : '',
+      discountBadge: (product as any)?.discountBadge || '',
+      discountBadgeStartDate: (product as any)?.discountBadgeStartDate || '',
+      discountBadgeEndDate: (product as any)?.discountBadgeEndDate || '',
     });
     setColorInput(
       product?.availableColors?.[0]?.name
@@ -1530,6 +1536,35 @@ function ProductEditor({
                   data-testid="input-product-price"
                 />
               </FormField>
+              <FormField label="İndirim Etiketi" hint="Ürün kartında kırmızı badge. Tarih aralığı belirlenirse yalnızca o sürede görünür.">
+                <TextInput
+                  type="text"
+                  value={formData.discountBadge}
+                  onChange={(e) => setFormData({ ...formData, discountBadge: e.target.value })}
+                  placeholder="Örn: %20 İndirim"
+                  data-testid="input-product-discount-badge"
+                />
+              </FormField>
+              {formData.discountBadge && (
+                <div className="grid grid-cols-2 gap-3">
+                  <FormField label="Başlangıç Tarihi" hint="Boş = hemen başlar">
+                    <TextInput
+                      type="date"
+                      value={formData.discountBadgeStartDate}
+                      onChange={(e) => setFormData({ ...formData, discountBadgeStartDate: e.target.value })}
+                      data-testid="input-discount-badge-start"
+                    />
+                  </FormField>
+                  <FormField label="Bitiş Tarihi" hint="Boş = süresiz">
+                    <TextInput
+                      type="date"
+                      value={formData.discountBadgeEndDate}
+                      onChange={(e) => setFormData({ ...formData, discountBadgeEndDate: e.target.value })}
+                      data-testid="input-discount-badge-end"
+                    />
+                  </FormField>
+                </div>
+              )}
               {!productId && variantRows.length === 0 && (
                 <FormField label="Başlangıç Stoğu" hint="Otomatik oluşturulan varyanta atanır.">
                   <TextInput

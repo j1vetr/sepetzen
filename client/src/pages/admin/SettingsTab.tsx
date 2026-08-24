@@ -1,6 +1,6 @@
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useState, useEffect, type ComponentType } from 'react';
-import { Settings, Mail, Loader2, CheckCircle2, XCircle, Send, Server, CreditCard, Copy, AlertTriangle, Wrench, MessageCircle, KeyRound, ShieldCheck, Truck, MapPin, Megaphone, Globe, Banknote, Upload, ShoppingBag, Plus, Trash2, Sparkles } from 'lucide-react';
+import { Settings, Mail, Loader2, CheckCircle2, XCircle, Send, Server, CreditCard, Copy, AlertTriangle, Wrench, MessageCircle, KeyRound, ShieldCheck, Truck, MapPin, Megaphone, Globe, Banknote, Upload, ShoppingBag, Plus, Trash2, Sparkles, Zap, Image, Bell } from 'lucide-react';
 import { BANK_TRANSFER_INFO } from '@shared/bankInfo';
 import type { SiteIdentity, SocialLink, MobileNavItem } from '@shared/siteIdentity';
 import { COUNTRIES } from '@/lib/countries';
@@ -231,6 +231,375 @@ function ArasSenderAddressPicker({ value, onChange }: { value: string; onChange:
 
 // ── Contact Page Info ────────────────────────────────────────────────────
 // /sayfa/iletisim adresindeki telefon, e-posta ve adres bilgilerini yönetir.
+// ─── Yardımcı: site-identity kaydet ─────────────────────────────────────────
+async function saveSiteIdentityPatch(patch: Partial<SiteIdentity>): Promise<void> {
+  const res = await fetch('/api/admin/site-identity', { credentials: 'include' });
+  const current: SiteIdentity = res.ok ? await res.json() : {};
+  const merged = { ...current, ...patch };
+  const saveRes = await fetch('/api/admin/site-identity', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(merged),
+    credentials: 'include',
+  });
+  if (!saveRes.ok) {
+    const d = await saveRes.json().catch(() => ({}));
+    throw new Error(d.error || 'Kaydedilemedi');
+  }
+}
+
+async function uploadBannerImage(file: File): Promise<string> {
+  const formData = new FormData();
+  formData.append('images', file);
+  const res = await fetch('/api/admin/upload/branding', { method: 'POST', body: formData, credentials: 'include' });
+  const payload = await res.json().catch(() => ({}));
+  if (!res.ok || !payload.urls?.[0]) throw new Error(payload.error || 'Görsel yüklenemedi');
+  return payload.urls[0];
+}
+
+// ─── Ticker Ayarları ─────────────────────────────────────────────────────────
+function TickerSettingsSection() {
+  const qc = useQueryClient();
+  const { data } = useQuery<SiteIdentity>({ queryKey: ['/api/admin/site-identity'] });
+  const [enabled, setEnabled] = useState<boolean>(true);
+  const [speed, setSpeed] = useState<number>(28);
+  const [color, setColor] = useState<string>('#ffffff');
+  const [saving, setSaving] = useState(false);
+  const [msg, setMsg] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
+  const [hydrated, setHydrated] = useState(false);
+
+  useEffect(() => {
+    if (data && !hydrated) {
+      setEnabled(data.tickerEnabled ?? true);
+      setSpeed(data.tickerSpeed ?? 28);
+      setColor(data.tickerTextColor ?? '#ffffff');
+      setHydrated(true);
+    }
+  }, [data, hydrated]);
+
+  const handleSave = async () => {
+    setSaving(true); setMsg(null);
+    try {
+      await saveSiteIdentityPatch({ tickerEnabled: enabled, tickerSpeed: speed, tickerTextColor: color });
+      setMsg({ type: 'success', text: 'Ticker ayarları kaydedildi.' });
+      qc.invalidateQueries({ queryKey: ['/api/site-identity'] });
+      qc.invalidateQueries({ queryKey: ['/api/admin/site-identity'] });
+    } catch (e) {
+      setMsg({ type: 'error', text: e instanceof Error ? e.message : 'Hata' });
+    } finally { setSaving(false); }
+  };
+
+  return (
+    <div className="bg-white border border-neutral-200 rounded-xl p-6" data-testid="section-ticker-settings">
+      <div className="flex items-center gap-3 mb-5">
+        <div className="p-2 bg-amber-50 rounded-lg"><Zap className="w-5 h-5 text-amber-600" /></div>
+        <div>
+          <h3 className="text-lg font-semibold text-neutral-900">Kayan Yazı Bandı</h3>
+          <p className="text-sm text-neutral-500">Ticker hızı, rengi ve aktif/pasif durumu</p>
+        </div>
+      </div>
+      {msg && (
+        <div className={`flex items-center gap-2 p-3 rounded-lg mb-4 text-sm ${msg.type === 'success' ? 'bg-emerald-50 border border-emerald-200 text-emerald-700' : 'bg-red-50 border border-red-200 text-red-700'}`}>
+          {msg.type === 'success' ? <CheckCircle2 className="w-4 h-4 shrink-0" /> : <XCircle className="w-4 h-4 shrink-0" />}
+          {msg.text}
+        </div>
+      )}
+      <div className="space-y-4">
+        <div className="flex items-center justify-between p-3 bg-neutral-50 rounded-lg">
+          <div>
+            <p className="text-sm font-medium text-neutral-700">Aktif</p>
+            <p className="text-xs text-neutral-500">Pasif yapıldığında ticker gizlenir</p>
+          </div>
+          <button type="button" role="switch" aria-checked={enabled} onClick={() => setEnabled(v => !v)}
+            className={`relative inline-flex h-5 w-9 items-center rounded-full transition-colors ${enabled ? 'bg-emerald-500' : 'bg-neutral-300'}`}
+            data-testid="switch-ticker-enabled">
+            <span className={`inline-block h-3.5 w-3.5 transform rounded-full bg-white transition-transform ${enabled ? 'translate-x-[18px]' : 'translate-x-[3px]'}`} />
+          </button>
+        </div>
+        <div className="grid md:grid-cols-2 gap-4">
+          <div>
+            <label className="block text-sm font-medium text-neutral-700 mb-1.5">
+              Hız <span className="text-neutral-400 font-normal">(saniye — küçük = hızlı)</span>
+            </label>
+            <input type="number" min={5} max={120} value={speed}
+              onChange={e => setSpeed(Math.max(5, Math.min(120, Number(e.target.value))))}
+              className="w-full px-3 py-2 bg-neutral-50 border border-neutral-200 rounded-lg text-neutral-900 text-sm"
+              data-testid="input-ticker-speed" />
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-neutral-700 mb-1.5">Yazı Rengi</label>
+            <div className="flex items-center gap-2">
+              <input type="color" value={color} onChange={e => setColor(e.target.value)}
+                className="h-9 w-14 rounded border border-neutral-200 cursor-pointer p-0.5"
+                data-testid="input-ticker-color" />
+              <input type="text" value={color} onChange={e => setColor(e.target.value)}
+                className="flex-1 px-3 py-2 bg-neutral-50 border border-neutral-200 rounded-lg text-neutral-900 text-sm font-mono" />
+            </div>
+          </div>
+        </div>
+        <div className="pt-2 border-t border-neutral-100">
+          <button type="button" onClick={handleSave} disabled={saving}
+            className="flex items-center gap-2 px-5 py-2.5 bg-neutral-900 hover:bg-neutral-700 disabled:opacity-50 text-white text-sm font-semibold rounded-lg transition-colors"
+            data-testid="button-save-ticker">
+            {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : <CheckCircle2 className="w-4 h-4" />}
+            {saving ? 'Kaydediliyor…' : 'Kaydet'}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ─── Üst Banner ──────────────────────────────────────────────────────────────
+function TopBannerSection() {
+  const qc = useQueryClient();
+  const { data } = useQuery<SiteIdentity>({ queryKey: ['/api/admin/site-identity'] });
+  const [enabled, setEnabled] = useState(false);
+  const [imageUrl, setImageUrl] = useState('');
+  const [linkUrl, setLinkUrl] = useState('');
+  const [saving, setSaving] = useState(false);
+  const [uploading, setUploading] = useState(false);
+  const [msg, setMsg] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
+  const [hydrated, setHydrated] = useState(false);
+
+  useEffect(() => {
+    if (data && !hydrated) {
+      const b = data.topBanner;
+      setEnabled(b?.enabled ?? false);
+      setImageUrl(b?.imageUrl ?? '');
+      setLinkUrl(b?.linkUrl ?? '');
+      setHydrated(true);
+    }
+  }, [data, hydrated]);
+
+  const handleUpload = async (file: File) => {
+    setUploading(true); setMsg(null);
+    try { setImageUrl(await uploadBannerImage(file)); }
+    catch (e) { setMsg({ type: 'error', text: e instanceof Error ? e.message : 'Hata' }); }
+    finally { setUploading(false); }
+  };
+
+  const handleSave = async () => {
+    setSaving(true); setMsg(null);
+    try {
+      await saveSiteIdentityPatch({ topBanner: { enabled, imageUrl, linkUrl } });
+      setMsg({ type: 'success', text: 'Üst banner kaydedildi.' });
+      qc.invalidateQueries({ queryKey: ['/api/site-identity'] });
+      qc.invalidateQueries({ queryKey: ['/api/admin/site-identity'] });
+    } catch (e) {
+      setMsg({ type: 'error', text: e instanceof Error ? e.message : 'Hata' });
+    } finally { setSaving(false); }
+  };
+
+  return (
+    <div className="bg-white border border-neutral-200 rounded-xl p-6" data-testid="section-top-banner">
+      <div className="flex items-center gap-3 mb-5">
+        <div className="p-2 bg-blue-50 rounded-lg"><Image className="w-5 h-5 text-blue-600" /></div>
+        <div>
+          <h3 className="text-lg font-semibold text-neutral-900">Üst Banner</h3>
+          <p className="text-sm text-neutral-500">Ticker bandının üstünde gösterilen tam genişlik görsel veya GIF</p>
+        </div>
+      </div>
+      {msg && (
+        <div className={`flex items-center gap-2 p-3 rounded-lg mb-4 text-sm ${msg.type === 'success' ? 'bg-emerald-50 border border-emerald-200 text-emerald-700' : 'bg-red-50 border border-red-200 text-red-700'}`}>
+          {msg.type === 'success' ? <CheckCircle2 className="w-4 h-4 shrink-0" /> : <XCircle className="w-4 h-4 shrink-0" />}
+          {msg.text}
+        </div>
+      )}
+      <div className="space-y-4">
+        <div className="flex items-center justify-between p-3 bg-neutral-50 rounded-lg">
+          <div>
+            <p className="text-sm font-medium text-neutral-700">Aktif</p>
+            <p className="text-xs text-neutral-500">Pasif yapıldığında banner gizlenir</p>
+          </div>
+          <button type="button" role="switch" aria-checked={enabled} onClick={() => setEnabled(v => !v)}
+            className={`relative inline-flex h-5 w-9 items-center rounded-full transition-colors ${enabled ? 'bg-emerald-500' : 'bg-neutral-300'}`}
+            data-testid="switch-top-banner-enabled">
+            <span className={`inline-block h-3.5 w-3.5 transform rounded-full bg-white transition-transform ${enabled ? 'translate-x-[18px]' : 'translate-x-[3px]'}`} />
+          </button>
+        </div>
+
+        <div>
+          <label className="block text-sm font-medium text-neutral-700 mb-1.5">Banner Görseli (PNG, JPG, GIF, WebP)</label>
+          <input type="file" accept="image/*" className="hidden" id="top-banner-file"
+            onChange={e => { const f = e.target.files?.[0]; if (f) handleUpload(f); e.target.value = ''; }} />
+          {imageUrl ? (
+            <div className="space-y-2">
+              <img src={imageUrl} alt="Banner önizleme" className="w-full max-h-40 object-cover rounded-lg border border-neutral-200" />
+              <div className="flex gap-2">
+                <label htmlFor="top-banner-file" className="cursor-pointer text-xs font-medium text-neutral-600 hover:text-neutral-900 border border-neutral-200 rounded px-2 py-1 transition-colors">
+                  {uploading ? 'Yükleniyor…' : 'Değiştir'}
+                </label>
+                <button type="button" onClick={() => setImageUrl('')} className="text-xs text-red-500 hover:text-red-700 border border-red-200 rounded px-2 py-1">Kaldır</button>
+              </div>
+            </div>
+          ) : (
+            <label htmlFor="top-banner-file" className="flex flex-col items-center justify-center gap-2 p-6 border-2 border-dashed border-neutral-200 rounded-lg hover:border-neutral-400 hover:bg-neutral-50 transition-colors cursor-pointer">
+              {uploading ? <Loader2 className="w-5 h-5 animate-spin text-neutral-400" /> : <Upload className="w-5 h-5 text-neutral-400" />}
+              <span className="text-sm text-neutral-500">{uploading ? 'Yükleniyor…' : 'Bilgisayardan görsel seç'}</span>
+            </label>
+          )}
+        </div>
+
+        <div>
+          <label className="block text-sm font-medium text-neutral-700 mb-1.5">Tıklama Linki <span className="text-neutral-400 font-normal">(isteğe bağlı)</span></label>
+          <input type="url" value={linkUrl} onChange={e => setLinkUrl(e.target.value)} placeholder="https://..." className="w-full px-3 py-2 bg-neutral-50 border border-neutral-200 rounded-lg text-neutral-900 text-sm" data-testid="input-top-banner-link" />
+        </div>
+
+        <div className="pt-2 border-t border-neutral-100">
+          <button type="button" onClick={handleSave} disabled={saving}
+            className="flex items-center gap-2 px-5 py-2.5 bg-neutral-900 hover:bg-neutral-700 disabled:opacity-50 text-white text-sm font-semibold rounded-lg transition-colors"
+            data-testid="button-save-top-banner">
+            {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : <CheckCircle2 className="w-4 h-4" />}
+            {saving ? 'Kaydediliyor…' : 'Kaydet'}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ─── Popup Duyuru ────────────────────────────────────────────────────────────
+function PopupBannerSection() {
+  const qc = useQueryClient();
+  const { data } = useQuery<SiteIdentity>({ queryKey: ['/api/admin/site-identity'] });
+  const [enabled, setEnabled] = useState(false);
+  const [imageUrl, setImageUrl] = useState('');
+  const [linkUrl, setLinkUrl] = useState('');
+  const [title, setTitle] = useState('');
+  const [body, setBody] = useState('');
+  const [delay, setDelay] = useState(3);
+  const [showOnce, setShowOnce] = useState(true);
+  const [saving, setSaving] = useState(false);
+  const [uploading, setUploading] = useState(false);
+  const [msg, setMsg] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
+  const [hydrated, setHydrated] = useState(false);
+
+  useEffect(() => {
+    if (data && !hydrated) {
+      const p = data.popupBanner;
+      setEnabled(p?.enabled ?? false);
+      setImageUrl(p?.imageUrl ?? '');
+      setLinkUrl(p?.linkUrl ?? '');
+      setTitle(p?.title ?? '');
+      setBody(p?.body ?? '');
+      setDelay(p?.showAfterSeconds ?? 3);
+      setShowOnce(p?.showOnce ?? true);
+      setHydrated(true);
+    }
+  }, [data, hydrated]);
+
+  const handleUpload = async (file: File) => {
+    setUploading(true); setMsg(null);
+    try { setImageUrl(await uploadBannerImage(file)); }
+    catch (e) { setMsg({ type: 'error', text: e instanceof Error ? e.message : 'Hata' }); }
+    finally { setUploading(false); }
+  };
+
+  const handleSave = async () => {
+    setSaving(true); setMsg(null);
+    try {
+      await saveSiteIdentityPatch({ popupBanner: { enabled, imageUrl, linkUrl, title, body, showAfterSeconds: delay, showOnce } });
+      setMsg({ type: 'success', text: 'Popup duyuru kaydedildi.' });
+      qc.invalidateQueries({ queryKey: ['/api/site-identity'] });
+      qc.invalidateQueries({ queryKey: ['/api/admin/site-identity'] });
+    } catch (e) {
+      setMsg({ type: 'error', text: e instanceof Error ? e.message : 'Hata' });
+    } finally { setSaving(false); }
+  };
+
+  const inputCls = 'w-full px-3 py-2 bg-neutral-50 border border-neutral-200 rounded-lg text-neutral-900 text-sm';
+
+  return (
+    <div className="bg-white border border-neutral-200 rounded-xl p-6" data-testid="section-popup-banner">
+      <div className="flex items-center gap-3 mb-5">
+        <div className="p-2 bg-purple-50 rounded-lg"><Bell className="w-5 h-5 text-purple-600" /></div>
+        <div>
+          <h3 className="text-lg font-semibold text-neutral-900">Popup Duyuru</h3>
+          <p className="text-sm text-neutral-500">Ziyaretçilere sayfa açıldığında gösterilen popup</p>
+        </div>
+      </div>
+      {msg && (
+        <div className={`flex items-center gap-2 p-3 rounded-lg mb-4 text-sm ${msg.type === 'success' ? 'bg-emerald-50 border border-emerald-200 text-emerald-700' : 'bg-red-50 border border-red-200 text-red-700'}`}>
+          {msg.type === 'success' ? <CheckCircle2 className="w-4 h-4 shrink-0" /> : <XCircle className="w-4 h-4 shrink-0" />}
+          {msg.text}
+        </div>
+      )}
+      <div className="space-y-4">
+        <div className="flex items-center justify-between p-3 bg-neutral-50 rounded-lg">
+          <div>
+            <p className="text-sm font-medium text-neutral-700">Aktif</p>
+            <p className="text-xs text-neutral-500">Pasif yapıldığında popup gösterilmez</p>
+          </div>
+          <button type="button" role="switch" aria-checked={enabled} onClick={() => setEnabled(v => !v)}
+            className={`relative inline-flex h-5 w-9 items-center rounded-full transition-colors ${enabled ? 'bg-emerald-500' : 'bg-neutral-300'}`}
+            data-testid="switch-popup-enabled">
+            <span className={`inline-block h-3.5 w-3.5 transform rounded-full bg-white transition-transform ${enabled ? 'translate-x-[18px]' : 'translate-x-[3px]'}`} />
+          </button>
+        </div>
+
+        <div>
+          <label className="block text-sm font-medium text-neutral-700 mb-1.5">Popup Görseli (PNG, JPG, GIF, WebP)</label>
+          <input type="file" accept="image/*" className="hidden" id="popup-banner-file"
+            onChange={e => { const f = e.target.files?.[0]; if (f) handleUpload(f); e.target.value = ''; }} />
+          {imageUrl ? (
+            <div className="space-y-2">
+              <img src={imageUrl} alt="Popup önizleme" className="w-full max-h-48 object-contain rounded-lg border border-neutral-200 bg-neutral-100" />
+              <div className="flex gap-2">
+                <label htmlFor="popup-banner-file" className="cursor-pointer text-xs font-medium text-neutral-600 hover:text-neutral-900 border border-neutral-200 rounded px-2 py-1 transition-colors">
+                  {uploading ? 'Yükleniyor…' : 'Değiştir'}
+                </label>
+                <button type="button" onClick={() => setImageUrl('')} className="text-xs text-red-500 hover:text-red-700 border border-red-200 rounded px-2 py-1">Kaldır</button>
+              </div>
+            </div>
+          ) : (
+            <label htmlFor="popup-banner-file" className="flex flex-col items-center justify-center gap-2 p-6 border-2 border-dashed border-neutral-200 rounded-lg hover:border-neutral-400 hover:bg-neutral-50 transition-colors cursor-pointer">
+              {uploading ? <Loader2 className="w-5 h-5 animate-spin text-neutral-400" /> : <Upload className="w-5 h-5 text-neutral-400" />}
+              <span className="text-sm text-neutral-500">{uploading ? 'Yükleniyor…' : 'Bilgisayardan görsel seç'}</span>
+            </label>
+          )}
+        </div>
+
+        <div className="grid md:grid-cols-2 gap-4">
+          <div>
+            <label className="block text-sm font-medium text-neutral-700 mb-1.5">Başlık <span className="text-neutral-400 font-normal">(isteğe bağlı)</span></label>
+            <input type="text" value={title} onChange={e => setTitle(e.target.value)} placeholder="Özel Fırsat!" className={inputCls} data-testid="input-popup-title" />
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-neutral-700 mb-1.5">Tıklama Linki <span className="text-neutral-400 font-normal">(isteğe bağlı)</span></label>
+            <input type="url" value={linkUrl} onChange={e => setLinkUrl(e.target.value)} placeholder="https://..." className={inputCls} data-testid="input-popup-link" />
+          </div>
+        </div>
+
+        <div>
+          <label className="block text-sm font-medium text-neutral-700 mb-1.5">Açıklama <span className="text-neutral-400 font-normal">(isteğe bağlı)</span></label>
+          <textarea value={body} onChange={e => setBody(e.target.value)} rows={2} placeholder="Sınırlı süre kampanya..." className={inputCls} data-testid="input-popup-body" />
+        </div>
+
+        <div className="grid md:grid-cols-2 gap-4">
+          <div>
+            <label className="block text-sm font-medium text-neutral-700 mb-1.5">Gösterme Gecikmesi <span className="text-neutral-400 font-normal">(saniye)</span></label>
+            <input type="number" min={0} max={60} value={delay} onChange={e => setDelay(Math.max(0, Number(e.target.value)))} className={inputCls} data-testid="input-popup-delay" />
+          </div>
+          <div className="flex items-center gap-3 mt-5">
+            <input type="checkbox" id="popup-show-once" checked={showOnce} onChange={e => setShowOnce(e.target.checked)} className="w-4 h-4 accent-neutral-900" data-testid="checkbox-popup-show-once" />
+            <label htmlFor="popup-show-once" className="text-sm text-neutral-700 cursor-pointer">Her oturumda değil, bir kez göster</label>
+          </div>
+        </div>
+
+        <div className="pt-2 border-t border-neutral-100">
+          <button type="button" onClick={handleSave} disabled={saving}
+            className="flex items-center gap-2 px-5 py-2.5 bg-neutral-900 hover:bg-neutral-700 disabled:opacity-50 text-white text-sm font-semibold rounded-lg transition-colors"
+            data-testid="button-save-popup">
+            {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : <CheckCircle2 className="w-4 h-4" />}
+            {saving ? 'Kaydediliyor…' : 'Kaydet'}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 function ContactInfoSection() {
   const queryClient = useQueryClient();
   const [identity, setIdentity] = useState<SiteIdentity | null>(null);
@@ -1364,6 +1733,9 @@ export default function SettingsPanel({ initialSection = 'genel', contentOnly = 
       {section === 'genel' && (
         <div className="space-y-6">
           <ContactInfoSection />
+          <TickerSettingsSection />
+          <TopBannerSection />
+          <PopupBannerSection />
           <SiteIdentitySection />
         </div>
       )}

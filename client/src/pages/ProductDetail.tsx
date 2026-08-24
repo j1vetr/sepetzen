@@ -75,6 +75,7 @@ import { ShippingCountdown } from '@/components/ShippingCountdown';
 import { ProductCard } from '@/components/ProductCard';
 import { FreeShippingBadge } from '@/components/FreeShippingBadge';
 import { isFreeShippingPromotion } from '@/lib/promotionBadge';
+import { isDiscountBadgeActive } from '@/lib/discountBadgeActive';
 import { useFreeShippingThreshold } from '@/hooks/useShippingSettings';
 import { formatShippingThreshold } from '@shared/shipping';
 
@@ -1171,9 +1172,11 @@ export default function ProductDetail() {
   const persMaxChars = personalization?.maxChars && personalization.maxChars > 0 ? personalization.maxChars : 30;
   const persApplied = persEnabled && personalizationText.trim() !== '';
   const displayPrice = price + (persApplied ? persFee : 0);
-  const visibleDiscountBadge = !isFreeShippingPromotion(product.discountBadge)
-    ? product.discountBadge
-    : null;
+  const visibleDiscountBadge =
+    !isFreeShippingPromotion(product.discountBadge) &&
+    isDiscountBadgeActive((product as any).discountBadge, (product as any).discountBadgeStartDate, (product as any).discountBadgeEndDate)
+      ? product.discountBadge
+      : null;
   const category = categories.find((c) => c.id === product.categoryId);
   // Stok yalnızca aktif varyantlar üzerinden hesaplanır.
   const totalStock = activeVariants.reduce((sum, v) => sum + (v.stock || 0), 0);
@@ -1266,10 +1269,10 @@ export default function ProductDetail() {
 
             {images.length > 1 && (
               <>
-                <button type="button" onClick={(e) => { e.stopPropagation(); setSelectedImage((p) => p === 0 ? images.length - 1 : p - 1); }} className="hidden sm:flex absolute left-5 w-11 h-11 items-center justify-center bg-white/10 hover:bg-white/20 rounded-full text-white z-20" aria-label="Önceki">
+                <button type="button" onClick={(e) => { e.stopPropagation(); setSelectedImage((p) => p === 0 ? images.length - 1 : p - 1); }} className="flex absolute left-5 w-11 h-11 items-center justify-center bg-white/10 hover:bg-white/20 rounded-full text-white z-20" aria-label="Önceki">
                   <ChevronLeft className="w-5 h-5" />
                 </button>
-                <button type="button" onClick={(e) => { e.stopPropagation(); setSelectedImage((p) => p === images.length - 1 ? 0 : p + 1); }} className="hidden sm:flex absolute right-5 w-11 h-11 items-center justify-center bg-white/10 hover:bg-white/20 rounded-full text-white z-20" aria-label="Sonraki">
+                <button type="button" onClick={(e) => { e.stopPropagation(); setSelectedImage((p) => p === images.length - 1 ? 0 : p + 1); }} className="flex absolute right-5 w-11 h-11 items-center justify-center bg-white/10 hover:bg-white/20 rounded-full text-white z-20" aria-label="Sonraki">
                   <ChevronRight className="w-5 h-5" />
                 </button>
               </>
@@ -1521,7 +1524,7 @@ export default function ProductDetail() {
                       {/* Badges — sol üstte dikey yığın */}
                       <div className="absolute top-4 left-4 lg:top-3 lg:left-3 z-10 flex flex-col items-start gap-2">
                         {visibleDiscountBadge && (
-                          <span className="bg-red-500 text-black text-[10px] font-extrabold tracking-[0.16em] px-3 py-1.5 uppercase">{visibleDiscountBadge}</span>
+                          <span className="backdrop-blur-sm bg-red-600/70 text-white text-[10px] font-extrabold tracking-[0.16em] px-3 py-1.5 uppercase">{visibleDiscountBadge}</span>
                         )}
                         {product.isNew && (
                           <span className="storefront-new-badge">Yeni</span>
@@ -1551,7 +1554,7 @@ export default function ProductDetail() {
                         {images.map((img, i) => (
                           <div
                             key={i}
-                            className="flex-[0_0_100%] min-w-0 h-full"
+                            className="flex-[0_0_100%] min-w-0 h-full relative"
                             onClick={() => setLightboxOpen(true)}
                           >
                             {isVideoUrl(img) ? (
@@ -1594,7 +1597,7 @@ export default function ProductDetail() {
                       {/* Badges — sol üstte dikey yığın */}
                       <div className="absolute top-4 left-4 z-10 flex flex-col items-start gap-2">
                         {visibleDiscountBadge && (
-                          <span className="bg-red-500 text-black text-[10px] font-extrabold tracking-[0.16em] px-3 py-1.5 uppercase">
+                          <span className="backdrop-blur-sm bg-red-600/70 text-white text-[10px] font-extrabold tracking-[0.16em] px-3 py-1.5 uppercase">
                             {visibleDiscountBadge}
                           </span>
                         )}
