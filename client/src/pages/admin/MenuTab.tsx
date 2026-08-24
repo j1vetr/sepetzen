@@ -725,7 +725,7 @@ export default function MenuManagementPanel({ categories }: MenuManagementPanelP
                       </button>
                     )}
                     <p className="text-xs text-neutral-500 mt-1">
-                      Animasyonlu ölçü / boyut rehberi — mega menünün sol panelinde arka plan görselin altında gösterilir. Yalnızca .gif formatı desteklenir.
+                      Animasyonlu ölçü / boyut rehberi, mega menünün sol panelinde arka plan görselin altında gösterilir. Yalnızca .gif formatı desteklenir.
                     </p>
                   </div>
                 </>

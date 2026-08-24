@@ -322,7 +322,7 @@ function TickerSettingsSection() {
         <div className="grid md:grid-cols-2 gap-4">
           <div>
             <label className="block text-sm font-medium text-neutral-700 mb-1.5">
-              Hız <span className="text-neutral-400 font-normal">(saniye — küçük = hızlı)</span>
+              Hız <span className="text-neutral-400 font-normal">(saniye, küçük = hızlı)</span>
             </label>
             <input type="number" min={5} max={120} value={speed}
               onChange={e => setSpeed(Math.max(5, Math.min(120, Number(e.target.value))))}

@@ -650,7 +650,7 @@ export function Header() {
                                 className="text-[13px] text-white/40 hover:text-white transition-colors flex items-center gap-1.5"
                                 onClick={() => { navigate(`/kategori/${activeRoot.category!.slug}`); setAllCatsOpen(false); }}
                               >
-                                {activeRoot.title} — tüm ürünleri gör
+                                {activeRoot.title}, tüm ürünleri gör
                                 <ArrowUpRight className="w-3.5 h-3.5" />
                               </button>
                             </div>
@@ -743,7 +743,7 @@ export function Header() {
                                   className="text-[11px] tracking-[0.10em] uppercase text-white hover:bg-white/5 cursor-pointer py-2 px-3 rounded-md transition-colors font-semibold"
                                   data-testid={`link-nav-more-all-${root.id}`}
                                 >
-                                  Tümü — {root.title}
+                                  Tümü, {root.title}
                                 </DropdownMenuItem>
                               )}
                               {children.map((child) => (

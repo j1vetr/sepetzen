@@ -210,7 +210,7 @@ export function Footer() {
         {/* ── Ödeme Yöntemleri ── */}
         <div className="mt-6 pt-5 border-t border-white/[0.08] flex flex-col sm:grid sm:grid-cols-3 items-center gap-4">
           <span className="text-[10px] font-mono tracking-[0.22em] uppercase text-white/35">
-            Güvenli Ödeme — 256bit SSL
+            Güvenli Ödeme, 256bit SSL
           </span>
 
           {/* TOOV Logosu — orta */}

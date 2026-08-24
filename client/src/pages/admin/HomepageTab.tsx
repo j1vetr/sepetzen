@@ -334,7 +334,7 @@ export default function HomepageTab() {
                     <span className="text-sm text-neutral-500 font-medium">
                       {uploadingVideo === i ? 'Yükleniyor…' : 'Video yükle'}
                     </span>
-                    <span className="text-xs text-neutral-400">MP4, WebM, MOV — max 200 MB</span>
+                    <span className="text-xs text-neutral-400">MP4, WebM, MOV, max 200 MB</span>
                     <span className="text-xs text-neutral-300">veya URL yaz:</span>
                     <input
                       className={`${inputCls} text-center text-xs`}

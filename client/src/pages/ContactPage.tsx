@@ -82,7 +82,7 @@ export default function ContactPage() {
             İletişim
           </h1>
           <p className="text-[13px] text-white/45 mt-2">
-            Sorularınız için bize yazın — en kısa sürede dönüş yaparız.
+            Sorularınız için bize yazın, en kısa sürede dönüş yaparız.
           </p>
         </div>
       </div>

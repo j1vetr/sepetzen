@@ -71,7 +71,7 @@ const BUILTIN_TAB_FAQ = [
 ];
 
 const BUILTIN_INSTALLMENT_NOTE =
-  'Taksit seçenekleri kredi kartıyla ödemelerde geçerlidir. Bankanıza göre taksit sayısı ve tutarlar değişiklik gösterebilir; güncel tutarlar ödeme adımında görüntülenir. Havale/EFT ile ödemelerde %3 indirim uygulanır.';
+  'Taksit seçenekleri kredi kartıyla ödemelerde geçerlidir. Bankanıza göre taksit sayısı ve tutarlar değişiklik gösterebilir, güncel tutarlar ödeme adımında görüntülenir. Havale/EFT ile ödemelerde %3 indirim uygulanır.';
 
 // Türkçe-uyumlu büyük harf dönüşümü: i → İ, ı → I, vs.
 function toTurkishUpper(value: string): string {
@@ -874,7 +874,7 @@ function ProductEditor({
                             {brandSearch ? (
                               <span>"{brandSearch}" serbest metin olarak kaydedilecek. <a href="/toov-admin?tab=brands" target="_blank" className="text-neutral-700 underline">Markalar sekmesinden ekleyin.</a></span>
                             ) : (
-                              'Marka yok — listeden seçin veya serbest metin girin.'
+                              'Marka yok, listeden seçin veya serbest metin girin.'
                             )}
                           </div>
                         )}

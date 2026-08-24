@@ -570,7 +570,7 @@ function ProductTabs({
             </dl>
             <p className="mt-4 text-[11.5px] text-white/40 leading-relaxed">
               {tabInstallmentNote?.trim() ||
-                'Taksit seçenekleri kredi kartıyla ödemelerde geçerlidir. Bankanıza göre taksit sayısı ve tutarlar değişiklik gösterebilir; güncel tutarlar ödeme adımında görüntülenir. Havale/EFT ile ödemelerde %3 indirim uygulanır.'}
+                'Taksit seçenekleri kredi kartıyla ödemelerde geçerlidir. Bankanıza göre taksit sayısı ve tutarlar değişiklik gösterebilir, güncel tutarlar ödeme adımında görüntülenir. Havale/EFT ile ödemelerde %3 indirim uygulanır.'}
             </p>
           </div>
         )}

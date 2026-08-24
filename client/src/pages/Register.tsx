@@ -79,7 +79,7 @@ export default function Register() {
       seoDescription="Sepetzen üyelik kaydı."
       seoUrl="/kayit"
       title="HESAP OLUŞTUR"
-      subtitle="Bilgilerinizi bir kez girin; sonraki siparişlerde otomatik dolu gelsin."
+      subtitle="Bilgilerinizi bir kez girin, sonraki siparişlerde otomatik dolu gelsin."
       footerPrompt="Zaten üye misiniz?"
       footerLinkHref="/giris"
       footerLinkLabel="Giriş Yap"

@@ -423,7 +423,7 @@ export default function Cart() {
                  <div className="space-y-3 pt-4 border-t border-white/8">
                    <div className="flex items-center gap-3 text-white/50">
                      <ShieldCheck size={18} className="text-white shrink-0" />
-                    <span className="text-xs font-medium">Güvenli Ödeme — 256bit SSL</span>
+                    <span className="text-xs font-medium">Güvenli Ödeme, 256bit SSL</span>
                   </div>
                    <div className="flex items-center gap-3 text-white/50">
                      <RotateCcw size={18} className="text-white shrink-0" />

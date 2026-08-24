@@ -57,7 +57,7 @@ export default function PaymentFail() {
             transition={{ delay: 0.14 }}
             className="text-sm text-white/50 max-w-md mx-auto"
           >
-            Endişelenmeyin — kartınızdan herhangi bir tutar çekilmedi. Bilgilerinizi kontrol edip tekrar deneyebilirsiniz.
+            Endişelenmeyin, kartınızdan herhangi bir tutar çekilmedi. Bilgilerinizi kontrol edip tekrar deneyebilirsiniz.
           </motion.p>
         </div>
       </section>
