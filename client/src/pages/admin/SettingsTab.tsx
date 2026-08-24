@@ -463,7 +463,7 @@ function TopBannerSection() {
 
         <div>
           <label className="block text-sm font-medium text-neutral-700 mb-1.5">Banner Görseli (PNG, JPG, GIF, WebP)</label>
-          <input type="file" accept="image/*" className="hidden" id="top-banner-file"
+          <input type="file" accept="image/jpeg,image/png,image/gif,image/webp" className="hidden" id="top-banner-file"
             onChange={e => { const f = e.target.files?.[0]; if (f) handleUpload(f); e.target.value = ''; }} />
           {imageUrl ? (
             <div className="space-y-2">
@@ -479,6 +479,7 @@ function TopBannerSection() {
             <label htmlFor="top-banner-file" className="flex flex-col items-center justify-center gap-2 p-6 border-2 border-dashed border-neutral-200 rounded-lg hover:border-neutral-400 hover:bg-neutral-50 transition-colors cursor-pointer">
               {uploading ? <Loader2 className="w-5 h-5 animate-spin text-neutral-400" /> : <Upload className="w-5 h-5 text-neutral-400" />}
               <span className="text-sm text-neutral-500">{uploading ? 'Yükleniyor…' : 'Bilgisayardan görsel seç'}</span>
+              <span className="text-xs text-neutral-400">JPG, PNG, WebP veya GIF (animasyonlu desteklenir)</span>
             </label>
           )}
         </div>
@@ -582,7 +583,7 @@ function PopupBannerSection() {
 
         <div>
           <label className="block text-sm font-medium text-neutral-700 mb-1.5">Popup Görseli (PNG, JPG, GIF, WebP)</label>
-          <input type="file" accept="image/*" className="hidden" id="popup-banner-file"
+          <input type="file" accept="image/jpeg,image/png,image/gif,image/webp" className="hidden" id="popup-banner-file"
             onChange={e => { const f = e.target.files?.[0]; if (f) handleUpload(f); e.target.value = ''; }} />
           {imageUrl ? (
             <div className="space-y-2">
@@ -598,6 +599,7 @@ function PopupBannerSection() {
             <label htmlFor="popup-banner-file" className="flex flex-col items-center justify-center gap-2 p-6 border-2 border-dashed border-neutral-200 rounded-lg hover:border-neutral-400 hover:bg-neutral-50 transition-colors cursor-pointer">
               {uploading ? <Loader2 className="w-5 h-5 animate-spin text-neutral-400" /> : <Upload className="w-5 h-5 text-neutral-400" />}
               <span className="text-sm text-neutral-500">{uploading ? 'Yükleniyor…' : 'Bilgisayardan görsel seç'}</span>
+              <span className="text-xs text-neutral-400">JPG, PNG, WebP veya GIF (animasyonlu desteklenir)</span>
             </label>
           )}
         </div>

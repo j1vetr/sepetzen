@@ -536,9 +536,18 @@
   animation: sepetzen-marquee 38s linear infinite;
   width: max-content;
   display: flex;
+  will-change: transform;
 }
 .marquee-track:hover {
   animation-play-state: paused;
+}
+/* Desktop hero marquee — never pauses, GPU-accelerated */
+.marquee-loop {
+  animation: sepetzen-marquee 44s linear infinite;
+  width: max-content;
+  display: flex;
+  will-change: transform;
+  transform: translateZ(0);
 }
 
 /* Product detail: admin HTML is content, never a second design system. */

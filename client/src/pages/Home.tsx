@@ -41,10 +41,7 @@ function HeroSlider({ products, slides }: { products: Product[]; slides: HeroSli
   const HERO_SLIDES = slides.length ? slides : DEFAULT_HOMEPAGE_CONTENT.heroSlides;
   const [active, setActive] = useState(0);
   const [dir, setDir] = useState(1);
-  const [cardsKey, setCardsKey] = useState(0);
-  const [pickedProducts, setPickedProducts] = useState<Product[]>([]);
   const slideTimer = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
-  const cardTimer = useRef<ReturnType<typeof setInterval> | undefined>(undefined);
 
   const go = (next: number, direction = 1) => { setDir(direction); setActive(next); };
   const prev = () => go((active - 1 + HERO_SLIDES.length) % HERO_SLIDES.length, -1);
@@ -56,21 +53,7 @@ function HeroSlider({ products, slides }: { products: Product[]; slides: HeroSli
     return () => clearTimeout(slideTimer.current);
   }, [active]);
 
-  // Pick random products whenever products load or cardsKey changes
-  useEffect(() => {
-    if (!products.length) return;
-    const shuffled = [...products].sort(() => Math.random() - 0.5);
-    setPickedProducts(shuffled.slice(0, 2));
-  }, [products, cardsKey]);
-
-  // Rotate product cards every 7s
-  useEffect(() => {
-    cardTimer.current = setInterval(() => setCardsKey(k => k + 1), 7000);
-    return () => clearInterval(cardTimer.current);
-  }, []);
-
   const slide = HERO_SLIDES[active];
-  const freeShippingThreshold = useFreeShippingThreshold();
 
   return (
     <section
@@ -103,178 +86,80 @@ function HeroSlider({ products, slides }: { products: Product[]; slides: HeroSli
         </motion.div>
       </AnimatePresence>
 
-      {/* Split layout */}
-      <div className="relative z-10 flex-1 min-h-0 max-w-[1680px] mx-auto pl-3 lg:pl-8 pr-4 lg:pr-8 grid grid-cols-1 lg:grid-cols-[1fr_420px] xl:grid-cols-[1fr_480px] gap-0">
+      {/* Centered layout */}
+      <div className="relative z-10 flex-1 min-h-0 flex flex-col px-4 lg:px-12">
 
-        {/* ── LEFT: Slide content ── */}
-        <div className="flex flex-col justify-center pb-20 lg:pb-24 pt-8 lg:pt-0">
-          <AnimatePresence mode="wait" initial={false}>
-            <motion.div
-              key={active}
-              initial={{ opacity: 0, y: 28 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -18 }}
-              transition={{ duration: 0.55, ease: [0.16, 1, 0.3, 1] }}
-            >
-              <span className="inline-block text-[10px] tracking-[0.30em] uppercase text-[#FAFAFA] font-mono mb-4">
-                {slide.eyebrow}
-              </span>
-              <h1
-                className="font-black text-white leading-[0.93] mb-5"
-                style={{ fontSize: 'clamp(48px, 7vw, 108px)', letterSpacing: '-0.03em' }}
+        {/* İçerik — üst sınır ile alt kontroller arasında tam orta */}
+        <div className="flex-1 flex items-center justify-center">
+          <div className="w-full max-w-4xl flex flex-col items-center text-center">
+            <AnimatePresence mode="wait" initial={false}>
+              <motion.div
+                key={active}
+                initial={{ opacity: 0, y: 28 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -18 }}
+                transition={{ duration: 0.55, ease: [0.16, 1, 0.3, 1] }}
+                className="flex flex-col items-center"
               >
-                {slide.title}
-              </h1>
-              <p className="text-white/60 text-[15px] lg:text-[16px] leading-relaxed max-w-[420px] mb-9">
-                {slide.desc}
-              </p>
-              <div className="flex items-center gap-4 flex-wrap">
-                <Link href={slide.href}>
-                  <motion.span
-                    whileHover={{ scale: 1.02 }}
-                    whileTap={{ scale: 0.97 }}
-                    className="btn-glass inline-flex items-center gap-3 px-7 py-3.5 text-[11px] tracking-[0.22em] uppercase font-bold cursor-pointer"
-                    data-testid="link-hero-cta"
-                  >
-                    {slide.cta} <ArrowUpRight className="w-4 h-4" />
-                  </motion.span>
-                </Link>
-                <Link href="/magaza">
-                  <span className="text-[11px] tracking-[0.20em] uppercase text-white/45 hover:text-white transition-colors cursor-pointer font-medium">
-                    Tüm Ürünler
-                  </span>
-                </Link>
-              </div>
-            </motion.div>
-          </AnimatePresence>
-
-          {/* Slide controls */}
-          <div className="mt-12 lg:mt-16 flex items-center gap-6">
-            <div className="flex items-center gap-2">
-              {HERO_SLIDES.map((_, i) => (
-                <button
-                  key={i}
-                  onClick={() => go(i, i > active ? 1 : -1)}
-                  className="relative h-[2px] rounded-full overflow-hidden transition-all duration-300"
-                  style={{ width: i === active ? 40 : 16, backgroundColor: i === active ? '#FAFAFA' : 'rgba(255,255,255,0.22)' }}
-                  data-testid={`button-hero-slide-${i}`}
-                  aria-label={`Slayt ${i + 1}`}
-                />
-              ))}
-            </div>
-            <span className="text-[10px] font-mono text-white/30 tracking-[0.22em]">
-              {String(active + 1).padStart(2, '0')} / {String(HERO_SLIDES.length).padStart(2, '0')}
-            </span>
-            <div className="flex items-center gap-1.5 ml-auto">
-              <button onClick={prev} className="w-9 h-9 rounded-full border border-white/18 flex items-center justify-center text-white/55 hover:text-white hover:border-white/45 transition-colors" aria-label="Önceki" data-testid="button-hero-prev">
-                <ChevronLeft className="w-3.5 h-3.5" />
-              </button>
-              <button onClick={next} className="w-9 h-9 rounded-full border border-white/18 flex items-center justify-center text-white/55 hover:text-white hover:border-white/45 transition-colors" aria-label="Sonraki" data-testid="button-hero-next">
-                <ChevronRight className="w-3.5 h-3.5" />
-              </button>
-            </div>
+                <span className="inline-block text-[10px] tracking-[0.30em] uppercase text-[#FAFAFA] font-mono mb-4">
+                  {slide.eyebrow}
+                </span>
+                <h1
+                  className="font-black text-white leading-[0.93] mb-5"
+                  style={{ fontSize: 'clamp(48px, 8vw, 120px)', letterSpacing: '-0.03em' }}
+                >
+                  {slide.title}
+                </h1>
+                <p className="text-white/60 text-[15px] lg:text-[17px] leading-relaxed max-w-[520px] mb-9">
+                  {slide.desc}
+                </p>
+                <div className="flex items-center justify-center gap-5 flex-wrap">
+                  <Link href={slide.href}>
+                    <motion.span
+                      whileHover={{ scale: 1.02 }}
+                      whileTap={{ scale: 0.97 }}
+                      className="btn-glass inline-flex items-center gap-3 px-8 py-3.5 text-[11px] tracking-[0.22em] uppercase font-bold cursor-pointer"
+                      data-testid="link-hero-cta"
+                    >
+                      {slide.cta} <ArrowUpRight className="w-4 h-4" />
+                    </motion.span>
+                  </Link>
+                  <Link href="/magaza">
+                    <span className="text-[11px] tracking-[0.20em] uppercase text-white/45 hover:text-white transition-colors cursor-pointer font-medium">
+                      Tüm Ürünler
+                    </span>
+                  </Link>
+                </div>
+              </motion.div>
+            </AnimatePresence>
           </div>
         </div>
 
-        {/* ── RIGHT: Random product cards (desktop only) ── */}
-        <div className="hidden lg:flex flex-col pl-5 xl:pl-8 justify-center pb-12 pt-4">
-          {/* Divider */}
-          <div className="border-t border-white/[0.12] mb-4 shrink-0" />
-
-          <AnimatePresence mode="wait">
-            <motion.div
-              key={cardsKey}
-              initial={{ opacity: 0, y: 12 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -10 }}
-              transition={{ duration: 0.5, ease: [0.16, 1, 0.3, 1] }}
-              className="flex flex-row gap-2.5 h-[240px]"
-            >
-              {pickedProducts.length > 0 ? pickedProducts.map((p) => {
-                const price = parseFloat(String(p.basePrice || '0')) || 0;
-                return (
-                  <Link key={p.id} href={`/urun/${p.slug}`} className="flex flex-col flex-1 min-w-0" data-testid={`link-hero-product-${p.id}`}>
-                    <div className="group flex flex-col w-full h-full bg-white/[0.07] hover:bg-white/[0.11] border border-white/[0.09] hover:border-white/[0.22] backdrop-blur-sm transition-all duration-300 cursor-pointer overflow-hidden">
-                      {/* Image/Video — fills remaining height */}
-                      <div className="relative overflow-hidden bg-black/25 flex-1 min-h-0">
-                        {p.images?.[0] ? (
-                          /\.(mp4|webm|mov)(\?.*)?$/i.test(p.images[0]) ? (
-                            <video
-                              src={p.images[0]}
-                              className="absolute inset-0 w-full h-full object-cover"
-                              autoPlay
-                              muted
-                              loop
-                              playsInline
-                            />
-                          ) : (
-                            <img
-                              src={p.images[0]}
-                              alt={p.name}
-                              className="absolute inset-0 w-full h-full object-cover group-hover:scale-110 transition-transform duration-700"
-                              loading="lazy"
-                              decoding="async"
-                            />
-                          )
-                        ) : (
-                          <div className="absolute inset-0 bg-white/5" />
-                        )}
-                        {/* Gradient overlay at bottom */}
-                        <div className="absolute inset-x-0 bottom-0 h-20 bg-gradient-to-t from-black/70 to-transparent pointer-events-none" />
-                        {/* Badges — sol üstte dikey yığın */}
-                        <div className="absolute top-2 left-2 z-10 flex flex-col items-start gap-1">
-                          {p.discountBadge && !isFreeShippingPromotion(p.discountBadge) && (
-                            <span className="text-[7.5px] tracking-[0.18em] uppercase text-white bg-[#141414] px-2 py-0.5 font-bold">
-                              {p.discountBadge}
-                            </span>
-                          )}
-                          {p.isNew && (
-                            <span className="text-[7.5px] tracking-[0.18em] uppercase text-white bg-[#141414] px-2 py-0.5 font-bold">
-                              Yeni
-                            </span>
-                          )}
-                          <FreeShippingBadge
-                            size="compact"
-                            productPrice={price}
-                            threshold={freeShippingThreshold}
-                          />
-                        </div>
-                      </div>
-                      {/* Info — fixed height at bottom */}
-                      <div className="p-2.5 shrink-0 bg-black/30">
-                        <p className="text-[10.5px] font-medium text-white/85 group-hover:text-white transition-colors leading-snug line-clamp-2 mb-1.5">
-                          {p.name}
-                        </p>
-                        <div className="flex items-center justify-between gap-1">
-                          <p className="text-[13px] font-bold text-[#FAFAFA] leading-none">
-                            {price.toLocaleString('tr-TR')} ₺
-                          </p>
-                          <ArrowUpRight className="w-3 h-3 text-white/30 group-hover:text-[#FAFAFA] transition-colors shrink-0" />
-                        </div>
-                      </div>
-                    </div>
-                  </Link>
-                );
-              }) : (
-                // Skeleton while loading
-                Array.from({ length: 2 }).map((_, i) => (
-                  <div key={i} className="flex-1 min-w-0 flex flex-col bg-white/[0.04] border border-white/[0.06] overflow-hidden animate-pulse">
-                    <div className="flex-1 bg-white/10" />
-                    <div className="p-2.5 bg-black/20 shrink-0 space-y-1.5">
-                      <div className="h-2.5 bg-white/10 rounded w-full" />
-                      <div className="h-2.5 bg-white/10 rounded w-3/4" />
-                      <div className="h-3 bg-white/15 rounded w-1/2 mt-1" />
-                    </div>
-                  </div>
-                ))
-              )}
-            </motion.div>
-          </AnimatePresence>
-
-          {/* View all link */}
-          <Link href="/magaza" className="mt-2.5 shrink-0 text-[10px] tracking-[0.20em] uppercase text-white/30 hover:text-[#FAFAFA] transition-colors flex items-center gap-1.5 font-mono">
-            Tüm Ürünleri Gör <ArrowUpRight className="w-3 h-3" />
-          </Link>
+        {/* Slayt kontrolleri — alta yapışık */}
+        <div className="pb-5 lg:pb-6 flex items-center justify-center gap-6">
+          <div className="flex items-center gap-2">
+            {HERO_SLIDES.map((_, i) => (
+              <button
+                key={i}
+                onClick={() => go(i, i > active ? 1 : -1)}
+                className="relative h-[2px] rounded-full overflow-hidden transition-all duration-300"
+                style={{ width: i === active ? 40 : 16, backgroundColor: i === active ? '#FAFAFA' : 'rgba(255,255,255,0.22)' }}
+                data-testid={`button-hero-slide-${i}`}
+                aria-label={`Slayt ${i + 1}`}
+              />
+            ))}
+          </div>
+          <span className="text-[10px] font-mono text-white/30 tracking-[0.22em]">
+            {String(active + 1).padStart(2, '0')} / {String(HERO_SLIDES.length).padStart(2, '0')}
+          </span>
+          <div className="flex items-center gap-1.5">
+            <button onClick={prev} className="w-9 h-9 rounded-full border border-white/18 flex items-center justify-center text-white/55 hover:text-white hover:border-white/45 transition-colors" aria-label="Önceki" data-testid="button-hero-prev">
+              <ChevronLeft className="w-3.5 h-3.5" />
+            </button>
+            <button onClick={next} className="w-9 h-9 rounded-full border border-white/18 flex items-center justify-center text-white/55 hover:text-white hover:border-white/45 transition-colors" aria-label="Sonraki" data-testid="button-hero-next">
+              <ChevronRight className="w-3.5 h-3.5" />
+            </button>
+          </div>
         </div>
 
       </div>
@@ -845,50 +730,52 @@ function TrustStrip({ items: rawItems }: { items: TrustItem[] }) {
 
 function DesktopHeroMarquee({ products }: { products: Product[] }) {
   const freeShippingThreshold = useFreeShippingThreshold();
+  // Her seferinde aynı sırayı üret — shuffle sadece mount'ta çalışır
   const items = useMemo(() => {
     const withImages = products.filter(p => p.images?.length);
-    const shuffled = [...withImages].sort(() => Math.random() - 0.5);
-    return shuffled.slice(0, 16);
+    // Sabit seed için index bazlı bir karıştırma; Math.random kullanmıyoruz
+    // çünkü her render'da farklı sıra oluşunca hidrasyon uyumsuzluğu çıkabilir
+    return withImages.slice(0, 20);
   }, [products]);
 
   if (!items.length) return null;
 
-  const doubled = [...items, ...items];
+  // 3× kopyala — 2× yetmeyebilir geniş ekranlarda, 3× her zaman yeterli
+  const tripled = [...items, ...items, ...items];
 
   return (
     <div
       className="hidden lg:block overflow-hidden py-4"
       style={{
-        background: 'rgba(255,255,255,0.045)',
-        backdropFilter: 'blur(20px)',
-        WebkitBackdropFilter: 'blur(20px)',
-        maskImage: 'linear-gradient(to right, transparent, black 80px, black calc(100% - 80px), transparent)',
-        WebkitMaskImage: 'linear-gradient(to right, transparent, black 80px, black calc(100% - 80px), transparent)',
+        background: 'rgba(12,12,12,0.72)',
+        maskImage: 'linear-gradient(to right, transparent, black 60px, black calc(100% - 60px), transparent)',
+        WebkitMaskImage: 'linear-gradient(to right, transparent, black 60px, black calc(100% - 60px), transparent)',
       }}
       data-testid="scene-desktop-hero-marquee"
     >
-      <div
-        className="marquee-track gap-3 px-4"
-        style={{ animationDuration: '42s' }}
-      >
-        {doubled.map((p, i) => {
+      <div className="marquee-loop gap-3 px-4">
+        {tripled.map((p, i) => {
           const price = parseFloat(String(p.basePrice || '0')) || 0;
           const isVideo = /\.(mp4|webm|mov)(\?.*)?$/i.test(p.images?.[0] || '');
           return (
             <Link
               key={`desk-${p.id}-${i}`}
               href={`/urun/${p.slug}`}
-              className="group shrink-0 w-[150px] flex flex-col overflow-hidden hover:scale-[1.04] transition-transform duration-300"
+              className="group shrink-0 w-[148px] flex flex-col overflow-hidden"
               data-testid={`link-desktop-marquee-${p.id}`}
             >
-              {/* Görsel */}
-              <div className="relative w-[150px] h-[190px] overflow-hidden bg-black/20 shrink-0">
+              {/* Görsel — video varsa thumbnail olarak sadece img göster (autoPlay kaldırıldı, kasma önlenir) */}
+              <div className="relative w-[148px] h-[188px] overflow-hidden bg-black/30 shrink-0">
                 {p.images?.[0] ? (
                   isVideo ? (
-                    <video
-                      src={p.images[0]}
+                    /* Video için poster yerine ilk kare — src thumbnail trick */
+                    <img
+                      src={`${p.images[0]}#t=0.1`}
+                      alt={p.name}
+                      loading="lazy"
+                      decoding="async"
                       className="absolute inset-0 w-full h-full object-cover"
-                      autoPlay muted loop playsInline
+                      onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }}
                     />
                   ) : (
                     <img
@@ -896,25 +783,21 @@ function DesktopHeroMarquee({ products }: { products: Product[] }) {
                       alt={p.name}
                       loading="lazy"
                       decoding="async"
-                      className="absolute inset-0 w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+                      className="absolute inset-0 w-full h-full object-cover"
                     />
                   )
                 ) : (
                   <div className="absolute inset-0 bg-white/5" />
                 )}
-                {/* badges */}
-                <div className="absolute top-1.5 left-1.5 flex flex-col gap-1">
-                  {p.isNew && (
-                    <span className="text-[7px] tracking-[0.18em] uppercase text-white bg-[#141414]/80 px-1.5 py-0.5 font-bold">
-                      Yeni
-                    </span>
-                  )}
-                  <FreeShippingBadge size="compact" productPrice={price} threshold={freeShippingThreshold} />
-                </div>
+                {p.isNew && (
+                  <span className="absolute top-1.5 left-1.5 text-[7px] tracking-[0.18em] uppercase text-white bg-[#141414]/90 px-1.5 py-0.5 font-bold">
+                    Yeni
+                  </span>
+                )}
               </div>
               {/* Bilgi */}
-              <div className="px-2.5 py-2 flex-1 bg-black/25">
-                <p className="text-[10.5px] font-medium text-white/80 group-hover:text-white transition-colors leading-snug line-clamp-2 mb-1">
+              <div className="px-2.5 py-2 flex-1 bg-black/40">
+                <p className="text-[10.5px] font-medium text-white/75 group-hover:text-white transition-colors leading-snug line-clamp-2 mb-1">
                   {p.name}
                 </p>
                 <p className="text-[12.5px] font-bold text-white leading-none">
