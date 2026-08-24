@@ -49,13 +49,13 @@ export default function AdminModal({
       }}
     >
       <DialogContent
-        className={`admin-content bg-white text-neutral-900 border-neutral-200 ${SIZE_CLASS[size]} max-h-[90vh] overflow-hidden flex flex-col p-0 gap-0 max-sm:!left-0 max-sm:!top-auto max-sm:!bottom-0 max-sm:!translate-x-0 max-sm:!translate-y-0 max-sm:!w-full max-sm:!max-w-none max-sm:!max-h-[95vh] max-sm:!rounded-t-2xl max-sm:!rounded-b-none max-sm:!border-x-0 max-sm:!border-b-0 max-sm:data-[state=open]:!slide-in-from-bottom max-sm:data-[state=closed]:!slide-out-to-bottom`}
+        className={`admin-modal admin-content bg-white text-neutral-900 border-neutral-200 shadow-[0_20px_60px_rgba(15,23,42,0.16)] ${SIZE_CLASS[size]} max-h-[90vh] overflow-hidden flex flex-col p-0 gap-0 max-sm:!left-0 max-sm:!top-auto max-sm:!bottom-0 max-sm:!translate-x-0 max-sm:!translate-y-0 max-sm:!w-full max-sm:!max-w-none max-sm:!max-h-[95vh] max-sm:!rounded-t-2xl max-sm:!rounded-b-none max-sm:!border-x-0 max-sm:!border-b-0 max-sm:data-[state=open]:!slide-in-from-bottom max-sm:data-[state=closed]:!slide-out-to-bottom`}
         data-testid={testId}
         onInteractOutside={(e) => {
           if (!closeOnOutsideClick) e.preventDefault();
         }}
       >
-        <DialogHeader className="px-6 py-4 border-b border-neutral-200 shrink-0 flex flex-row items-start justify-between gap-4 space-y-0">
+        <DialogHeader className="px-5 sm:px-6 py-4 border-b border-neutral-200 bg-white shrink-0 flex flex-row items-start justify-between gap-4 space-y-0">
           <div className="min-w-0 flex-1">
             <DialogTitle className="text-[15px] font-semibold tracking-tight text-neutral-900 flex items-center gap-2">
               {title}
@@ -71,10 +71,10 @@ export default function AdminModal({
           ) : null}
         </DialogHeader>
 
-        <div className="flex-1 overflow-auto px-6 py-5">{children}</div>
+        <div className="flex-1 overflow-auto px-5 sm:px-6 py-5 bg-neutral-50/30">{children}</div>
 
         {footer ? (
-          <div className="px-6 py-3 border-t border-neutral-200 flex items-center justify-end gap-2 shrink-0">
+          <div className="px-5 sm:px-6 py-3 border-t border-neutral-200 bg-white flex flex-wrap items-center justify-end gap-2 shrink-0">
             {footer}
           </div>
         ) : null}

@@ -65,11 +65,10 @@ interface PendingReturn {
 
 function BankTransferBadge({ awaitingTransfer = false }: { awaitingTransfer?: boolean }) {
   return (
-    <span
-      className="inline-flex items-center gap-1 px-2 h-5 rounded-md bg-polen-orange/15 border border-polen-orange/40 text-[10.5px] font-semibold text-black uppercase tracking-wider"
-      data-testid="badge-bank-transfer"
-    >
-      🏦 Havale{awaitingTransfer && ' · Onay Bekliyor'}
+    <span data-testid="badge-bank-transfer">
+      <StatusBadge tone={awaitingTransfer ? 'amber' : 'neutral'}>
+        Havale{awaitingTransfer && ' · Onay Bekliyor'}
+      </StatusBadge>
     </span>
   );
 }

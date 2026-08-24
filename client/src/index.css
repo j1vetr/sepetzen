@@ -315,6 +315,102 @@
   font-family: var(--font-body);
 }
 
+/* Admin surfaces share a quiet canvas, restrained borders and one focus language. */
+.admin-shell {
+  --admin-canvas: #f7f7f5;
+  --admin-border: #e5e5e3;
+  --admin-muted: #6b7280;
+  --admin-focus: rgba(23, 23, 23, 0.08);
+}
+
+.admin-content {
+  background: var(--admin-canvas);
+}
+
+.admin-font :where(button, a, input, select, textarea):focus-visible {
+  outline: 2px solid #404040;
+  outline-offset: 2px;
+}
+
+.admin-font :where(input:not([type='checkbox']):not([type='radio']):not([type='color']):not([type='file']):not([type='range']), select, textarea) {
+  border-radius: 0.5rem;
+}
+
+.admin-font :where(input:not([type='checkbox']):not([type='radio']):not([type='color']):not([type='file']):not([type='range']), select, textarea):focus {
+  border-color: #a3a3a3;
+  box-shadow: 0 0 0 4px var(--admin-focus);
+  outline: none;
+}
+
+.admin-font :where(input:not([type='checkbox']):not([type='radio']):not([type='color']):not([type='file']):not([type='range']), select, textarea):disabled {
+  cursor: not-allowed;
+  opacity: 0.7;
+}
+
+.admin-font :where(input[type='checkbox']),
+.admin-checkbox {
+  appearance: none;
+  display: inline-block;
+  width: 1rem;
+  height: 1rem;
+  vertical-align: middle;
+  background-color: #fff;
+  border: 1px solid #d4d4d4;
+  border-radius: 0.3rem;
+  cursor: pointer;
+}
+
+.admin-font :where(input[type='checkbox']):checked,
+.admin-checkbox:checked {
+  background-color: #171717;
+  border-color: #171717;
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 16 16' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='m3.2 8.2 3 3 6.6-6.6' fill='none' stroke='white' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.8'/%3E%3C/svg%3E");
+  background-position: center;
+  background-repeat: no-repeat;
+  background-size: 0.75rem;
+}
+
+.admin-font :where(input[type='checkbox']):indeterminate,
+.admin-checkbox:indeterminate {
+  background-color: #404040;
+  border-color: #404040;
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 16 16' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M4 8h8' fill='none' stroke='white' stroke-linecap='round' stroke-width='1.8'/%3E%3C/svg%3E");
+  background-position: center;
+  background-repeat: no-repeat;
+  background-size: 0.75rem;
+}
+
+.admin-font :where(input[type='checkbox']):disabled,
+.admin-checkbox:disabled {
+  cursor: not-allowed;
+  opacity: 0.5;
+}
+
+.admin-content table {
+  border-collapse: separate;
+  border-spacing: 0;
+}
+
+.admin-content table thead {
+  background: #fafaf9;
+}
+
+.admin-content table th {
+  color: #737373;
+  font-size: 0.6875rem;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.admin-content table tbody tr {
+  transition: background-color 160ms ease;
+}
+
+.admin-content table tbody tr:hover {
+  background-color: rgba(250, 250, 249, 0.72);
+}
+
 /* Admin kabuğu: görünen viewport yüksekliğine sabitlenir. iOS Safari'de
    100vh tarayıcı çubukları açıkken taşar; destekleyen tarayıcılarda 100dvh
    kullanılır. */
