@@ -103,7 +103,7 @@ export default function ContactPage() {
               <div>
                 <p className="text-[10px] tracking-[0.14em] uppercase text-white/35 mb-1">Telefon</p>
                 <p className="text-[15px] font-semibold text-white tracking-wide">{phone}</p>
-                <p className="text-[11px] text-white/35 mt-0.5">Hf. 09:00 – 18:00</p>
+                <p className="text-[11px] text-white/35 mt-0.5">{identity.workingHours || 'Hf. 09:00 - 18:00'}</p>
               </div>
             </a>
 

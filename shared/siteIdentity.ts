@@ -30,6 +30,7 @@ export const siteIdentitySchema = z.object({
   announcements: z.array(z.string().min(1)).min(1),
   phone: z.string().min(1),
   phoneHref: z.string().min(1),
+  workingHours: z.string().default("Hf. 09:00 - 18:00"),
   email: z.string().min(1),
   addressLines: z.array(z.string().min(1)).min(1),
   copyright: z.string().min(1),
@@ -57,6 +58,7 @@ export const DEFAULT_SITE_IDENTITY: SiteIdentity = {
   ],
   phone: "0536 630 11 38",
   phoneHref: "+905366301138",
+  workingHours: "Hf. 09:00 - 18:00",
   email: "sepetzen@gmail.com",
   addressLines: [
     "Ahmet Uğur Durmaz",

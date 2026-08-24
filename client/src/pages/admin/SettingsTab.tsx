@@ -352,6 +352,22 @@ function ContactInfoSection() {
           </div>
         </div>
 
+        {/* Working Hours */}
+        <div>
+          <label className="block text-sm font-medium text-neutral-700 mb-1.5">
+            Çalışma Saatleri
+            <span className="text-neutral-400 font-normal ml-1">(telefon kartında görünür)</span>
+          </label>
+          <input
+            type="text"
+            value={identity.workingHours ?? ''}
+            onChange={e => set({ workingHours: e.target.value })}
+            placeholder="Hf. 09:00 - 18:00"
+            className={inputCls}
+            data-testid="input-contact-working-hours"
+          />
+        </div>
+
         {/* Email */}
         <div>
           <label className="block text-sm font-medium text-neutral-700 mb-1.5">
