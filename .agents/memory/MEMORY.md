@@ -25,3 +25,4 @@
 - [Admin 2FA (TOTP)](admin-2fa.md) — otplib pinned to v12 (v13 breaks API); TOTP verify must consume time-step (replay guard); backup codes CAS-consumed; in-memory rate limit caveat.
 
 - [Admin white-screen debugging](admin-white-screen-debugging.md) — verify stale-prod claims by asset hash; repro admin render crashes via unauthenticated screenshot; icon props take components, not JSX.
+- [Analytics revenue scope](analytics-revenue-scope.md) — core sales KPIs exclude marketplace line totals until order identity and refund semantics can be reconciled.

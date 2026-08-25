@@ -11,7 +11,6 @@ import {
   Calendar,
   Percent,
   TrendingUp,
-  Users as UsersIcon,
   Loader2,
   Search,
   AlertCircle,
@@ -113,12 +112,17 @@ function isExpired(c: Coupon): boolean {
   return new Date(c.expiresAt) < new Date();
 }
 
+function isScheduled(c: Coupon): boolean {
+  return !!c.startsAt && new Date(c.startsAt) > new Date();
+}
+
 function isExhausted(c: Coupon): boolean {
   return c.usageLimit !== null && c.usageCount >= c.usageLimit;
 }
 
-function couponState(c: Coupon): { tone: 'emerald' | 'amber' | 'red' | 'neutral'; label: string } {
+function couponState(c: Coupon): { tone: 'emerald' | 'amber' | 'blue' | 'red' | 'neutral'; label: string } {
   if (!c.isActive) return { tone: 'neutral', label: 'Pasif' };
+  if (isScheduled(c)) return { tone: 'blue', label: 'Planlandı' };
   if (isExpired(c)) return { tone: 'red', label: 'Süresi Doldu' };
   if (isExhausted(c)) return { tone: 'amber', label: 'Kullanım Dolu' };
   return { tone: 'emerald', label: 'Aktif' };
@@ -128,7 +132,7 @@ export default function CouponsTab() {
   const { toast } = useToast();
   const qc = useQueryClient();
   const [search, setSearch] = useState('');
-  const [statusFilter, setStatusFilter] = useState<'all' | 'active' | 'inactive' | 'expired'>('all');
+  const [statusFilter, setStatusFilter] = useState<'all' | 'active' | 'inactive' | 'expired' | 'scheduled'>('all');
   const [modalOpen, setModalOpen] = useState(false);
   const [draft, setDraft] = useState<CouponDraft>(emptyDraft);
   const [editingId, setEditingId] = useState<string | null>(null);
@@ -145,10 +149,10 @@ export default function CouponsTab() {
 
   const stats = useMemo(() => {
     const total = coupons.length;
-    const active = coupons.filter((c) => c.isActive && !isExpired(c) && !isExhausted(c)).length;
+    const active = coupons.filter((c) => c.isActive && !isScheduled(c) && !isExpired(c) && !isExhausted(c)).length;
     const totalUses = coupons.reduce((sum, c) => sum + (c.usageCount || 0), 0);
-    const influencer = coupons.filter((c) => c.isInfluencerCode).length;
-    return { total, active, totalUses, influencer };
+    const scheduled = coupons.filter(isScheduled).length;
+    return { total, active, totalUses, scheduled };
   }, [coupons]);
 
   const filtered = useMemo(() => {
@@ -164,9 +168,10 @@ export default function CouponsTab() {
     }
     if (statusFilter !== 'all') {
       result = result.filter((c) => {
-        if (statusFilter === 'active') return c.isActive && !isExpired(c) && !isExhausted(c);
+        if (statusFilter === 'active') return c.isActive && !isScheduled(c) && !isExpired(c) && !isExhausted(c);
         if (statusFilter === 'inactive') return !c.isActive;
         if (statusFilter === 'expired') return isExpired(c) || isExhausted(c);
+        if (statusFilter === 'scheduled') return isScheduled(c);
         return true;
       });
     }
@@ -342,10 +347,10 @@ export default function CouponsTab() {
           tone="blue"
         />
         <StatCard
-          icon={UsersIcon}
-          label="Influencer Kuponu"
-          value={stats.influencer}
-          tone="orange"
+          icon={Calendar}
+          label="Planlanan Kupon"
+          value={stats.scheduled}
+          tone="blue"
         />
       </div>
 
@@ -367,6 +372,7 @@ export default function CouponsTab() {
           <option value="active">Aktif</option>
           <option value="inactive">Pasif</option>
           <option value="expired">Süresi Dolmuş</option>
+          <option value="scheduled">Planlanan</option>
         </SelectInput>
       </div>
 
@@ -412,7 +418,7 @@ export default function CouponsTab() {
                   <th className="px-4 py-2.5">Kod</th>
                   <th className="px-4 py-2.5">İndirim</th>
                   <th className="px-4 py-2.5">Min. Sipariş</th>
-                  <th className="px-4 py-2.5">Kullanım</th>
+                  <th className="px-4 py-2.5">Kullanım ve yoğunluk</th>
                   <th className="px-4 py-2.5">Geçerlilik</th>
                   <th className="px-4 py-2.5">Durum</th>
                   <th className="px-4 py-2.5 text-right">İşlemler</th>
@@ -465,12 +471,21 @@ export default function CouponsTab() {
                           ? `${Number(c.minOrderAmount).toLocaleString('tr-TR')} ₺`
                           : '-'}
                       </td>
-                      <td className="px-4 py-3 text-neutral-600 tabular-nums">
-                        {c.usageCount}
-                        {c.usageLimit ? ` / ${c.usageLimit}` : ''}
+                      <td className="px-4 py-3">
+                        <div className="min-w-[112px]">
+                          <div className="flex justify-between gap-2 text-[12px] text-neutral-700 tabular-nums">
+                            <span>{c.usageCount}{c.usageLimit ? ` / ${c.usageLimit}` : ' kullanım'}</span>
+                            {c.usageLimit && <span>{Math.min(100, Math.round((c.usageCount / c.usageLimit) * 100))}%</span>}
+                          </div>
+                          {c.usageLimit && (
+                            <div className="mt-1 h-1.5 overflow-hidden rounded-full bg-neutral-100">
+                              <div className="h-full rounded-full bg-neutral-700" style={{ width: `${Math.min(100, (c.usageCount / c.usageLimit) * 100)}%` }} />
+                            </div>
+                          )}
+                        </div>
                       </td>
                       <td className="px-4 py-3 text-neutral-600 text-[12px]">
-                        {c.expiresAt ? formatDate(c.expiresAt) : 'Süresiz'}
+                        <div>{isScheduled(c) ? `Başlar: ${formatDate(c.startsAt)}` : c.expiresAt ? `Biter: ${formatDate(c.expiresAt)}` : 'Süresiz'}</div>
                       </td>
                       <td className="px-4 py-3">
                         <StatusBadge tone={state.tone}>{state.label}</StatusBadge>
@@ -551,16 +566,17 @@ export default function CouponsTab() {
                       </p>
                     </div>
                     <div>
-                      <p className="text-neutral-500">Kullanım</p>
+                      <p className="text-neutral-500">Kullanım yoğunluğu</p>
                       <p className="font-medium text-neutral-900 tabular-nums">
                         {c.usageCount}
                         {c.usageLimit ? `/${c.usageLimit}` : ''}
                       </p>
+                      {c.usageLimit && <p className="text-neutral-500">%{Math.min(100, Math.round((c.usageCount / c.usageLimit) * 100))}</p>}
                     </div>
                     <div>
                       <p className="text-neutral-500">Bitiş</p>
                       <p className="font-medium text-neutral-900">
-                        {c.expiresAt ? formatDate(c.expiresAt) : 'Süresiz'}
+                        {isScheduled(c) ? `Başlar ${formatDate(c.startsAt)}` : c.expiresAt ? formatDate(c.expiresAt) : 'Süresiz'}
                       </p>
                     </div>
                   </div>

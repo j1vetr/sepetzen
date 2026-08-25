@@ -1,3 +1,5 @@
+import { useMemo } from 'react';
+import { useQuery } from '@tanstack/react-query';
 import { Users as UsersIcon, Pencil, Trash2 } from 'lucide-react';
 import type { User } from './_shared/types';
 import { Card, SearchInput, IconButton, EmptyState } from './_ui/AdminUI';
@@ -10,7 +12,31 @@ interface UsersTabProps {
   deleteUserMutation: { mutate: (id: string) => void };
 }
 
+interface CustomerOrderMetric {
+  userId: string;
+  totalOrders: number;
+  totalSpent: number;
+  lastOrderDate: string | null;
+}
+
 export default function UsersTab({ users, searchQuery, setSearchQuery, setViewingUser, deleteUserMutation }: UsersTabProps) {
+  const { data: customerMetrics = [], isLoading: metricsLoading, isError: metricsError } = useQuery<CustomerOrderMetric[]>({
+    queryKey: ['admin', 'users', 'order-metrics'],
+    queryFn: async () => {
+      const response = await fetch('/api/admin/users/order-metrics', { credentials: 'include' });
+      if (!response.ok) throw new Error('Müşteri değerleri yüklenemedi');
+      const data: unknown = await response.json();
+      if (!Array.isArray(data)) throw new Error('Müşteri değerleri geçersiz');
+      return data as CustomerOrderMetric[];
+    },
+  });
+  const customerValue = useMemo(
+    () => new Map(customerMetrics.map((metric) => [metric.userId, metric])),
+    [customerMetrics],
+  );
+
+  const valueFor = (user: User) =>
+    customerValue.get(user.id) ?? { totalOrders: 0, totalSpent: 0, lastOrderDate: null };
   const confirmDelete = (id: string) => {
     if (confirm('Bu kullanıcıyı silmek istediğinize emin misiniz?')) {
       deleteUserMutation.mutate(id);
@@ -21,7 +47,7 @@ export default function UsersTab({ users, searchQuery, setSearchQuery, setViewin
     <div>
       <div className="flex items-center justify-between mb-6">
         <SearchInput
-          placeholder="Kullanıcı ara"
+          placeholder="Müşteri adı veya e-posta ara"
           value={searchQuery}
           onChange={(e) => setSearchQuery(e.target.value)}
           className="w-full sm:w-64"
@@ -47,13 +73,16 @@ export default function UsersTab({ users, searchQuery, setSearchQuery, setViewin
                   <th className="text-left px-6 py-4 text-sm font-medium text-neutral-500">Kullanıcı</th>
                   <th className="text-left px-6 py-4 text-sm font-medium text-neutral-500">E-posta</th>
                   <th className="text-left px-6 py-4 text-sm font-medium text-neutral-500">Telefon</th>
+                  <th className="text-left px-6 py-4 text-sm font-medium text-neutral-500">Müşteri Değeri</th>
                   <th className="text-left px-6 py-4 text-sm font-medium text-neutral-500">Kayıt Tarihi</th>
                   <th className="text-right px-6 py-4 text-sm font-medium text-neutral-500">İşlemler</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-neutral-200">
-                {users.map((user) => (
-                  <tr key={user.id} className="hover:bg-neutral-50/30" data-testid={`row-user-${user.id}`}>
+                  {users.map((user) => {
+                    const value = valueFor(user);
+                    return (
+                    <tr key={user.id} className="hover:bg-neutral-50/30" data-testid={`row-user-${user.id}`}>
                     <td className="px-6 py-4">
                       <div className="flex items-center gap-3">
                         <div className="w-10 h-10 rounded-full bg-neutral-200 flex items-center justify-center text-neutral-900 font-bold shrink-0">
@@ -66,6 +95,12 @@ export default function UsersTab({ users, searchQuery, setSearchQuery, setViewin
                     </td>
                     <td className="px-6 py-4 text-neutral-500">{user.email}</td>
                     <td className="px-6 py-4 text-neutral-500">{user.phone || '-'}</td>
+                    <td className="px-6 py-4">
+                      <p className="text-sm font-medium tabular-nums text-neutral-900">{value.totalSpent.toLocaleString('tr-TR', { maximumFractionDigits: 2 })} ₺</p>
+                      <p className="mt-0.5 text-[11px] text-neutral-500">
+                        {metricsLoading ? 'Yükleniyor' : metricsError ? 'Değer yüklenemedi' : value.totalOrders ? `${value.totalOrders} sipariş · Son: ${new Date(value.lastOrderDate!).toLocaleDateString('tr-TR')}` : 'Henüz sipariş yok'}
+                      </p>
+                    </td>
                     <td className="px-6 py-4 text-sm text-neutral-500">
                       {new Date(user.createdAt).toLocaleDateString('tr-TR')}
                     </td>
@@ -73,7 +108,7 @@ export default function UsersTab({ users, searchQuery, setSearchQuery, setViewin
                       <div className="flex justify-end gap-2">
                         <IconButton
                           onClick={() => setViewingUser(user)}
-                          title="Düzenle"
+                          title="Müşteri detayı ve geçmişi"
                           data-testid={`button-edit-user-${user.id}`}
                         >
                           <Pencil className="w-4 h-4" />
@@ -88,15 +123,18 @@ export default function UsersTab({ users, searchQuery, setSearchQuery, setViewin
                         </IconButton>
                       </div>
                     </td>
-                  </tr>
-                ))}
+                    </tr>
+                    );
+                  })}
               </tbody>
             </table>
           </div>
 
           {/* Mobil kartlar */}
           <div className="md:hidden divide-y divide-neutral-200">
-            {users.map((user) => (
+            {users.map((user) => {
+              const value = valueFor(user);
+              return (
               <div key={user.id} className="p-4" data-testid={`card-user-${user.id}`}>
                 <div className="flex items-center gap-3 mb-3">
                   <div className="w-10 h-10 rounded-full bg-neutral-200 flex items-center justify-center text-neutral-900 font-bold shrink-0">
@@ -114,6 +152,15 @@ export default function UsersTab({ users, searchQuery, setSearchQuery, setViewin
                     <p className="text-neutral-500 text-[12px]">Telefon</p>
                     <p className="text-neutral-900">{user.phone || '-'}</p>
                   </div>
+                  <div className="col-span-2 rounded-md bg-neutral-50 px-3 py-2">
+                    <p className="text-neutral-500 text-[12px]">Müşteri değeri</p>
+                    <p className="font-medium tabular-nums text-neutral-900">
+                      {value.totalSpent.toLocaleString('tr-TR', { maximumFractionDigits: 2 })} ₺
+                      <span className="ml-1.5 text-[12px] font-normal text-neutral-500">
+                        {metricsLoading ? 'Yükleniyor' : metricsError ? 'Değer yüklenemedi' : value.totalOrders ? `${value.totalOrders} sipariş` : 'Henüz sipariş yok'}
+                      </span>
+                    </p>
+                  </div>
                   <div>
                     <p className="text-neutral-500 text-[12px]">Kayıt Tarihi</p>
                     <p className="text-neutral-900">
@@ -128,7 +175,7 @@ export default function UsersTab({ users, searchQuery, setSearchQuery, setViewin
                     data-testid={`card-button-edit-user-${user.id}`}
                   >
                     <Pencil className="w-4 h-4" />
-                    Düzenle
+                      Detay ve geçmiş
                   </button>
                   <button
                     onClick={() => confirmDelete(user.id)}
@@ -139,7 +186,8 @@ export default function UsersTab({ users, searchQuery, setSearchQuery, setViewin
                   </button>
                 </div>
               </div>
-            ))}
+              );
+            })}
           </div>
         </Card>
       )}

@@ -162,6 +162,13 @@ export interface AdminStats {
   pendingOrders: number;
 }
 
+export interface AdminUserOrderMetric {
+  userId: string;
+  totalOrders: number;
+  totalSpent: number;
+  lastOrderDate: string | null;
+}
+
 export interface ReturnRequestWithItems extends ReturnRequest {
   items: ReturnRequestItem[];
 }
@@ -184,6 +191,7 @@ export interface IStorage {
   getUserByGoogleId(googleId: string): Promise<User | undefined>;
   createUser(user: InsertUser): Promise<User>;
   getUsers(search?: string): Promise<User[]>;
+  getAdminUserOrderMetrics(): Promise<AdminUserOrderMetric[]>;
   updateUser(id: string, user: Partial<InsertUser>): Promise<User | undefined>;
   deleteUser(id: string): Promise<void>;
 
@@ -585,6 +593,36 @@ export class DbStorage implements IStorage {
       ).orderBy(desc(users.createdAt));
     }
     return db.select().from(users).orderBy(desc(users.createdAt));
+  }
+
+  async getAdminUserOrderMetrics(): Promise<AdminUserOrderMetric[]> {
+    const result = await db.execute(sql`
+      SELECT
+        u.id AS user_id,
+        COUNT(o.id) FILTER (
+          WHERE o.status NOT IN ('cancelled', 'refunded', 'returned')
+        ) AS order_count,
+        COALESCE(
+          SUM(CAST(o.total AS DECIMAL)) FILTER (
+            WHERE o.status NOT IN ('cancelled', 'refunded', 'returned')
+          ),
+          0
+        ) AS total_spent,
+        MAX(o.created_at) FILTER (
+          WHERE o.status NOT IN ('cancelled', 'refunded', 'returned')
+        ) AS last_order_date
+      FROM users u
+      LEFT JOIN orders o
+        ON LOWER(TRIM(u.email)) = LOWER(TRIM(o.customer_email))
+      GROUP BY u.id
+    `);
+
+    return ((result.rows || []) as Array<Record<string, unknown>>).map((row) => ({
+      userId: String(row.user_id),
+      totalOrders: Number(row.order_count || 0),
+      totalSpent: Number(row.total_spent || 0),
+      lastOrderDate: row.last_order_date ? new Date(String(row.last_order_date)).toISOString() : null,
+    }));
   }
 
   async updateUser(id: string, user: Partial<InsertUser>): Promise<User | undefined> {
@@ -2171,7 +2209,9 @@ export class DbStorage implements IStorage {
   }
 
   async getUserOrderStats(email: string): Promise<{ totalOrders: number; totalSpent: number; lastOrderDate: Date | null; products: string[] }> {
-    const userOrders = await this.getUserOrdersByEmail(email);
+    const userOrders = (await this.getUserOrdersByEmail(email)).filter(
+      (order) => !['cancelled', 'refunded', 'returned'].includes(order.status),
+    );
     if (userOrders.length === 0) {
       return { totalOrders: 0, totalSpent: 0, lastOrderDate: null, products: [] };
     }

@@ -363,12 +363,11 @@ async function fetchChannelBreakdown(range: AnalyticsRange): Promise<BreakdownRo
 export async function getSalesOverview(range: AnalyticsRange, granularity: Granularity): Promise<SalesOverview> {
   const previousRange = previousRangeOf(range, granularity);
 
-  const [summary, previousSummary, series, paymentBreakdown, channelBreakdown] = await Promise.all([
+  const [summary, previousSummary, series, paymentBreakdown] = await Promise.all([
     fetchSummary(range),
     fetchSummary(previousRange),
     fetchSeries(range, granularity),
     fetchPaymentBreakdown(range),
-    fetchChannelBreakdown(range),
   ]);
 
   return {
@@ -386,7 +385,7 @@ export async function getSalesOverview(range: AnalyticsRange, granularity: Granu
     },
     series,
     paymentBreakdown,
-    channelBreakdown,
+    channelBreakdown: [],
   };
 }
 

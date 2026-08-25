@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { Loader2, MapPin } from 'lucide-react';
+import { Clock3, Loader2, MapPin, ShoppingBag } from 'lucide-react';
 import type { User } from '../_shared/types';
 import AdminModal from '../_ui/AdminModal';
 import { PrimaryButton, SecondaryButton } from '../_ui/AdminUI';
@@ -211,14 +211,41 @@ export default function UserDetailModal({
         </section>
 
         <section className="pt-5 border-t border-neutral-200">
-          <h3 className="text-sm font-semibold text-neutral-900 mb-3">Sipariş özeti</h3>
+          <h3 className="text-sm font-semibold text-neutral-900 mb-1 flex items-center gap-2">
+            <ShoppingBag className="w-4 h-4 text-neutral-400" />
+            Müşteri değeri ve sipariş geçmişi
+          </h3>
+          <p className="mb-3 text-[12px] text-neutral-500">Sipariş katkısı ve en son tercih edilen ürünler.</p>
           {isLoadingStats ? (
             <div className="text-sm text-neutral-500">Yükleniyor...</div>
           ) : stats ? (
-            <div className="grid grid-cols-3 gap-3">
-              <Stat label="Toplam sipariş" value={String(stats.totalOrders)} />
-              <Stat label="Toplam harcama" value={`${stats.totalSpent.toFixed(2)} ₺`} />
-              <Stat label="Son sipariş" value={stats.lastOrderDate ? new Date(stats.lastOrderDate).toLocaleDateString('tr-TR') : '-'} />
+            <div className="space-y-3">
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                <Stat label="Toplam sipariş" value={String(stats.totalOrders)} />
+                <Stat label="Toplam harcama" value={`${stats.totalSpent.toFixed(2)} ₺`} />
+                <Stat
+                  label="Ort. sepet"
+                  value={stats.totalOrders > 0 ? `${(stats.totalSpent / stats.totalOrders).toFixed(2)} ₺` : '-'}
+                />
+                <Stat label="Son sipariş" value={stats.lastOrderDate ? new Date(stats.lastOrderDate).toLocaleDateString('tr-TR') : '-'} />
+              </div>
+              {stats.products.length > 0 ? (
+                <div className="rounded-lg border border-neutral-200 bg-neutral-50 p-3">
+                  <div className="mb-2 flex items-center gap-1.5 text-[11px] font-semibold text-neutral-700">
+                    <Clock3 className="h-3.5 w-3.5" />
+                    Son siparişlerdeki ürünler
+                  </div>
+                  <div className="flex flex-wrap gap-1.5">
+                    {stats.products.slice(0, 5).map((product) => (
+                      <span key={product} className="rounded-md border border-neutral-200 bg-white px-2 py-1 text-[11px] text-neutral-700">
+                        {product}
+                      </span>
+                    ))}
+                  </div>
+                </div>
+              ) : (
+                <p className="rounded-lg bg-neutral-50 px-3 py-2 text-[12px] text-neutral-500">Bu müşteri için henüz sipariş geçmişi yok.</p>
+              )}
             </div>
           ) : (
             <p className="text-sm text-neutral-500">Sipariş özeti alınamadı.</p>

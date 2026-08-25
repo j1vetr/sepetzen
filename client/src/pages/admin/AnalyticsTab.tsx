@@ -2,7 +2,7 @@ import { useMemo, useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import {
   TrendingUp, ArrowUpRight, ArrowDownRight, DollarSign, ShoppingBag, Package,
-  Award, BarChart3, Loader2, Globe, Download, CreditCard, Store, XCircle, Minus, type LucideIcon,
+  Award, BarChart3, Loader2, Globe, Download, CreditCard, XCircle, Minus, type LucideIcon,
 } from 'lucide-react';
 import type {
   AnalyticsStatusRow, AnalyticsBestSeller, AnalyticsCountryRow,
@@ -14,13 +14,24 @@ const fmtPrice = (n: number) => '₺' + new Intl.NumberFormat('tr-TR', { minimum
 const fmtCompact = (n: number) => '₺' + new Intl.NumberFormat('tr-TR', { notation: 'compact', maximumFractionDigits: 1 }).format(n);
 
 function isoToday(): string {
-  return new Date().toISOString().slice(0, 10);
+  return istanbulDate(new Date());
 }
 
 function isoShift(days: number): string {
   const date = new Date();
   date.setDate(date.getDate() + days);
-  return date.toISOString().slice(0, 10);
+  return istanbulDate(date);
+}
+
+function istanbulDate(date: Date): string {
+  const parts = new Intl.DateTimeFormat('en-GB', {
+    timeZone: 'Europe/Istanbul',
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+  }).formatToParts(date);
+  const part = (type: Intl.DateTimeFormatPartTypes) => parts.find((item) => item.type === type)?.value ?? '';
+  return `${part('year')}-${part('month')}-${part('day')}`;
 }
 
 /** Kırılıma göre varsayılan başlangıç tarihi (sunucudaki varsayılanla aynı). */
@@ -53,6 +64,14 @@ function formatRange(start: string, end: string): string {
 
 const BREAKDOWN_COLORS = ['#0f172a', '#3b82f6', '#a855f7', '#10b981', '#f59e0b', '#ef4444', '#64748b'];
 
+async function fetchAnalyticsArray<T>(url: string, message: string): Promise<T[]> {
+  const response = await fetch(url, { credentials: 'include' });
+  if (!response.ok) throw new Error(message);
+  const data: unknown = await response.json();
+  if (!Array.isArray(data)) throw new Error(message);
+  return data as T[];
+}
+
 export default function AnalyticsPanel() {
   const [granularity, setGranularity] = useState<AnalyticsGranularity>('day');
   const [start, setStart] = useState<string>(() => defaultStart('day'));
@@ -69,27 +88,24 @@ export default function AnalyticsPanel() {
     },
   });
 
-  const { data: bestSellers, isLoading: bestSellersLoading } = useQuery({
+  const { data: bestSellers = [], isLoading: bestSellersLoading, isError: bestSellersError } = useQuery<AnalyticsBestSeller[]>({
     queryKey: ['admin-best-sellers'],
     queryFn: async () => {
-      const res = await fetch('/api/admin/analytics/best-sellers?limit=8', { credentials: 'include' });
-      return res.json();
+      return fetchAnalyticsArray<AnalyticsBestSeller>('/api/admin/analytics/best-sellers?limit=8', 'En çok satan ürünler yüklenemedi');
     },
   });
 
-  const { data: statusBreakdown } = useQuery({
+  const { data: statusBreakdown = [], isLoading: statusBreakdownLoading, isError: statusBreakdownError } = useQuery<AnalyticsStatusRow[]>({
     queryKey: ['admin-status-breakdown'],
     queryFn: async () => {
-      const res = await fetch('/api/admin/analytics/status-breakdown', { credentials: 'include' });
-      return res.json();
+      return fetchAnalyticsArray<AnalyticsStatusRow>('/api/admin/analytics/status-breakdown', 'Sipariş durumları yüklenemedi');
     },
   });
 
-  const { data: countryBreakdown } = useQuery({
+  const { data: countryBreakdown = [], isLoading: countryBreakdownLoading, isError: countryBreakdownError } = useQuery<AnalyticsCountryRow[]>({
     queryKey: ['admin-country-breakdown'],
     queryFn: async () => {
-      const res = await fetch('/api/admin/analytics/country-breakdown', { credentials: 'include' });
-      return res.json();
+      return fetchAnalyticsArray<AnalyticsCountryRow>('/api/admin/analytics/country-breakdown', 'Ülke gelirleri yüklenemedi');
     },
   });
 
@@ -114,8 +130,9 @@ export default function AnalyticsPanel() {
     cancelled:  { label: 'İptal',        color: '#ef4444' },
   };
 
-  const totalStatusOrders = (statusBreakdown || []).reduce((s: number, r: AnalyticsStatusRow) => s + r.count, 0);
-  const maxBestRevenue = bestSellers?.length > 0 ? Math.max(...bestSellers.map((b: AnalyticsBestSeller) => b.revenue)) : 1;
+  const totalStatusOrders = statusBreakdown.reduce((s: number, r: AnalyticsStatusRow) => s + r.count, 0);
+  const countries = countryBreakdown;
+  const maxBestRevenue = bestSellers.length > 0 ? Math.max(...bestSellers.map((b: AnalyticsBestSeller) => b.revenue)) : 1;
   const series: AnalyticsSeriesRow[] = overview?.series ?? [];
   const maxNetRevenue = useMemo(() => Math.max(1, ...series.map((row) => row.netRevenue)), [series]);
   const hasData = series.some((row) => row.orders > 0);
@@ -206,6 +223,7 @@ export default function AnalyticsPanel() {
                   <button
                     key={value}
                     onClick={() => applyGranularity(value)}
+                    aria-pressed={granularity === value}
                     className={`px-3 py-1.5 text-xs font-medium rounded-md transition-all ${granularity === value ? 'bg-white text-neutral-900 shadow-sm' : 'text-neutral-500 hover:text-neutral-900'}`}
                     data-testid={`button-granularity-${value}`}
                   >
@@ -241,6 +259,7 @@ export default function AnalyticsPanel() {
                 <button
                   key={days}
                   onClick={() => applyPreset(days)}
+                    aria-pressed={start === isoShift(-(days - 1)) && end === isoToday()}
                   className="px-2.5 py-1.5 text-xs font-medium rounded-lg border border-neutral-200 text-neutral-600 hover:bg-neutral-50"
                   data-testid={`button-preset-${days}`}
                 >
@@ -255,7 +274,7 @@ export default function AnalyticsPanel() {
             className="inline-flex items-center gap-2 rounded-lg bg-neutral-900 px-4 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-neutral-800"
             data-testid="link-export-csv"
           >
-            <Download className="w-4 h-4" /> CSV indir
+            <Download className="w-4 h-4" /> Dönem tablosunu CSV indir
           </a>
         </div>
         {overview && (
@@ -263,6 +282,10 @@ export default function AnalyticsPanel() {
             Seçili dönem: {formatRange(overview.range.start, overview.range.end)} · Karşılaştırma: {formatRange(overview.previousRange.start, overview.previousRange.end)}
           </p>
         )}
+      </div>
+
+      <div className="rounded-xl border border-neutral-200 bg-neutral-50 px-4 py-3 text-[12px] text-neutral-600">
+        <strong className="text-neutral-900">Rapor kapsamı:</strong> KPI, satış grafiği, dönem detayı ve ödeme veya kanal kırılımları seçili tarih aralığına göre hesaplanır. En çok satan ürünler, sipariş durumu ve ülke gelirleri tüm zamanlar görünümüdür.
       </div>
 
       {overviewError && (
@@ -393,8 +416,8 @@ export default function AnalyticsPanel() {
         )}
       </div>
 
-      {/* Ödeme yöntemi + kanal kırılımı */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+      {/* Ödeme yöntemi kırılımı */}
+      <div className="grid grid-cols-1 gap-6">
         <div className="bg-white border border-neutral-200 rounded-xl overflow-hidden">
           <div className="flex items-center justify-between px-6 py-4 border-b border-neutral-200">
             <div>
@@ -406,16 +429,6 @@ export default function AnalyticsPanel() {
           <BreakdownList rows={overview?.paymentBreakdown ?? []} emptyText="Bu dönemde ödeme verisi yok" />
         </div>
 
-        <div className="bg-white border border-neutral-200 rounded-xl overflow-hidden">
-          <div className="flex items-center justify-between px-6 py-4 border-b border-neutral-200">
-            <div>
-              <h3 className="text-sm font-semibold text-neutral-900">Sipariş Kaynağı</h3>
-              <p className="text-xs text-neutral-500 mt-0.5">Web sitesi ve pazaryerleri</p>
-            </div>
-            <Store className="w-4 h-4 text-neutral-500" />
-          </div>
-          <BreakdownList rows={overview?.channelBreakdown ?? []} emptyText="Bu dönemde sipariş kaynağı verisi yok" />
-        </div>
       </div>
 
       {/* Detay tablosu */}
@@ -518,6 +531,8 @@ export default function AnalyticsPanel() {
           <div className="divide-y divide-neutral-200/60">
             {bestSellersLoading ? (
               <div className="p-8 flex justify-center"><Loader2 className="w-5 h-5 animate-spin text-neutral-400" /></div>
+            ) : bestSellersError ? (
+              <div className="p-8 text-center text-neutral-500 text-sm">En çok satan ürünler şu anda yüklenemedi.</div>
             ) : bestSellers?.filter((b: AnalyticsBestSeller) => b.totalSold > 0).length > 0 ? (
               bestSellers.filter((b: AnalyticsBestSeller) => b.totalSold > 0).map((item: AnalyticsBestSeller, index: number) => {
                 const barPct = maxBestRevenue > 0 ? (item.revenue / maxBestRevenue) * 100 : 0;
@@ -565,13 +580,21 @@ export default function AnalyticsPanel() {
             <BarChart3 className="w-4 h-4 text-neutral-500" />
           </div>
 
-          {statusBreakdown?.length > 0 && (
+          {statusBreakdownLoading ? (
+            <div className="p-8 flex justify-center"><Loader2 className="w-5 h-5 animate-spin text-neutral-400" /></div>
+          ) : statusBreakdownError ? (
+            <div className="px-6 py-10 text-center text-sm text-neutral-500">
+              Sipariş durumu verisi şu anda yüklenemedi.
+            </div>
+          ) : (
+            <>
+          {statusBreakdown.length > 0 && (
             <div className="flex justify-center py-6">
               <div className="relative w-32 h-32">
                 <svg viewBox="0 0 100 100" className="w-full h-full -rotate-90">
                   {(() => {
                     let offset = 0;
-                    return (statusBreakdown || []).map((r: AnalyticsStatusRow) => {
+                    return statusBreakdown.map((r: AnalyticsStatusRow) => {
                       const pct = totalStatusOrders > 0 ? (r.count / totalStatusOrders) * 100 : 0;
                       const color = STATUS_META[r.status]?.color || '#71717a';
                       const el = (
@@ -599,7 +622,7 @@ export default function AnalyticsPanel() {
           )}
 
           <div className="px-4 pb-4 space-y-2.5">
-            {(statusBreakdown || []).map((r: AnalyticsStatusRow) => {
+            {statusBreakdown.map((r: AnalyticsStatusRow) => {
               const meta = STATUS_META[r.status] || { label: r.status, color: '#71717a' };
               const pct = totalStatusOrders > 0 ? (r.count / totalStatusOrders) * 100 : 0;
               return (
@@ -612,19 +635,37 @@ export default function AnalyticsPanel() {
               );
             })}
           </div>
+          {!statusBreakdown.length && (
+            <div className="px-6 py-10 text-center text-sm text-neutral-500">
+              Sipariş durumu verisi henüz oluşmadı.
+            </div>
+          )}
+            </>
+          )}
         </div>
       </div>
 
       {/* Ülke kırılımı */}
-      {countryBreakdown?.length > 0 && (
-        <div className="bg-white border border-neutral-200 rounded-xl overflow-hidden">
+      <div className="bg-white border border-neutral-200 rounded-xl overflow-hidden">
           <div className="flex items-center justify-between px-6 py-4 border-b border-neutral-200">
             <div>
               <h3 className="text-sm font-semibold text-neutral-900">Ülke Bazında Gelir</h3>
-              <p className="text-xs text-neutral-500 mt-0.5">İptal edilen siparişler hariç</p>
+              <p className="text-xs text-neutral-500 mt-0.5">Tüm zamanlar, iptal edilen siparişler hariç</p>
             </div>
             <Globe className="w-4 h-4 text-neutral-500" />
           </div>
+          {countryBreakdownLoading ? (
+            <div className="p-8 flex justify-center"><Loader2 className="w-5 h-5 animate-spin text-neutral-400" /></div>
+          ) : countryBreakdownError ? (
+            <div className="px-6 py-10 text-center text-sm text-neutral-500">
+              Ülke gelirleri şu anda yüklenemedi.
+            </div>
+          ) : countries.length === 0 ? (
+            <div className="px-6 py-10 text-center text-sm text-neutral-500">
+              Ülke bazında gösterilecek gelir verisi henüz yok.
+            </div>
+          ) : (
+            <>
           <div className="hidden md:block">
             <table className="w-full">
               <thead>
@@ -636,8 +677,8 @@ export default function AnalyticsPanel() {
                 </tr>
               </thead>
               <tbody className="divide-y divide-neutral-200/60">
-                {countryBreakdown.map((row: AnalyticsCountryRow) => {
-                  const totalRevenue = countryBreakdown.reduce((s: number, r: AnalyticsCountryRow) => s + r.revenue, 0);
+                {countries.map((row: AnalyticsCountryRow) => {
+                  const totalRevenue = countries.reduce((s: number, r: AnalyticsCountryRow) => s + r.revenue, 0);
                   const share = totalRevenue > 0 ? (row.revenue / totalRevenue) * 100 : 0;
                   return (
                     <tr key={row.country} className="hover:bg-neutral-50/50 transition-colors">
@@ -665,8 +706,8 @@ export default function AnalyticsPanel() {
           </div>
 
           <div className="md:hidden divide-y divide-neutral-200/60">
-            {countryBreakdown.map((row: AnalyticsCountryRow) => {
-              const totalRevenue = countryBreakdown.reduce((s: number, r: AnalyticsCountryRow) => s + r.revenue, 0);
+            {countries.map((row: AnalyticsCountryRow) => {
+              const totalRevenue = countries.reduce((s: number, r: AnalyticsCountryRow) => s + r.revenue, 0);
               const share = totalRevenue > 0 ? (row.revenue / totalRevenue) * 100 : 0;
               return (
                 <div key={row.country} className="px-4 py-4">
@@ -690,8 +731,9 @@ export default function AnalyticsPanel() {
               );
             })}
           </div>
-        </div>
-      )}
+          </>
+          )}
+      </div>
     </div>
   );
 }

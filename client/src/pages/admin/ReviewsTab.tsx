@@ -1,5 +1,5 @@
-import { useState } from 'react';
-import { Star, Check, X, Trash2, Loader2, MessageSquare, ExternalLink } from 'lucide-react';
+import { useMemo, useState } from 'react';
+import { Star, Check, X, Trash2, Loader2, MessageSquare, ExternalLink, Search } from 'lucide-react';
 import {
   useAdminReviews,
   useApproveReview,
@@ -38,6 +38,10 @@ function authorOf(r: AdminReview): { name: string; email: string | null; isGuest
     return { name, email: r.userEmail, isGuest: false };
   }
   return { name: r.guestName || 'Misafir', email: r.guestEmail, isGuest: true };
+}
+
+function reviewStatus(review: AdminReview): 'pending' | 'approved' | 'rejected' {
+  return review.rejectionReason ? 'rejected' : review.isApproved ? 'approved' : 'pending';
 }
 
 function ReviewCard({ review }: { review: AdminReview }) {
@@ -89,11 +93,7 @@ function ReviewCard({ review }: { review: AdminReview }) {
     }
   };
 
-  const status: 'pending' | 'approved' | 'rejected' = review.rejectionReason
-    ? 'rejected'
-    : review.isApproved
-      ? 'approved'
-      : 'pending';
+  const status = reviewStatus(review);
 
   const statusBadge =
     status === 'pending' ? (
@@ -131,7 +131,7 @@ function ReviewCard({ review }: { review: AdminReview }) {
               href={`/urun/${review.productSlug}`}
               target="_blank"
               rel="noopener noreferrer"
-              className="text-[13px] font-semibold text-neutral-900 hover:text-polen-orange flex items-center gap-1 truncate"
+              className="text-[13px] font-semibold text-neutral-900 hover:text-amber-700 flex items-center gap-1 truncate"
               data-testid={`link-product-${review.productSlug}`}
             >
               <span className="truncate">{review.productName}</span>
@@ -156,6 +156,13 @@ function ReviewCard({ review }: { review: AdminReview }) {
           )}
         </span>
         {author.email && <span className="text-neutral-500">{author.email}</span>}
+      </div>
+
+      <div className="flex items-center justify-between rounded-md bg-neutral-50 px-3 py-2 text-[11px] text-neutral-600">
+        <span>Ürün itibarı</span>
+        <span className="font-medium text-neutral-800">
+          {review.rating >= 4 ? 'Olumlu katkı' : review.rating === 3 ? 'Nötr sinyal' : 'Dikkat gerektiriyor'}
+        </span>
       </div>
 
       {(review.title || review.content) && (
@@ -270,14 +277,35 @@ function ReviewCard({ review }: { review: AdminReview }) {
 
 export default function ReviewsTab() {
   const [filter, setFilter] = useState<AdminReviewStatusFilter>('pending');
-  const { data: reviews = [], isLoading, error } = useAdminReviews(filter);
+  const [search, setSearch] = useState('');
+  const { data: allReviews = [], isLoading, error } = useAdminReviews('all');
+  const reviewSummary = useMemo(() => {
+    const pending = allReviews.filter((review) => reviewStatus(review) === 'pending').length;
+    const approved = allReviews.filter((review) => reviewStatus(review) === 'approved').length;
+    const rejected = allReviews.filter((review) => reviewStatus(review) === 'rejected').length;
+    const averageRating = allReviews.length
+      ? allReviews.reduce((sum, review) => sum + review.rating, 0) / allReviews.length
+      : 0;
+    return { pending, approved, rejected, averageRating };
+  }, [allReviews]);
+  const reviews = useMemo(() => {
+    const query = search.trim().toLocaleLowerCase('tr-TR');
+    return allReviews.filter((review) => {
+      if (filter !== 'all' && reviewStatus(review) !== filter) return false;
+      if (!query) return true;
+      const author = authorOf(review);
+      return [review.productName, review.title, review.content, author.name, author.email]
+        .filter(Boolean)
+        .some((value) => value!.toLocaleLowerCase('tr-TR').includes(query));
+    });
+  }, [allReviews, filter, search]);
 
   return (
     <div className="space-y-5">
       <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-3">
         <div>
           <h1 className="text-xl font-semibold text-neutral-900 flex items-center gap-2">
-            <MessageSquare className="w-5 h-5 text-polen-orange" />
+            <MessageSquare className="w-5 h-5 text-neutral-700" />
             Müşteri Yorumları
           </h1>
           <p className="text-[13px] text-neutral-500 mt-0.5">
@@ -285,6 +313,24 @@ export default function ReviewsTab() {
           </p>
         </div>
       </div>
+
+      <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+        <ReviewMetric label="Moderasyon bekleyen" value={reviewSummary.pending} tone="amber" />
+        <ReviewMetric label="Yayındaki yorum" value={reviewSummary.approved} tone="neutral" />
+        <ReviewMetric label="Reddedilen" value={reviewSummary.rejected} tone="red" />
+        <ReviewMetric label="Ortalama puan" value={allReviews.length ? `${reviewSummary.averageRating.toFixed(1)} / 5` : '-'} tone="neutral" />
+      </div>
+
+      <label className="relative block max-w-md">
+        <Search className="pointer-events-none absolute left-3 top-3 h-4 w-4 text-neutral-400" />
+        <input
+          value={search}
+          onChange={(event) => setSearch(event.target.value)}
+          placeholder="Ürün, yorum başlığı veya müşteri ara"
+          className="h-10 w-full rounded-lg border border-neutral-200 bg-white pl-9 pr-3 text-[13px] text-neutral-900 shadow-sm outline-none focus:border-neutral-400 focus:ring-4 focus:ring-neutral-900/[0.06]"
+          data-testid="input-search-reviews"
+        />
+      </label>
 
       <div className="flex flex-wrap gap-1 border-b border-neutral-200 pb-px">
         {STATUS_TABS.map((tab) => {
@@ -300,7 +346,7 @@ export default function ReviewsTab() {
               }`}
               data-testid={`tab-reviews-${tab.id}`}
             >
-              {tab.label}
+              {tab.label} ({tab.id === 'pending' ? reviewSummary.pending : tab.id === 'approved' ? reviewSummary.approved : tab.id === 'rejected' ? reviewSummary.rejected : allReviews.length})
             </button>
           );
         })}
@@ -322,7 +368,7 @@ export default function ReviewsTab() {
       {!isLoading && !error && reviews.length === 0 && (
         <div className="text-center py-16 text-neutral-500">
           <MessageSquare className="w-10 h-10 mx-auto mb-3 text-neutral-300" />
-          <p className="text-[13px]">Bu kategoride yorum yok.</p>
+          <p className="text-[13px]">Bu filtre veya arama ile eşleşen yorum yok.</p>
         </div>
       )}
 
@@ -333,6 +379,24 @@ export default function ReviewsTab() {
           ))}
         </div>
       )}
+    </div>
+  );
+}
+
+function ReviewMetric({
+  label,
+  value,
+  tone,
+}: {
+  label: string;
+  value: string | number;
+  tone: 'neutral' | 'amber' | 'red';
+}) {
+  const toneClass = tone === 'amber' ? 'border-amber-200 bg-amber-50' : tone === 'red' ? 'border-red-200 bg-red-50' : 'border-neutral-200 bg-white';
+  return (
+    <div className={`rounded-xl border p-3 ${toneClass}`}>
+      <p className="text-lg font-semibold tabular-nums text-neutral-900">{value}</p>
+      <p className="mt-0.5 text-[11px] text-neutral-500">{label}</p>
     </div>
   );
 }

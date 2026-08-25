@@ -1729,6 +1729,14 @@ KURALLAR:
     }
   });
 
+  app.get("/api/admin/users/order-metrics", requireAdmin, async (_req, res) => {
+    try {
+      res.json(await storage.getAdminUserOrderMetrics());
+    } catch (error) {
+      res.status(500).json({ error: "Failed to fetch customer order metrics" });
+    }
+  });
+
   app.get("/api/admin/users/:id", requireAdmin, async (req, res) => {
     try {
       const user = await storage.getUser(req.params.id);
