@@ -250,7 +250,7 @@ export default function AdminLayout({
             </div>
           </div>
           <div className="flex items-center gap-2 flex-none min-w-0 justify-end">
-            <div className="w-9 sm:flex-1 sm:min-w-0 sm:max-w-xl">
+            <div className="flex-1 min-w-0 sm:max-w-xl">
               <AdminSearchBar onNavigate={onNavigate} />
             </div>
             <div className="relative shrink-0">

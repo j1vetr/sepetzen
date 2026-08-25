@@ -262,10 +262,10 @@ export default function AdminSearchBar({ onNavigate }: AdminSearchBarProps) {
       <button
         onClick={openSearch}
         data-testid="button-admin-search"
-        className="w-full flex items-center justify-center sm:justify-start gap-2.5 px-2.5 sm:px-4 h-10 text-[13px] text-neutral-500 bg-white hover:bg-neutral-50 rounded-lg transition-colors border border-neutral-200 hover:border-neutral-300 focus:outline-none focus-visible:ring-4 focus-visible:ring-neutral-900/[0.08]"
+        className="w-full flex items-center justify-start gap-2.5 px-3 sm:px-4 h-10 text-[12px] sm:text-[13px] text-neutral-500 bg-white hover:bg-neutral-50 rounded-lg transition-colors border border-neutral-200 hover:border-neutral-300 focus:outline-none focus-visible:ring-4 focus-visible:ring-neutral-900/[0.08]"
       >
         <Search className="w-4 h-4 shrink-0 text-neutral-400" />
-        <span className="hidden sm:block flex-1 min-w-0 truncate text-left">Ürün, sipariş, kullanıcı, sekme ara…</span>
+        <span className="flex-1 min-w-0 truncate text-left">Ürün, sipariş, kullanıcı, sekme ara…</span>
         <span className="sr-only">Yönetim panelinde ara</span>
       </button>
 
