@@ -41,6 +41,8 @@ export default function HomepageTab() {
   const [content, setContent] = useState<HomepageContent | null>(null);
   const [dirty, setDirty] = useState(false);
   const [uploadingIndex, setUploadingIndex] = useState<number | null>(null);
+  const [uploadingVideo, setUploadingVideo] = useState<number | null>(null);
+  const videoFileRefs = useRef<(HTMLInputElement | null)[]>([]);
 
   const { data, isLoading } = useQuery<HomepageContent>({
     queryKey: ['admin', 'homepage-content'],
@@ -136,9 +138,6 @@ export default function HomepageTab() {
     cards[i] = { ...cards[i], ...patch };
     update({ videoCards: cards });
   };
-
-  const [uploadingVideo, setUploadingVideo] = useState<number | null>(null);
-  const videoFileRefs = useRef<(HTMLInputElement | null)[]>([]);
 
   const handleVideoUpload = async (index: number, file: File) => {
     setUploadingVideo(index);
