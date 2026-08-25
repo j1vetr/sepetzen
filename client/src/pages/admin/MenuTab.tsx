@@ -1,6 +1,6 @@
 import { useState, useRef } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { Plus, Edit, Trash2, GripVertical, ExternalLink, Loader2, X, Menu, Tag, ChevronUp, ChevronDown, Wand2, RefreshCw, Image as ImageIcon, Trash } from 'lucide-react';
+import { Plus, Edit, Trash2, GripVertical, ExternalLink, Loader2, X, Menu, Tag, ChevronUp, ChevronDown, Wand2, RefreshCw, Image as ImageIcon, Trash, AlertTriangle } from 'lucide-react';
 import type { Category } from './_shared/types';
 
 interface MenuManagementPanelProps {
@@ -290,6 +290,18 @@ export default function MenuManagementPanel({ categories }: MenuManagementPanelP
   };
 
   const handleSubmit = () => {
+    if (!formData.title.trim()) {
+      alert('Menü başlığı zorunludur.');
+      return;
+    }
+    if (formData.type === 'category' && !formData.categoryId) {
+      alert('Kategori türündeki menü öğeleri için bir kategori seçin.');
+      return;
+    }
+    if (formData.type === 'link' && !formData.url.trim()) {
+      alert('Link türündeki menü öğeleri için bir yönlendirme adresi girin.');
+      return;
+    }
     if (editingItem) {
       updateMutation.mutate({ id: editingItem.id, data: formData });
     } else {
@@ -315,6 +327,14 @@ export default function MenuManagementPanel({ categories }: MenuManagementPanelP
 
   const rootItems = menuItems.filter(item => !item.parentId);
   const submenuParents = menuItems.filter(item => item.type === 'submenu' && !item.parentId);
+  const menuQualityIssues = menuItems.filter((item) => {
+    if (!item.isActive) return false;
+    if (!item.title.trim()) return true;
+    if (item.type === 'category' && !item.categoryId) return true;
+    if (item.type === 'link' && !item.url?.trim()) return true;
+    if (item.parentId && !menuItems.some((parent) => parent.id === item.parentId)) return true;
+    return false;
+  });
 
   const getTypeLabel = (type: string) => {
     switch (type) {
@@ -379,6 +399,15 @@ export default function MenuManagementPanel({ categories }: MenuManagementPanelP
           </button>
         </div>
       </div>
+
+      {menuQualityIssues.length > 0 && (
+        <div className="flex items-start gap-2 rounded-xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-800" data-testid="menu-quality-check">
+          <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0" />
+          <div>
+            <strong>{menuQualityIssues.length} aktif menü öğesi</strong> hedefi veya başlığı eksik. Bu öğeler ziyaretçilere doğru yönlendirme yapmayabilir.
+          </div>
+        </div>
+      )}
 
       <div className="bg-neutral-50 border border-neutral-200 rounded-xl overflow-hidden">
         {rootItems.length === 0 ? (

@@ -17,8 +17,10 @@ import {
   Eye,
   ImageIcon,
   ExternalLink,
+  AlertTriangle,
 } from 'lucide-react';
 import type { Product, Category, ProductVariant, ProductDraft, Brand } from './_shared/types';
+import { hasConfiguredVariantOptions } from './_shared/contentQuality';
 import {
   PageHeader,
   Card,
@@ -75,7 +77,7 @@ interface ProductsTabProps {
   onTrendyolAction?: (productId: string) => void;
 }
 
-type StatusFilter = 'all' | 'active' | 'inactive' | 'out' | 'trendyol_linked' | 'trendyol_unlinked' | 'trendyol_rejected';
+type StatusFilter = 'all' | 'active' | 'inactive' | 'out' | 'needs_attention' | 'trendyol_linked' | 'trendyol_unlinked' | 'trendyol_rejected';
 type SortKey = 'newest' | 'oldest' | 'name_asc' | 'price_asc' | 'price_desc';
 
 function formatPrice(value: string | number): string {
@@ -88,6 +90,19 @@ function getStockSummary(productId: string, variants: ProductVariant[]) {
   const my = variants.filter((v) => v.productId === productId);
   const total = my.reduce((s, v) => s + (v.stock || 0), 0);
   return { total, count: my.length };
+}
+
+function getProductQualityIssues(product: Product, variants: ProductVariant[]): string[] {
+  const issues: string[] = [];
+  const stock = getStockSummary(product.id, variants);
+  const hasCategory = (product.categoryIds?.length ?? 0) > 0 || !!product.categoryId;
+  const optionsConfigured = hasConfiguredVariantOptions(product.availableSizes, product.availableColors);
+
+  if (product.images.length === 0) issues.push('Görsel yok');
+  if (!product.description?.trim()) issues.push('Açıklama yok');
+  if (!hasCategory) issues.push('Kategori yok');
+  if (optionsConfigured && stock.count === 0) issues.push('Varyant yok');
+  return issues;
 }
 
 /**
@@ -118,11 +133,13 @@ function ProductStatusChips({
   stockTotal,
   hasVariants,
   tyStatus,
+  qualityIssues = [],
 }: {
   product: Product;
   stockTotal: number;
   hasVariants: boolean;
   tyStatus?: TrendyolStatusEntry | null;
+  qualityIssues?: string[];
 }) {
   const chips: Array<{ key: string; tone: Parameters<typeof StatusBadge>[0]['tone']; label: string }> = [];
   if (!product.isActive) {
@@ -135,6 +152,7 @@ function ProductStatusChips({
   if (product.isFeatured) chips.push({ key: 'featured', tone: 'indigo', label: 'Öne çıkan' });
   if (product.isNew) chips.push({ key: 'new', tone: 'blue', label: 'Yeni' });
   if (product.discountBadge) chips.push({ key: 'badge', tone: 'red', label: product.discountBadge });
+  if (qualityIssues.length > 0) chips.push({ key: 'quality', tone: 'amber', label: `${qualityIssues.length} eksik` });
 
   const tyBadge = trendyolBadge(tyStatus);
   if (tyBadge) chips.push({ key: 'trendyol', tone: tyBadge.tone, label: tyBadge.label });
@@ -415,6 +433,7 @@ export default function ProductsTab({
         if (statusFilter === 'active' && (!p.isActive || (stock.count > 0 && stock.total === 0))) return false;
         if (statusFilter === 'inactive' && p.isActive) return false;
         if (statusFilter === 'out' && !(stock.count > 0 && stock.total === 0)) return false;
+        if (statusFilter === 'needs_attention' && getProductQualityIssues(p, allVariants).length === 0) return false;
         if (statusFilter === 'trendyol_linked') {
           const ty = trendyolStatusMap?.[p.id];
           if (!ty) return false;
@@ -464,7 +483,11 @@ export default function ProductsTab({
   const pagedProducts = sortedProducts.slice((safePage - 1) * perPage, safePage * perPage);
 
   const filtersActive =
-    !!searchQuery.trim() || categoryFilter !== 'all' || statusFilter !== 'all';
+    !!searchQuery.trim() || categoryFilter !== 'all' || brandFilter !== 'all' || statusFilter !== 'all';
+  const productsNeedingAttention = useMemo(
+    () => products.filter((product) => getProductQualityIssues(product, allVariants).length > 0),
+    [products, allVariants],
+  );
 
   const allOnPageSelected =
     pagedProducts.length > 0 && pagedProducts.every((p) => selectedIds.has(p.id));
@@ -637,8 +660,8 @@ export default function ProductsTab({
       />
 
       <Card className="p-3 sm:p-3.5">
-        <div className="flex flex-wrap items-center gap-2">
-          <div className="flex-1 min-w-[180px]">
+        <div className="grid grid-cols-1 gap-2 sm:grid-cols-2 xl:flex xl:flex-wrap xl:items-center">
+          <div className="min-w-0 xl:flex-1 xl:min-w-[220px]">
             <SearchInput
               placeholder="Ürün adı veya SKU ara…"
               value={searchQuery}
@@ -656,6 +679,7 @@ export default function ProductsTab({
               setPage(1);
             }}
             data-testid="select-products-category"
+            className="min-w-0 xl:min-w-[150px]"
           >
             <option value="all">Tüm kategoriler</option>
             {categories.map((c) => (
@@ -671,6 +695,7 @@ export default function ProductsTab({
               setPage(1);
             }}
             data-testid="select-products-brand"
+            className="min-w-0 xl:min-w-[150px]"
           >
             <option value="all">Tüm markalar</option>
             {brands
@@ -693,6 +718,7 @@ export default function ProductsTab({
             <option value="active">Aktif</option>
             <option value="inactive">Pasif</option>
             <option value="out">Stokta yok</option>
+            <option value="needs_attention">Eksik bilgi var</option>
             <option value="trendyol_linked">Trendyol'da</option>
             <option value="trendyol_unlinked">Trendyol'a gönderilmemiş</option>
             <option value="trendyol_rejected">Trendyol'da reddedildi</option>
@@ -701,6 +727,7 @@ export default function ProductsTab({
             value={sortKey}
             onChange={(e) => setSortKey(e.target.value as SortKey)}
             data-testid="select-products-sort"
+            className="min-w-0 xl:min-w-[130px]"
           >
             <option value="newest">↓ En yeni</option>
             <option value="oldest">↑ En eski</option>
@@ -716,6 +743,7 @@ export default function ProductsTab({
             }}
             data-testid="select-products-per-page"
             aria-label="Sayfa başına"
+            className="min-w-0 xl:min-w-[86px]"
           >
             <option value="10">10/s</option>
             <option value="25">25/s</option>
@@ -738,6 +766,28 @@ export default function ProductsTab({
           )}
         </div>
       </Card>
+
+      {productsNeedingAttention.length > 0 && (
+        <InlineAlert tone="warning">
+          <div className="flex flex-wrap items-center justify-between gap-2">
+            <span>
+              <strong>{productsNeedingAttention.length} ürün</strong> görsel, açıklama, kategori veya varyant bilgisi açısından kontrol bekliyor.
+            </span>
+            <button
+              type="button"
+              onClick={() => {
+                setStatusFilter('needs_attention');
+                setPage(1);
+              }}
+              className="inline-flex items-center gap-1 text-[12px] font-semibold text-amber-800 underline underline-offset-2"
+              data-testid="button-filter-product-quality"
+            >
+              <AlertTriangle className="h-3.5 w-3.5" />
+              Eksikleri göster
+            </button>
+          </div>
+        </InlineAlert>
+      )}
 
       {selectionMode && (
         <div
@@ -801,6 +851,7 @@ export default function ProductsTab({
                   onClick={() => {
                     setSearchQuery('');
                     setCategoryFilter('all');
+                    setBrandFilter('all');
                     setStatusFilter('all');
                     setPage(1);
                   }}
@@ -870,6 +921,7 @@ export default function ProductsTab({
                 <tbody>
                   {pagedProducts.map((product) => {
                     const stock = getStockSummary(product.id, allVariants);
+                    const qualityIssues = getProductQualityIssues(product, allVariants);
                     const isSelected = selectedIds.has(product.id);
                     const tyStatus = trendyolStatusMap?.[product.id] ?? null;
                     return (
@@ -943,6 +995,7 @@ export default function ProductsTab({
                             stockTotal={stock.total}
                             hasVariants={stock.count > 0}
                             tyStatus={tyStatus}
+                              qualityIssues={qualityIssues}
                           />
                         </td>
                         <td className="px-4 py-3 align-middle">
@@ -973,6 +1026,7 @@ export default function ProductsTab({
           <div className="md:hidden space-y-2">
             {pagedProducts.map((product) => {
               const stock = getStockSummary(product.id, allVariants);
+              const qualityIssues = getProductQualityIssues(product, allVariants);
               const isSelected = selectedIds.has(product.id);
               const tyStatus = trendyolStatusMap?.[product.id] ?? null;
               return (
@@ -1038,6 +1092,7 @@ export default function ProductsTab({
                           stockTotal={stock.total}
                           hasVariants={stock.count > 0}
                           tyStatus={tyStatus}
+                          qualityIssues={qualityIssues}
                         />
                       </div>
                     </div>

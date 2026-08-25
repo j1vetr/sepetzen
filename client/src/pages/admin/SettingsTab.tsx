@@ -1809,6 +1809,13 @@ export default function SettingsPanel({ initialSection = 'genel', contentOnly = 
 
           {genelTab === 'vitrin' && (
             <div className="space-y-6">
+              <div className="rounded-xl border border-neutral-200 bg-neutral-50 px-4 py-3 text-sm text-neutral-600" data-testid="content-context-showcase">
+                <strong className="text-neutral-900">Mağaza vitrini</strong>
+                <p className="mt-1 text-xs">
+                  Ziyaretçilerin mağazaya girdiğinde gördüğü banner, popup ve duyuru bandını burada yönetin.
+                  Ana sayfa bölümleri Ana Sayfa sekmesinde, menü bağlantıları Menü Yönetimi’nde, bilgi sayfaları Sayfalar’da ve yazılar Blog’da düzenlenir.
+                </p>
+              </div>
               <TickerSettingsSection />
               <TopBannerSection />
               <PopupBannerSection />

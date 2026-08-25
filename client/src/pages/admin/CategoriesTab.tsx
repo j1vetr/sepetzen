@@ -302,6 +302,8 @@ export default function CategoriesTab({
   };
 
   const totalCount = categories.length;
+  const missingImageCount = categories.filter((category) => !category.image).length;
+  const missingSeoCount = categories.filter((category) => !category.seoTitle?.trim() || !category.seoDescription?.trim()).length;
 
   return (
     <div data-testid="tab-categories" className="space-y-4 sm:space-y-5">
@@ -321,6 +323,16 @@ export default function CategoriesTab({
           </PrimaryButton>
         }
       />
+
+      {(missingImageCount > 0 || missingSeoCount > 0) && (
+        <InlineAlert tone="warning">
+          <strong>İçerik kontrolü:</strong>{' '}
+          {missingImageCount > 0 && `${missingImageCount} kategoride görsel eksik`}
+          {missingImageCount > 0 && missingSeoCount > 0 && ', '}
+          {missingSeoCount > 0 && `${missingSeoCount} kategoride SEO başlığı veya açıklaması eksik`}.
+          Kategori kartından Düzenle ile tamamlayabilirsiniz.
+        </InlineAlert>
+      )}
 
       {isSavingOrder && (
         <div

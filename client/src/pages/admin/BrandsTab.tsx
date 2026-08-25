@@ -98,6 +98,7 @@ export default function BrandsTab() {
   const { toast } = useToast();
 
   const [search, setSearch] = useState('');
+  const [statusFilter, setStatusFilter] = useState<'all' | 'active' | 'inactive' | 'missing_logo'>('all');
   const [modalOpen, setModalOpen] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [draft, setDraft] = useState<BrandDraft>(EMPTY_DRAFT);
@@ -154,9 +155,15 @@ export default function BrandsTab() {
   // ─── filtrelenmiş liste ──────────────────────────────────────────────────
   const filtered = useMemo(() => {
     const q = search.toLowerCase().trim();
-    if (!q) return brands;
-    return brands.filter((b) => b.name.toLowerCase().includes(q) || b.slug.includes(q));
-  }, [brands, search]);
+    return brands.filter((brand) => {
+      if (q && !brand.name.toLowerCase().includes(q) && !brand.slug.includes(q)) return false;
+      if (statusFilter === 'active' && !brand.isActive) return false;
+      if (statusFilter === 'inactive' && brand.isActive) return false;
+      if (statusFilter === 'missing_logo' && brand.logoUrl) return false;
+      return true;
+    });
+  }, [brands, search, statusFilter]);
+  const missingLogoCount = brands.filter((brand) => !brand.logoUrl).length;
 
   // ─── modal yardımcıları ──────────────────────────────────────────────────
   function openAdd() {
@@ -245,13 +252,31 @@ export default function BrandsTab() {
         }
       />
 
-      {/* Arama */}
-      <SearchInput
-        placeholder="Marka ara…"
-        value={search}
-        onChange={(e) => setSearch(e.target.value)}
-        className="max-w-xs"
-      />
+      <Card className="flex flex-col gap-2 p-3 sm:flex-row sm:items-center">
+        <SearchInput
+          placeholder="Marka adı veya slug ara…"
+          value={search}
+          onChange={(e) => setSearch(e.target.value)}
+          className="min-w-0 flex-1"
+        />
+        <select
+          value={statusFilter}
+          onChange={(event) => setStatusFilter(event.target.value as typeof statusFilter)}
+          className="h-10 rounded-md border border-neutral-200 bg-white px-3 text-[13px] text-neutral-900"
+          data-testid="select-brand-status"
+        >
+          <option value="all">Tüm durumlar</option>
+          <option value="active">Aktif</option>
+          <option value="inactive">Pasif</option>
+          <option value="missing_logo">Logosu eksik</option>
+        </select>
+      </Card>
+
+      {missingLogoCount > 0 && (
+        <InlineAlert tone="warning">
+          <strong>{missingLogoCount} markanın</strong> logosu yok. Marka seçimi açık olsa bile mağaza deneyimi için logo eklemeniz önerilir.
+        </InlineAlert>
+      )}
 
       {/* İçerik */}
       {isLoading ? (

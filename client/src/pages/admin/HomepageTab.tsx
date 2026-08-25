@@ -2,7 +2,7 @@ import { useEffect, useState, useRef } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import {
   Loader2, Plus, Trash2, ChevronUp, ChevronDown, Save, Upload,
-  Image as ImageIcon, Truck, ShieldCheck, Star, Eye, EyeOff, Video,
+  Image as ImageIcon, Truck, ShieldCheck, Star, Eye, EyeOff, Video, AlertTriangle,
 } from 'lucide-react';
 import {
   DEFAULT_HOMEPAGE_CONTENT,
@@ -160,6 +160,24 @@ export default function HomepageTab() {
     items[i] = { ...items[i], ...patch };
     update({ trustItems: items });
   };
+  const visibleSectionIds = new Set(content.sectionOrder.filter((section) => section.isActive).map((section) => section.id));
+  const homepageQualityIssues = [
+    ...content.heroSlides.flatMap((slide, index) =>
+      slide.isActive && (!slide.image || !slide.title.trim() || !slide.href.trim() || !slide.cta.trim())
+        ? [`Aktif hero slaytı ${index + 1}`]
+        : [],
+    ),
+    ...(visibleSectionIds.has('videos')
+      ? content.videoCards.flatMap((card, index) =>
+        card.isActive && (!card.src || !card.title.trim()) ? [`Aktif video kartı ${index + 1}`] : [],
+      )
+      : []),
+    ...(visibleSectionIds.has('trust')
+      ? content.trustItems.flatMap((item, index) =>
+        item.isActive && (!item.title.trim() || !item.desc.trim()) ? [`Aktif güven mesajı ${index + 1}`] : [],
+      )
+      : []),
+  ];
 
   return (
     <div className="space-y-6 max-w-4xl">
@@ -180,6 +198,18 @@ export default function HomepageTab() {
           {dirty ? 'Kaydet' : 'Kaydedildi'}
         </button>
       </div>
+
+      {homepageQualityIssues.length > 0 && (
+        <div className="flex items-start gap-2 rounded-xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-800" data-testid="homepage-quality-check">
+          <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0" />
+          <div>
+            <strong>Görünür içerik kontrolü</strong>
+            <p className="mt-0.5 text-xs">
+              {homepageQualityIssues.join(', ')} eksik bilgi içeriyor. Kaydetmeden önce görsel, başlık ve yönlendirme alanlarını tamamlayın.
+            </p>
+          </div>
+        </div>
+      )}
 
       {/* ── Hero Slides ── */}
       <SectionCard title="Hero Slaytları" desc="Ana sayfanın en üstündeki büyük slayt gösterisi">

@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { AlertTriangle, CheckCircle2, Lightbulb, Loader2, Newspaper, Plus, Save, Sparkles, Trash2, Upload, XCircle } from 'lucide-react';
+import { AlertTriangle, CheckCircle2, Lightbulb, Loader2, Newspaper, Plus, Save, Search, Sparkles, Trash2, Upload, XCircle } from 'lucide-react';
 
 interface BlogPost {
   id: string;
@@ -57,6 +57,8 @@ export default function BlogTab({ initialSelectedId }: BlogTabProps) {
   });
 
   const [selectedId, setSelectedId] = useState<string | null>(initialSelectedId ?? null);
+  const [postSearch, setPostSearch] = useState('');
+  const [postFilter, setPostFilter] = useState<'all' | 'published' | 'draft'>('all');
 
   // Arama çubuğundan belirli bir yazıya yönlendirme
   useEffect(() => {
@@ -260,6 +262,21 @@ export default function BlogTab({ initialSelectedId }: BlogTabProps) {
   };
 
   const previewSlug = useMemo(() => draft.slug || slugify(draft.title), [draft.slug, draft.title]);
+  const visiblePosts = useMemo(() => {
+    const term = postSearch.trim().toLocaleLowerCase('tr-TR');
+    return posts.filter((post) => {
+      if (postFilter === 'published' && !post.isPublished) return false;
+      if (postFilter === 'draft' && post.isPublished) return false;
+      return !term || post.title.toLocaleLowerCase('tr-TR').includes(term) || post.slug.toLocaleLowerCase('tr-TR').includes(term);
+    });
+  }, [posts, postFilter, postSearch]);
+  const draftQualityIssues = useMemo(() => {
+    const issues: string[] = [];
+    if (!draft.coverImage) issues.push('Kapak görseli');
+    if (!draft.excerpt.trim()) issues.push('Liste özeti');
+    if (!draft.content.trim()) issues.push('Yazı içeriği');
+    return issues;
+  }, [draft.coverImage, draft.content, draft.excerpt]);
 
   const inputCls = 'w-full rounded-lg border border-neutral-200 bg-neutral-50 px-3 py-2 text-sm text-neutral-900';
   const labelCls = 'mb-2 block text-sm font-medium text-neutral-700';
@@ -296,11 +313,35 @@ export default function BlogTab({ initialSelectedId }: BlogTabProps) {
             <Plus className="h-3.5 w-3.5" /> Yeni
           </button>
         </div>
+        <div className="mb-3 space-y-2 px-1">
+          <label className="relative block">
+            <Search className="pointer-events-none absolute left-2.5 top-2.5 h-3.5 w-3.5 text-neutral-400" />
+            <input
+              value={postSearch}
+              onChange={(event) => setPostSearch(event.target.value)}
+              placeholder="Yazı ara…"
+              className="h-9 w-full rounded-md border border-neutral-200 bg-neutral-50 pl-8 pr-2 text-[12px] text-neutral-900"
+              data-testid="input-search-blog-posts"
+            />
+          </label>
+          <select
+            value={postFilter}
+            onChange={(event) => setPostFilter(event.target.value as typeof postFilter)}
+            className="h-8 w-full rounded-md border border-neutral-200 bg-white px-2 text-[12px] text-neutral-700"
+            data-testid="select-blog-status"
+          >
+            <option value="all">Tüm yazılar</option>
+            <option value="published">Yayında</option>
+            <option value="draft">Taslak</option>
+          </select>
+        </div>
         {posts.length === 0 ? (
           <p className="px-2 py-6 text-center text-xs text-neutral-500">Henüz yazı yok. “Yeni” ile ilk yazınızı oluşturun.</p>
+        ) : visiblePosts.length === 0 ? (
+          <p className="px-2 py-6 text-center text-xs text-neutral-500">Bu filtreyle eşleşen yazı yok.</p>
         ) : (
           <div className="space-y-1">
-            {posts.map((post) => (
+            {visiblePosts.map((post) => (
               <button
                 key={post.id}
                 type="button"
@@ -366,6 +407,16 @@ export default function BlogTab({ initialSelectedId }: BlogTabProps) {
           >
             {message.type === 'success' ? <CheckCircle2 className="h-4 w-4" /> : <XCircle className="h-4 w-4" />}
             {message.text}
+          </div>
+        )}
+
+        {draftQualityIssues.length > 0 && (
+          <div className="mb-5 flex items-start gap-2 rounded-lg border border-amber-200 bg-amber-50 p-3 text-sm text-amber-800" data-testid="blog-quality-check">
+            <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0" />
+            <div>
+              <strong>{draft.isPublished ? 'Yayın kontrolü' : 'Taslağı tamamlayın'}</strong>
+              <p className="mt-0.5 text-xs">Eksik: {draftQualityIssues.join(', ')}.</p>
+            </div>
           </div>
         )}
 

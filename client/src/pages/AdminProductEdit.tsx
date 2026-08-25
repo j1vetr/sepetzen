@@ -18,8 +18,11 @@ import {
   Settings2,
   Star,
   Sparkles,
+  AlertTriangle,
+  CheckCircle2,
 } from 'lucide-react';
 import type { Product, ProductDraft, Category } from './admin/_shared/types';
+import { hasConfiguredVariantOptions } from './admin/_shared/contentQuality';
 import {
   PrimaryButton,
   SecondaryButton,
@@ -641,11 +644,6 @@ function ProductEditor({
       }
     }
 
-    const trimmedColor = colorInput.trim();
-    const normalizedColors = trimmedColor
-      ? [{ name: toTurkishUpper(trimmedColor), hex: null }]
-      : [];
-
     // Varyantlar yalnızca başarıyla yüklendiyse (veya yeni üründe satır
     // eklendiyse) payload'a girer; aksi halde sunucu varyantlara dokunmaz.
     const includeVariants = productId ? variantsLoaded : variantRows.length > 0;
@@ -668,7 +666,7 @@ function ProductEditor({
       personalization,
       slug: formData.slug || generateSlug(formData.name),
       images: [...formData.images, ...uploadedUrls],
-      availableColors: normalizedColors,
+      availableColors: normalizedAvailableColors,
       ...(includeVariants
         ? {
             variants: variantRows.map((r) => ({
@@ -690,6 +688,10 @@ function ProductEditor({
   const isSaving = saveMutation.isPending;
   const saveError = saveMutation.error instanceof Error ? saveMutation.error.message : null;
   const totalImageCount = formData.images.length + pendingFiles.length;
+  const normalizedAvailableColors = useMemo(() => {
+    const trimmedColor = colorInput.trim();
+    return trimmedColor ? [{ name: toTurkishUpper(trimmedColor), hex: null }] : [];
+  }, [colorInput]);
 
   const previewImages = useMemo(
     () => [
@@ -699,6 +701,21 @@ function ProductEditor({
     [formData.images, pendingPreviewUrls],
   );
   const mainPreview = previewImages.find((i) => !isVideoUrl(i.url)) || previewImages[0];
+  const qualityChecks = useMemo(() => {
+    const missing: string[] = [];
+    if (!formData.images.length && pendingFiles.length === 0) missing.push('En az bir ürün görseli');
+    if (!formData.description.trim()) missing.push('Ürün açıklaması');
+    if (formData.categoryIds.length === 0) missing.push('Kategori');
+    if (
+      !!productId &&
+      variantsLoaded &&
+      hasConfiguredVariantOptions(product?.availableSizes, normalizedAvailableColors) &&
+      variantRows.length === 0
+    ) {
+      missing.push('Yapılandırılmış seçenekler için varyant');
+    }
+    return missing;
+  }, [formData.images.length, formData.description, formData.categoryIds.length, normalizedAvailableColors, pendingFiles.length, product?.availableSizes, variantRows.length, variantsLoaded]);
 
   const goBack = () => setLocation('/toov-admin?tab=products');
 
@@ -1487,6 +1504,31 @@ function ProductEditor({
 
         {/* Sağ sütun - özet ve ayarlar */}
         <div className="space-y-5 lg:sticky lg:top-[72px]">
+          <div
+            className={`rounded-xl border p-4 ${qualityChecks.length > 0 ? 'border-amber-200 bg-amber-50' : 'border-emerald-200 bg-emerald-50'}`}
+            data-testid="product-quality-check"
+          >
+            <div className="flex items-start gap-2">
+              {qualityChecks.length > 0 ? (
+                <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0 text-amber-700" />
+              ) : (
+                <CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0 text-emerald-700" />
+              )}
+              <div>
+                <h2 className={`text-[13px] font-semibold ${qualityChecks.length > 0 ? 'text-amber-900' : 'text-emerald-900'}`}>
+                  {qualityChecks.length > 0 ? 'Yayın öncesi kontrol' : 'Ürün bilgileri tamam'}
+                </h2>
+                {qualityChecks.length > 0 ? (
+                  <ul className="mt-1.5 space-y-1 text-[11px] text-amber-800">
+                    {qualityChecks.map((item) => <li key={item}>• {item} eksik</li>)}
+                  </ul>
+                ) : (
+                  <p className="mt-1 text-[11px] text-emerald-800">Görsel, açıklama, kategori ve yapılandırılmış varyant bilgileri hazır.</p>
+                )}
+              </div>
+            </div>
+          </div>
+
           {/* Mini önizleme */}
           <div className="bg-white border border-neutral-200 rounded-xl overflow-hidden shadow-[0_1px_2px_rgba(0,0,0,0.03)]">
             <div className="aspect-[4/3] bg-neutral-100">
