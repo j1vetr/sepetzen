@@ -424,7 +424,7 @@ export default function BlogTab({ initialSelectedId }: BlogTabProps) {
           <div className="mb-6 rounded-xl border border-violet-200 bg-violet-50/50 p-4 sm:p-5" data-testid="panel-ai-writer">
             <div className="mb-3 flex items-center gap-2">
               <Sparkles className="h-4 w-4 text-violet-600" />
-              <h3 className="text-sm font-semibold text-neutral-900">Yapay Zeka ile Yazı Üret</h3>
+              <h3 className="text-sm font-semibold text-neutral-900">Yapay Zeka İle Yazı Üret</h3>
             </div>
 
             {aiStatus && !aiStatus.configured ? (

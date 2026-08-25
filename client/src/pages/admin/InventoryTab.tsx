@@ -181,7 +181,7 @@ export default function InventoryPanel() {
           <div className="flex items-start gap-3">
             <AlertTriangle className="w-5 h-5 text-yellow-400 shrink-0 mt-0.5" />
             <div>
-              <h3 className="font-medium text-amber-800">Kritik stok uyarısı</h3>
+              <h3 className="font-medium text-amber-800">Kritik Stok Uyarısı</h3>
               <p className="text-sm text-neutral-500 mt-1">
                 {criticalVariants.length} varyantın stoğu 1 ile {lowStockThreshold} adet arasında.
               </p>
@@ -206,7 +206,7 @@ export default function InventoryPanel() {
           <div className="p-5 border-b border-neutral-200 space-y-3">
             <div className="flex flex-col md:flex-row md:items-center gap-4">
           <div className="flex-1">
-              <h3 className="text-lg font-semibold text-neutral-900">Stok yönetimi</h3>
+            <h3 className="text-lg font-semibold text-neutral-900">Stok Yönetimi</h3>
               <p className="mt-0.5 text-[12px] text-neutral-500">Eldeki stok, riskteki varyantlar ve son hareketler aynı çalışma alanında.</p>
           </div>
           <div className="flex flex-wrap items-center gap-3">
@@ -506,7 +506,7 @@ export default function InventoryPanel() {
       <div className="bg-white border border-neutral-200 rounded-xl overflow-hidden">
         <div className="flex flex-wrap items-center gap-3 border-b border-neutral-200 px-5 py-4">
           <div className="mr-auto">
-            <h3 className="text-[14px] font-semibold text-neutral-900">Stok hareketleri</h3>
+            <h3 className="text-[14px] font-semibold text-neutral-900">Stok Hareketleri</h3>
             <p className="mt-0.5 text-[12px] text-neutral-500">
               {historyVariant
                 ? `${historyVariant.product?.name || 'Varyant'} · ${historyVariant.size || '-'} için geçmiş`

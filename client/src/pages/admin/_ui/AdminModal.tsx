@@ -6,6 +6,7 @@ import {
   DialogTitle,
   DialogDescription,
 } from '@/components/ui/dialog';
+import { titleCaseTr } from './AdminUI';
 
 type AdminModalSize = 'sm' | 'md' | 'lg' | 'xl';
 
@@ -58,10 +59,10 @@ export default function AdminModal({
         <DialogHeader className="px-5 sm:px-6 py-4 border-b border-neutral-200 bg-white shrink-0 flex flex-row items-start justify-between gap-4 space-y-0">
           <div className="min-w-0 flex-1">
             <DialogTitle className="text-[15px] font-semibold tracking-tight text-neutral-900 flex items-center gap-2">
-              {title}
+              {typeof title === 'string' ? titleCaseTr(title) : title}
             </DialogTitle>
             {description ? (
-              <DialogDescription className="text-[12px] text-neutral-500 mt-0.5">
+              <DialogDescription className="text-[12px] text-neutral-600 mt-0.5">
                 {description}
               </DialogDescription>
             ) : null}
@@ -71,7 +72,7 @@ export default function AdminModal({
           ) : null}
         </DialogHeader>
 
-        <div className="flex-1 overflow-auto px-5 sm:px-6 py-5 bg-neutral-50/30">{children}</div>
+        <div className="flex-1 overflow-auto px-5 sm:px-6 py-5 bg-white">{children}</div>
 
         {footer ? (
           <div className="px-5 sm:px-6 py-3 border-t border-neutral-200 bg-white flex flex-wrap items-center justify-end gap-2 shrink-0">

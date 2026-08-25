@@ -327,6 +327,30 @@
   background: var(--admin-canvas);
 }
 
+/* Admin form controls stay white with strong text so labels and values do not
+   disappear into the neutral canvas. */
+.admin-content :where(label) {
+  color: #262626;
+}
+
+.admin-content :where(
+  input:not([type='checkbox']):not([type='radio']):not([type='color']):not([type='file']):not([type='range']),
+  select,
+  textarea
+) {
+  background-color: #ffffff;
+  color: #171717;
+  border-color: #d4d4d4;
+}
+
+.admin-content :where(
+  input:not([type='checkbox']):not([type='radio']):not([type='color']):not([type='file']):not([type='range']),
+  select,
+  textarea
+)::placeholder {
+  color: #737373;
+}
+
 .admin-font :where(button, a, input, select, textarea):focus-visible {
   outline: 2px solid #404040;
   outline-offset: 2px;

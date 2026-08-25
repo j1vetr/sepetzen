@@ -8,6 +8,7 @@ import type {
   AnalyticsStatusRow, AnalyticsBestSeller, AnalyticsCountryRow,
   AnalyticsGranularity, AnalyticsOverview, AnalyticsBreakdownRow, AnalyticsSeriesRow,
 } from './_shared/types';
+import { titleCaseTr } from './_ui/AdminUI';
 
 const fmtInt = (n: number) => new Intl.NumberFormat('tr-TR', { maximumFractionDigits: 0 }).format(n);
 const fmtPrice = (n: number) => '₺' + new Intl.NumberFormat('tr-TR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(n);
@@ -171,7 +172,7 @@ export default function AnalyticsPanel() {
       ) : (
         <p className="text-2xl font-bold text-neutral-900 tracking-tight">{value}</p>
       )}
-      <p className="text-xs text-neutral-500 mt-1">{label}</p>
+      <p className="text-xs text-neutral-500 mt-1">{titleCaseTr(label)}</p>
       {sub && <p className="text-xs text-neutral-400 mt-0.5">{sub}</p>}
     </div>
   );

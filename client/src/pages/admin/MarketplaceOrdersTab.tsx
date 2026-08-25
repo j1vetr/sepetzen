@@ -213,7 +213,7 @@ export default function MarketplaceOrdersTab({
     <div className="space-y-4" data-testid="tab-marketplace-orders">
       <div className="flex flex-wrap items-center gap-2">
         <div className="mr-auto">
-          <h2 className="text-lg font-semibold text-neutral-900">{marketplaceName || 'Trendyol'} siparişleri</h2>
+          <h2 className="text-lg font-semibold text-neutral-900">{marketplaceName || 'Trendyol'} Siparişleri</h2>
           <p className="mt-0.5 text-[12px] text-neutral-500">Paket, kargo, fatura ve stok etkisini aynı akışta yönetin.</p>
         </div>
         {!marketplaceId && marketplaces.length > 1 && (

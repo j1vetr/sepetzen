@@ -343,9 +343,9 @@ export default function DatabasePanel() {
               <ImageIcon className="w-6 h-6 text-red-500" />
             </div>
             <div className="min-w-0">
-              <h3 className="text-base font-semibold text-red-700 flex items-center gap-1.5">
+               <h3 className="text-base font-semibold text-red-700 flex items-center gap-1.5">
                 <AlertTriangle className="w-4 h-4 shrink-0" />
-                Tüm Ürünler ve Fotoğrafları
+                 Tüm Ürünler Ve Fotoğrafları
               </h3>
               <p className="text-sm text-neutral-600 mt-0.5">
                 Ürünler, varyantlar, yorumlar ve sunucudaki fotoğraflar kalıcı olarak silinir.
@@ -404,7 +404,7 @@ export default function DatabasePanel() {
             <div className="p-6 border-b border-neutral-200">
               <h3 className="text-xl font-semibold text-neutral-900 flex items-center gap-2">
                 <AlertTriangle className="w-6 h-6 text-red-500" />
-                Tüm Ürünleri ve Fotoğrafları Sil
+                 Tüm Ürünleri Ve Fotoğrafları Sil
               </h3>
             </div>
             <div className="p-6 space-y-4">

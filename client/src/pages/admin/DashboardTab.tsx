@@ -21,7 +21,7 @@ import {
 } from 'lucide-react';
 import type { ComponentType, ReactNode } from 'react';
 import type { Order, Product, ProductVariant, Stats, TabType } from './_shared/types';
-import { StatusBadge as AdminStatusBadge } from './_ui/AdminUI';
+import { StatusBadge as AdminStatusBadge, titleCaseTr } from './_ui/AdminUI';
 
 type IconType = ComponentType<{ className?: string }>;
 type Tone = 'amber' | 'blue' | 'red' | 'purple' | 'neutral' | 'emerald';
@@ -174,7 +174,7 @@ function Section({
     <section className={`rounded-xl border border-neutral-200 bg-white ${className}`}>
       <header className="flex items-center justify-between gap-3 border-b border-neutral-100 px-5 py-4 sm:px-6">
         <div className="min-w-0">
-          <h3 className="truncate text-[14px] font-semibold text-neutral-900">{title}</h3>
+          <h3 className="truncate text-[14px] font-semibold text-neutral-900">{titleCaseTr(title)}</h3>
           {description && <p className="mt-0.5 truncate text-[12px] text-neutral-500">{description}</p>}
         </div>
         {action && <div className="shrink-0">{action}</div>}
@@ -219,7 +219,7 @@ function SnapshotCard({
   const content = (
     <>
       <div className="flex items-start justify-between gap-2">
-        <span className="text-[11px] font-medium uppercase tracking-wide text-neutral-500">{label}</span>
+        <span className="text-[11px] font-medium uppercase tracking-wide text-neutral-500">{titleCaseTr(label)}</span>
         <span className="rounded-lg bg-neutral-100 p-1.5 text-neutral-600">
           <Icon className="h-4 w-4" />
         </span>
@@ -280,7 +280,7 @@ function QueueRow({
         <Icon className="h-4 w-4" />
       </span>
       <span className="min-w-0 flex-1">
-        <span className="block text-[13px] font-semibold text-neutral-900">{label}</span>
+        <span className="block text-[13px] font-semibold text-neutral-900">{titleCaseTr(label)}</span>
         <span className="mt-0.5 block truncate text-[11px] text-neutral-500">{description}</span>
       </span>
       <span className="flex shrink-0 items-center gap-2">
@@ -327,7 +327,7 @@ function HealthRow({
         <Icon className="h-4 w-4" />
       </span>
       <div className="min-w-0 flex-1">
-        <p className="text-[12px] font-medium text-neutral-800">{label}</p>
+        <p className="text-[12px] font-medium text-neutral-800">{titleCaseTr(label)}</p>
         <p className="mt-0.5 truncate text-[11px] text-neutral-500">{description}</p>
       </div>
       <span className={`inline-flex shrink-0 items-center gap-1 rounded-full px-2 py-1 text-[10px] font-medium ${stateMeta.className}`}>
@@ -686,7 +686,7 @@ export default function DashboardTab({
       <header className="flex flex-wrap items-end justify-between gap-4" data-testid="dashboard-header">
         <div>
           <p className="text-[11px] font-medium uppercase tracking-wide text-neutral-500">Komuta merkezi</p>
-          <h2 className="mt-1 text-[21px] font-semibold tracking-tight text-neutral-900">Güne başlarken</h2>
+          <h2 className="mt-1 text-[21px] font-semibold tracking-tight text-neutral-900">Güne Başlarken</h2>
           <p className="mt-1 text-[13px] capitalize text-neutral-500">{formatDate(now)}</p>
         </div>
         <div className="flex items-center gap-4 text-right">

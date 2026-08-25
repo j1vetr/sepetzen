@@ -14,6 +14,12 @@ const CONTROL_CLASS =
 const BUTTON_BASE =
   'inline-flex items-center justify-center gap-1.5 px-3.5 text-[13px] font-medium rounded-lg transition-colors focus:outline-none focus-visible:ring-4 focus-visible:ring-neutral-900/[0.10] disabled:opacity-50 disabled:cursor-not-allowed';
 
+export function titleCaseTr(value: string): string {
+  return value.replace(/(^|[\s(\/])([a-zçğıöşü])/gi, (_, boundary: string, character: string) => (
+    `${boundary}${character.toLocaleUpperCase('tr-TR')}`
+  ));
+}
+
 export function PageHeader({
   title,
   description,
@@ -27,7 +33,7 @@ export function PageHeader({
     <div className="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-4 mb-6">
       <div className="min-w-0">
         <h2 className="text-[19px] sm:text-[22px] font-semibold tracking-tight text-neutral-950 truncate">
-          {title}
+          {titleCaseTr(title)}
         </h2>
         {description && (
           <p className="text-[12px] leading-5 text-neutral-500 mt-1">{description}</p>
@@ -74,7 +80,7 @@ export function EmptyState({
           <Icon className="w-4 h-4 text-neutral-400" />
         </div>
       )}
-      <p className="text-[13px] font-semibold text-neutral-900">{title}</p>
+      <p className="text-[13px] font-semibold text-neutral-900">{titleCaseTr(title)}</p>
       {description && (
         <p className="text-[12px] text-neutral-500 mt-1 max-w-sm">{description}</p>
       )}
@@ -253,7 +259,7 @@ export function FormField({
 }) {
   return (
     <div className="space-y-1.5">
-      <label className="block text-[12px] font-semibold text-neutral-700">
+      <label className="block text-[12px] font-semibold text-neutral-900">
         {label}
         {required && <span className="text-red-500 ml-0.5">*</span>}
       </label>
@@ -320,7 +326,7 @@ export function SectionHeading({
             {number}
           </span>
         )}
-        <h3 className="text-[13px] font-semibold text-neutral-900">{title}</h3>
+        <h3 className="text-[13px] font-semibold text-neutral-900">{titleCaseTr(title)}</h3>
       </div>
       {description && (
         <p className="text-[11px] text-neutral-500 mt-0.5 ml-7">{description}</p>

@@ -315,10 +315,10 @@ export default function ReviewsTab() {
       </div>
 
       <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
-        <ReviewMetric label="Moderasyon bekleyen" value={reviewSummary.pending} tone="amber" />
-        <ReviewMetric label="Yayındaki yorum" value={reviewSummary.approved} tone="neutral" />
+        <ReviewMetric label="Moderasyon Bekleyen" value={reviewSummary.pending} tone="amber" />
+        <ReviewMetric label="Yayındaki Yorum" value={reviewSummary.approved} tone="neutral" />
         <ReviewMetric label="Reddedilen" value={reviewSummary.rejected} tone="red" />
-        <ReviewMetric label="Ortalama puan" value={allReviews.length ? `${reviewSummary.averageRating.toFixed(1)} / 5` : '-'} tone="neutral" />
+        <ReviewMetric label="Ortalama Puan" value={allReviews.length ? `${reviewSummary.averageRating.toFixed(1)} / 5` : '-'} tone="neutral" />
       </div>
 
       <label className="relative block max-w-md">

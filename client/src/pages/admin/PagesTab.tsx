@@ -173,7 +173,7 @@ export default function PagesTab({ initialSelectedId }: PagesTabProps) {
       ) : (
         <section className="flex min-h-[360px] flex-col items-center justify-center rounded-xl border border-dashed border-neutral-300 bg-white p-8 text-center">
           <FilePlus2 className="h-9 w-9 text-neutral-400" />
-          <h2 className="mt-4 text-lg font-semibold text-neutral-900">Düzenlemek için bir sayfa seçin</h2>
+          <h2 className="mt-4 text-lg font-semibold text-neutral-900">Düzenlemek İçin Bir Sayfa Seçin</h2>
           <p className="mt-2 max-w-md text-sm leading-6 text-neutral-500">Soldaki listeden mevcut bir sayfayı seçebilir veya yeni bir sayfa oluşturabilirsiniz.</p>
           <button type="button" onClick={startNew} className="mt-5 inline-flex items-center gap-2 rounded-lg bg-neutral-900 px-4 py-2.5 text-sm font-semibold text-white hover:bg-neutral-800">
             <Plus className="h-4 w-4" /> Yeni Sayfa Oluştur

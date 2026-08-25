@@ -81,8 +81,8 @@ export default function UserDetailModal({
     setForm((current) => ({ ...current, [field]: value }));
 
   const inputClass =
-    'w-full h-10 px-3 text-sm text-neutral-900 bg-white border border-neutral-200 rounded-md outline-none focus:border-neutral-400 focus:ring-2 focus:ring-neutral-900/10';
-  const labelClass = 'block text-xs font-medium text-neutral-600 mb-1.5';
+    'w-full h-10 px-3 text-sm text-neutral-950 bg-white border border-neutral-300 rounded-md outline-none focus:border-neutral-700 focus:ring-2 focus:ring-neutral-900/10';
+  const labelClass = 'block text-xs font-semibold text-neutral-950 mb-1.5';
 
   return (
     <AdminModal
@@ -112,7 +112,7 @@ export default function UserDetailModal({
         }}
       >
         <section>
-          <h3 className="text-sm font-semibold text-neutral-900 mb-4">Hesap ve iletişim</h3>
+          <h3 className="text-sm font-semibold text-neutral-900 mb-4">Hesap ve İletişim</h3>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <label>
               <span className={labelClass}>Ad</span>
@@ -138,7 +138,7 @@ export default function UserDetailModal({
         </section>
 
         <section className="pt-5 border-t border-neutral-200">
-          <h3 className="text-sm font-semibold text-neutral-900 mb-4">Kayıtlı adres</h3>
+          <h3 className="text-sm font-semibold text-neutral-900 mb-4">Kayıtlı Adres</h3>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <label className="sm:col-span-2">
               <span className={labelClass}>Adres</span>
@@ -169,7 +169,7 @@ export default function UserDetailModal({
         <section className="pt-5 border-t border-neutral-200">
           <h3 className="text-sm font-semibold text-neutral-900 mb-3 flex items-center gap-2">
             <MapPin className="w-4 h-4 text-neutral-400" />
-            Kayıtlı adresler
+            Kayıtlı Adresler
           </h3>
           {isLoadingAddresses ? (
             <div className="text-sm text-neutral-500">Yükleniyor...</div>
@@ -213,7 +213,7 @@ export default function UserDetailModal({
         <section className="pt-5 border-t border-neutral-200">
           <h3 className="text-sm font-semibold text-neutral-900 mb-1 flex items-center gap-2">
             <ShoppingBag className="w-4 h-4 text-neutral-400" />
-            Müşteri değeri ve sipariş geçmişi
+            Müşteri Değeri Ve Sipariş Geçmişi
           </h3>
           <p className="mb-3 text-[12px] text-neutral-500">Sipariş katkısı ve en son tercih edilen ürünler.</p>
           {isLoadingStats ? (
@@ -221,19 +221,19 @@ export default function UserDetailModal({
           ) : stats ? (
             <div className="space-y-3">
               <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-                <Stat label="Toplam sipariş" value={String(stats.totalOrders)} />
-                <Stat label="Toplam harcama" value={`${stats.totalSpent.toFixed(2)} ₺`} />
+                <Stat label="Toplam Sipariş" value={String(stats.totalOrders)} />
+                <Stat label="Toplam Harcama" value={`${stats.totalSpent.toFixed(2)} ₺`} />
                 <Stat
                   label="Ort. sepet"
                   value={stats.totalOrders > 0 ? `${(stats.totalSpent / stats.totalOrders).toFixed(2)} ₺` : '-'}
                 />
-                <Stat label="Son sipariş" value={stats.lastOrderDate ? new Date(stats.lastOrderDate).toLocaleDateString('tr-TR') : '-'} />
+                <Stat label="Son Sipariş" value={stats.lastOrderDate ? new Date(stats.lastOrderDate).toLocaleDateString('tr-TR') : '-'} />
               </div>
               {stats.products.length > 0 ? (
                 <div className="rounded-lg border border-neutral-200 bg-neutral-50 p-3">
                   <div className="mb-2 flex items-center gap-1.5 text-[11px] font-semibold text-neutral-700">
                     <Clock3 className="h-3.5 w-3.5" />
-                    Son siparişlerdeki ürünler
+                     Son Siparişlerdeki Ürünler
                   </div>
                   <div className="flex flex-wrap gap-1.5">
                     {stats.products.slice(0, 5).map((product) => (

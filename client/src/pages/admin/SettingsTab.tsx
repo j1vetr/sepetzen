@@ -1061,7 +1061,7 @@ function SiteIdentitySection() {
 
         {/* Address */}
         <div>
-          <h4 className={groupTitleCls}>Adres (satır satır)</h4>
+          <h4 className={groupTitleCls}>Adres (Satır Satır)</h4>
           <div className="space-y-2">
             {identity.addressLines.map((line, i) => (
               <div key={i} className="flex items-center gap-2">
@@ -1124,7 +1124,7 @@ function SiteIdentitySection() {
 
         {/* Mobile bottom nav */}
         <div>
-          <h4 className={groupTitleCls}>Mobil Alt Menü (1-5 öğe)</h4>
+          <h4 className={groupTitleCls}>Mobil Alt Menü (1-5 Öğe)</h4>
           <div className="space-y-2">
             {identity.mobileNavItems.map((item, i) => (
               <div key={i} className="flex flex-col md:flex-row gap-2">
@@ -2498,7 +2498,7 @@ export default function SettingsPanel({ initialSection = 'genel', contentOnly = 
             <Banknote className="w-5 h-5 text-neutral-900" />
           </div>
           <div className="flex-1">
-            <h3 className="text-lg font-semibold text-neutral-900">Havale ile Ödeme</h3>
+            <h3 className="text-lg font-semibold text-neutral-900">Havale İle Ödeme</h3>
             <p className="text-sm text-neutral-500">Banka bilgileri ve havale indirimi buradan yönetilir. Ödeme sayfası, e-postalar ve sipariş takibi bu bilgileri kullanır.</p>
           </div>
           {bankConfig && (
@@ -3202,7 +3202,7 @@ export default function SettingsPanel({ initialSection = 'genel', contentOnly = 
             <Send className="w-5 h-5 text-neutral-900" />
           </div>
           <div>
-            <h3 className="text-lg font-semibold text-neutral-900">Test E-postası</h3>
+            <h3 className="text-lg font-semibold text-neutral-900">Test E-Postası</h3>
             <p className="text-sm text-neutral-500">SMTP ayarlarınızı test edin</p>
           </div>
         </div>
@@ -3234,7 +3234,7 @@ export default function SettingsPanel({ initialSection = 'genel', contentOnly = 
             <MessageCircle className="w-5 h-5 text-neutral-600" />
           </div>
           <div className="flex-1">
-            <h3 className="text-lg font-semibold text-neutral-900">WhatsApp Bildirimleri (wpileti)</h3>
+            <h3 className="text-lg font-semibold text-neutral-900">WhatsApp Bildirimleri (Wpileti)</h3>
             <p className="text-sm text-neutral-500">
               Sipariş aşamalarında müşteriye ve yöneticiye otomatik WhatsApp mesajı gönderir.
             </p>
@@ -4047,7 +4047,7 @@ function GoogleOAuthSection() {
           <Globe className="w-5 h-5 text-neutral-900" />
         </div>
         <div>
-          <h3 className="text-lg font-semibold text-neutral-900">Google ile Giriş</h3>
+          <h3 className="text-lg font-semibold text-neutral-900">Google İle Giriş</h3>
           <p className="text-sm text-neutral-500">Müşterilerin Google hesabıyla giriş yapmasını sağlayın</p>
         </div>
       </div>
