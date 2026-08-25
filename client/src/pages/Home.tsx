@@ -764,18 +764,18 @@ function DesktopHeroMarquee({ products }: { products: Product[] }) {
               className="group shrink-0 w-[148px] flex flex-col overflow-hidden"
               data-testid={`link-desktop-marquee-${p.id}`}
             >
-              {/* Görsel — video varsa thumbnail olarak sadece img göster (autoPlay kaldırıldı, kasma önlenir) */}
+              {/* Görsel — video ürünler marquee içinde de görünür */}
               <div className="relative w-[148px] h-[188px] overflow-hidden bg-black/30 shrink-0">
                 {p.images?.[0] ? (
                   isVideo ? (
-                    /* Video için poster yerine ilk kare — src thumbnail trick */
-                    <img
-                      src={`${p.images[0]}#t=0.1`}
-                      alt={p.name}
-                      loading="lazy"
-                      decoding="async"
+                    <video
+                      src={p.images[0]}
+                      muted
+                      autoPlay
+                      loop
+                      playsInline
+                      preload="metadata"
                       className="absolute inset-0 w-full h-full object-cover"
-                      onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }}
                     />
                   ) : (
                     <img
