@@ -745,7 +745,7 @@ function DesktopHeroMarquee({ products }: { products: Product[] }) {
 
   return (
     <div
-      className="hidden lg:block overflow-hidden py-4"
+      className="hidden lg:block overflow-hidden py-4 mb-2"
       style={{
         background: 'rgba(12,12,12,0.72)',
         maskImage: 'linear-gradient(to right, transparent, black 60px, black calc(100% - 60px), transparent)',
@@ -797,7 +797,10 @@ function DesktopHeroMarquee({ products }: { products: Product[] }) {
               </div>
               {/* Bilgi */}
               <div className="px-2.5 py-2 flex-1 bg-black/40">
-                <p className="text-[10.5px] font-medium text-white/75 group-hover:text-white transition-colors leading-snug line-clamp-2 mb-1">
+                <p
+                  className="text-[10.5px] font-medium text-white/75 group-hover:text-white transition-colors leading-snug truncate mb-1"
+                  title={p.name}
+                >
                   {p.name}
                 </p>
                 <p className="text-[12.5px] font-bold text-white leading-none">
