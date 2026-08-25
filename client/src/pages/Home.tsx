@@ -747,7 +747,9 @@ function DesktopHeroMarquee({ products }: { products: Product[] }) {
     <div
       className="hidden lg:block overflow-hidden py-4 mb-2"
       style={{
-        background: 'rgba(12,12,12,0.72)',
+        background: 'rgba(255,255,255,0.06)',
+        backdropFilter: 'blur(20px)',
+        WebkitBackdropFilter: 'blur(20px)',
         maskImage: 'linear-gradient(to right, transparent, black 60px, black calc(100% - 60px), transparent)',
         WebkitMaskImage: 'linear-gradient(to right, transparent, black 60px, black calc(100% - 60px), transparent)',
       }}
