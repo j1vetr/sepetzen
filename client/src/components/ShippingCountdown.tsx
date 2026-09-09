@@ -12,25 +12,27 @@ interface ShippingInfo {
 function calculateShippingInfo(): ShippingInfo {
   const now = new Date();
   const day = now.getDay();
-  const hour = now.getHours();
-  const cutoffHour = 16;
+  const cutoffHour = 15;
+  const cutoffMinute = 30;
 
   let targetDate: Date;
   let label: string;
   let isSameDay: boolean;
 
   const isWeekday = day >= 1 && day <= 5;
-  const isBeforeCutoff = hour < cutoffHour;
+  const nowMinutes = now.getHours() * 60 + now.getMinutes();
+  const cutoffMinutes = cutoffHour * 60 + cutoffMinute;
+  const isBeforeCutoff = nowMinutes < cutoffMinutes;
 
   if (isWeekday && isBeforeCutoff) {
     targetDate = new Date(now);
-    targetDate.setHours(cutoffHour, 0, 0, 0);
+    targetDate.setHours(cutoffHour, cutoffMinute, 0, 0);
     label = 'aynı gün kargoda';
     isSameDay = true;
   } else if (day >= 1 && day <= 4 && !isBeforeCutoff) {
     targetDate = new Date(now);
     targetDate.setDate(targetDate.getDate() + 1);
-    targetDate.setHours(cutoffHour, 0, 0, 0);
+    targetDate.setHours(cutoffHour, cutoffMinute, 0, 0);
     label = 'yarın kargoda';
     isSameDay = false;
   } else {
@@ -42,7 +44,7 @@ function calculateShippingInfo(): ShippingInfo {
     } else if (day === 0) {
       targetDate.setDate(targetDate.getDate() + 1);
     }
-    targetDate.setHours(cutoffHour, 0, 0, 0);
+    targetDate.setHours(cutoffHour, cutoffMinute, 0, 0);
     label = 'Pazartesi kargoda';
     isSameDay = false;
   }

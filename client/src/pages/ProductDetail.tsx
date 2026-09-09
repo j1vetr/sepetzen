@@ -2124,7 +2124,7 @@ export default function ProductDetail() {
                     onClick={handleAddToCart}
                     disabled={isAdding || isOutOfStock || selectedUnavailable || maxAdditional === 0}
                     whileTap={reduceMotion || isOutOfStock || selectedUnavailable ? undefined : { scale: 0.97 }}
-                      className={`flex-1 h-12 lg:h-12 font-semibold text-[11px] uppercase tracking-[0.2em] flex items-center justify-center gap-2 rounded-lg ${
+                      className={`flex-1 h-12 lg:h-12 font-semibold text-[14px] uppercase tracking-[0.2em] flex items-center justify-center gap-2 rounded-lg ${
                        isOutOfStock || selectedUnavailable || maxAdditional === 0 ? 'bg-[#141414]/10 text-white/30 cursor-not-allowed border border-white/10' : 'all-cats-gold'
                     }`}
                     data-testid="button-add-to-cart"
@@ -2606,7 +2606,7 @@ export default function ProductDetail() {
                 onClick={handleAddToCart}
                 disabled={isAdding || isOutOfStock || selectedUnavailable}
                 whileTap={reduceMotion || isOutOfStock || selectedUnavailable ? undefined : { scale: 0.96 }}
-                className={`h-11 px-6 lg:px-8 font-semibold text-[11px] uppercase tracking-[0.18em] flex items-center justify-center gap-2 rounded-lg shrink-0 ${
+                className={`h-11 px-6 lg:px-8 font-semibold text-[13px] uppercase tracking-[0.18em] flex items-center justify-center gap-2 rounded-lg shrink-0 ${
                   isOutOfStock || selectedUnavailable ? 'bg-[#141414]/10 text-white/35 cursor-not-allowed border border-white/10' : 'all-cats-gold'
                 }`}
                 data-testid="button-add-to-cart-sticky"
