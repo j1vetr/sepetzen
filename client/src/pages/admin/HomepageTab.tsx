@@ -611,7 +611,7 @@ export default function HomepageTab() {
         const catName = (id: string) => allCategories.find((c: any) => c.id === id)?.name ?? id;
         const prodName = (id: string) => allProducts.find((p: any) => p.id === id)?.name ?? id;
         const catImage = (id: string) => allCategories.find((c: any) => c.id === id)?.image ?? null;
-        const prodImage = (id: string) => { const imgs = allProducts.find((p: any) => p.id === id)?.images; return Array.isArray(imgs) ? imgs[0] ?? null : null; };
+        const prodImage = (id: string) => { const imgs = allProducts.find((p: any) => p.id === id)?.images; if (!Array.isArray(imgs)) return null; return imgs.find((u: string) => !/\.(mp4|webm|mov)(\?.*)?$/i.test(u)) ?? imgs[0] ?? null; };
 
         return (
           <SectionCard
@@ -671,7 +671,7 @@ export default function HomepageTab() {
                     <>
                       <div className="px-3 py-1.5 text-[10px] font-semibold tracking-wider text-neutral-400 uppercase bg-neutral-50 border-b border-neutral-100">Ürünler</div>
                       {prodResults.map((p: any) => {
-                        const img = Array.isArray(p.images) ? p.images[0] : null;
+                        const img = Array.isArray(p.images) ? (p.images.find((u: string) => !/\.(mp4|webm|mov)(\?.*)?$/i.test(u)) ?? p.images[0] ?? null) : null;
                         return (
                           <button key={p.id} onClick={() => addItem('product', p.id)}
                             className="w-full flex items-center gap-3 px-3 py-2.5 hover:bg-neutral-50 transition-colors text-left">
@@ -749,7 +749,8 @@ export default function HomepageTab() {
         const catImage = (id: string) => allCategories.find((c: any) => c.id === id)?.image ?? null;
         const prodImage = (id: string) => {
           const imgs = allProducts.find((p: any) => p.id === id)?.images;
-          return Array.isArray(imgs) ? imgs[0] ?? null : null;
+          if (!Array.isArray(imgs)) return null;
+          return imgs.find((u: string) => !/\.(mp4|webm|mov)(\?.*)?$/i.test(u)) ?? imgs[0] ?? null;
         };
 
         return (
@@ -819,7 +820,7 @@ export default function HomepageTab() {
                         Ürünler
                       </div>
                       {prodResults.map((p: any) => {
-                        const img = Array.isArray(p.images) ? p.images[0] : null;
+                        const img = Array.isArray(p.images) ? (p.images.find((u: string) => !/\.(mp4|webm|mov)(\?.*)?$/i.test(u)) ?? p.images[0] ?? null) : null;
                         return (
                           <button
                             key={p.id}
