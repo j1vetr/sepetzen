@@ -522,14 +522,6 @@ function ProductTabs({
   const freeShippingThreshold = useFreeShippingThreshold();
   const thresholdText = formatShippingThreshold(freeShippingThreshold);
 
-  // Ürün renk linkleri — 2+ renk girişi varsa çapraz-ürün renk navigasyonu aktif olur
-  type ColorEntry = { name: string; hex: string | null; slug?: string | null };
-  const colorLinks = (product?.availableColors || []) as ColorEntry[];
-  const hasColorLinks = colorLinks.length >= 2;
-  const currentColorLink = hasColorLinks
-    ? (colorLinks.find((c) => !c.slug || c.slug === product?.slug) ?? colorLinks[0])
-    : null;
-
   const knownSpecKeys = new Set(SPEC_ROWS.map(([key]) => key));
   const specRows = SPEC_ROWS
     .map(([key, label]) => [label, (specs?.[key] || '').trim()] as [string, string])
@@ -757,6 +749,14 @@ export default function ProductDetail() {
   const isLiked = product ? favoriteIds.includes(product.id) : false;
 
   const [, navigate] = useLocation();
+
+  // Ürün renk linkleri — 2+ renk girişi varsa çapraz-ürün renk navigasyonu aktif olur
+  type ColorEntry = { name: string; hex: string | null; slug?: string | null };
+  const colorLinks = (product?.availableColors || []) as ColorEntry[];
+  const hasColorLinks = colorLinks.length >= 2;
+  const currentColorLink = hasColorLinks
+    ? (colorLinks.find((c) => !c.slug || c.slug === product?.slug) ?? colorLinks[0])
+    : null;
 
   // UI state
   const [selectedImage, setSelectedImage] = useState(0);
