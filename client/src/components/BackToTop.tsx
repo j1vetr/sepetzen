@@ -1,10 +1,14 @@
 import { useEffect, useRef, useState } from 'react';
 import { ArrowUp } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
+import { useLocation } from 'wouter';
 
 export function BackToTop() {
   const [visible, setVisible] = useState(false);
   const lastY = useRef(window.scrollY);
+  const [location] = useLocation();
+
+  const isProductPage = location.startsWith('/urun/');
 
   useEffect(() => {
     const onScroll = () => {
@@ -30,7 +34,7 @@ export function BackToTop() {
           transition={{ duration: 0.22, ease: [0.33, 1, 0.68, 1] }}
           onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}
           aria-label="Başa dön"
-          className="fixed bottom-24 right-4 z-50 w-11 h-11 rounded-full flex items-center justify-center"
+          className={`fixed right-4 z-50 w-11 h-11 rounded-full flex items-center justify-center ${isProductPage ? 'bottom-36' : 'bottom-24'}`}
           style={{
             background: 'rgba(255,255,255,0.10)',
             backdropFilter: 'blur(16px)',
