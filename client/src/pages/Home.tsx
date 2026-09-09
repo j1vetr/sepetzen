@@ -3,7 +3,7 @@ import { Footer } from '@/components/Footer';
 import { SEO } from '@/components/SEO';
 import { ProductCard } from '@/components/ProductCard';
 import { Link } from 'wouter';
-import { useEffect, useRef, useState, useMemo } from 'react';
+import { useEffect, useRef, useState, useMemo, useCallback } from 'react';
 import { motion, AnimatePresence, useInView } from 'framer-motion';
 import { ArrowUpRight, Truck, ShieldCheck, Star, ChevronLeft, ChevronRight, Instagram } from 'lucide-react';
 import { useProducts, type Product } from '@/hooks/useProducts';
@@ -35,6 +35,74 @@ function useHomepageContent(): HomepageContent {
     staleTime: 60_000,
   });
   return data ?? DEFAULT_HOMEPAGE_CONTENT;
+}
+
+// ─── MARQUEE THUMBNAIL (hover'da video oynatır) ───────────────────────────────
+
+const IS_VIDEO_URL = (url: string) => /\.(mp4|webm|mov)(\?.*)?$/i.test(url);
+
+function MarqueeThumb({ images, alt, className }: { images: string[]; alt: string; className?: string }) {
+  const videoRef = useRef<HTMLVideoElement>(null);
+  // Video olmayan ilk görsel statik thumbnail olarak kullanılır
+  const staticSrc = images.find(img => !IS_VIDEO_URL(img));
+  // İlk video (hover'da oynatılır)
+  const videoSrc = images.find(img => IS_VIDEO_URL(img));
+
+  const handleEnter = useCallback(() => {
+    const v = videoRef.current;
+    if (!v) return;
+    v.currentTime = 0;
+    v.play().catch(() => {/* izin yoksa sessizce geç */});
+  }, []);
+
+  const handleLeave = useCallback(() => {
+    const v = videoRef.current;
+    if (!v) return;
+    v.pause();
+    v.currentTime = 0;
+  }, []);
+
+  return (
+    <div
+      className={`relative overflow-hidden ${className ?? ''}`}
+      onMouseEnter={videoSrc ? handleEnter : undefined}
+      onMouseLeave={videoSrc ? handleLeave : undefined}
+    >
+      {/* Statik thumbnail — her zaman göster */}
+      {staticSrc ? (
+        <img
+          src={staticSrc}
+          alt={alt}
+          loading="lazy"
+          decoding="async"
+          className="absolute inset-0 w-full h-full object-cover"
+        />
+      ) : videoSrc ? (
+        /* Sadece video varsa poster frame */
+        <video
+          src={videoSrc}
+          muted
+          preload="metadata"
+          playsInline
+          className="absolute inset-0 w-full h-full object-cover"
+        />
+      ) : (
+        <div className="absolute inset-0 bg-white/5" />
+      )}
+      {/* Video katmanı — hover'da opacity 1 olur */}
+      {videoSrc && staticSrc && (
+        <video
+          ref={videoRef}
+          src={videoSrc}
+          muted
+          preload="none"
+          loop
+          playsInline
+          className="absolute inset-0 w-full h-full object-cover opacity-0 group-hover:opacity-100 transition-opacity duration-300"
+        />
+      )}
+    </div>
+  );
 }
 
 // ─── HERO SLIDER ─────────────────────────────────────────────────────────────
@@ -866,10 +934,6 @@ function DesktopHeroMarquee({ products }: { products: Product[] }) {
       <div className="marquee-loop gap-3 px-4">
         {tripled.map((p, i) => {
           const price = parseFloat(String(p.basePrice || '0')) || 0;
-          const isVideoUrl = (url: string) => /\.(mp4|webm|mov)(\?.*)?$/i.test(url);
-          // Video olmayan ilk görseli bul; yoksa video'dan preload=metadata ile ilk kare göster
-          const thumbSrc = p.images?.find(img => !isVideoUrl(img)) ?? p.images?.[0];
-          const thumbIsVideo = thumbSrc ? isVideoUrl(thumbSrc) : false;
           return (
             <Link
               key={`desk-${p.id}-${i}`}
@@ -877,30 +941,13 @@ function DesktopHeroMarquee({ products }: { products: Product[] }) {
               className="group shrink-0 w-[148px] flex flex-col overflow-hidden"
               data-testid={`link-desktop-marquee-${p.id}`}
             >
-              {/* Görsel — video ürünlerde static kare kullanılır */}
-              <div className="relative w-[148px] h-[188px] overflow-hidden bg-black/30 shrink-0">
-                {thumbSrc ? (
-                  thumbIsVideo ? (
-                    <video
-                      src={thumbSrc}
-                      muted
-                      preload="metadata"
-                      loop
-                      playsInline
-                      className="absolute inset-0 w-full h-full object-cover"
-                    />
-                  ) : (
-                    <img
-                      src={thumbSrc}
-                      alt={p.name}
-                      loading="lazy"
-                      decoding="async"
-                      className="absolute inset-0 w-full h-full object-cover"
-                    />
-                  )
-                ) : (
-                  <div className="absolute inset-0 bg-white/5" />
-                )}
+              {/* Görsel — hover'da video oynar */}
+              <div className="relative w-[148px] h-[188px] bg-black/30 shrink-0">
+                <MarqueeThumb
+                  images={p.images ?? []}
+                  alt={p.name}
+                  className="w-full h-full"
+                />
                 {p.isNew && (
                   <span className="absolute top-1.5 left-1.5 text-[7px] tracking-[0.18em] uppercase text-white bg-[#141414]/90 px-1.5 py-0.5 font-bold">
                     Yeni
@@ -947,9 +994,6 @@ function MobileMarquee({ products }: { products: Product[] }) {
       <div className="marquee-track gap-3 px-3">
         {doubled.map((p, i) => {
           const price = parseFloat(String(p.basePrice || '0')) || 0;
-          const isVideoUrl = (url: string) => /\.(mp4|webm|mov)(\?.*)?$/i.test(url);
-          const thumbSrc = p.images?.find(img => !isVideoUrl(img)) ?? p.images?.[0];
-          const thumbIsVideo = thumbSrc ? isVideoUrl(thumbSrc) : false;
           return (
             <Link
               key={`${p.id}-${i}`}
@@ -957,29 +1001,12 @@ function MobileMarquee({ products }: { products: Product[] }) {
               className="group shrink-0 w-32 flex flex-col bg-white/[0.06] border border-white/[0.08] overflow-hidden hover:border-[#FAFAFA]/50 transition-colors"
               data-testid={`link-marquee-product-${p.id}`}
             >
-              <div className="relative w-32 h-40 overflow-hidden bg-black/20 shrink-0">
-                {thumbSrc ? (
-                  thumbIsVideo ? (
-                    <video
-                      src={thumbSrc}
-                      className="absolute inset-0 w-full h-full object-cover"
-                      muted
-                      preload="metadata"
-                      loop
-                      playsInline
-                    />
-                  ) : (
-                    <img
-                      src={thumbSrc}
-                      alt={p.name}
-                      loading="lazy"
-                      decoding="async"
-                      className="absolute inset-0 w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
-                    />
-                  )
-                ) : (
-                  <div className="absolute inset-0 bg-white/5" />
-                )}
+              <div className="relative w-32 h-40 bg-black/20 shrink-0">
+                <MarqueeThumb
+                  images={p.images ?? []}
+                  alt={p.name}
+                  className="w-full h-full"
+                />
               </div>
               <div className="p-2.5 flex-1">
                 <p className="text-[10.5px] font-medium text-white/75 leading-snug line-clamp-2 mb-1.5">

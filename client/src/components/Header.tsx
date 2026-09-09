@@ -960,10 +960,10 @@ export function Header() {
                             data-testid={`link-mega-sidebar-product-${sidebarProduct.id}`}
                           >
                             <div className="relative overflow-hidden bg-white/[0.07] rounded-lg border border-white/[0.1] group-hover:border-white/20 transition-colors">
-                              {sidebarProduct.images?.[0] ? (
+                              {sidebarProduct.images?.length ? (
                                 <div className="aspect-[4/3] overflow-hidden">
                                   <img
-                                    src={sidebarProduct.images[0]}
+                                    src={sidebarProduct.images.find((img: string) => !/\.(mp4|webm|mov)(\?.*)?$/i.test(img)) ?? sidebarProduct.images[0]}
                                     alt={sidebarProduct.name}
                                     loading="eager"
                                     decoding="async"
@@ -1058,8 +1058,8 @@ export function Header() {
                         data-testid={`link-mega-product-${product.id}`}
                       >
                           <div className="w-[60px] h-[60px] rounded-lg overflow-hidden shrink-0 bg-[#151515]">
-                          {product.images?.[0] ? (
-                            <img src={product.images[0]} alt={product.name} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300" loading="eager" decoding="async" onError={e => { (e.target as HTMLImageElement).style.display = 'none'; }} />
+                          {product.images?.length ? (
+                            <img src={product.images.find((img: string) => !/\.(mp4|webm|mov)(\?.*)?$/i.test(img)) ?? product.images[0]} alt={product.name} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300" loading="eager" decoding="async" onError={e => { (e.target as HTMLImageElement).style.display = 'none'; }} />
                           ) : (
                             <div className="w-full h-full flex items-center justify-center">
                               {(() => { const Icon = getMenuIcon(activeMegaRoot.title); return <Icon className="w-5 h-5 text-white/20" />; })()}

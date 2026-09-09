@@ -50,6 +50,7 @@ export default function HomepageTab() {
   const [showcaseDropdown, setShowcaseDropdown] = useState(false);
   const [heroSearch, setHeroSearch] = useState('');
   const [heroDropdown, setHeroDropdown] = useState(false);
+  const [uploadingPartnerLogo, setUploadingPartnerLogo] = useState<number | null>(null);
 
   const { data: allProducts = [] } = useQuery<any[]>({
     queryKey: ['admin', 'products', 'showcase-picker'],
@@ -191,7 +192,6 @@ export default function HomepageTab() {
     items[i] = { ...items[i], ...patch };
     update({ partnerStrip: { ...content.partnerStrip, items } });
   };
-  const [uploadingPartnerLogo, setUploadingPartnerLogo] = useState<number | null>(null);
   const uploadPartnerLogo = async (index: number, file: File) => {
     setUploadingPartnerLogo(index);
     try {

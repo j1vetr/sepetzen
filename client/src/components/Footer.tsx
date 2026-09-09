@@ -213,22 +213,6 @@ export function Footer() {
             Güvenli Ödeme, 256bit SSL
           </span>
 
-          {/* TOOV Logosu — orta */}
-          <div className="flex justify-center">
-            <a
-              href="https://toov.com.tr"
-              target="_blank"
-              rel="noopener noreferrer"
-              title="toov internet solutions"
-            >
-              <img
-                src="/uploads/branding/toov-logo.png"
-                alt="toov internet solutions"
-                className="h-10 w-auto object-contain opacity-30 hover:opacity-50 transition-opacity"
-                style={{ mixBlendMode: 'screen' }}
-              />
-            </a>
-          </div>
 
           <div className="flex items-center gap-2.5 flex-wrap justify-center sm:justify-end" data-testid="footer-payment-methods">
             {[
