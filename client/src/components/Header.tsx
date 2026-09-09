@@ -148,6 +148,8 @@ export function Header() {
   const [hoveredRootId, setHoveredRootId] = useState<string | null>(null);
   const desktopGridRef = useRef<HTMLDivElement>(null);
   const [allCatsDropdownWidth, setAllCatsDropdownWidth] = useState(760);
+  const navRef = useRef<HTMLElement>(null);
+  const [navWidth, setNavWidth] = useState(600);
   const { totalItems, subtotal } = useCart();
   const siteIdentity = useSiteIdentity();
   const freeShippingThreshold = useFreeShippingThreshold();
@@ -296,6 +298,16 @@ export function Header() {
     const ro = new ResizeObserver(() => setAllCatsDropdownWidth(el.offsetWidth));
     ro.observe(el);
     setAllCatsDropdownWidth(el.offsetWidth);
+    return () => ro.disconnect();
+  }, []);
+
+  // Nav öğeleri için kullanılabilir px genişliğini ölç
+  useEffect(() => {
+    const el = navRef.current;
+    if (!el) return;
+    const ro = new ResizeObserver(() => setNavWidth(el.offsetWidth));
+    ro.observe(el);
+    setNavWidth(el.offsetWidth);
     return () => ro.disconnect();
   }, []);
 
@@ -665,19 +677,23 @@ export function Header() {
             </div>
 
             {/* Orta: Desktop nav */}
-            <nav className="justify-self-center self-center h-[44px] flex items-center justify-center gap-2 2xl:gap-4 min-w-0 max-w-full overflow-hidden">
+            <nav ref={navRef} className="justify-self-center self-center h-[44px] flex items-center justify-center gap-2 2xl:gap-4 min-w-0 max-w-full overflow-hidden">
               {useMenuTree ? (
                 <>
                 {(() => {
-                  // Karakter bütçesine göre nav öğelerini ayır.
-                  // Her başlığın uzunluğunu topla; eşiği geçince kalanlar "Daha Fazla"ya gider.
-                  const NAV_CHAR_BUDGET = 200;
-                  let budget = 0;
+                  // Gerçek piksel genişliğine göre nav öğelerini ayır.
+                  // Her harf ~7px (uppercase 10.5px + tracking), + 28px sabit overhead (padding + ikon + gap).
+                  // "Daha Fazla" butonu için 90px rezerve edilir; tüm öğeler sığıyorsa rezerve düşer.
+                  const ITEM_PX_PER_CHAR = 7;
+                  const ITEM_OVERHEAD_PX = 28;
+                  const MORE_BTN_PX = 90;
+                  let usedPx = 0;
                   const navVisible: typeof menuRoots = [];
                   const navHidden: typeof menuRoots = [];
                   for (const r of menuRoots) {
-                    budget += r.title.trim().length;
-                    if (budget <= NAV_CHAR_BUDGET) navVisible.push(r);
+                    const itemPx = r.title.trim().length * ITEM_PX_PER_CHAR + ITEM_OVERHEAD_PX;
+                    const reserve = navHidden.length === 0 && usedPx + itemPx > navWidth ? MORE_BTN_PX : 0;
+                    if (usedPx + itemPx + reserve <= navWidth) { navVisible.push(r); usedPx += itemPx; }
                     else navHidden.push(r);
                   }
                   return (

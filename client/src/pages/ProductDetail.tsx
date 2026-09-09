@@ -1622,7 +1622,7 @@ export default function ProductDetail() {
                       {/* Badges — sol üstte dikey yığın */}
                       <div className="absolute top-4 left-4 lg:top-3 lg:left-3 z-10 flex flex-col items-start gap-2">
                         {visibleDiscountBadge && (
-                          <span className="backdrop-blur-sm bg-red-600/70 text-white text-[10px] font-extrabold tracking-[0.16em] px-3 py-1.5 uppercase">{visibleDiscountBadge}</span>
+                          <span className="backdrop-blur-md bg-red-600/55 border border-red-400/20 text-white text-[10px] font-bold tracking-wider px-2.5 py-1 uppercase rounded-md shadow-[0_2px_8px_rgba(220,38,38,0.35)]">{visibleDiscountBadge}</span>
                         )}
                         {product.isNew && (
                           <span className="storefront-new-badge">Yeni</span>
@@ -1699,7 +1699,7 @@ export default function ProductDetail() {
                       {/* Badges — sol üstte dikey yığın */}
                       <div className="absolute top-4 left-4 z-10 flex flex-col items-start gap-2">
                         {visibleDiscountBadge && (
-                          <span className="backdrop-blur-sm bg-red-600/70 text-white text-[10px] font-extrabold tracking-[0.16em] px-3 py-1.5 uppercase">
+                          <span className="backdrop-blur-md bg-red-600/55 border border-red-400/20 text-white text-[10px] font-bold tracking-wider px-2.5 py-1 uppercase rounded-md shadow-[0_2px_8px_rgba(220,38,38,0.35)]">
                             {visibleDiscountBadge}
                           </span>
                         )}
