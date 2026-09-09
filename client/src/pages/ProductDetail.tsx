@@ -1830,7 +1830,7 @@ export default function ProductDetail() {
                     <p className="font-sans text-[17px] lg:text-[15px] tracking-[0.12em] text-white flex items-center gap-0.5">
                        SEPETZEN
                        <svg viewBox="0 0 20 20" fill="none" className="w-[18px] h-[18px] lg:w-4 lg:h-4 shrink-0" aria-label="Doğrulanmış satıcı">
-                         <circle cx="10" cy="10" r="10" fill="#F5C518"/>
+                         <circle cx="10" cy="10" r="10" fill="#fefb00"/>
                          <path d="M5.5 10.5l3 3 6-6" stroke="#1A1A1A" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round"/>
                        </svg>
                     </p>
@@ -2023,7 +2023,7 @@ export default function ProductDetail() {
                   {isOutOfStock ? (
                     <span className="text-[12px] text-red-500 font-medium">Tükendi</span>
                   ) : totalStock <= 5 ? (
-                    <span className="flex items-center gap-1.5 text-[12px] font-semibold" style={{ color: '#F5C518' }}>
+                    <span className="flex items-center gap-1.5 text-[12px] font-semibold" style={{ color: '#fefb00' }}>
                       <Check className="w-3.5 h-3.5" strokeWidth={2.5} />
                       Son {totalStock} ürün!
                     </span>
