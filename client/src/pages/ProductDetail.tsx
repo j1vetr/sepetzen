@@ -1711,6 +1711,27 @@ export default function ProductDetail() {
                           threshold={freeShippingThreshold}
                         />
                       </div>
+                      {/* Sol/Sağ navigasyon okları — mobil */}
+                      {images.length > 1 && selectedImage > 0 && (
+                        <button
+                          type="button"
+                          onClick={(e) => { e.stopPropagation(); setSelectedImage((p) => p - 1); }}
+                          className="absolute left-3 top-1/2 -translate-y-1/2 z-20 w-9 h-9 flex items-center justify-center rounded-full bg-black/40 backdrop-blur-sm text-white"
+                          aria-label="Önceki görsel"
+                        >
+                          <ChevronLeft className="w-4 h-4" />
+                        </button>
+                      )}
+                      {images.length > 1 && selectedImage < images.length - 1 && (
+                        <button
+                          type="button"
+                          onClick={(e) => { e.stopPropagation(); setSelectedImage((p) => p + 1); }}
+                          className="absolute right-3 top-1/2 -translate-y-1/2 z-20 w-9 h-9 flex items-center justify-center rounded-full bg-black/40 backdrop-blur-sm text-white"
+                          aria-label="Sonraki görsel"
+                        >
+                          <ChevronRight className="w-4 h-4" />
+                        </button>
+                      )}
                     </div>
                   </div>
                 </div>
@@ -2568,7 +2589,7 @@ export default function ProductDetail() {
             animate={{ y: 0, opacity: 1 }}
             exit={{ y: 80, opacity: 0 }}
             transition={{ duration: reduceMotion ? 0 : 0.22 }}
-            className="fixed inset-x-0 z-[90] surface-glass-dark border-t border-white/[0.07] shadow-[0_-8px_24px_rgba(0,0,0,0.45)]"
+            className="fixed inset-x-0 z-[90] surface-glass-dark shadow-[0_-8px_24px_rgba(0,0,0,0.45)]"
             style={{ bottom: 'var(--mobile-nav-total, 0px)' }}
             data-testid="mobile-sticky-cta"
           >

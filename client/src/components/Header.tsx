@@ -671,7 +671,7 @@ export function Header() {
                 {(() => {
                   // Karakter bütçesine göre nav öğelerini ayır.
                   // Her başlığın uzunluğunu topla; eşiği geçince kalanlar "Daha Fazla"ya gider.
-                  const NAV_CHAR_BUDGET = 95;
+                  const NAV_CHAR_BUDGET = 200;
                   let budget = 0;
                   const navVisible: typeof menuRoots = [];
                   const navHidden: typeof menuRoots = [];

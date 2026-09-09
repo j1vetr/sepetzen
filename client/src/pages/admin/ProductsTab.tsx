@@ -1,4 +1,4 @@
-import { useMemo, useState, useRef } from 'react';
+import { useMemo, useState, useRef, useEffect } from 'react';
 import { useLocation } from 'wouter';
 import { useQueryClient, useQuery, useMutation } from '@tanstack/react-query';
 import {
@@ -347,6 +347,162 @@ function InlinePriceCell({
   );
 }
 
+/** Inline stok düzenleyici — tek varyant */
+function SingleVariantStock({
+  variant,
+  onSave,
+}: {
+  variant: ProductVariant;
+  onSave: (stock: number) => void;
+}) {
+  const [editing, setEditing] = useState(false);
+  const [value, setValue] = useState('');
+  const inputRef = useRef<HTMLInputElement>(null);
+
+  const startEdit = () => {
+    setValue(String(variant.stock ?? 0));
+    setEditing(true);
+    setTimeout(() => { inputRef.current?.focus(); inputRef.current?.select(); }, 0);
+  };
+
+  const commit = () => {
+    const num = parseInt(value, 10);
+    if (!isNaN(num) && num >= 0) onSave(num);
+    setEditing(false);
+  };
+
+  if (editing) {
+    return (
+      <input
+        ref={inputRef}
+        type="number"
+        step="1"
+        min="0"
+        value={value}
+        onChange={e => setValue(e.target.value)}
+        onBlur={commit}
+        onKeyDown={e => {
+          if (e.key === 'Enter') { e.preventDefault(); commit(); }
+          if (e.key === 'Escape') setEditing(false);
+        }}
+        className="w-20 px-2 py-1 text-right text-[13px] font-medium border border-neutral-400 rounded focus:outline-none focus:border-neutral-600 tabular-nums bg-white"
+      />
+    );
+  }
+
+  return (
+    <button
+      type="button"
+      onClick={startEdit}
+      className="group flex items-center justify-end gap-1 hover:bg-neutral-50 rounded px-1 -mx-1 transition-colors w-full"
+      title="Stok düzenle"
+    >
+      <span className="text-[13px] font-medium text-neutral-900 tabular-nums">
+        {(variant.stock ?? 0).toLocaleString('tr-TR')}
+      </span>
+      <Pencil className="w-3 h-3 text-neutral-300 opacity-0 group-hover:opacity-100 transition-opacity shrink-0" />
+    </button>
+  );
+}
+
+/** Varyant stok satırı — çok varyantlı açılır panel için */
+function VariantStockRow({
+  variant,
+  onSave,
+}: {
+  variant: ProductVariant;
+  onSave: (stock: number) => Promise<void>;
+}) {
+  const [value, setValue] = useState(String(variant.stock ?? 0));
+  const label = [variant.size, variant.color].filter(Boolean).join(' / ') || `#${variant.id.slice(0, 6)}`;
+
+  useEffect(() => { setValue(String(variant.stock ?? 0)); }, [variant.stock]);
+
+  const commit = () => {
+    const num = parseInt(value, 10);
+    if (!isNaN(num) && num >= 0 && num !== (variant.stock ?? 0)) onSave(num);
+  };
+
+  return (
+    <div className="flex items-center justify-between gap-3">
+      <span className="text-[12px] text-neutral-700 truncate max-w-[110px]">{label}</span>
+      <input
+        type="number"
+        min="0"
+        step="1"
+        value={value}
+        onChange={e => setValue(e.target.value)}
+        onBlur={commit}
+        onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); commit(); } }}
+        className="w-16 px-2 py-0.5 text-right text-[12px] border border-neutral-300 rounded focus:outline-none focus:border-neutral-500 tabular-nums bg-white"
+      />
+    </div>
+  );
+}
+
+/** Inline stok hücresi — tek ve çok varyantı destekler */
+function InlineStockCell({
+  productId,
+  allVariants,
+  onSaveVariant,
+}: {
+  productId: string;
+  allVariants: ProductVariant[];
+  onSaveVariant: (variantId: string, stock: number) => Promise<void>;
+}) {
+  const myVariants = allVariants.filter(v => v.productId === productId);
+  const total = myVariants.reduce((s, v) => s + (v.stock ?? 0), 0);
+  const [open, setOpen] = useState(false);
+  const wrapRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (!open) return;
+    const handler = (e: MouseEvent) => {
+      if (wrapRef.current && !wrapRef.current.contains(e.target as Node)) setOpen(false);
+    };
+    document.addEventListener('mousedown', handler);
+    return () => document.removeEventListener('mousedown', handler);
+  }, [open]);
+
+  if (myVariants.length === 0) return <span className="text-[12px] text-neutral-400">-</span>;
+
+  if (myVariants.length === 1) {
+    return (
+      <SingleVariantStock
+        variant={myVariants[0]}
+        onSave={s => onSaveVariant(myVariants[0].id, s)}
+      />
+    );
+  }
+
+  return (
+    <div ref={wrapRef} className="relative">
+      <button
+        type="button"
+        onClick={() => setOpen(o => !o)}
+        className="group flex flex-col items-end hover:bg-neutral-50 rounded px-1 -mx-1 transition-colors w-full"
+        title="Stokları düzenle"
+      >
+        <span className="flex items-center gap-1">
+          <span className="text-[13px] font-medium text-neutral-900 tabular-nums">{total.toLocaleString('tr-TR')}</span>
+          <Pencil className="w-3 h-3 text-neutral-300 opacity-0 group-hover:opacity-100 transition-opacity shrink-0" />
+        </span>
+        <span className="text-[11px] text-neutral-500">{myVariants.length} varyant</span>
+      </button>
+      {open && (
+        <div className="absolute right-0 top-full mt-1 z-50 bg-white border border-neutral-200 rounded-lg shadow-lg p-3 min-w-[210px]">
+          <p className="text-[11px] font-semibold text-neutral-400 uppercase tracking-wide mb-2">Varyant Stoklari</p>
+          <div className="flex flex-col gap-2">
+            {myVariants.map(v => (
+              <VariantStockRow key={v.id} variant={v} onSave={s => onSaveVariant(v.id, s)} />
+            ))}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
 /** Inline durum rozet editörü — sadece tablo için */
 function InlineStatusChips({
   product,
@@ -630,6 +786,27 @@ export default function ProductsTab({
   const quickPatch = (id: string, patch: Record<string, unknown>) =>
     quickPatchMutation.mutate({ id, patch });
 
+  const quickPatchVariantMutation = useMutation({
+    mutationFn: async ({ id, stock }: { id: string; stock: number }) => {
+      const res = await fetch(`/api/admin/variants/${id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify({ stock }),
+      });
+      if (!res.ok) throw new Error('Kaydedilemedi');
+      return res.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['/api/admin/products'] });
+    },
+    onError: (err: Error) => alert('Hata: ' + err.message),
+  });
+  const quickPatchVariant = (variantId: string, stock: number): Promise<void> =>
+    new Promise((resolve, reject) =>
+      quickPatchVariantMutation.mutate({ id: variantId, stock }, { onSuccess: () => resolve(), onError: reject })
+    );
+
   // Trendyol bağlantı durumu haritası — ürün başına rozet ve aksiyon için
   const { data: trendyolStatusMap } = useQuery<Record<string, TrendyolStatusEntry>>({
     queryKey: ['/api/admin/products/trendyol-status'],
@@ -637,13 +814,31 @@ export default function ProductsTab({
     refetchInterval: 120_000,
   });
 
-  const [categoryFilter, setCategoryFilter] = useState<string>('all');
-  const [brandFilter, setBrandFilter] = useState<string>('all');
-  const [statusFilter, setStatusFilter] = useState<StatusFilter>('all');
-  const [sortKey, setSortKey] = useState<SortKey>('newest');
-  const [perPage, setPerPage] = useState<number>(25);
-  const [page, setPage] = useState<number>(1);
+  // Ürün düzenleme sayfasından dönerken listeyi aynı konumda geri getir
+  const PRODUCTS_STATE_KEY = 'admin_products_list_state';
+  const savedListState = (() => {
+    try { return JSON.parse(sessionStorage.getItem(PRODUCTS_STATE_KEY) || 'null'); } catch { return null; }
+  })();
+
+  const [categoryFilter, setCategoryFilter] = useState<string>(savedListState?.categoryFilter ?? 'all');
+  const [brandFilter, setBrandFilter] = useState<string>(savedListState?.brandFilter ?? 'all');
+  const [statusFilter, setStatusFilter] = useState<StatusFilter>(savedListState?.statusFilter ?? 'all');
+  const [sortKey, setSortKey] = useState<SortKey>(savedListState?.sortKey ?? 'newest');
+  const [perPage, setPerPage] = useState<number>(savedListState?.perPage ?? 25);
+  const [page, setPage] = useState<number>(savedListState?.page ?? 1);
   const [selectionMode, setSelectionMode] = useState<boolean>(false);
+
+  // Listeye dönüşte scroll pozisyonunu geri yükle; state okundu, sessionStorage temizle
+  useEffect(() => {
+    if (!savedListState) return;
+    const scrollY = savedListState.scrollY ?? 0;
+    sessionStorage.removeItem(PRODUCTS_STATE_KEY);
+    if (scrollY > 0) {
+      requestAnimationFrame(() => { window.scrollTo({ top: scrollY, behavior: 'instant' as ScrollBehavior }); });
+    }
+  // Sadece ilk mount'ta çalışsın
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [isSyncing, setIsSyncing] = useState(false);
   const [syncResult, setSyncResult] = useState<SyncResult | null>(null);
@@ -837,6 +1032,16 @@ export default function ProductsTab({
     } finally {
       setIsDeletingExtras(false);
     }
+  };
+
+  // Düzenlemeye geçmeden önce liste konumunu sakla
+  const saveListState = () => {
+    try {
+      sessionStorage.setItem(PRODUCTS_STATE_KEY, JSON.stringify({
+        categoryFilter, brandFilter, statusFilter, sortKey, perPage, page,
+        scrollY: window.scrollY,
+      }));
+    } catch { /* sessizce geç */ }
   };
 
   const handleDuplicate = (product: Product) => {
@@ -1218,18 +1423,11 @@ export default function ProductsTab({
                           />
                         </td>
                         <td className="px-4 py-3 align-middle text-right whitespace-nowrap">
-                          {stock.count === 0 ? (
-                            <span className="text-[12px] text-neutral-400">-</span>
-                          ) : (
-                            <div>
-                              <p className="text-[13px] text-neutral-900 tabular-nums">
-                                {stock.total.toLocaleString('tr-TR')}
-                              </p>
-                              <p className="text-[11px] text-neutral-500">
-                                {stock.count} varyant
-                              </p>
-                            </div>
-                          )}
+                          <InlineStockCell
+                            productId={product.id}
+                            allVariants={allVariants}
+                            onSaveVariant={quickPatchVariant}
+                          />
                         </td>
                         <td className="px-4 py-3 align-middle">
                           <InlineStatusChips
@@ -1245,7 +1443,7 @@ export default function ProductsTab({
                           <RowActions
                             product={product}
                             tyStatus={tyStatus}
-                            onEdit={() => navigate(`/toov-admin/products/${product.id}`)}
+                            onEdit={() => { saveListState(); navigate(`/toov-admin/products/${product.id}`); }}
                             onCopy={() => handleDuplicate(product)}
                             onDelete={() => {
                               if (confirm('Bu ürünü silmek istediğinize emin misiniz?')) {
@@ -1306,7 +1504,7 @@ export default function ProductsTab({
                         <RowActions
                           product={product}
                           tyStatus={tyStatus}
-                          onEdit={() => navigate(`/toov-admin/products/${product.id}`)}
+                          onEdit={() => { saveListState(); navigate(`/toov-admin/products/${product.id}`); }}
                           onCopy={() => handleDuplicate(product)}
                           onDelete={() => {
                             if (confirm('Bu ürünü silmek istediğinize emin misiniz?')) {

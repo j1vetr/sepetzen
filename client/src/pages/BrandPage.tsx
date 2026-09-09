@@ -105,12 +105,12 @@ export default function BrandPage() {
                     initial={{ opacity: 0, scale: 0.85 }}
                     animate={{ opacity: 1, scale: 1 }}
                     transition={{ delay: 0.18, duration: 0.35 }}
-                    className="shrink-0 w-14 h-14 sm:w-16 sm:h-16 bg-white/10 border border-white/15 rounded-xl flex items-center justify-center overflow-hidden backdrop-blur-sm"
+                    className="shrink-0 w-16 h-16 sm:w-20 sm:h-20 bg-white rounded-xl flex items-center justify-center overflow-hidden shadow-lg"
                   >
                     <img
                       src={brand.logoUrl}
                       alt={`${brand.name} logosu`}
-                      className="w-10 h-10 sm:w-12 sm:h-12 object-contain"
+                      className="w-12 h-12 sm:w-16 sm:h-16 object-contain p-1"
                     />
                   </motion.div>
                 )}

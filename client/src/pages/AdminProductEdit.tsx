@@ -287,6 +287,9 @@ function ProductEditor({
     enabled: !!adminUser,
   });
 
+  // Kaydet başarı flaşı — yönlendirme yok, kullanıcı sayfada kalır
+  const [savedFlash, setSavedFlash] = useState(false);
+
   // Varsayılan olarak kaydetme — anlık UI geri bildirimi
   const [savingDefault, setSavingDefault] = useState<'delivery' | 'faq' | 'installment' | null>(null);
   const [savedDefaultFlash, setSavedDefaultFlash] = useState<'delivery' | 'faq' | 'installment' | null>(null);
@@ -534,14 +537,19 @@ function ProductEditor({
       if (!response.ok) throw new Error(result.error || 'Ürün kaydedilemedi');
       return result;
     },
-    onSuccess: () => {
+    onSuccess: (saved) => {
       queryClient.invalidateQueries({ queryKey: ['admin', 'products'] });
       queryClient.invalidateQueries({ queryKey: ['admin-inventory'] });
       queryClient.invalidateQueries({ queryKey: ['admin-low-stock'] });
       queryClient.invalidateQueries({ queryKey: ['admin', 'stats'] });
       queryClient.invalidateQueries({ queryKey: ['products'] });
       queryClient.invalidateQueries({ queryKey: ['categories'] });
-      setLocation('/toov-admin?tab=products');
+      // Yeni ürün oluşturulunca edit URL'ine geç (yönlendirme yok, kullanıcı sayfada kalır)
+      if (!productId && saved?.id) {
+        setLocation(`/toov-admin/products/${saved.id}`, { replace: true });
+      }
+      setSavedFlash(true);
+      setTimeout(() => setSavedFlash(false), 2500);
     },
   });
 
@@ -854,13 +862,16 @@ function ProductEditor({
               onClick={() => handleSubmit()}
               disabled={isSaving || isUploading || !isValid}
               data-testid="button-save-product"
+              className={savedFlash ? '!bg-emerald-600 !border-emerald-600' : ''}
             >
               {isSaving || isUploading ? (
                 <Loader2 className="w-3.5 h-3.5 animate-spin" />
+              ) : savedFlash ? (
+                <CheckCircle2 className="w-3.5 h-3.5" />
               ) : (
                 <Save className="w-3.5 h-3.5" />
               )}
-              {isUploading ? 'Yükleniyor…' : isSaving ? 'Kaydediliyor…' : 'Kaydet'}
+              {isUploading ? 'Yükleniyor…' : isSaving ? 'Kaydediliyor…' : savedFlash ? 'Kaydedildi' : 'Kaydet'}
             </PrimaryButton>
           </div>
         </div>
@@ -2067,10 +2078,14 @@ function ProductEditor({
             <PrimaryButton
               type="submit"
               disabled={isSaving || isUploading || !isValid}
-              className="flex-1"
+              className={`flex-1 ${savedFlash ? '!bg-emerald-600 !border-emerald-600' : ''}`}
             >
-              {(isSaving || isUploading) && <Loader2 className="w-3.5 h-3.5 animate-spin" />}
-              {isUploading ? 'Yükleniyor…' : isSaving ? 'Kaydediliyor…' : 'Kaydet'}
+              {isSaving || isUploading ? (
+                <Loader2 className="w-3.5 h-3.5 animate-spin" />
+              ) : savedFlash ? (
+                <CheckCircle2 className="w-3.5 h-3.5" />
+              ) : null}
+              {isUploading ? 'Yükleniyor…' : isSaving ? 'Kaydediliyor…' : savedFlash ? 'Kaydedildi' : 'Kaydet'}
             </PrimaryButton>
           </div>
         </div>

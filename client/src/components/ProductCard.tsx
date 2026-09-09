@@ -193,17 +193,6 @@ export const ProductCard = memo(function ProductCard({ product }: ProductCardPro
                     if (longPressRef.current) { clearTimeout(longPressRef.current); longPressRef.current = null; }
                   }}
                 />
-                {/* Ses göstergesi — hover'da mikrofon ikonu */}
-                <motion.div
-                  className="absolute top-3 left-3 z-20 w-7 h-7 rounded-full bg-black/50 backdrop-blur-sm flex items-center justify-center"
-                  animate={{ opacity: 1 }}
-                >
-                  {isHovered
-                    ? <Volume2 className="w-3.5 h-3.5 text-white" />
-                    : <VolumeX className="w-3.5 h-3.5 text-white/70" />
-                  }
-                </motion.div>
-
                 {/* Scrubber bar — masaüstünde hover'da, mobilde uzun basışta görünür */}
                 <motion.div
                   initial={{ opacity: 0 }}
@@ -282,6 +271,17 @@ export const ProductCard = memo(function ProductCard({ product }: ProductCardPro
                   />
                 )}
               </>
+            )}
+
+            {/* Video indicator — sağ üst köşe; hover'da solar, favori butonu çıkar */}
+            {!isYouTubeUrl(mainImage) && (isVideoUrl(mainImage) || !!hoverVideoSrc) && (
+              <motion.div
+                className="absolute top-3 right-3 z-20 w-7 h-7 rounded-full bg-black/50 backdrop-blur-sm flex items-center justify-center pointer-events-none"
+                animate={{ opacity: isHovered ? 0 : 1 }}
+                transition={{ duration: 0.2 }}
+              >
+                <Play className="w-3 h-3 text-white fill-white ml-px" />
+              </motion.div>
             )}
 
             {/* Tükendi — görsel dimmer + alt-orta pill badge */}

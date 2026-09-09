@@ -197,8 +197,8 @@ export const DEFAULT_HOMEPAGE_CONTENT: HomepageContent = {
     { id: "featured", isActive: true },
     { id: "categories", isActive: true },
     { id: "newArrivals", isActive: true },
-    { id: "trust", isActive: true },
     { id: "partners", isActive: true },
+    { id: "trust", isActive: true },
     { id: "showcaseMarquee", isActive: false },
   ],
 };
@@ -221,6 +221,14 @@ export function resolveHomepageContent(raw: unknown): HomepageContent {
       const def = d.sectionOrder.find((s) => s.id === id)!;
       order.push({ ...def });
     }
+  }
+
+  // Marka şeridi (partners) güven şeridinden (trust) önce gelmeli
+  const partnersIdx = order.findIndex(s => s.id === 'partners');
+  const trustIdx = order.findIndex(s => s.id === 'trust');
+  if (partnersIdx !== -1 && trustIdx !== -1 && partnersIdx > trustIdx) {
+    const [partnersItem] = order.splice(partnersIdx, 1);
+    order.splice(trustIdx, 0, partnersItem);
   }
 
   return {

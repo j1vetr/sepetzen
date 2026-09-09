@@ -1089,16 +1089,22 @@ export default function Home() {
 
   const activeSlides = content.heroSlides.filter(s => s.isActive !== false);
 
+  // showcaseMarquee sectionOrder'dan bağımsız — NewArrivals'ın hemen altına sabit eklenir
+  const showcaseItems = content.showcaseMarquee.items.filter(i => i.isActive !== false);
+  const showcaseVisible = content.showcaseMarquee.isActive && showcaseItems.length > 0;
+
   const sections: Record<string, React.ReactNode> = {
     videos: <VideoSection key="videos" content={content} />,
     featured: <FeaturedProducts key="featured" products={products} />,
     categories: <PopularCategories key="categories" products={products} />,
-    newArrivals: <NewArrivals key="newArrivals" products={products} />,
+    newArrivals: (
+      <div key="newArrivals">
+        <NewArrivals products={products} />
+        {showcaseVisible && <ShowcaseMarquee items={showcaseItems} />}
+      </div>
+    ),
     trust: <TrustStrip key="trust" items={content.trustItems} />,
     partners: <PartnersStrip key="partners" strip={content.partnerStrip} />,
-    showcaseMarquee: content.showcaseMarquee.isActive
-      ? <ShowcaseMarquee key="showcaseMarquee" items={content.showcaseMarquee.items} />
-      : null,
   };
 
   return (
@@ -1112,7 +1118,7 @@ export default function Home() {
       <main>
         <HeroSlider products={products} slides={activeSlides} heroMarquee={content.heroMarquee} />
         {content.sectionOrder
-          .filter(s => s.isActive !== false)
+          .filter(s => s.isActive !== false && s.id !== 'showcaseMarquee')
           .map(s => sections[s.id] ?? null)}
       </main>
       <Footer />
