@@ -38,11 +38,14 @@ function formatPriceTRY(value: string | number | null | undefined): string {
 }
 
 export async function buildMetaCatalogXml(): Promise<string> {
-  const [allProducts, allCategories, allVariants] = await Promise.all([
+  const [allProducts, allCategories, allVariants, siteSettings] = await Promise.all([
     storage.getAllProducts(),
     storage.getCategories(),
     db.select().from(productVariants),
+    storage.getSiteSettings(),
   ]);
+
+  const showOutOfStock = siteSettings.show_outofstock_products !== "false";
 
   const categoryById = new Map(allCategories.map((c) => [c.id, c]));
 
@@ -61,9 +64,10 @@ export async function buildMetaCatalogXml(): Promise<string> {
     const images = Array.isArray(p.images) ? p.images.filter(Boolean) : [];
     if (images.length === 0) continue;
 
-    // Stokta olmayan ürünleri akışa hiç koyma (sitedeki davranışla tutarlı)
     const totalStock = totalStockByProduct.get(p.id) ?? 0;
-    if (totalStock <= 0) continue;
+    const outOfStock = totalStock <= 0;
+    // Ayar kapalıysa tükenen ürünleri akışa koyma
+    if (outOfStock && !showOutOfStock) continue;
 
     const mainImage = absoluteUrl(images[0]);
     const additionalImages = images
@@ -99,7 +103,7 @@ export async function buildMetaCatalogXml(): Promise<string> {
         `    <g:link>${escapeXml(link)}</g:link>`,
         `    <g:image_link>${escapeXml(mainImage)}</g:image_link>`,
         additionalImageTags,
-        `    <g:availability>in stock</g:availability>`,
+        `    <g:availability>${outOfStock ? "out of stock" : "in stock"}</g:availability>`,
         `    <g:condition>new</g:condition>`,
         `    <g:price>${escapeXml(price)}</g:price>`,
         `    <g:brand>${escapeXml(BRAND_NAME)}</g:brand>`,

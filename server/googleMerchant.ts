@@ -40,7 +40,8 @@ export async function getGoogleMerchantSettings(): Promise<GoogleMerchantSetting
     enabled: settings.google_merchant_enabled === "true",
     brand: (settings.google_merchant_brand || "").trim() || (settings.site_name || "").trim() || DEFAULT_BRAND,
     googleProductCategory: (settings.google_merchant_category || "").trim(),
-    includeOutOfStock: settings.google_merchant_include_out_of_stock === "true",
+    // show_outofstock_products tek kaynak; google_merchant_include_out_of_stock artık kullanılmıyor
+    includeOutOfStock: settings.show_outofstock_products !== "false",
     siteUrl: normalizeSiteUrl(settings.site_url),
   };
 }
