@@ -367,7 +367,7 @@ export default function AnalyticsPanel() {
                   )}
                 </div>
               ))}
-              <div className="absolute inset-0 flex items-end gap-[3px] pr-12 overflow-x-auto">
+              <div className="absolute inset-0 flex items-end gap-[3px] pr-12" style={{ overflowX: 'clip' }}>
                 {series.map((row) => {
                   const height = Math.max((row.netRevenue / maxNetRevenue) * 100, row.netRevenue > 0 ? 2 : 0);
                   return (
@@ -615,8 +615,8 @@ export default function AnalyticsPanel() {
                   })()}
                 </svg>
                 <div className="absolute inset-0 flex flex-col items-center justify-center">
-                  <p className="text-xl font-bold text-neutral-900">{totalStatusOrders}</p>
-                  <p className="text-[10px] text-neutral-500">sipariş</p>
+                  <p className="text-xl font-bold text-white">{totalStatusOrders}</p>
+                  <p className="text-[10px] text-white/70">sipariş</p>
                 </div>
               </div>
             </div>

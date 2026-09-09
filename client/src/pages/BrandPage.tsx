@@ -51,7 +51,7 @@ export default function BrandPage() {
   const description = `${brand.name} ürünlerini Sepetzen'de keşfedin. ${brand.name} markasının kamp, outdoor ve bıçak koleksiyonunu inceleyin.`;
 
   return (
-    <div className="min-h-screen bg-[#0A0A0A] overflow-x-hidden">
+    <div className="min-h-screen bg-[#0A0A0A]">
       <SEO
         title={title}
         description={description}
@@ -63,29 +63,31 @@ export default function BrandPage() {
         ]}
       />
       <Header />
+      <div className="overflow-x-hidden">
 
       <section
         className="relative overflow-hidden bg-black"
-        style={{ height: '18vh', minHeight: 140, maxHeight: 200 }}
+        style={{ height: brand.logoUrl ? 'auto' : '18vh', minHeight: 140, maxHeight: brand.logoUrl ? 260 : 200 }}
       >
+        {/* Çok soluk arka plan filigranı */}
         {brand.logoUrl && (
-          <div className="absolute inset-0 flex items-center justify-center opacity-20">
+          <div className="absolute inset-0 flex items-center justify-center opacity-[0.04] scale-125 blur-sm pointer-events-none">
             <img
               src={brand.logoUrl}
               alt=""
               aria-hidden="true"
-              className="max-w-[min(55vw,420px)] max-h-[55%] object-contain grayscale"
+              className="max-w-[min(80vw,600px)] max-h-[80%] object-contain"
             />
           </div>
         )}
-        <div className="absolute inset-0 bg-gradient-to-t from-black via-black/45 to-transparent" />
+        <div className="absolute inset-0 bg-gradient-to-t from-black via-black/50 to-transparent" />
         <div className="absolute inset-0 flex flex-col justify-end">
-          <div className="max-w-[1400px] mx-auto px-5 lg:px-8 pb-4 lg:pb-5 w-full">
+          <div className="max-w-[1400px] mx-auto px-5 lg:px-8 pb-5 lg:pb-6 w-full">
             <motion.nav
               initial={{ opacity: 0, y: 6 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.15 }}
-              className="flex items-center gap-2 text-[10px] text-white/45 tracking-wider uppercase mb-1.5"
+              className="flex items-center gap-2 text-[10px] text-white/45 tracking-wider uppercase mb-3"
               data-testid="breadcrumb"
             >
               <Link href="/">
@@ -95,16 +97,33 @@ export default function BrandPage() {
               <span className="text-white/75">{brand.name}</span>
             </motion.nav>
 
-            <div className="flex items-baseline justify-between gap-4 flex-wrap">
-              <motion.h1
-                initial={{ opacity: 0, y: 12 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: 0.2 }}
-                className="font-display text-2xl sm:text-3xl lg:text-4xl text-white tracking-wide leading-[1.1]"
-                data-testid="text-brand-title"
-              >
-                {brand.name.toUpperCase()}
-              </motion.h1>
+            <div className="flex items-center gap-4 justify-between flex-wrap">
+              <div className="flex items-center gap-4">
+                {/* Görünür marka logosu */}
+                {brand.logoUrl && (
+                  <motion.div
+                    initial={{ opacity: 0, scale: 0.85 }}
+                    animate={{ opacity: 1, scale: 1 }}
+                    transition={{ delay: 0.18, duration: 0.35 }}
+                    className="shrink-0 w-14 h-14 sm:w-16 sm:h-16 bg-white/10 border border-white/15 rounded-xl flex items-center justify-center overflow-hidden backdrop-blur-sm"
+                  >
+                    <img
+                      src={brand.logoUrl}
+                      alt={`${brand.name} logosu`}
+                      className="w-10 h-10 sm:w-12 sm:h-12 object-contain"
+                    />
+                  </motion.div>
+                )}
+                <motion.h1
+                  initial={{ opacity: 0, y: 12 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: 0.2 }}
+                  className="font-display text-2xl sm:text-3xl lg:text-4xl text-white tracking-wide leading-[1.1]"
+                  data-testid="text-brand-title"
+                >
+                  {brand.name.toUpperCase()}
+                </motion.h1>
+              </div>
               <motion.p
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
@@ -151,6 +170,7 @@ export default function BrandPage() {
       </main>
 
       <Footer />
+      </div>
     </div>
   );
 }

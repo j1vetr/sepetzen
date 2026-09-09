@@ -28,12 +28,41 @@ export const trustItemSchema = z.object({
   isActive: z.boolean().default(true),
 });
 
+export const partnerItemSchema = z.object({
+  logoUrl: z.string().default(""),
+  name: z.string().default(""),
+  href: z.string().default(""),
+  isActive: z.boolean().default(true),
+});
+
+export const partnerStripSchema = z.object({
+  title: z.string().default("Markalar ve Bayilikler"),
+  isActive: z.boolean().default(true),
+  items: z.array(partnerItemSchema).default([]),
+});
+
+export const showcaseItemSchema = z.object({
+  type: z.enum(["product", "category"]),
+  id: z.string(),
+  isActive: z.boolean().default(true),
+});
+
+export const showcaseMarqueeSchema = z.object({
+  isActive: z.boolean().default(false),
+  items: z.array(showcaseItemSchema).default([]),
+});
+
+export type ShowcaseItem = z.infer<typeof showcaseItemSchema>;
+export type ShowcaseMarquee = z.infer<typeof showcaseMarqueeSchema>;
+
 export const SECTION_IDS = [
   "videos",
   "featured",
   "categories",
   "newArrivals",
   "trust",
+  "partners",
+  "showcaseMarquee",
 ] as const;
 export type SectionId = (typeof SECTION_IDS)[number];
 
@@ -53,12 +82,17 @@ export const homepageContentSchema = z.object({
     .default({ eyebrow: "", title: "", desc: "" }),
   videoCards: z.array(videoCardSchema).default([]),
   trustItems: z.array(trustItemSchema).default([]),
+  partnerStrip: partnerStripSchema.default({ title: "Markalar ve Bayilikler", isActive: true, items: [] }),
+  showcaseMarquee: showcaseMarqueeSchema.default({ isActive: false, items: [] }),
+  heroMarquee: showcaseMarqueeSchema.default({ isActive: false, items: [] }),
   sectionOrder: z.array(sectionOrderItemSchema).default([]),
 });
 
 export type HeroSlide = z.infer<typeof heroSlideSchema>;
 export type VideoCard = z.infer<typeof videoCardSchema>;
 export type TrustItem = z.infer<typeof trustItemSchema>;
+export type PartnerItem = z.infer<typeof partnerItemSchema>;
+export type PartnerStrip = z.infer<typeof partnerStripSchema>;
 export type SectionOrderItem = z.infer<typeof sectionOrderItemSchema>;
 export type HomepageContent = z.infer<typeof homepageContentSchema>;
 
@@ -68,6 +102,8 @@ export const SECTION_LABELS: Record<SectionId, string> = {
   categories: "Kategoriler",
   newArrivals: "Yeni Gelenler",
   trust: "Güven Şeridi",
+  partners: "Marka ve Bayilikler Şeridi",
+  showcaseMarquee: "Vitrin Şeridi",
 };
 
 // ─── Defaults (used when DB has no/partial content) ──────────────────────────
@@ -143,12 +179,27 @@ export const DEFAULT_HOMEPAGE_CONTENT: HomepageContent = {
       isActive: true,
     },
   ],
+  partnerStrip: {
+    title: "Markalar ve Bayilikler",
+    isActive: true,
+    items: [],
+  },
+  showcaseMarquee: {
+    isActive: false,
+    items: [],
+  },
+  heroMarquee: {
+    isActive: false,
+    items: [],
+  },
   sectionOrder: [
     { id: "videos", isActive: true },
     { id: "featured", isActive: true },
     { id: "categories", isActive: true },
     { id: "newArrivals", isActive: true },
     { id: "trust", isActive: true },
+    { id: "partners", isActive: true },
+    { id: "showcaseMarquee", isActive: false },
   ],
 };
 
@@ -181,6 +232,19 @@ export function resolveHomepageContent(raw: unknown): HomepageContent {
     },
     videoCards: c.videoCards.length ? c.videoCards : d.videoCards,
     trustItems: c.trustItems.length ? c.trustItems : d.trustItems,
+    partnerStrip: {
+      title: c.partnerStrip.title || d.partnerStrip.title,
+      isActive: c.partnerStrip.isActive,
+      items: c.partnerStrip.items,
+    },
+    showcaseMarquee: {
+      isActive: c.showcaseMarquee.isActive,
+      items: c.showcaseMarquee.items,
+    },
+    heroMarquee: {
+      isActive: c.heroMarquee.isActive,
+      items: c.heroMarquee.items,
+    },
     sectionOrder: c.sectionOrder.length ? order : d.sectionOrder,
   };
 }

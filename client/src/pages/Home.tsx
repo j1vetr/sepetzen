@@ -18,6 +18,8 @@ import {
   type HomepageContent,
   type HeroSlide,
   type TrustItem,
+  type PartnerStrip,
+  type ShowcaseItem,
 } from '@shared/homepage';
 
 // ─── HOMEPAGE CONTENT (admin-managed, falls back to defaults) ────────────────
@@ -37,7 +39,25 @@ function useHomepageContent(): HomepageContent {
 
 // ─── HERO SLIDER ─────────────────────────────────────────────────────────────
 
-function HeroSlider({ products, slides }: { products: Product[]; slides: HeroSlide[] }) {
+const EMPTY_HERO_MARQUEE: import('@shared/homepage').ShowcaseMarquee = { isActive: false, items: [] };
+
+function HeroSlider({ products, slides, heroMarquee = EMPTY_HERO_MARQUEE }: { products: Product[]; slides: HeroSlide[]; heroMarquee?: import('@shared/homepage').ShowcaseMarquee }) {
+  // Yapılandırılmış ürün/kategori varsa onları çek
+  const activeItems = heroMarquee.isActive ? heroMarquee.items.filter(i => i.isActive !== false) : [];
+  const { data: configuredProducts } = useQuery<Product[]>({
+    queryKey: ['hero-marquee-products', activeItems.map(i => `${i.type}:${i.id}`).join(',')],
+    enabled: activeItems.length > 0,
+    queryFn: async () => {
+      const encoded = encodeURIComponent(JSON.stringify(activeItems.map(i => ({ type: i.type, id: i.id }))));
+      const res = await fetch(`/api/showcase-products?items=${encoded}`);
+      if (!res.ok) return [];
+      return res.json();
+    },
+    staleTime: 5 * 60 * 1000,
+  });
+  const marqueeProducts = activeItems.length > 0 && configuredProducts?.length
+    ? configuredProducts
+    : products;
   const HERO_SLIDES = slides.length ? slides : DEFAULT_HOMEPAGE_CONTENT.heroSlides;
   const [active, setActive] = useState(0);
   const [dir, setDir] = useState(1);
@@ -165,10 +185,10 @@ function HeroSlider({ products, slides }: { products: Product[]; slides: HeroSli
       </div>
 
       {/* Desktop hero marquee — masaüstünde, hero altında */}
-      <DesktopHeroMarquee products={products} />
+      <DesktopHeroMarquee products={marqueeProducts} />
 
       {/* Mobile marquee — hero içinde, altta */}
-      <MobileMarquee products={products} />
+      <MobileMarquee products={marqueeProducts} />
     </section>
   );
 }
@@ -494,11 +514,17 @@ function NewArrivals({ products }: { products: Product[] }) {
                     {p.images?.[0] && /\.(mp4|webm|mov)(\?.*)?$/i.test(p.images[0]) ? (
                       <video
                         src={p.images[0]}
-                        className="absolute inset-0 w-full h-full object-cover"
-                        autoPlay
+                        className="absolute inset-0 w-full h-full object-cover transition-transform duration-700 ease-out group-hover:scale-105"
                         muted
+                        preload="metadata"
                         loop
                         playsInline
+                        onMouseEnter={(e) => (e.currentTarget as HTMLVideoElement).play().catch(() => {})}
+                        onMouseLeave={(e) => {
+                          const v = e.currentTarget as HTMLVideoElement;
+                          v.pause();
+                          v.currentTime = 0;
+                        }}
                       />
                     ) : (
                     <img
@@ -726,6 +752,88 @@ function TrustStrip({ items: rawItems }: { items: TrustItem[] }) {
   );
 }
 
+// ─── PARTNERS STRIP (kayan marka / bayi şeridi) ───────────────────────────────
+
+function PartnersStrip({ strip }: { strip: PartnerStrip }) {
+  const activeItems = strip.items.filter(i => i.isActive !== false);
+  if (!strip.isActive || activeItems.length === 0) return null;
+
+  // Döngüyü pürüzsüz yapmak için listeyi 4 kez çoğalt
+  const repeated = [...activeItems, ...activeItems, ...activeItems, ...activeItems];
+  const durationSec = Math.max(20, activeItems.length * 5);
+
+  return (
+    <section className="bg-[#080808] border-t border-white/[0.06]" data-testid="scene-partners">
+      {/* Başlık */}
+      <div className="max-w-[1400px] mx-auto px-5 lg:px-10 pt-10 pb-6 text-center">
+        <p className="text-[10px] tracking-[0.22em] uppercase text-white/30 font-medium">
+          {strip.title}
+        </p>
+      </div>
+
+      {/* Kayan şerit */}
+      <div className="relative overflow-hidden pb-10">
+        {/* Sol fade */}
+        <div className="pointer-events-none absolute left-0 top-0 bottom-0 w-24 z-10 bg-gradient-to-r from-[#080808] to-transparent" />
+        {/* Sağ fade */}
+        <div className="pointer-events-none absolute right-0 top-0 bottom-0 w-24 z-10 bg-gradient-to-l from-[#080808] to-transparent" />
+
+        <div
+          className="flex items-center gap-12 w-max"
+          style={{
+            animation: `partnersMarquee ${durationSec}s linear infinite`,
+          }}
+        >
+          {repeated.map((item, idx) => {
+            const inner = (
+              <div className="flex items-center gap-3 shrink-0 opacity-50 hover:opacity-100 transition-opacity duration-300 select-none">
+                {item.logoUrl ? (
+                  <img
+                    src={item.logoUrl}
+                    alt={item.name}
+                    className="h-8 max-w-[120px] object-contain grayscale brightness-150"
+                    loading="lazy"
+                    draggable={false}
+                  />
+                ) : (
+                  <span className="text-[13px] font-semibold tracking-widest uppercase text-white/70">
+                    {item.name}
+                  </span>
+                )}
+              </div>
+            );
+
+            return item.href ? (
+              <a
+                key={idx}
+                href={item.href}
+                target={item.href.startsWith('http') ? '_blank' : undefined}
+                rel={item.href.startsWith('http') ? 'noopener noreferrer' : undefined}
+                className="focus:outline-none"
+                tabIndex={idx < activeItems.length ? 0 : -1}
+                aria-hidden={idx >= activeItems.length}
+              >
+                {inner}
+              </a>
+            ) : (
+              <div key={idx} aria-hidden={idx >= activeItems.length}>
+                {inner}
+              </div>
+            );
+          })}
+        </div>
+      </div>
+
+      <style>{`
+        @keyframes partnersMarquee {
+          from { transform: translateX(0); }
+          to   { transform: translateX(-50%); }
+        }
+      `}</style>
+    </section>
+  );
+}
+
 // ─── DESKTOP HERO MARQUEE (masaüstü — hero altı kayan ürün şeridi) ────────────
 
 function DesktopHeroMarquee({ products }: { products: Product[] }) {
@@ -773,10 +881,9 @@ function DesktopHeroMarquee({ products }: { products: Product[] }) {
                     <video
                       src={p.images[0]}
                       muted
-                      autoPlay
+                      preload="none"
                       loop
                       playsInline
-                      preload="metadata"
                       className="absolute inset-0 w-full h-full object-cover"
                     />
                   ) : (
@@ -850,8 +957,8 @@ function MobileMarquee({ products }: { products: Product[] }) {
                     <video
                       src={p.images[0]}
                       className="absolute inset-0 w-full h-full object-cover"
-                      autoPlay
                       muted
+                      preload="none"
                       loop
                       playsInline
                     />
@@ -884,6 +991,81 @@ function MobileMarquee({ products }: { products: Product[] }) {
   );
 }
 
+// ─── SHOWCASE MARQUEE ─────────────────────────────────────────────────────────
+
+function ShowcaseMarquee({ items }: { items: ShowcaseItem[] }) {
+  const activeItems = useMemo(() => items.filter(i => i.isActive !== false), [items]);
+
+  const { data: products = [] } = useQuery<Product[]>({
+    queryKey: ['showcase-products', activeItems],
+    queryFn: async () => {
+      if (!activeItems.length) return [];
+      const encoded = encodeURIComponent(JSON.stringify(activeItems));
+      const res = await fetch(`/api/showcase-products?items=${encoded}`);
+      if (!res.ok) return [];
+      return res.json();
+    },
+    enabled: activeItems.length > 0,
+    staleTime: 120_000,
+  });
+
+  if (!products.length) return null;
+
+  // 3× kopyala — geniş ekranlarda sonsuz döngü için yeterli
+  const tripled = [...products, ...products, ...products];
+
+  return (
+    <section
+      className="overflow-hidden py-5 border-y border-white/[0.06]"
+      style={{
+        background: 'rgba(0,0,0,0.6)',
+        maskImage: 'linear-gradient(to right, transparent, black 80px, black calc(100% - 80px), transparent)',
+        WebkitMaskImage: 'linear-gradient(to right, transparent, black 80px, black calc(100% - 80px), transparent)',
+      }}
+      data-testid="scene-showcase-marquee"
+    >
+      <div className="marquee-loop gap-3 px-4">
+        {tripled.map((p, i) => {
+          const isVideo = /\.(mp4|webm|mov)(\?.*)?$/i.test(p.images?.[0] || '');
+          const isYT = /youtube\.com|youtu\.be/.test(p.images?.[0] || '');
+          return (
+            <Link
+              key={`showcase-${p.id}-${i}`}
+              href={`/urun/${p.slug}`}
+              className="group shrink-0 block"
+              data-testid={`link-showcase-${p.id}`}
+            >
+              <div className="relative w-44 h-56 overflow-hidden rounded-sm bg-zinc-900">
+                {p.images?.[0] && !isYT ? (
+                  isVideo ? (
+                    <video
+                      src={p.images[0]}
+                      muted autoPlay loop playsInline preload="metadata"
+                      className="absolute inset-0 w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+                    />
+                  ) : (
+                    <img
+                      src={p.images[0]}
+                      alt={p.name}
+                      loading="lazy"
+                      decoding="async"
+                      className="absolute inset-0 w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+                    />
+                  )
+                ) : (
+                  <div className="absolute inset-0 bg-white/5" />
+                )}
+                {/* İnce kenarlık efekti */}
+                <div className="absolute inset-0 border border-white/[0.08] rounded-sm pointer-events-none group-hover:border-white/20 transition-colors duration-300" />
+              </div>
+            </Link>
+          );
+        })}
+      </div>
+    </section>
+  );
+}
+
 // ─── MAIN ─────────────────────────────────────────────────────────────────────
 
 export default function Home() {
@@ -898,6 +1080,10 @@ export default function Home() {
     categories: <PopularCategories key="categories" products={products} />,
     newArrivals: <NewArrivals key="newArrivals" products={products} />,
     trust: <TrustStrip key="trust" items={content.trustItems} />,
+    partners: <PartnersStrip key="partners" strip={content.partnerStrip} />,
+    showcaseMarquee: content.showcaseMarquee.isActive
+      ? <ShowcaseMarquee key="showcaseMarquee" items={content.showcaseMarquee.items} />
+      : null,
   };
 
   return (
@@ -909,7 +1095,7 @@ export default function Home() {
       />
       <Header />
       <main>
-        <HeroSlider products={products} slides={activeSlides} />
+        <HeroSlider products={products} slides={activeSlides} heroMarquee={content.heroMarquee} />
         {content.sectionOrder
           .filter(s => s.isActive !== false)
           .map(s => sections[s.id] ?? null)}

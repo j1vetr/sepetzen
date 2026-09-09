@@ -20,7 +20,6 @@ import PagesTab from './admin/PagesTab';
 import BlogTab from './admin/BlogTab';
 import CouponsTab from './admin/CouponsTab';
 import ReviewsTab from './admin/ReviewsTab';
-import WholesaleTab from './admin/WholesaleTab';
 import BrandsTab from './admin/BrandsTab';
 
 import CategoryModal from './admin/modals/CategoryModal';
@@ -422,14 +421,6 @@ export default function AdminDashboard() {
         {activeTab === 'brands' && <BrandsTab />}
         {activeTab === 'coupons' && <CouponsTab />}
         {activeTab === 'reviews' && <ReviewsTab />}
-        {activeTab === 'wholesale' && (
-          <WholesaleTab
-            products={products}
-            categories={categories}
-            allVariants={allVariants}
-            productsLoading={productsLoading}
-          />
-        )}
       </AdminLayout>
 
       {showCategoryModal && (

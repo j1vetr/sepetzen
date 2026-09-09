@@ -488,7 +488,7 @@ export function Header() {
                 src={siteIdentity.logoUrl}
                 alt="Sepetzen"
                 data-testid="img-logo-mobile-header"
-                className="h-14 w-auto object-contain"
+                className="h-16 w-auto object-contain"
               />
             </a>
 
@@ -668,111 +668,124 @@ export function Header() {
             <nav className="justify-self-center self-center h-[44px] flex items-center justify-center gap-2 2xl:gap-4 min-w-0 max-w-full overflow-hidden">
               {useMenuTree ? (
                 <>
-                {menuRoots.slice(0, 7).map((root) => {
-                  const children = (root.children || []).filter(c => c.isActive);
-                  const isActiveMega = megaMenuId === root.id;
-
-                  {/* Alt öğesi olan her kök (submenu veya alt kategorili
-                      kategori) mega menü açar; kategori linki mega paneldeki
-                      "Tümünü Keşfet" ile erişilebilir kalır. */}
-                  if (root.type === 'submenu' || children.length > 0) {
-                    return (
-                      <div
-                        key={root.id}
-                        className="relative h-full flex items-center"
-                        onMouseEnter={() => openMega(root.id)}
-                        onMouseLeave={closeMega}
-                      >
-                        <button
-                          className={navLinkCls(isActiveMega)}
-                          data-testid={`button-nav-root-${root.id}`}
-                          aria-expanded={isActiveMega}
-                          aria-haspopup="true"
-                        >
-                                                    {root.title}
-                          <motion.span
-                            animate={{ rotate: isActiveMega ? 180 : 0 }}
-                            transition={{ duration: 0.2 }}
-                            className="inline-flex"
-                          >
-                            <ChevronDown className="w-2.5 h-2.5" />
-                          </motion.span>
-                        </button>
-                      </div>
-                    );
+                {(() => {
+                  // Karakter bütçesine göre nav öğelerini ayır.
+                  // Her başlığın uzunluğunu topla; eşiği geçince kalanlar "Daha Fazla"ya gider.
+                  const NAV_CHAR_BUDGET = 95;
+                  let budget = 0;
+                  const navVisible: typeof menuRoots = [];
+                  const navHidden: typeof menuRoots = [];
+                  for (const r of menuRoots) {
+                    budget += r.title.trim().length;
+                    if (budget <= NAV_CHAR_BUDGET) navVisible.push(r);
+                    else navHidden.push(r);
                   }
-
-                  const href = hrefForMenu(root);
-                  const isActive =
-                    (root.type === 'category' && root.category && location === `/kategori/${root.category.slug}`) ||
-                    (root.type === 'link' && root.url && location === root.url) || false;
-                  const isAllProducts = root.title.trim().toLocaleLowerCase('tr') === 'tüm ürünler';
                   return (
-                    <Link
-                      key={root.id}
-                      href={href}
-                      className={`${navLinkCls(isActive)} ${isAllProducts ? '!text-[#f4c96d] hover:!text-[#f4c96d]' : ''}`}
-                      data-testid={`link-nav-root-${root.id}`}
-                    >
-                                            {root.title}
-                    </Link>
-                  );
-                })}
-                {menuRoots.length > 7 && (
-                  <DropdownMenu modal={false}>
-                    <DropdownMenuTrigger asChild>
-                      <button className={navLinkCls(false)} data-testid="button-nav-more">
-                        Daha Fazla
-                        <ChevronDown className="w-2.5 h-2.5" />
-                      </button>
-                    </DropdownMenuTrigger>
-                    <DropdownMenuContent
-                      align="end"
-                      sideOffset={12}
-                      className="surface-glass-dark bg-black/85 text-white border border-white/10 shadow-[0_8px_30px_rgba(0,0,0,0.5)] rounded-md p-2 min-w-[220px] z-[9999]"
-                    >
-                      {menuRoots.slice(7).map((root) => {
+                    <>
+                      {navVisible.map((root) => {
                         const children = (root.children || []).filter(c => c.isActive);
-                        if (children.length > 0) {
+                        const isActiveMega = megaMenuId === root.id;
+                        if (root.type === 'submenu' || children.length > 0) {
                           return (
-                            <div key={root.id} className="mb-1 last:mb-0">
-                              <div className="px-3 pt-2 pb-1 text-[9px] tracking-[0.2em] uppercase text-white/35 font-bold">{root.title}</div>
-                              {root.type === 'category' && root.category && (
-                                <DropdownMenuItem
-                                  onClick={() => navigate(hrefForMenu(root))}
-                                  className="text-[11px] tracking-[0.10em] uppercase text-white hover:bg-white/5 cursor-pointer py-2 px-3 rounded-md transition-colors font-semibold"
-                                  data-testid={`link-nav-more-all-${root.id}`}
+                            <div
+                              key={root.id}
+                              className="relative h-full flex items-center"
+                              onMouseEnter={() => openMega(root.id)}
+                              onMouseLeave={closeMega}
+                            >
+                              <button
+                                className={navLinkCls(isActiveMega)}
+                                data-testid={`button-nav-root-${root.id}`}
+                                aria-expanded={isActiveMega}
+                                aria-haspopup="true"
+                                onClick={() => { navigate(hrefForMenu(root)); setMegaMenuId(null); }}
+                              >
+                                {root.title}
+                                <motion.span
+                                  animate={{ rotate: isActiveMega ? 180 : 0 }}
+                                  transition={{ duration: 0.2 }}
+                                  className="inline-flex"
                                 >
-                                  Tümü, {root.title}
-                                </DropdownMenuItem>
-                              )}
-                              {children.map((child) => (
-                                <DropdownMenuItem
-                                  key={child.id}
-                                  onClick={() => navigate(hrefForMenu(child))}
-                                  className="text-[11px] tracking-[0.10em] uppercase text-white/75 hover:bg-white/5 hover:text-white cursor-pointer py-2 px-3 rounded-md transition-colors"
-                                  data-testid={`link-nav-more-${child.id}`}
-                                >
-                                  {child.title}
-                                </DropdownMenuItem>
-                              ))}
+                                  <ChevronDown className="w-2.5 h-2.5" />
+                                </motion.span>
+                              </button>
                             </div>
                           );
                         }
+                        const href = hrefForMenu(root);
+                        const isActive =
+                          (root.type === 'category' && root.category && location === `/kategori/${root.category.slug}`) ||
+                          (root.type === 'link' && root.url && location === root.url) || false;
+                        const isAllProducts = root.title.trim().toLocaleLowerCase('tr') === 'tüm ürünler';
                         return (
-                          <DropdownMenuItem
+                          <Link
                             key={root.id}
-                            onClick={() => navigate(hrefForMenu(root))}
-                            className="text-[11px] tracking-[0.10em] uppercase text-white/75 hover:bg-white/5 hover:text-white cursor-pointer py-2 px-3 rounded-md transition-colors"
-                            data-testid={`link-nav-more-${root.id}`}
+                            href={href}
+                            className={`${navLinkCls(isActive)} ${isAllProducts ? '!text-[#f4c96d] hover:!text-[#f4c96d]' : ''}`}
+                            data-testid={`link-nav-root-${root.id}`}
                           >
                             {root.title}
-                          </DropdownMenuItem>
+                          </Link>
                         );
                       })}
-                    </DropdownMenuContent>
-                  </DropdownMenu>
-                )}
+                      {navHidden.length > 0 && (
+                        <DropdownMenu modal={false}>
+                          <DropdownMenuTrigger asChild>
+                            <button className={navLinkCls(false)} data-testid="button-nav-more">
+                              Daha Fazla
+                              <ChevronDown className="w-2.5 h-2.5" />
+                            </button>
+                          </DropdownMenuTrigger>
+                          <DropdownMenuContent
+                            align="end"
+                            sideOffset={12}
+                            className="surface-glass-dark bg-black/85 text-white border border-white/10 shadow-[0_8px_30px_rgba(0,0,0,0.5)] rounded-md p-2 min-w-[220px] z-[9999]"
+                          >
+                            {navHidden.map((root) => {
+                              const children = (root.children || []).filter(c => c.isActive);
+                              if (children.length > 0) {
+                                return (
+                                  <div key={root.id} className="mb-1 last:mb-0">
+                                    <div className="px-3 pt-2 pb-1 text-[9px] tracking-[0.2em] uppercase text-white/35 font-bold">{root.title}</div>
+                                    {root.type === 'category' && root.category && (
+                                      <DropdownMenuItem
+                                        onClick={() => navigate(hrefForMenu(root))}
+                                        className="text-[11px] tracking-[0.10em] uppercase text-white hover:bg-white/5 cursor-pointer py-2 px-3 rounded-md transition-colors font-semibold"
+                                        data-testid={`link-nav-more-all-${root.id}`}
+                                      >
+                                        Tümü, {root.title}
+                                      </DropdownMenuItem>
+                                    )}
+                                    {children.map((child) => (
+                                      <DropdownMenuItem
+                                        key={child.id}
+                                        onClick={() => navigate(hrefForMenu(child))}
+                                        className="text-[11px] tracking-[0.10em] uppercase text-white/75 hover:bg-white/5 hover:text-white cursor-pointer py-2 px-3 rounded-md transition-colors"
+                                        data-testid={`link-nav-more-${child.id}`}
+                                      >
+                                        {child.title}
+                                      </DropdownMenuItem>
+                                    ))}
+                                  </div>
+                                );
+                              }
+                              return (
+                                <DropdownMenuItem
+                                  key={root.id}
+                                  onClick={() => navigate(hrefForMenu(root))}
+                                  className="text-[11px] tracking-[0.10em] uppercase text-white/75 hover:bg-white/5 hover:text-white cursor-pointer py-2 px-3 rounded-md transition-colors"
+                                  data-testid={`link-nav-more-${root.id}`}
+                                >
+                                  {root.title}
+                                </DropdownMenuItem>
+                              );
+                            })}
+                          </DropdownMenuContent>
+                        </DropdownMenu>
+                      )}
+                    </>
+                  );
+                })()}
                 </>
               ) : (
                 <DropdownMenu>
@@ -952,9 +965,10 @@ export function Header() {
                                   <img
                                     src={sidebarProduct.images[0]}
                                     alt={sidebarProduct.name}
-                                    loading="lazy"
+                                    loading="eager"
                                     decoding="async"
                                     className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+                                    onError={e => { (e.target as HTMLImageElement).style.display = 'none'; }}
                                   />
                                   <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent" />
                                 </div>
@@ -1045,7 +1059,7 @@ export function Header() {
                       >
                           <div className="w-[60px] h-[60px] rounded-lg overflow-hidden shrink-0 bg-[#151515]">
                           {product.images?.[0] ? (
-                            <img src={product.images[0]} alt={product.name} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300" loading="lazy" decoding="async" />
+                            <img src={product.images[0]} alt={product.name} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300" loading="eager" decoding="async" onError={e => { (e.target as HTMLImageElement).style.display = 'none'; }} />
                           ) : (
                             <div className="w-full h-full flex items-center justify-center">
                               {(() => { const Icon = getMenuIcon(activeMegaRoot.title); return <Icon className="w-5 h-5 text-white/20" />; })()}
@@ -1100,7 +1114,7 @@ export function Header() {
               data-testid="drawer-mobile-menu"
             >
               {/* ── Hero panel: brand header ── */}
-              <div className="relative h-[120px] shrink-0 overflow-hidden border-b border-white/10 bg-black/20 flex items-center justify-center">
+              <div className="relative h-[120px] shrink-0 overflow-hidden bg-black/20 flex items-center justify-center">
                 <motion.button
                   whileTap={{ scale: 0.88 }}
                   onClick={() => setMobileOpen(false)}
@@ -1201,9 +1215,8 @@ export function Header() {
                               {isOpen && (
                                 <motion.ul
                                   initial={{ height: 0, opacity: 0 }}
-                                  animate={{ height: 'auto', opacity: 1 }}
-                                  exit={{ height: 0, opacity: 0 }}
-                                  transition={{ duration: 0.32, ease: [0.16, 1, 0.3, 1] }}
+                                  animate={{ height: 'auto', opacity: 1, transition: { duration: 0.28, ease: [0.16, 1, 0.3, 1] } }}
+                                  exit={{ height: 0, opacity: 0, transition: { duration: 0.2, ease: [0.4, 0, 1, 1] } }}
                                   className="overflow-hidden pl-5 border-l border-white/15 ml-[2px] mb-3"
                                 >
                                   {root.type === 'category' && root.category && (

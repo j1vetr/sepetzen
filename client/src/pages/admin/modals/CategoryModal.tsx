@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { Upload, Image as ImageIcon, Trash2, Loader2, RefreshCw, ChevronDown } from 'lucide-react';
+import { Upload, Image as ImageIcon, Trash2, Loader2, RefreshCw, ChevronDown, Sparkles } from 'lucide-react';
 import type { Category } from '../_shared/types';
 import { sanitizeAdminHtml } from '@/lib/sanitizeHtml';
 import AdminModal from '../_ui/AdminModal';
@@ -75,6 +75,8 @@ export default function CategoryModal({
   const [pendingPreviewUrl, setPendingPreviewUrl] = useState<string | null>(null);
   const [isUploading, setIsUploading] = useState(false);
   const [uploadError, setUploadError] = useState<string | null>(null);
+  const [aiGenerating, setAiGenerating] = useState(false);
+  const [aiError, setAiError] = useState<string | null>(null);
 
   useEffect(() => {
     if (!pendingFile) {
@@ -419,11 +421,60 @@ export default function CategoryModal({
 
         {showAdvanced && (
         <section className="space-y-3">
-          <SectionHeading
-            number={4}
-            title="SEO & İçerik"
-            description="Boş bırakılan alanlarda varsayılan şablon kullanılır."
-          />
+          <div className="flex items-start justify-between gap-3">
+            <SectionHeading
+              number={4}
+              title="SEO & İçerik"
+              description="Boş bırakılan alanlarda varsayılan şablon kullanılır."
+            />
+            <button
+              type="button"
+              disabled={aiGenerating || !formData.name.trim()}
+              onClick={async () => {
+                if (
+                  (formData.seoTitle.trim() || formData.seoDescription.trim() || formData.contentHtml.trim()) &&
+                  !window.confirm('Mevcut SEO ve içerik alanları yapay zeka çıktısıyla değiştirilecek. Devam edilsin mi?')
+                ) return;
+                setAiGenerating(true);
+                setAiError(null);
+                try {
+                  const parentCat = categories.find(c => c.id === formData.parentId);
+                  const res = await fetch('/api/admin/category/ai/generate', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    credentials: 'include',
+                    body: JSON.stringify({
+                      categoryName: formData.name.trim(),
+                      ...(parentCat ? { parentCategoryName: parentCat.name } : {}),
+                    }),
+                  });
+                  const payload = await res.json().catch(() => ({}));
+                  if (!res.ok) { setAiError(payload.error || 'İçerik üretilemedi.'); return; }
+                  setFormData(prev => ({
+                    ...prev,
+                    seoTitle: payload.seoTitle ?? prev.seoTitle,
+                    seoDescription: payload.seoDescription ?? prev.seoDescription,
+                    contentHtml: payload.contentHtml ?? prev.contentHtml,
+                  }));
+                } catch {
+                  setAiError('Sunucuya ulaşılamadı. Lütfen tekrar deneyin.');
+                } finally {
+                  setAiGenerating(false);
+                }
+              }}
+              className="shrink-0 mt-0.5 inline-flex items-center gap-1.5 rounded-lg bg-violet-600 px-3 py-1.5 text-[12px] font-semibold text-white transition-colors hover:bg-violet-700 disabled:opacity-50 disabled:cursor-not-allowed"
+              data-testid="button-category-ai-generate"
+              title={!formData.name.trim() ? 'Önce kategori adı girin' : 'Yapay zeka ile SEO ve içerik oluştur'}
+            >
+              {aiGenerating
+                ? <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                : <Sparkles className="h-3.5 w-3.5" />}
+              {aiGenerating ? 'Oluşturuluyor…' : 'YZ ile Doldur'}
+            </button>
+          </div>
+          {aiError && (
+            <p className="text-[12px] text-red-600 bg-red-50 rounded-md px-3 py-2">{aiError}</p>
+          )}
           <FormField
             label="SEO Başlığı"
             hint="Tarayıcı sekmesi ve arama sonuçlarında görünen başlık."

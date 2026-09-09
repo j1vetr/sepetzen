@@ -263,6 +263,23 @@ export default function MenuManagementPanel({ categories }: MenuManagementPanelP
     setShowModal(true);
   };
 
+  const openAddChildModal = (parentId: string) => {
+    setEditingItem(null);
+    setFormData({
+      title: '',
+      description: '',
+      bgImage: '',
+      measurementGifUrl: '',
+      type: 'category',
+      categoryId: '',
+      url: '',
+      parentId,
+      isActive: true,
+      openInNewTab: false,
+    });
+    setShowModal(true);
+  };
+
   const handleGifUpload = async (file: File) => {
     if (!file.type.includes('gif')) {
       alert('Lütfen bir GIF dosyası seçin (.gif uzantılı)');
@@ -486,7 +503,7 @@ export default function MenuManagementPanel({ categories }: MenuManagementPanelP
                     </div>
                   </div>
 
-                  {children.length > 0 && (
+                  {(children.length > 0 || item.type === 'submenu') && (
                     <div className="ml-12 border-l border-neutral-200">
                       {children.map((child) => (
                         <div key={child.id} className="flex items-center gap-4 p-4 pl-6 hover:bg-neutral-50/30">
@@ -531,6 +548,16 @@ export default function MenuManagementPanel({ categories }: MenuManagementPanelP
                           </div>
                         </div>
                       ))}
+                      {item.type === 'submenu' && (
+                        <button
+                          onClick={() => openAddChildModal(item.id)}
+                          className="w-full flex items-center gap-2 px-6 py-2.5 text-sm text-neutral-500 hover:text-neutral-900 hover:bg-neutral-50/50 transition-colors border-t border-neutral-100"
+                          data-testid={`button-add-child-${item.id}`}
+                        >
+                          <Plus className="w-3.5 h-3.5" />
+                          Alt öğe ekle
+                        </button>
+                      )}
                     </div>
                   )}
                 </div>

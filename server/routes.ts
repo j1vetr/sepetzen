@@ -639,6 +639,13 @@ export async function registerRoutes(
     res.sendFile(path.resolve(process.cwd(), 'client/public/favicon.png'));
   });
 
+  // robots.txt — hem dev hem prod modunda güvenilir şekilde sun
+  app.get("/robots.txt", (_req, res) => {
+    res.setHeader('Content-Type', 'text/plain; charset=utf-8');
+    res.setHeader('Cache-Control', 'public, max-age=86400'); // 1 gün cache
+    res.sendFile(path.resolve(process.cwd(), 'client/public/robots.txt'));
+  });
+
   // Dynamic sitemap.xml — categories + products + static pages
   app.get(["/sitemap.xml", "/sitemap_index.xml"], async (_req, res) => {
     try {
@@ -909,11 +916,25 @@ export async function registerRoutes(
   });
 
   // ── Public Blog API ──────────────────────────────────────────────────────
-  app.get("/api/blog", async (_req, res) => {
+  app.get("/api/blog", async (req, res) => {
     try {
-      const posts = await storage.getBlogPosts({ publishedOnly: true });
+      const PAGE_SIZE = 6;
+      const page = Math.max(1, parseInt(String(req.query.sayfa || '1'), 10) || 1);
+      // Tüm yayınlı yazılar çekilir, sıralama storage katmanında yapılır
+      const allPosts = await storage.getBlogPosts({ publishedOnly: true });
+      const total = allPosts.length;
+      const totalPages = Math.max(1, Math.ceil(total / PAGE_SIZE));
+      const safePage = Math.min(page, totalPages);
+      const start = (safePage - 1) * PAGE_SIZE;
+      const pagePosts = allPosts.slice(start, start + PAGE_SIZE);
       // Liste görünümünde içerik HTML'i taşınmaz.
-      res.json(posts.map(({ content, ...rest }) => rest));
+      res.json({
+        posts: pagePosts.map(({ content, ...rest }) => rest),
+        total,
+        page: safePage,
+        totalPages,
+        pageSize: PAGE_SIZE,
+      });
     } catch (err) {
       console.error("[blog] list error:", err);
       res.status(500).json({ error: "Blog yazıları yüklenemedi" });
@@ -1555,6 +1576,61 @@ export async function registerRoutes(
       } catch { /* aşağıda kontrol ediliyor */ }
       if (!topics.length) return res.status(502).json({ error: "Konu önerileri alınamadı. Lütfen tekrar deneyin." });
       res.json({ topics });
+    } catch (error) {
+      const mapped = mapOpenAiError(error);
+      res.status(mapped.status).json({ error: mapped.message });
+    }
+  });
+
+  // ── Kategori SEO içeriği AI ile oluştur ─────────────────────────────────
+  app.post("/api/admin/category/ai/generate", requireAdmin, async (req, res) => {
+    const parsed = z.object({
+      categoryName: z.string().trim().min(2, "Kategori adı en az 2 karakter olmalı").max(200),
+      parentCategoryName: z.string().trim().max(200).optional(),
+    }).safeParse(req.body);
+    if (!parsed.success) {
+      return res.status(400).json({ error: parsed.error.issues[0]?.message || "Geçersiz istek" });
+    }
+    const apiKey = await getOpenAiApiKey();
+    if (!apiKey) return res.status(503).json({ error: OPENAI_KEY_MISSING_MESSAGE });
+    try {
+      const { default: OpenAI } = await import("openai");
+      const openai = new OpenAI({ apiKey });
+      const { categoryName, parentCategoryName } = parsed.data;
+      const context = parentCategoryName
+        ? `"${categoryName}" kategorisi (üst kategori: "${parentCategoryName}")`
+        : `"${categoryName}" kategorisi`;
+      const completion = await openai.chat.completions.create({
+        model: "gpt-4o",
+        response_format: { type: "json_object" },
+        temperature: 0.65,
+        max_tokens: 1200,
+        messages: [
+          {
+            role: "system",
+            content: `Sen Sepetzen adlı Türk e-ticaret markasının (kamp, outdoor, av, bıçak, bağ-bahçe, mangal, EDC) SEO uzmanısın. Verilen kategori için kısa ama etkili SEO metinleri ve kategori tanıtım HTML içeriği üretirsin.
+
+KURALLAR:
+- Uzun tire (—) karakterini ASLA kullanma.
+- seoTitle: 50-60 karakter, marka adı veya "|" ile bitebilir.
+- seoDescription: 140-155 karakter, arama amacına uygun.
+- contentHtml: Kategori sayfasında ürün listesinin altında görünen tanıtım metni. 150-300 kelime. <h2> başlık, <p> paragraflar, gerekirse <ul>/<li>. <h1>/<script>/<img> kullanma.
+- Yalnızca JSON döndür:
+{"seoTitle":"...","seoDescription":"...","contentHtml":"..."}`,
+          },
+          { role: "user", content: `Kategori: ${context}` },
+        ],
+      });
+      const raw = completion.choices[0]?.message?.content ?? '{}';
+      let data: { seoTitle?: string; seoDescription?: string; contentHtml?: string };
+      try { data = JSON.parse(raw); } catch {
+        return res.status(502).json({ error: "Yapay zeka geçersiz yanıt döndürdü. Lütfen tekrar deneyin." });
+      }
+      res.json({
+        seoTitle: stripEmDashes((data.seoTitle ?? '').trim()).slice(0, 120) || null,
+        seoDescription: stripEmDashes((data.seoDescription ?? '').trim()).slice(0, 400) || null,
+        contentHtml: sanitizeStoredHtml(stripEmDashes((data.contentHtml ?? '').trim())) || null,
+      });
     } catch (error) {
       const mapped = mapOpenAiError(error);
       res.status(mapped.status).json({ error: mapped.message });
@@ -2638,6 +2714,7 @@ KURALLAR:
   app.get("/api/products", async (req, res) => {
     try {
       const { categoryId, isFeatured, isNew, search, minPrice, maxPrice, sort, limit } = req.query;
+      const showOutOfStock = (await storage.getSiteSetting('show_outofstock_products')) === 'true';
       const products = await storage.getProducts({
         categoryId: categoryId as string,
         isFeatured: isFeatured !== undefined ? isFeatured === 'true' : undefined,
@@ -2647,6 +2724,7 @@ KURALLAR:
         maxPrice: maxPrice ? parseFloat(maxPrice as string) : undefined,
         sort: sort as 'price_asc' | 'price_desc' | 'newest' | 'popular' | undefined,
         limit: limit ? parseInt(limit as string, 10) : undefined,
+        showOutOfStock,
       });
 
       // Tek sorguda tüm ürünlerin ortalama puanı ve yorum sayısı
@@ -2683,7 +2761,8 @@ KURALLAR:
 
   app.get("/api/products/:slug", async (req, res) => {
     try {
-      const product = await storage.getProductBySlug(req.params.slug);
+      const showOutOfStock = (await storage.getSiteSetting('show_outofstock_products')) === 'true';
+      const product = await storage.getProductBySlug(req.params.slug, showOutOfStock);
       if (!product) {
         return res.status(404).json({ error: "Product not found" });
       }
@@ -5009,9 +5088,9 @@ Bu ürün için 4 bölümlü HTML açıklama üret. Teknik Özellikler bölümü
   // ── Maintenance mode admin controls ────────────────────────────────────
   app.get("/api/admin/maintenance", requireAdmin, async (_req, res) => {
     try {
-      const { getMaintenanceMode } = await import("./maintenance");
-      const enabled = await getMaintenanceMode();
-      res.json({ enabled });
+      const { getMaintenanceMode, getMaintenanceContent } = await import("./maintenance");
+      const [enabled, content] = await Promise.all([getMaintenanceMode(), getMaintenanceContent()]);
+      res.json({ enabled, content });
     } catch (error) {
       console.error("[maintenance get] error:", error);
       res.status(500).json({ error: "Bakım modu durumu alınamadı" });
@@ -5028,6 +5107,24 @@ Bu ürün için 4 bölümlü HTML açıklama üret. Teknik Özellikler bölümü
     } catch (error) {
       console.error("[maintenance set] error:", error);
       res.status(500).json({ error: "Bakım modu değiştirilemedi" });
+    }
+  });
+
+  app.post("/api/admin/maintenance/content", requireAdmin, async (req, res) => {
+    try {
+      const { setMaintenanceContent } = await import("./maintenance");
+      const { title, logoUrl, heading, description, instagramHandle } = req.body || {};
+      await setMaintenanceContent({
+        ...(typeof title === 'string' ? { title: title.trim() } : {}),
+        ...(typeof logoUrl === 'string' ? { logoUrl: logoUrl.trim() } : {}),
+        ...(typeof heading === 'string' ? { heading: heading.trim() } : {}),
+        ...(typeof description === 'string' ? { description: description.trim() } : {}),
+        ...(typeof instagramHandle === 'string' ? { instagramHandle: instagramHandle.trim().replace(/^@/, '') } : {}),
+      });
+      res.json({ success: true });
+    } catch (error) {
+      console.error("[maintenance content] error:", error);
+      res.status(500).json({ error: "Bakım sayfası içeriği kaydedilemedi" });
     }
   });
 
@@ -5165,18 +5262,25 @@ Bu ürün için 4 bölümlü HTML açıklama üret. Teknik Özellikler bölümü
   // ── PayTR admin controls (DB-backed credentials) ───────────────────────
   app.get("/api/admin/paytr/config", requireAdmin, async (_req, res) => {
     try {
-      const merchantId = (await storage.getSiteSetting('paytr_merchant_id')) || '';
-      const merchantKey = (await storage.getSiteSetting('paytr_merchant_key')) || '';
-      const merchantSalt = (await storage.getSiteSetting('paytr_merchant_salt')) || '';
+      const [merchantId, merchantKey, merchantSalt, maxInstallmentStr] = await Promise.all([
+        storage.getSiteSetting('paytr_merchant_id'),
+        storage.getSiteSetting('paytr_merchant_key'),
+        storage.getSiteSetting('paytr_merchant_salt'),
+        storage.getSiteSetting('paytr_max_installment'),
+      ]);
+      const id = merchantId || '';
+      const key = merchantKey || '';
+      const salt = merchantSalt || '';
       const baseUrl = process.env.PUBLIC_BASE_URL || 'https://sepetzen.com';
       res.json({
-        configured: Boolean(merchantId && merchantKey && merchantSalt),
-        merchantId,
-        merchantKeyMasked: maskSecret(merchantKey),
-        merchantSaltMasked: maskSecret(merchantSalt),
+        configured: Boolean(id && key && salt),
+        merchantId: id,
+        merchantKeyMasked: maskSecret(key),
+        merchantSaltMasked: maskSecret(salt),
         callbackUrl: `${baseUrl}/api/payment/paytr/callback`,
         baseUrl,
         mode: 'live' as const,
+        maxInstallment: parseInt(maxInstallmentStr || '0', 10) || 0,
       });
     } catch (error) {
       console.error('[paytr config] error:', error);
@@ -5192,14 +5296,53 @@ Bu ürün için 4 bölümlü HTML açıklama üret. Teknik Özellikler bölümü
       if (!merchantId || !merchantKey || !merchantSalt) {
         return res.status(400).json({ error: 'Mağaza no, mağaza parola ve gizli anahtar zorunludur.' });
       }
+      const maxInstallment = typeof req.body?.maxInstallment === 'number' ? req.body.maxInstallment : null;
       await storage.setSiteSetting('paytr_merchant_id', merchantId);
       await storage.setSiteSetting('paytr_merchant_key', merchantKey);
       await storage.setSiteSetting('paytr_merchant_salt', merchantSalt);
+      if (maxInstallment !== null) {
+        await storage.setSiteSetting('paytr_max_installment', String(maxInstallment));
+      }
       console.log('[paytr] credentials updated via admin panel');
       res.json({ success: true });
     } catch (error) {
       console.error('[paytr credentials] error:', error);
       res.status(500).json({ error: 'PayTR anahtarları kaydedilemedi' });
+    }
+  });
+
+  // Yalnızca max_installment güncelle (anahtarlar dokunulmaz)
+  app.post("/api/admin/paytr/max-installment", requireAdmin, async (req, res) => {
+    try {
+      const val = req.body?.maxInstallment;
+      if (typeof val !== 'number' || !Number.isInteger(val) || val < 0) {
+        return res.status(400).json({ error: 'Geçersiz taksit değeri.' });
+      }
+      await storage.setSiteSetting('paytr_max_installment', String(val));
+      res.json({ success: true });
+    } catch (err) {
+      console.error('[paytr max-installment] error:', err);
+      res.status(500).json({ error: 'Taksit ayarı kaydedilemedi.' });
+    }
+  });
+
+  // ── Taksit bilgisi (ürün sayfası için public) ───────────────────────────
+  app.get("/api/payment/installment-info", async (_req, res) => {
+    try {
+      const { isPaytrConfigured: checkPaytr, getInstallmentCounts } = await import('./paytr');
+      const [paytrConfigured, paytrToggle, maxInstallmentStr] = await Promise.all([
+        checkPaytr(),
+        storage.getSiteSetting('payment_paytr_enabled'),
+        storage.getSiteSetting('paytr_max_installment'),
+      ]);
+      const paytrEnabled = paytrConfigured && paytrToggle !== '0';
+      const maxInstallment = parseInt(maxInstallmentStr || '0', 10) || 0;
+      const counts = getInstallmentCounts(maxInstallment);
+      res.json({ paytrEnabled, maxInstallment, counts });
+    } catch (err) {
+      console.error('[installment-info] error:', err);
+      // Güvenli varsayılan
+      res.json({ paytrEnabled: false, maxInstallment: 0, counts: [1, 2, 3, 6, 9] });
     }
   });
 
@@ -5319,12 +5462,14 @@ Bu ürün için 4 bölümlü HTML açıklama üret. Teknik Özellikler bölümü
         string,
         Array<{ productName: string; productImage: string | null; quantity: number }>
       >();
+      const isVideoUrl = (u: string) => /\.(mp4|webm|mov)(\?|$)/i.test(u);
       for (const row of itemRows) {
         const list = itemsByOrder.get(row.orderId) ?? [];
         const imageArr = row.images as string[] | null;
+        const firstPhoto = imageArr?.find(u => !isVideoUrl(u)) ?? imageArr?.[0] ?? null;
         list.push({
           productName: row.productName,
-          productImage: imageArr?.[0] ?? null,
+          productImage: firstPhoto,
           quantity: row.quantity,
         });
         itemsByOrder.set(row.orderId, list);
@@ -5356,19 +5501,22 @@ Bu ürün için 4 bölümlü HTML açıklama üret. Teknik Özellikler bölümü
           let productImage = null;
           let productSlug: string | null = null;
 
+          const firstPhotoOf = (imgs?: string[] | null) =>
+            imgs?.find(u => !/\.(mp4|webm|mov)(\?|$)/i.test(u)) ?? imgs?.[0] ?? null;
+
           if (item.variantId) {
             const variant = await storage.getProductVariant(item.variantId);
             sku = variant?.sku || null;
             if (variant?.productId) {
               const product = await storage.getProduct(variant.productId);
-              productImage = product?.images?.[0] || null;
+              productImage = firstPhotoOf(product?.images);
               productSlug = product?.slug || null;
               if (!sku) sku = product?.sku || null;
             }
           }
           if (item.productId && (!productImage || !productSlug)) {
             const product = await storage.getProduct(item.productId);
-            if (!productImage) productImage = product?.images?.[0] || null;
+            if (!productImage) productImage = firstPhotoOf(product?.images);
             if (!productSlug) productSlug = product?.slug || null;
             if (!sku) sku = product?.sku || null;
           }
@@ -8298,6 +8446,41 @@ window.addEventListener('load', function() {
     }
   });
 
+  // Showcase marquee: resolve category/product items to product list
+  app.get("/api/showcase-products", async (req, res) => {
+    try {
+      const raw = req.query.items as string | undefined;
+      if (!raw) return res.json([]);
+      let items: { type: string; id: string }[] = [];
+      try { items = JSON.parse(decodeURIComponent(raw)); } catch { return res.json([]); }
+
+      const seen = new Set<string>();
+      const result: any[] = [];
+
+      for (const item of items) {
+        if (item.type === 'category') {
+          const prods = await storage.getProducts({ categoryId: item.id, limit: 50 });
+          for (const p of prods) {
+            if (!seen.has(p.id) && p.images?.length) {
+              seen.add(p.id);
+              result.push(p);
+            }
+          }
+        } else if (item.type === 'product') {
+          const p = await storage.getProduct(item.id);
+          if (p && !seen.has(p.id) && p.images?.length) {
+            seen.add(p.id);
+            result.push(p);
+          }
+        }
+      }
+      res.json(result);
+    } catch (error) {
+      console.error('[showcase-products]', error);
+      res.status(500).json({ error: 'Vitrin ürünleri yüklenemedi' });
+    }
+  });
+
   // Public site identity (announcements, contact info, footer/nav content)
   app.get("/api/site-identity", async (_req, res) => {
     try {
@@ -8335,6 +8518,43 @@ window.addEventListener('load', function() {
       res.json({ success: true });
     } catch (error) {
       res.status(500).json({ error: "Failed to save site identity" });
+    }
+  });
+
+  // Filtre özellikleri — public (storefront okuması için)
+  app.get("/api/settings/filter-attributes", async (_req, res) => {
+    try {
+      const DEFAULT_ATTRS = [
+        { label: 'Ürün Cinsi', key: 'urunCinsi' },
+        { label: 'Çelik Cinsi', key: 'celikCinsi' },
+        { label: 'Sap Cinsi', key: 'sapCinsi' },
+      ];
+      const raw = await storage.getSiteSetting('filter_attributes');
+      if (!raw) return res.json(DEFAULT_ATTRS);
+      try {
+        const parsed = JSON.parse(raw);
+        return res.json(Array.isArray(parsed) ? parsed : DEFAULT_ATTRS);
+      } catch {
+        return res.json(DEFAULT_ATTRS);
+      }
+    } catch {
+      res.status(500).json({ error: 'Failed to fetch filter attributes' });
+    }
+  });
+
+  // Kar efekti ayarları — public
+  app.get("/api/settings/snow", async (_req, res) => {
+    try {
+      const s = await storage.getSiteSettings();
+      res.json({
+        enabled: s.snow_enabled === 'true',
+        speed:   Math.max(1, Math.min(10, Number(s.snow_speed ?? '5'))),
+        color:   s.snow_color ?? '#ffffff',
+        opacity: Math.max(10, Math.min(100, Number(s.snow_opacity ?? '70'))),
+        density: Math.max(10, Math.min(150, Number(s.snow_density ?? '60'))),
+      });
+    } catch {
+      res.status(500).json({ error: 'Failed to fetch snow settings' });
     }
   });
 
@@ -8436,6 +8656,22 @@ window.addEventListener('load', function() {
           return res.status(400).json({ error: "Ülke bazlı kargo tarifeleri geçersiz format." });
         }
       }
+      // Filtre özellikleri doğrulama
+      if (settings.filter_attributes !== undefined) {
+        try {
+          const attrs = JSON.parse(settings.filter_attributes);
+          if (!Array.isArray(attrs)) throw new Error('not-array');
+          for (const attr of attrs) {
+            if (typeof attr.label !== 'string' || !attr.label.trim()) throw new Error('bad-label');
+            if (typeof attr.key !== 'string' || !attr.key.trim() || !/^[a-zA-Z][a-zA-Z0-9_]*$/.test(attr.key)) throw new Error('bad-key');
+          }
+        } catch (e: unknown) {
+          const msg = e instanceof Error ? e.message : '';
+          if (msg === 'bad-label') return res.status(400).json({ error: 'Filtre özelliği etiketi boş olamaz.' });
+          if (msg === 'bad-key') return res.status(400).json({ error: 'Filtre özelliği anahtarı geçersiz (yalnızca harf, rakam ve _ kullanın, harf ile başlayın).' });
+          return res.status(400).json({ error: 'Filtre özellikleri geçersiz format.' });
+        }
+      }
       // Don't update masked credentials
       if (settings.smtp_pass === '••••••••') {
         delete settings.smtp_pass;
@@ -8476,6 +8712,11 @@ window.addEventListener('load', function() {
       if (Object.keys(settings).some((key) => key.startsWith("google_merchant_") || key === "site_url" || key === "site_name")) {
         const { invalidateGoogleMerchantFeedCache } = await import("./googleMerchant");
         invalidateGoogleMerchantFeedCache();
+      }
+      // Google Tag veya özel CSS değiştiyse head enjeksiyon önbelleğini düşür
+      if (settings.google_tag_code !== undefined || settings.custom_css !== undefined) {
+        const { invalidateHeadInjectionCache } = await import("./headInjection");
+        invalidateHeadInjectionCache();
       }
       res.json({ success: true });
     } catch (error) {

@@ -1029,7 +1029,7 @@ export default function AdminOrderDetail() {
                     className="flex gap-3 items-start py-3 border-b border-neutral-100 last:border-0"
                     data-testid={`row-order-item-${item.productId}`}
                   >
-                    {item.productImage ? (
+                    {item.productImage && !/\.(mp4|webm|mov)(\?|$)/i.test(item.productImage) ? (
                       <div className="w-14 h-14 rounded-md overflow-hidden bg-neutral-100 border border-neutral-200 shrink-0">
                         <img
                           src={item.productImage}

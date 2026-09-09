@@ -1,13 +1,19 @@
 User-agent: *
 Allow: /
 
-Disallow: /toov-admin
-Disallow: /toov-admin/*
-Disallow: /api/*
+# Yönetim ve özel kullanıcı sayfaları
+Disallow: /toov-admin/
+Disallow: /api/
 Disallow: /sepet
-Disallow: /odeme
-Disallow: /odeme/*
-Disallow: /hesabim
-Disallow: /hesabim/*
+Disallow: /odeme/
+Disallow: /hesabim/
+Disallow: /giris
+Disallow: /kayit
 
+# Arama/filtre sorgu parametreli URL'lerin tekrarından kaçın
+Disallow: /*?*sayfa=
+Disallow: /*?*sort=
+Disallow: /*?*filter=
+
+# Site haritası
 Sitemap: https://sepetzen.com/sitemap.xml

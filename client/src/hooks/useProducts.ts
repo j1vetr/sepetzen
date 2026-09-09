@@ -91,6 +91,11 @@ export interface Brand {
   isActive: boolean;
 }
 
+export interface FilterAttribute {
+  label: string;
+  key: string;
+}
+
 export interface ProductFilters {
   categoryId?: string;
   isFeatured?: boolean;
@@ -155,6 +160,18 @@ export function useCategory(slug: string) {
       return response.json() as Promise<Category>;
     },
     enabled: !!slug,
+  });
+}
+
+export function useFilterAttributes() {
+  return useQuery({
+    queryKey: ['filter-attributes'],
+    queryFn: async () => {
+      const response = await fetch('/api/settings/filter-attributes');
+      if (!response.ok) throw new Error('Failed to fetch filter attributes');
+      return response.json() as Promise<FilterAttribute[]>;
+    },
+    staleTime: 60_000,
   });
 }
 

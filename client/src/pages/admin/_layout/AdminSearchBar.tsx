@@ -18,7 +18,6 @@ import {
   Settings,
   Database,
   Ticket,
-  HandCoins,
   Tag,
   X,
 } from 'lucide-react';
@@ -61,7 +60,6 @@ const TAB_ICONS: Record<TabType, React.ComponentType<{ className?: string }>> = 
   brands: Tag,
   inventory: Warehouse,
   orders: ShoppingCart,
-  wholesale: HandCoins,
   marketplaces: Globe,
   users: Users,
   reviews: MessageSquare,

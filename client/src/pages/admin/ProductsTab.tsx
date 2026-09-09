@@ -1,6 +1,6 @@
-import { useMemo, useState } from 'react';
+import { useMemo, useState, useRef } from 'react';
 import { useLocation } from 'wouter';
-import { useQueryClient, useQuery } from '@tanstack/react-query';
+import { useQueryClient, useQuery, useMutation } from '@tanstack/react-query';
 import {
   Search,
   RefreshCw,
@@ -18,6 +18,9 @@ import {
   ImageIcon,
   ExternalLink,
   AlertTriangle,
+  Pencil,
+  Check,
+  ChevronDown,
 } from 'lucide-react';
 import type { Product, Category, ProductVariant, ProductDraft, Brand } from './_shared/types';
 import { hasConfiguredVariantOptions } from './_shared/contentQuality';
@@ -199,6 +202,219 @@ function CategoryChips({
           +{names.length - 2}
         </span>
       )}
+    </div>
+  );
+}
+
+/** Inline kategori düzenleyici — tabloda kategori hücresinde kullanılır */
+function InlineCategoryEdit({
+  product,
+  categories,
+  onPatch,
+}: {
+  product: Product;
+  categories: Category[];
+  onPatch: (patch: Record<string, unknown>) => void;
+}) {
+  const [open, setOpen] = useState(false);
+  const ref = useRef<HTMLDivElement>(null);
+
+  const currentIds: string[] = product.categoryIds && product.categoryIds.length > 0
+    ? product.categoryIds
+    : product.categoryId ? [product.categoryId] : [];
+
+  const toggle = (catId: string) => {
+    const next = currentIds.includes(catId)
+      ? currentIds.filter(id => id !== catId)
+      : [...currentIds, catId];
+    onPatch({ categoryIds: next });
+  };
+
+  const names = currentIds
+    .map(id => categories.find(c => c.id === id)?.name)
+    .filter(Boolean) as string[];
+
+  return (
+    <div className="relative" ref={ref}>
+      <button
+        type="button"
+        onClick={() => setOpen(v => !v)}
+        className="group flex flex-wrap gap-1 items-center min-h-[24px] hover:bg-neutral-50 rounded px-1 -mx-1 transition-colors"
+        title="Kategori değiştir"
+      >
+        {names.length === 0 ? (
+          <span className="text-[12px] text-neutral-400">-</span>
+        ) : (
+          <>
+            {names.slice(0, 2).map(n => (
+              <span key={n} className="inline-flex items-center px-1.5 h-5 rounded bg-neutral-100 text-neutral-700 text-[11px] leading-none">
+                {n}
+              </span>
+            ))}
+            {names.length > 2 && (
+              <span className="inline-flex items-center px-1.5 h-5 rounded bg-neutral-100 text-neutral-500 text-[11px] leading-none">
+                +{names.length - 2}
+              </span>
+            )}
+          </>
+        )}
+        <ChevronDown className="w-3 h-3 text-neutral-300 opacity-0 group-hover:opacity-100 ml-0.5 shrink-0" />
+      </button>
+
+      {open && (
+        <>
+          <button type="button" aria-hidden className="fixed inset-0 z-20" onClick={() => setOpen(false)} />
+          <div className="absolute left-0 top-full mt-1 z-30 w-52 bg-white border border-neutral-200 rounded-lg shadow-lg py-1 max-h-56 overflow-y-auto">
+            {categories.filter(c => c.isActive !== false).map(c => {
+              const checked = currentIds.includes(c.id);
+              return (
+                <button
+                  key={c.id}
+                  type="button"
+                  onClick={() => toggle(c.id)}
+                  className="w-full flex items-center gap-2 px-3 py-1.5 text-[12px] text-neutral-700 hover:bg-neutral-50 text-left"
+                >
+                  <span className={`w-3.5 h-3.5 rounded border flex items-center justify-center shrink-0 ${checked ? 'bg-neutral-900 border-neutral-900' : 'border-neutral-300'}`}>
+                    {checked && <Check className="w-2.5 h-2.5 text-white" />}
+                  </span>
+                  {c.name}
+                </button>
+              );
+            })}
+          </div>
+        </>
+      )}
+    </div>
+  );
+}
+
+/** Inline fiyat düzenleyici */
+function InlinePriceCell({
+  basePrice,
+  onSave,
+}: {
+  basePrice: string;
+  onSave: (price: string) => void;
+}) {
+  const [editing, setEditing] = useState(false);
+  const [value, setValue] = useState('');
+  const inputRef = useRef<HTMLInputElement>(null);
+
+  const startEdit = () => {
+    const num = parseFloat(basePrice);
+    setValue(isNaN(num) ? '' : String(num));
+    setEditing(true);
+    setTimeout(() => { inputRef.current?.focus(); inputRef.current?.select(); }, 0);
+  };
+
+  const commit = () => {
+    const num = parseFloat(value.replace(',', '.'));
+    if (!isNaN(num) && num > 0) onSave(String(num));
+    setEditing(false);
+  };
+
+  if (editing) {
+    return (
+      <input
+        ref={inputRef}
+        type="number"
+        step="0.01"
+        min="0"
+        value={value}
+        onChange={e => setValue(e.target.value)}
+        onBlur={commit}
+        onKeyDown={e => {
+          if (e.key === 'Enter') { e.preventDefault(); commit(); }
+          if (e.key === 'Escape') setEditing(false);
+        }}
+        className="w-28 px-2 py-1 text-right text-[13px] font-medium border border-neutral-400 rounded focus:outline-none focus:border-neutral-600 tabular-nums bg-white"
+      />
+    );
+  }
+
+  return (
+    <button
+      type="button"
+      onClick={startEdit}
+      className="group flex items-center justify-end gap-1 hover:bg-neutral-50 rounded px-1 -mx-1 transition-colors w-full"
+      title="Fiyatı düzenle"
+    >
+      <span className="text-[13px] font-medium text-neutral-900 tabular-nums">
+        {formatPrice(basePrice)}
+      </span>
+      <Pencil className="w-3 h-3 text-neutral-300 opacity-0 group-hover:opacity-100 transition-opacity shrink-0" />
+    </button>
+  );
+}
+
+/** Inline durum rozet editörü — sadece tablo için */
+function InlineStatusChips({
+  product,
+  stockTotal,
+  hasVariants,
+  tyStatus,
+  qualityIssues = [],
+  onPatch,
+}: {
+  product: Product;
+  stockTotal: number;
+  hasVariants: boolean;
+  tyStatus?: TrendyolStatusEntry | null;
+  qualityIssues?: string[];
+  onPatch: (patch: Record<string, unknown>) => void;
+}) {
+  const tyBadge = trendyolBadge(tyStatus);
+
+  return (
+    <div className="flex flex-wrap gap-1">
+      {/* Aktif/Pasif/Stokta yok — toggle */}
+      <button
+        type="button"
+        onClick={() => onPatch({ isActive: !product.isActive })}
+        title={product.isActive ? 'Pasife al' : 'Aktife al'}
+        className="focus:outline-none"
+      >
+        <StatusBadge tone={!product.isActive ? 'neutral' : (hasVariants && stockTotal === 0) ? 'amber' : 'emerald'}>
+          {!product.isActive ? 'Pasif' : (hasVariants && stockTotal === 0) ? 'Stokta yok' : 'Aktif'}
+        </StatusBadge>
+      </button>
+
+      {/* Öne çıkan — toggle */}
+      <button
+        type="button"
+        onClick={() => onPatch({ isFeatured: !product.isFeatured })}
+        title={product.isFeatured ? 'Öne çıkanı kaldır' : 'Öne çıkar'}
+        className="focus:outline-none"
+      >
+        <StatusBadge tone={product.isFeatured ? 'indigo' : 'neutral'}>
+          Öne çıkan
+        </StatusBadge>
+      </button>
+
+      {/* Yeni — toggle */}
+      <button
+        type="button"
+        onClick={() => onPatch({ isNew: !product.isNew })}
+        title={product.isNew ? '"Yeni" etiketini kaldır' : '"Yeni" etiket ekle'}
+        className="focus:outline-none"
+      >
+        <StatusBadge tone={product.isNew ? 'blue' : 'neutral'}>
+          Yeni
+        </StatusBadge>
+      </button>
+
+      {/* İndirim rozeti — sadece göster */}
+      {product.discountBadge && (
+        <StatusBadge tone="red">{product.discountBadge}</StatusBadge>
+      )}
+
+      {/* Kalite sorunu — sadece göster */}
+      {qualityIssues.length > 0 && (
+        <StatusBadge tone="amber">{qualityIssues.length} eksik</StatusBadge>
+      )}
+
+      {/* Trendyol — sadece göster */}
+      {tyBadge && <StatusBadge tone={tyBadge.tone}>{tyBadge.label}</StatusBadge>}
     </div>
   );
 }
@@ -394,6 +610,25 @@ export default function ProductsTab({
 }: ProductsTabProps) {
   const queryClient = useQueryClient();
   const [, navigate] = useLocation();
+
+  const quickPatchMutation = useMutation({
+    mutationFn: async ({ id, patch }: { id: string; patch: Record<string, unknown> }) => {
+      const res = await fetch(`/api/admin/products/${id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify(patch),
+      });
+      if (!res.ok) throw new Error('Kaydedilemedi');
+      return res.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['/api/admin/products'] });
+    },
+    onError: (err: Error) => alert('❌ ' + err.message),
+  });
+  const quickPatch = (id: string, patch: Record<string, unknown>) =>
+    quickPatchMutation.mutate({ id, patch });
 
   // Trendyol bağlantı durumu haritası — ürün başına rozet ve aksiyon için
   const { data: trendyolStatusMap } = useQuery<Record<string, TrendyolStatusEntry>>({
@@ -967,13 +1202,20 @@ export default function ProductsTab({
                           </div>
                         </td>
                         <td className="px-4 py-3 align-middle">
-                          <CategoryChips product={product} categories={categories} />
+                          <InlineCategoryEdit
+                            product={product}
+                            categories={categories}
+                            onPatch={p => quickPatch(product.id, p)}
+                          />
                         </td>
                         <td
-                          className="px-4 py-3 align-middle text-right text-[13px] font-medium text-neutral-900 tabular-nums whitespace-nowrap"
+                          className="px-4 py-3 align-middle text-right whitespace-nowrap"
                           data-testid={`text-product-price-${product.id}`}
                         >
-                          {formatPrice(product.basePrice)}
+                          <InlinePriceCell
+                            basePrice={product.basePrice}
+                            onSave={price => quickPatch(product.id, { basePrice: price })}
+                          />
                         </td>
                         <td className="px-4 py-3 align-middle text-right whitespace-nowrap">
                           {stock.count === 0 ? (
@@ -990,12 +1232,13 @@ export default function ProductsTab({
                           )}
                         </td>
                         <td className="px-4 py-3 align-middle">
-                          <ProductStatusChips
+                          <InlineStatusChips
                             product={product}
                             stockTotal={stock.total}
                             hasVariants={stock.count > 0}
                             tyStatus={tyStatus}
-                              qualityIssues={qualityIssues}
+                            qualityIssues={qualityIssues}
+                            onPatch={p => quickPatch(product.id, p)}
                           />
                         </td>
                         <td className="px-4 py-3 align-middle">

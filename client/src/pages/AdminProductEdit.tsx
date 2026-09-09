@@ -20,6 +20,9 @@ import {
   Sparkles,
   AlertTriangle,
   CheckCircle2,
+  Youtube,
+  Play,
+  Link2,
 } from 'lucide-react';
 import type { Product, ProductDraft, Category } from './admin/_shared/types';
 import { hasConfiguredVariantOptions } from './admin/_shared/contentQuality';
@@ -40,6 +43,7 @@ import {
 function isVideoUrl(url: string): boolean {
   return /\.(mp4|webm|mov|avi|mkv)(\?.*)?$/i.test(url);
 }
+import { extractYouTubeId, isYouTubeUrl, getYouTubeThumbnail } from '@/lib/youtube';
 
 // Sekme editörlerinin yerleşik şablonları. Hem editör görünümünde hem de
 // "Varsayılan olarak kaydet" akışında aynı kaynak kullanılır; böylece
@@ -194,6 +198,13 @@ function Toggle({
     </label>
   );
 }
+
+// Bıçak/çakı kategorisi için önceden tanımlı sabit spec anahtarları.
+// Bunların dışındaki her specs anahtarı "özel özellik" olarak işlenir.
+const HARDCODED_SPEC_KEYS = new Set([
+  'urunCinsi', 'tamUzunluk', 'namluUzunlugu',
+  'etKalinligi', 'agirlik', 'celikCinsi', 'sapCinsi',
+]);
 
 export default function AdminProductEdit() {
   const params = useParams<{ id?: string }>();
@@ -366,12 +377,22 @@ function ProductEditor({
   const [isUploading, setIsUploading] = useState(false);
   const [dragOver, setDragOver] = useState(false);
   const [uploadError, setUploadError] = useState<string | null>(null);
+  const [youtubeInput, setYoutubeInput] = useState('');
+  const [youtubeInputError, setYoutubeInputError] = useState<string | null>(null);
   const [dragStartIndex, setDragStartIndex] = useState<number | null>(null);
   const [dragOverIndex, setDragOverIndex] = useState<number | null>(null);
   const [isGenerating, setIsGenerating] = useState(false);
   const [generateError, setGenerateError] = useState<string | null>(null);
-  const [colorInput, setColorInput] = useState('');
+  // Renk/ton satırları: her giriş bir ürün rengini temsil eder,
+  // slug dolu ise farklı ürüne yönlendirme yapılır.
+  const [colorRows, setColorRows] = useState<Array<{ id: string; name: string; hex: string; slug: string }>>([]);
   const [activeTabEditor, setActiveTabEditor] = useState<'installment' | 'delivery' | 'faq'>('delivery');
+
+  // Kategori arama
+  const [categorySearch, setCategorySearch] = useState('');
+
+  // Özel (serbest) teknik özellik satırları
+  const [customSpecRows, setCustomSpecRows] = useState<Array<{ id: string; label: string; value: string }>>([]);
 
   // Marka combobox durumu
   const [brandDropdownOpen, setBrandDropdownOpen] = useState(false);
@@ -399,7 +420,10 @@ function ProductEditor({
       isNew: product?.isNew ?? false,
       initialStock: '',
       brand: product?.brand || '',
-      specs: (product?.specs || {}) as Record<string, string>,
+      specs: Object.fromEntries(
+        Object.entries((product?.specs || {}) as Record<string, string>)
+          .filter(([k]) => HARDCODED_SPEC_KEYS.has(k))
+      ),
       tabDelivery: (product as any)?.tabDelivery ?? null,
       tabFaq: (product as any)?.tabFaq ?? null,
       tabInstallmentNote: (product as any)?.tabInstallmentNote || '',
@@ -413,10 +437,19 @@ function ProductEditor({
       discountBadgeStartDate: (product as any)?.discountBadgeStartDate || '',
       discountBadgeEndDate: (product as any)?.discountBadgeEndDate || '',
     });
-    setColorInput(
-      product?.availableColors?.[0]?.name
-        ? toTurkishUpper(product.availableColors[0].name)
-        : '',
+    setColorRows(
+      (product?.availableColors || []).map((c, i) => ({
+        id: `cr_${i}_${Date.now()}`,
+        name: c.name || '',
+        hex: (c as any).hex || '',
+        slug: (c as any).slug || '',
+      }))
+    );
+    // Hardcoded dışındaki spec anahtarlarını özel satır olarak yükle
+    setCustomSpecRows(
+      Object.entries((product?.specs || {}) as Record<string, string>)
+        .filter(([k]) => !HARDCODED_SPEC_KEYS.has(k))
+        .map(([label, value]) => ({ id: `csr_${label}_${Date.now()}`, label, value }))
     );
     setHydrated(true);
   }, [hydrated, product, productId, duplicateId]);
@@ -663,6 +696,15 @@ function ProductEditor({
     saveMutation.mutate({
       ...product,
       ...restFormData,
+      specs: {
+        ...restFormData.specs,
+        // Özel satırlar: boş label'lar atlanır, label key olarak kullanılır
+        ...Object.fromEntries(
+          customSpecRows
+            .filter(r => r.label.trim())
+            .map(r => [r.label.trim(), r.value])
+        ),
+      },
       personalization,
       slug: formData.slug || generateSlug(formData.name),
       images: [...formData.images, ...uploadedUrls],
@@ -688,10 +730,17 @@ function ProductEditor({
   const isSaving = saveMutation.isPending;
   const saveError = saveMutation.error instanceof Error ? saveMutation.error.message : null;
   const totalImageCount = formData.images.length + pendingFiles.length;
-  const normalizedAvailableColors = useMemo(() => {
-    const trimmedColor = colorInput.trim();
-    return trimmedColor ? [{ name: toTurkishUpper(trimmedColor), hex: null }] : [];
-  }, [colorInput]);
+  const normalizedAvailableColors = useMemo(
+    () =>
+      colorRows
+        .filter((r) => r.name.trim())
+        .map((r) => ({
+          name: toTurkishUpper(r.name.trim()),
+          hex: r.hex || null,
+          slug: r.slug.trim() || null,
+        })),
+    [colorRows],
+  );
 
   const previewImages = useMemo(
     () => [
@@ -700,7 +749,26 @@ function ProductEditor({
     ],
     [formData.images, pendingPreviewUrls],
   );
-  const mainPreview = previewImages.find((i) => !isVideoUrl(i.url)) || previewImages[0];
+  const mainPreview =
+    previewImages.find((i) => !isVideoUrl(i.url) && !isYouTubeUrl(i.url)) ||
+    previewImages.find((i) => isYouTubeUrl(i.url)) ||
+    previewImages[0];
+
+  const addYouTubeUrl = () => {
+    const id = extractYouTubeId(youtubeInput.trim());
+    if (!id) {
+      setYoutubeInputError('Geçerli bir YouTube bağlantısı girin (youtube.com/watch?v=... veya youtu.be/...)');
+      return;
+    }
+    const canonical = `https://www.youtube.com/watch?v=${id}`;
+    if (formData.images.includes(canonical)) {
+      setYoutubeInputError('Bu video zaten medyaya eklenmiş.');
+      return;
+    }
+    setFormData((prev) => ({ ...prev, images: [...prev.images, canonical] }));
+    setYoutubeInput('');
+    setYoutubeInputError(null);
+  };
   const qualityChecks = useMemo(() => {
     const missing: string[] = [];
     if (!formData.images.length && pendingFiles.length === 0) missing.push('En az bir ürün görseli');
@@ -987,6 +1055,36 @@ function ProductEditor({
               </label>
             </div>
 
+            {/* YouTube URL ekleme */}
+            <div className="mt-3">
+              <div className="flex gap-2">
+                <div className="relative flex-1">
+                  <Youtube className="absolute left-2.5 top-1/2 -translate-y-1/2 w-4 h-4 text-red-500 pointer-events-none" />
+                  <input
+                    type="url"
+                    value={youtubeInput}
+                    onChange={(e) => { setYoutubeInput(e.target.value); setYoutubeInputError(null); }}
+                    onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); addYouTubeUrl(); } }}
+                    placeholder="YouTube bağlantısı yapıştırın…"
+                    data-testid="input-youtube-url"
+                    className="w-full pl-9 pr-3 h-9 text-[13px] border border-neutral-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-neutral-900 focus:border-transparent bg-white placeholder:text-neutral-400"
+                  />
+                </div>
+                <button
+                  type="button"
+                  onClick={addYouTubeUrl}
+                  data-testid="button-add-youtube"
+                  className="shrink-0 h-9 px-3.5 bg-red-600 hover:bg-red-700 text-white rounded-lg text-[13px] font-medium transition-colors flex items-center gap-1.5"
+                >
+                  <Link2 className="w-3.5 h-3.5" />
+                  Ekle
+                </button>
+              </div>
+              {youtubeInputError && (
+                <p className="text-[11px] text-red-600 mt-1.5">{youtubeInputError}</p>
+              )}
+            </div>
+
             {totalImageCount > 0 && (
               <div className="mt-3 grid grid-cols-3 sm:grid-cols-4 md:grid-cols-6 gap-2">
                 {formData.images.map((image, index) => (
@@ -1011,7 +1109,21 @@ function ProductEditor({
                       </div>
                     </div>
 
-                    {isVideoUrl(image) ? (
+                    {isYouTubeUrl(image) ? (
+                      <div className="relative w-full h-full bg-black">
+                        <img
+                          src={getYouTubeThumbnail(image, 'mq')}
+                          alt="YouTube"
+                          className="w-full h-full object-cover opacity-90"
+                          draggable={false}
+                        />
+                        <div className="absolute inset-0 flex items-center justify-center">
+                          <div className="w-6 h-5 bg-red-600 rounded-sm flex items-center justify-center shadow">
+                            <Play className="w-3 h-3 text-white fill-white ml-px" />
+                          </div>
+                        </div>
+                      </div>
+                    ) : isVideoUrl(image) ? (
                       <video src={image} className="w-full h-full object-cover" muted loop preload="metadata" draggable={false} />
                     ) : (
                       <img
@@ -1035,7 +1147,11 @@ function ProductEditor({
 
                     {index === 0 ? (
                       <span className="absolute bottom-1 left-1 inline-flex items-center px-1.5 h-4 rounded bg-neutral-900 text-white text-[9px] font-medium uppercase tracking-wide leading-none">
-                        {isVideoUrl(image) ? 'Video · Ana' : 'Ana'}
+                        {isYouTubeUrl(image) ? 'YT · Ana' : isVideoUrl(image) ? 'Video · Ana' : 'Ana'}
+                      </span>
+                    ) : isYouTubeUrl(image) ? (
+                      <span className="absolute bottom-1 left-1 inline-flex items-center px-1.5 h-4 rounded bg-red-600 text-white text-[9px] font-medium uppercase tracking-wide leading-none">
+                        YouTube
                       </span>
                     ) : isVideoUrl(image) ? (
                       <span className="absolute bottom-1 left-1 inline-flex items-center px-1.5 h-4 rounded bg-neutral-700 text-white text-[9px] font-medium uppercase tracking-wide leading-none">
@@ -1129,6 +1245,7 @@ function ProductEditor({
             description="Doldurulan alanlar ürün sayfasındaki özellik tablosunda görünür"
             testId="card-specs"
           >
+            {/* Sabit alanlar (bıçak/çakı kategorisi) */}
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               {([
                 ['urunCinsi', 'Ürün Cinsi', 'Örn: Avcı Bıçağı'],
@@ -1154,6 +1271,75 @@ function ProductEditor({
                   />
                 </FormField>
               ))}
+            </div>
+
+            {/* Özel (serbest) özellik satırları */}
+            <div className="mt-4 pt-4 border-t border-neutral-100">
+              <div className="flex items-center justify-between mb-2">
+                <p className="text-[11px] font-medium text-neutral-500 uppercase tracking-wide">
+                  Özel Özellikler
+                </p>
+                <button
+                  type="button"
+                  onClick={() =>
+                    setCustomSpecRows([
+                      ...customSpecRows,
+                      { id: `csr_${Date.now()}`, label: '', value: '' },
+                    ])
+                  }
+                  className="inline-flex items-center gap-1 text-[11px] font-medium text-neutral-600 hover:text-neutral-900 border border-dashed border-neutral-300 hover:border-neutral-500 px-2.5 h-7 rounded-lg transition-colors"
+                  data-testid="button-add-custom-spec"
+                >
+                  + Başlık Ekle
+                </button>
+              </div>
+              {customSpecRows.length === 0 ? (
+                <p className="text-[11px] text-neutral-400 py-1">
+                  Tüm kategoriler için geçerli özel özellik ekleyebilirsiniz. Başlık (özellik adı) ve değer olarak görünür.
+                </p>
+              ) : (
+                <div className="space-y-2">
+                  {customSpecRows.map((row, i) => (
+                    <div key={row.id} className="flex gap-2 items-center">
+                      <input
+                        type="text"
+                        value={row.label}
+                        onChange={(e) => {
+                          const next = [...customSpecRows];
+                          next[i] = { ...row, label: e.target.value };
+                          setCustomSpecRows(next);
+                        }}
+                        placeholder="Özellik adı"
+                        className="w-2/5 h-9 px-3 text-[12px] border border-neutral-200 rounded-lg bg-neutral-50 focus:outline-none focus:ring-1 focus:ring-neutral-400 focus:bg-white text-neutral-900 placeholder:text-neutral-400 transition-colors"
+                        data-testid={`input-custom-spec-label-${i}`}
+                      />
+                      <span className="text-neutral-300 select-none text-sm">:</span>
+                      <input
+                        type="text"
+                        value={row.value}
+                        onChange={(e) => {
+                          const next = [...customSpecRows];
+                          next[i] = { ...row, value: e.target.value };
+                          setCustomSpecRows(next);
+                        }}
+                        placeholder="Değer"
+                        className="flex-1 h-9 px-3 text-[12px] border border-neutral-200 rounded-lg bg-neutral-50 focus:outline-none focus:ring-1 focus:ring-neutral-400 focus:bg-white text-neutral-900 placeholder:text-neutral-400 transition-colors"
+                        data-testid={`input-custom-spec-value-${i}`}
+                      />
+                      <button
+                        type="button"
+                        onClick={() =>
+                          setCustomSpecRows(customSpecRows.filter((_, j) => j !== i))
+                        }
+                        className="shrink-0 w-7 h-7 flex items-center justify-center rounded-md text-neutral-400 hover:text-red-500 hover:bg-red-50 transition-colors"
+                        aria-label="Özelliği sil"
+                      >
+                        <Trash2 className="w-3.5 h-3.5" />
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              )}
             </div>
           </SectionCard>
 
@@ -1532,7 +1718,9 @@ function ProductEditor({
           {/* Mini önizleme */}
           <div className="bg-white border border-neutral-200 rounded-xl overflow-hidden shadow-[0_1px_2px_rgba(0,0,0,0.03)]">
             <div className="aspect-[4/3] bg-neutral-100">
-              {mainPreview?.url && !isVideoUrl(mainPreview.url) ? (
+              {mainPreview?.url && isYouTubeUrl(mainPreview.url) ? (
+                <img src={getYouTubeThumbnail(mainPreview.url, 'hq')} alt="Önizleme" className="w-full h-full object-cover" />
+              ) : mainPreview?.url && !isVideoUrl(mainPreview.url) ? (
                 <img src={mainPreview.url} alt="Önizleme" className="w-full h-full object-cover" />
               ) : (
                 <div className="w-full h-full flex items-center justify-center text-neutral-300">
@@ -1695,34 +1883,70 @@ function ProductEditor({
                 ? 'En az bir kategori seçin.'
                 : `${formData.categoryIds.length} kategori seçili`}
             </p>
+            {/* Arama kutusu */}
+            <div className="relative mb-3">
+              <input
+                type="text"
+                value={categorySearch}
+                onChange={(e) => setCategorySearch(e.target.value)}
+                placeholder="Kategori ara..."
+                className="w-full h-8 pl-8 pr-3 text-[12px] border border-neutral-200 rounded-lg bg-neutral-50 text-neutral-900 placeholder:text-neutral-400 focus:outline-none focus:ring-1 focus:ring-neutral-400 focus:bg-white transition-colors"
+              />
+              <svg className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-neutral-400 pointer-events-none" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                <circle cx="11" cy="11" r="8" /><path d="m21 21-4.35-4.35" />
+              </svg>
+              {categorySearch && (
+                <button
+                  type="button"
+                  onClick={() => setCategorySearch('')}
+                  className="absolute right-2 top-1/2 -translate-y-1/2 text-neutral-400 hover:text-neutral-600 transition-colors"
+                  aria-label="Aramayı temizle"
+                >
+                  <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                    <path d="M18 6 6 18M6 6l12 12" />
+                  </svg>
+                </button>
+              )}
+            </div>
             <div className="flex flex-wrap gap-1.5">
-              {categories.map((cat) => {
-                const selected = formData.categoryIds.includes(cat.id);
-                return (
-                  <button
-                    key={cat.id}
-                    type="button"
-                    onClick={() => {
-                      const newIds = selected
-                        ? formData.categoryIds.filter((id) => id !== cat.id)
-                        : [...formData.categoryIds, cat.id];
-                      setFormData({
-                        ...formData,
-                        categoryIds: newIds,
-                        categoryId: newIds[0] || '',
-                      });
-                    }}
-                    className={`px-2.5 h-7 rounded-md text-[12px] font-medium transition-colors border ${
-                      selected
-                        ? 'bg-neutral-900 text-white border-neutral-900'
-                        : 'bg-white text-neutral-700 border-neutral-200 hover:bg-neutral-50'
-                    }`}
-                    data-testid={`button-category-${cat.id}`}
-                  >
-                    {cat.name}
-                  </button>
-                );
-              })}
+              {(() => {
+                const q = categorySearch.trim().toLowerCase();
+                const visible = q
+                  ? categories.filter((c) => c.name.toLowerCase().includes(q))
+                  : categories;
+                if (visible.length === 0) {
+                  return (
+                    <p className="text-[11px] text-neutral-400 py-1">"{categorySearch}" ile eşleşen kategori bulunamadı.</p>
+                  );
+                }
+                return visible.map((cat) => {
+                  const selected = formData.categoryIds.includes(cat.id);
+                  return (
+                    <button
+                      key={cat.id}
+                      type="button"
+                      onClick={() => {
+                        const newIds = selected
+                          ? formData.categoryIds.filter((id) => id !== cat.id)
+                          : [...formData.categoryIds, cat.id];
+                        setFormData({
+                          ...formData,
+                          categoryIds: newIds,
+                          categoryId: newIds[0] || '',
+                        });
+                      }}
+                      className={`px-2.5 h-7 rounded-md text-[12px] font-medium transition-colors border ${
+                        selected
+                          ? 'bg-neutral-900 text-white border-neutral-900'
+                          : 'bg-white text-neutral-700 border-neutral-200 hover:bg-neutral-50'
+                      }`}
+                      data-testid={`button-category-${cat.id}`}
+                    >
+                      {cat.name}
+                    </button>
+                  );
+                });
+              })()}
             </div>
           </div>
 
@@ -1755,15 +1979,83 @@ function ProductEditor({
 
           {/* Renk / taş tonu */}
           <div className="bg-white border border-neutral-200 rounded-xl px-4 py-4 shadow-[0_1px_2px_rgba(0,0,0,0.03)]">
-            <h2 className="text-[13px] font-semibold text-neutral-900 mb-3">Renk / Ton</h2>
-            <TextInput
-              value={colorInput}
-              onChange={(e) => setColorInput(toTurkishUpper(e.target.value))}
-              placeholder="Örn: SİYAH, CEVİZ"
-              data-testid="input-product-color"
-            />
-            <p className="mt-1.5 text-[11px] text-neutral-500">
-              Opsiyonel. Boş bırakılırsa renksiz tek varyant oluşturulur.
+            <div className="flex items-center justify-between mb-3">
+              <h2 className="text-[13px] font-semibold text-neutral-900">Renk / Ton</h2>
+              <button
+                type="button"
+                onClick={() =>
+                  setColorRows([
+                    ...colorRows,
+                    { id: `cr_${Date.now()}`, name: '', hex: '', slug: '' },
+                  ])
+                }
+                className="inline-flex items-center gap-1 text-[11px] font-medium text-neutral-600 hover:text-neutral-900 border border-dashed border-neutral-300 hover:border-neutral-500 px-2.5 h-7 rounded-lg transition-colors"
+                data-testid="button-add-color"
+              >
+                + Renk Ekle
+              </button>
+            </div>
+            {colorRows.length === 0 ? (
+              <p className="text-[11px] text-neutral-400">
+                Renk eklenmedi. Tek renkli veya renksiz ürünler için boş bırakılabilir.
+              </p>
+            ) : (
+              <div className="space-y-2">
+                {colorRows.map((row, i) => (
+                  <div key={row.id} className="flex gap-2 items-center">
+                    {/* Renk adı */}
+                    <input
+                      type="text"
+                      value={row.name}
+                      onChange={(e) => {
+                        const next = [...colorRows];
+                        next[i] = { ...row, name: toTurkishUpper(e.target.value) };
+                        setColorRows(next);
+                      }}
+                      placeholder="Renk adı (SİYAH)"
+                      className="w-28 h-9 px-3 text-[12px] border border-neutral-200 rounded-lg bg-neutral-50 focus:outline-none focus:ring-1 focus:ring-neutral-400 focus:bg-white text-neutral-900 placeholder:text-neutral-400 uppercase transition-colors"
+                      data-testid={`input-color-name-${i}`}
+                    />
+                    {/* Renk kodu */}
+                    <input
+                      type="color"
+                      value={row.hex || '#888888'}
+                      onChange={(e) => {
+                        const next = [...colorRows];
+                        next[i] = { ...row, hex: e.target.value };
+                        setColorRows(next);
+                      }}
+                      title="Renk kodu"
+                      className="w-9 h-9 shrink-0 rounded-lg border border-neutral-200 cursor-pointer bg-neutral-50 p-0.5"
+                      data-testid={`input-color-hex-${i}`}
+                    />
+                    {/* Bağlı ürün slug — bu renk başka bir üründe ise dolu bırakılır */}
+                    <input
+                      type="text"
+                      value={row.slug}
+                      onChange={(e) => {
+                        const next = [...colorRows];
+                        next[i] = { ...row, slug: e.target.value.trim() };
+                        setColorRows(next);
+                      }}
+                      placeholder="Bağlı ürün slug (bu renk bu ürünse boş)"
+                      className="flex-1 h-9 px-3 text-[12px] border border-neutral-200 rounded-lg bg-neutral-50 focus:outline-none focus:ring-1 focus:ring-neutral-400 focus:bg-white text-neutral-900 placeholder:text-neutral-400 transition-colors"
+                      data-testid={`input-color-slug-${i}`}
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setColorRows(colorRows.filter((_, j) => j !== i))}
+                      className="shrink-0 w-7 h-7 flex items-center justify-center rounded-md text-neutral-400 hover:text-red-500 hover:bg-red-50 transition-colors"
+                      aria-label="Rengi sil"
+                    >
+                      <Trash2 className="w-3.5 h-3.5" />
+                    </button>
+                  </div>
+                ))}
+              </div>
+            )}
+            <p className="mt-2 text-[11px] text-neutral-400">
+              Birden fazla ürün rengi varsa her renk için bir satır ekleyin. Bağlı slug: aynı ürünün farklı renk varyantı olan diğer ürünün URL slug'u.
             </p>
           </div>
 

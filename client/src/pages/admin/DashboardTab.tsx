@@ -397,7 +397,7 @@ function ActivityOrderRow({
           {visibleItems.length > 0 ? (
             visibleItems.map((item, index) => (
               <span key={index} className="flex h-9 w-9 items-center justify-center overflow-hidden rounded-md border border-neutral-200 bg-neutral-100">
-                {item.productImage ? (
+                {item.productImage && !/\.(mp4|webm|mov)(\?|$)/i.test(item.productImage) ? (
                   <img src={item.productImage} alt="" className="h-full w-full object-cover" />
                 ) : (
                   <Package className="h-4 w-4 text-neutral-400" />

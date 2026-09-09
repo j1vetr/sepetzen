@@ -1,6 +1,6 @@
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { useState, useEffect, type ComponentType } from 'react';
-import { Settings, Mail, Loader2, CheckCircle2, XCircle, Send, Server, CreditCard, Copy, AlertTriangle, Wrench, MessageCircle, KeyRound, ShieldCheck, Truck, MapPin, Megaphone, Globe, Banknote, Upload, ShoppingBag, Plus, Trash2, Sparkles, Zap, Image, Bell } from 'lucide-react';
+import { useState, useEffect, useRef, type ComponentType } from 'react';
+import { Settings, Mail, Loader2, CheckCircle2, XCircle, Send, Server, CreditCard, Copy, AlertTriangle, Wrench, MessageCircle, KeyRound, ShieldCheck, Truck, MapPin, Megaphone, Globe, Banknote, Upload, ShoppingBag, Plus, Trash2, Sparkles, Zap, Image, Bell, SlidersHorizontal, ChevronUp, ChevronDown as ChevronDownIcon, Snowflake, BarChart2, Code2 } from 'lucide-react';
 import { BANK_TRANSFER_INFO } from '@shared/bankInfo';
 import type { SiteIdentity, SocialLink, MobileNavItem } from '@shared/siteIdentity';
 import { COUNTRIES } from '@/lib/countries';
@@ -255,6 +255,776 @@ async function uploadBannerImage(file: File): Promise<string> {
   const payload = await res.json().catch(() => ({}));
   if (!res.ok || !payload.urls?.[0]) throw new Error(payload.error || 'Görsel yüklenemedi');
   return payload.urls[0];
+}
+
+// ─── E-posta Görünüm Ayarları ─────────────────────────────────────────────────
+function EmailBrandingSection() {
+  const queryClient = useQueryClient();
+  const { data: adminSettings } = useQuery<Record<string, string>>({
+    queryKey: ['/api/admin/settings'],
+  });
+
+  const [brandName,    setBrandName]    = useState('');
+  const [tagline,      setTagline]      = useState('');
+  const [primaryColor, setPrimaryColor] = useState('#2D5A27');
+  const [logoUrl,      setLogoUrl]      = useState('');
+  const [siteUrl,      setSiteUrl]      = useState('');
+  const [contactEmail, setContactEmail] = useState('');
+  const [phoneDisplay, setPhoneDisplay] = useState('');
+  const [phoneTel,     setPhoneTel]     = useState('');
+  const [address1,     setAddress1]     = useState('');
+  const [address2,     setAddress2]     = useState('');
+  const [saving,       setSaving]       = useState(false);
+  const [uploading,    setUploading]    = useState(false);
+  const [result,       setResult]       = useState<{ ok: boolean; text: string } | null>(null);
+
+  useEffect(() => {
+    if (!adminSettings) return;
+    if (adminSettings.email_brand_name    !== undefined) setBrandName(adminSettings.email_brand_name);
+    if (adminSettings.email_brand_tagline !== undefined) setTagline(adminSettings.email_brand_tagline);
+    if (adminSettings.email_primary_color !== undefined) setPrimaryColor(adminSettings.email_primary_color);
+    if (adminSettings.email_logo_url      !== undefined) setLogoUrl(adminSettings.email_logo_url);
+    if (adminSettings.email_site_url      !== undefined) setSiteUrl(adminSettings.email_site_url);
+    if (adminSettings.email_contact_email !== undefined) setContactEmail(adminSettings.email_contact_email);
+    if (adminSettings.email_phone_display !== undefined) setPhoneDisplay(adminSettings.email_phone_display);
+    if (adminSettings.email_phone_tel     !== undefined) setPhoneTel(adminSettings.email_phone_tel);
+    if (adminSettings.email_address_line1 !== undefined) setAddress1(adminSettings.email_address_line1);
+    if (adminSettings.email_address_line2 !== undefined) setAddress2(adminSettings.email_address_line2);
+  }, [adminSettings]);
+
+  const handleLogoUpload = async (file: File) => {
+    setUploading(true);
+    setResult(null);
+    try {
+      const fd = new FormData();
+      fd.append('images', file);
+      const res = await fetch('/api/admin/upload/branding', { method: 'POST', body: fd, credentials: 'include' });
+      const data = await res.json();
+      if (!res.ok || !data.urls?.[0]) throw new Error(data.error || 'Yükleme başarısız');
+      setLogoUrl(data.urls[0]);
+    } catch (e: any) {
+      setResult({ ok: false, text: e.message });
+    } finally {
+      setUploading(false);
+    }
+  };
+
+  const handleSave = async () => {
+    setSaving(true);
+    setResult(null);
+    try {
+      const res = await fetch('/api/admin/settings', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify({
+          email_brand_name:    brandName,
+          email_brand_tagline: tagline,
+          email_primary_color: primaryColor,
+          email_logo_url:      logoUrl,
+          email_site_url:      siteUrl,
+          email_contact_email: contactEmail,
+          email_phone_display: phoneDisplay,
+          email_phone_tel:     phoneTel,
+          email_address_line1: address1,
+          email_address_line2: address2,
+        }),
+      });
+      if (res.ok) {
+        queryClient.invalidateQueries({ queryKey: ['/api/admin/settings'] });
+        setResult({ ok: true, text: 'E-posta görünüm ayarları kaydedildi.' });
+      } else {
+        const d = await res.json().catch(() => ({}));
+        setResult({ ok: false, text: d.error || 'Kayıt başarısız.' });
+      }
+    } catch {
+      setResult({ ok: false, text: 'Bir hata oluştu.' });
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  return (
+    <div className="bg-white border border-neutral-200 rounded-xl overflow-hidden">
+      <div className="flex items-center gap-3 px-6 py-4 border-b border-neutral-100">
+        <div className="p-2 bg-neutral-50 rounded-lg">
+          <Mail className="w-5 h-5 text-neutral-900" />
+        </div>
+        <div>
+          <h3 className="text-base font-semibold text-neutral-900">E-posta Görünümü</h3>
+          <p className="text-xs text-neutral-500">Gönderilen tüm e-postaların başlık, logo, renk ve iletişim bilgilerini ayarlayın</p>
+        </div>
+      </div>
+
+      <div className="px-6 py-5 space-y-5">
+        {/* Marka adı + tagline */}
+        <div className="grid md:grid-cols-2 gap-4">
+          <div>
+            <label className="block text-sm font-medium text-neutral-700 mb-1.5">Marka Adı</label>
+            <input
+              type="text"
+              value={brandName}
+              onChange={e => setBrandName(e.target.value)}
+              placeholder="SEPETZEN"
+              data-testid="input-email-brand-name"
+              className="w-full px-3 py-2.5 bg-neutral-50 border border-neutral-200 rounded-lg text-sm text-neutral-900 focus:outline-none focus:border-neutral-900"
+            />
+            <p className="text-xs text-neutral-400 mt-1">E-posta başlığında ve altbilgide büyük harf görünür</p>
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-neutral-700 mb-1.5">Kısa Tanım (Tagline)</label>
+            <input
+              type="text"
+              value={tagline}
+              onChange={e => setTagline(e.target.value)}
+              placeholder="Kamp, Outdoor & Bıçak"
+              data-testid="input-email-tagline"
+              className="w-full px-3 py-2.5 bg-neutral-50 border border-neutral-200 rounded-lg text-sm text-neutral-900 focus:outline-none focus:border-neutral-900"
+            />
+            <p className="text-xs text-neutral-400 mt-1">Marka adının hemen altında küçük harf çıkar</p>
+          </div>
+        </div>
+
+        {/* Logo */}
+        <div>
+          <label className="block text-sm font-medium text-neutral-700 mb-1.5">Logo (E-posta Başlığı)</label>
+          <div className="flex items-start gap-3">
+            {logoUrl ? (
+              <div className="relative group shrink-0">
+                <img src={logoUrl} alt="E-posta logosu" className="h-12 w-auto max-w-[160px] object-contain bg-neutral-100 border border-neutral-200 rounded-lg p-1" />
+                <button
+                  onClick={() => setLogoUrl('')}
+                  className="absolute -top-1.5 -right-1.5 w-5 h-5 bg-red-500 text-white rounded-full flex items-center justify-center text-xs leading-none shadow"
+                >×</button>
+              </div>
+            ) : null}
+            <label className="flex items-center gap-2 px-4 py-2.5 border border-dashed border-neutral-300 rounded-lg text-sm text-neutral-600 hover:border-neutral-500 cursor-pointer transition-colors">
+              {uploading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Upload className="w-4 h-4" />}
+              {uploading ? 'Yükleniyor...' : logoUrl ? 'Değiştir' : 'Logo Yükle'}
+              <input type="file" accept="image/*" className="sr-only" onChange={e => { const f = e.target.files?.[0]; if (f) handleLogoUpload(f); e.target.value = ''; }} />
+            </label>
+            {!logoUrl && (
+              <input
+                type="text"
+                value={logoUrl}
+                onChange={e => setLogoUrl(e.target.value)}
+                placeholder="https://... (URL ile girin veya yükleyin)"
+                className="flex-1 px-3 py-2.5 bg-neutral-50 border border-neutral-200 rounded-lg text-sm text-neutral-900 focus:outline-none focus:border-neutral-900"
+              />
+            )}
+          </div>
+          <p className="text-xs text-neutral-400 mt-1">Boş bırakılırsa /email-logo.png kullanılır. Önerilen: 240×96 px, PNG veya WebP, şeffaf zemin.</p>
+        </div>
+
+        {/* Ana renk */}
+        <div>
+          <label className="block text-sm font-medium text-neutral-700 mb-1.5">Ana Renk (Düğme ve Vurgu)</label>
+          <div className="flex items-center gap-3">
+            <input
+              type="color"
+              value={primaryColor}
+              onChange={e => setPrimaryColor(e.target.value)}
+              className="w-10 h-10 rounded cursor-pointer border border-neutral-200 bg-neutral-50 p-0.5"
+              data-testid="input-email-primary-color"
+            />
+            <input
+              type="text"
+              value={primaryColor}
+              onChange={e => setPrimaryColor(e.target.value)}
+              placeholder="#2D5A27"
+              className="w-32 px-3 py-2.5 bg-neutral-50 border border-neutral-200 rounded-lg text-sm text-neutral-900 font-mono focus:outline-none focus:border-neutral-900"
+            />
+            <span className="text-xs text-neutral-400">Sipariş takibi butonu, bağlantı renkleri</span>
+          </div>
+        </div>
+
+        {/* Site URL + İletişim e-postası */}
+        <div className="grid md:grid-cols-2 gap-4">
+          <div>
+            <label className="block text-sm font-medium text-neutral-700 mb-1.5">Site URL</label>
+            <input
+              type="text"
+              value={siteUrl}
+              onChange={e => setSiteUrl(e.target.value)}
+              placeholder="https://sepetzen.com"
+              className="w-full px-3 py-2.5 bg-neutral-50 border border-neutral-200 rounded-lg text-sm text-neutral-900 focus:outline-none focus:border-neutral-900"
+            />
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-neutral-700 mb-1.5">İletişim E-postası</label>
+            <input
+              type="email"
+              value={contactEmail}
+              onChange={e => setContactEmail(e.target.value)}
+              placeholder="sepetzen@gmail.com"
+              className="w-full px-3 py-2.5 bg-neutral-50 border border-neutral-200 rounded-lg text-sm text-neutral-900 focus:outline-none focus:border-neutral-900"
+            />
+          </div>
+        </div>
+
+        {/* Telefon */}
+        <div className="grid md:grid-cols-2 gap-4">
+          <div>
+            <label className="block text-sm font-medium text-neutral-700 mb-1.5">Telefon (görünür)</label>
+            <input
+              type="text"
+              value={phoneDisplay}
+              onChange={e => setPhoneDisplay(e.target.value)}
+              placeholder="0536 630 11 38"
+              className="w-full px-3 py-2.5 bg-neutral-50 border border-neutral-200 rounded-lg text-sm text-neutral-900 focus:outline-none focus:border-neutral-900"
+            />
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-neutral-700 mb-1.5">Telefon (tel: formatı)</label>
+            <input
+              type="text"
+              value={phoneTel}
+              onChange={e => setPhoneTel(e.target.value)}
+              placeholder="+905366301138"
+              className="w-full px-3 py-2.5 bg-neutral-50 border border-neutral-200 rounded-lg text-sm font-mono text-neutral-900 focus:outline-none focus:border-neutral-900"
+            />
+          </div>
+        </div>
+
+        {/* Adres */}
+        <div className="grid md:grid-cols-2 gap-4">
+          <div>
+            <label className="block text-sm font-medium text-neutral-700 mb-1.5">Adres Satır 1</label>
+            <input
+              type="text"
+              value={address1}
+              onChange={e => setAddress1(e.target.value)}
+              placeholder="Karaçalı Mah. Nergiz Sk. No.8/A"
+              className="w-full px-3 py-2.5 bg-neutral-50 border border-neutral-200 rounded-lg text-sm text-neutral-900 focus:outline-none focus:border-neutral-900"
+            />
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-neutral-700 mb-1.5">Adres Satır 2</label>
+            <input
+              type="text"
+              value={address2}
+              onChange={e => setAddress2(e.target.value)}
+              placeholder="Dalaman / Muğla"
+              className="w-full px-3 py-2.5 bg-neutral-50 border border-neutral-200 rounded-lg text-sm text-neutral-900 focus:outline-none focus:border-neutral-900"
+            />
+          </div>
+        </div>
+
+        {result && (
+          <div className={`flex items-center gap-2 p-3 rounded-lg text-sm ${result.ok ? 'bg-neutral-50 border border-neutral-200 text-neutral-800' : 'bg-red-50 border border-red-200 text-red-700'}`}>
+            {result.ok ? <CheckCircle2 className="w-4 h-4 text-neutral-600 shrink-0" /> : <XCircle className="w-4 h-4 shrink-0" />}
+            {result.text}
+          </div>
+        )}
+
+        <div className="flex justify-end pt-1">
+          <button
+            onClick={handleSave}
+            disabled={saving}
+            data-testid="button-save-email-branding"
+            className="flex items-center gap-2 px-5 py-2.5 bg-neutral-900 text-white rounded-lg text-sm font-medium hover:bg-neutral-700 disabled:opacity-50 transition-colors"
+          >
+            {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : <CheckCircle2 className="w-4 h-4" />}
+            {saving ? 'Kaydediliyor...' : 'Kaydet'}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ─── Kar Efekti Ayarları ──────────────────────────────────────────────────────
+const SNOW_COLORS = [
+  { label: 'Beyaz',     hex: '#ffffff' },
+  { label: 'Buz mavisi', hex: '#c8e6ff' },
+  { label: 'Altın',    hex: '#ffe89a' },
+  { label: 'Pembe',    hex: '#ffd6e0' },
+  { label: 'Gümüş',   hex: '#d8d8d8' },
+];
+
+function StockVisibilitySection() {
+  const { data: adminSettings, refetch } = useQuery<Record<string, string>>({
+    queryKey: ['/api/admin/settings'],
+  });
+
+  const [showOutOfStock, setShowOutOfStock] = useState(true);
+  const [saving, setSaving] = useState(false);
+  const [result, setResult] = useState<{ ok: boolean; text: string } | null>(null);
+
+  useEffect(() => {
+    if (!adminSettings) return;
+    if (adminSettings.show_outofstock_products !== undefined) {
+      setShowOutOfStock(adminSettings.show_outofstock_products !== 'false');
+    }
+  }, [adminSettings]);
+
+  const handleSave = async () => {
+    setSaving(true);
+    setResult(null);
+    try {
+      const res = await fetch('/api/admin/settings', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ show_outofstock_products: String(showOutOfStock) }),
+        credentials: 'include',
+      });
+      if (res.ok) {
+        await refetch();
+        setResult({ ok: true, text: 'Ayar kaydedildi.' });
+      } else {
+        const data = await res.json();
+        setResult({ ok: false, text: data.error || 'Kaydedilemedi.' });
+      }
+    } catch {
+      setResult({ ok: false, text: 'Kayıt sırasında hata oluştu.' });
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  return (
+    <div className="bg-white border border-neutral-200 rounded-xl overflow-hidden">
+      <div className="flex items-center justify-between px-6 py-4 border-b border-neutral-100">
+        <div className="flex items-center gap-3">
+          <div className="p-2 bg-neutral-50 rounded-lg">
+            <ShoppingBag className="w-5 h-5 text-neutral-900" />
+          </div>
+          <div>
+            <h3 className="text-base font-semibold text-neutral-900">Tükenen Ürün Görünürlüğü</h3>
+            <p className="text-xs text-neutral-500 mt-0.5">Stoğu biten ürünler listede görünmeye devam etsin mi?</p>
+          </div>
+        </div>
+        <label className="relative inline-flex items-center cursor-pointer">
+          <input
+            type="checkbox"
+            className="sr-only peer"
+            checked={showOutOfStock}
+            onChange={e => setShowOutOfStock(e.target.checked)}
+          />
+          <div className="w-11 h-6 bg-neutral-200 rounded-full peer peer-checked:bg-neutral-900 transition-colors after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:after:translate-x-5" />
+        </label>
+      </div>
+      <div className="px-6 py-4 space-y-2">
+        <p className="text-xs text-neutral-500">
+          <strong className="text-neutral-700">Aktif:</strong> Stoğu biten ürünler listede kalmaya devam eder; ürün kartında yarı saydam "Tükendi" etiketi gösterilir. Google indeksi korunur, stok yenilenince sıralama kaldığı yerden devam eder.
+        </p>
+        <p className="text-xs text-neutral-500">
+          <strong className="text-neutral-700">Pasif:</strong> Stoğu biten ürünler liste ve arama sonuçlarından gizlenir.
+        </p>
+        <div className="flex items-center justify-between pt-2">
+          {result ? (
+            <p className={`text-xs ${result.ok ? 'text-emerald-600' : 'text-red-600'}`}>{result.text}</p>
+          ) : <span />}
+          <button
+            type="button"
+            onClick={handleSave}
+            disabled={saving}
+            className="px-4 py-2 bg-neutral-900 text-white text-sm font-medium rounded-lg hover:bg-neutral-700 disabled:opacity-50 transition-colors"
+          >
+            {saving ? 'Kaydediliyor…' : 'Kaydet'}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function SnowSettingsSection() {
+  const { data: adminSettings, refetch } = useQuery<Record<string, string>>({
+    queryKey: ['/api/admin/settings'],
+  });
+
+  const [enabled,  setEnabled]  = useState(false);
+  const [speed,    setSpeed]    = useState(5);
+  const [color,    setColor]    = useState('#ffffff');
+  const [opacity,  setOpacity]  = useState(70);
+  const [density,  setDensity]  = useState(60);
+  const [saving,   setSaving]   = useState(false);
+  const [result,   setResult]   = useState<{ ok: boolean; text: string } | null>(null);
+
+  useEffect(() => {
+    if (!adminSettings) return;
+    if (adminSettings.snow_enabled !== undefined) setEnabled(adminSettings.snow_enabled === 'true');
+    if (adminSettings.snow_speed   !== undefined) setSpeed(Number(adminSettings.snow_speed));
+    if (adminSettings.snow_color   !== undefined) setColor(adminSettings.snow_color);
+    if (adminSettings.snow_opacity !== undefined) setOpacity(Number(adminSettings.snow_opacity));
+    if (adminSettings.snow_density !== undefined) setDensity(Number(adminSettings.snow_density));
+  }, [adminSettings]);
+
+  const handleSave = async () => {
+    setSaving(true);
+    setResult(null);
+    try {
+      const res = await fetch('/api/admin/settings', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          snow_enabled: String(enabled),
+          snow_speed:   String(speed),
+          snow_color:   color,
+          snow_opacity: String(opacity),
+          snow_density: String(density),
+        }),
+        credentials: 'include',
+      });
+      if (res.ok) {
+        await refetch();
+        setResult({ ok: true, text: 'Kar efekti ayarları kaydedildi.' });
+      } else {
+        const data = await res.json();
+        setResult({ ok: false, text: data.error || 'Kaydedilemedi.' });
+      }
+    } catch {
+      setResult({ ok: false, text: 'Kayıt sırasında hata oluştu.' });
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  return (
+    <div className="bg-white border border-neutral-200 rounded-xl overflow-hidden">
+      {/* Başlık + ana toggle */}
+      <div className="flex items-center justify-between px-6 py-4 border-b border-neutral-100">
+        <div className="flex items-center gap-3">
+          <div className={`p-2 rounded-lg transition-colors ${enabled ? 'bg-blue-50' : 'bg-neutral-50'}`}>
+            <Snowflake className={`w-5 h-5 transition-colors ${enabled ? 'text-blue-500' : 'text-neutral-400'}`} />
+          </div>
+          <div>
+            <h3 className="text-base font-semibold text-neutral-900">Kar Efekti</h3>
+            <p className="text-xs text-neutral-500">Ziyaretçiler siteyi açtığında düşen kar animasyonu</p>
+          </div>
+        </div>
+        {/* Toggle */}
+        <button
+          type="button"
+          onClick={() => setEnabled(v => !v)}
+          data-testid="toggle-snow-enabled"
+          className={`relative inline-flex h-7 w-12 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 focus:outline-none ${
+            enabled ? 'bg-blue-500' : 'bg-neutral-200'
+          }`}
+          role="switch"
+          aria-checked={enabled}
+        >
+          <span className={`pointer-events-none inline-block h-6 w-6 rounded-full bg-white shadow transform transition-transform duration-200 ${enabled ? 'translate-x-5' : 'translate-x-0'}`} />
+        </button>
+      </div>
+
+      {/* Ayar gövdesi */}
+      <div className={`px-6 py-5 space-y-6 transition-opacity duration-200 ${enabled ? 'opacity-100' : 'opacity-40 pointer-events-none'}`}>
+
+        {/* Renk seçimi */}
+        <div>
+          <label className="block text-xs font-semibold text-neutral-500 uppercase tracking-wide mb-3">Kar Rengi</label>
+          <div className="flex flex-wrap gap-2 items-center">
+            {SNOW_COLORS.map(c => (
+              <button
+                key={c.hex}
+                type="button"
+                title={c.label}
+                onClick={() => setColor(c.hex)}
+                className={`w-8 h-8 rounded-full border-2 transition-all ${
+                  color === c.hex ? 'border-neutral-900 scale-110' : 'border-neutral-200 hover:border-neutral-400'
+                }`}
+                style={{ background: c.hex === '#ffffff' ? 'linear-gradient(135deg,#fff,#e0e8f0)' : c.hex }}
+                data-testid={`snow-color-${c.hex}`}
+              />
+            ))}
+            {/* Özel renk */}
+            <label className="flex items-center gap-1.5 cursor-pointer" title="Özel renk seç">
+              <span className="text-xs text-neutral-500">Özel</span>
+              <input
+                type="color"
+                value={color}
+                onChange={e => setColor(e.target.value)}
+                className="w-8 h-8 rounded-full cursor-pointer border border-neutral-200"
+                data-testid="snow-color-custom"
+              />
+            </label>
+            <span className="text-xs font-mono text-neutral-400 ml-1">{color}</span>
+          </div>
+        </div>
+
+        {/* Hız */}
+        <div>
+          <div className="flex items-center justify-between mb-2">
+            <label className="text-xs font-semibold text-neutral-500 uppercase tracking-wide">Düşme Hızı</label>
+            <span className="text-xs font-mono font-semibold text-neutral-700">
+              {speed <= 3 ? 'Yavaş' : speed <= 6 ? 'Normal' : speed <= 8 ? 'Hızlı' : 'Çok hızlı'} ({speed}/10)
+            </span>
+          </div>
+          <input
+            type="range"
+            min={1} max={10} step={1}
+            value={speed}
+            onChange={e => setSpeed(Number(e.target.value))}
+            data-testid="snow-speed"
+            className="w-full h-2 rounded-full appearance-none bg-neutral-200 accent-blue-500 cursor-pointer"
+          />
+          <div className="flex justify-between text-[10px] text-neutral-400 mt-1">
+            <span>Yavaş</span><span>Çok hızlı</span>
+          </div>
+        </div>
+
+        {/* Yoğunluk */}
+        <div>
+          <div className="flex items-center justify-between mb-2">
+            <label className="text-xs font-semibold text-neutral-500 uppercase tracking-wide">Yoğunluk</label>
+            <span className="text-xs font-mono font-semibold text-neutral-700">
+              {density <= 30 ? 'Az' : density <= 70 ? 'Orta' : density <= 110 ? 'Çok' : 'Yoğun'} ({density} tanecik)
+            </span>
+          </div>
+          <input
+            type="range"
+            min={10} max={150} step={5}
+            value={density}
+            onChange={e => setDensity(Number(e.target.value))}
+            data-testid="snow-density"
+            className="w-full h-2 rounded-full appearance-none bg-neutral-200 accent-blue-500 cursor-pointer"
+          />
+          <div className="flex justify-between text-[10px] text-neutral-400 mt-1">
+            <span>Az</span><span>Yoğun</span>
+          </div>
+        </div>
+
+        {/* Belirginlik */}
+        <div>
+          <div className="flex items-center justify-between mb-2">
+            <label className="text-xs font-semibold text-neutral-500 uppercase tracking-wide">Belirginlik (Opaklık)</label>
+            <span className="text-xs font-mono font-semibold text-neutral-700">%{opacity}</span>
+          </div>
+          <input
+            type="range"
+            min={10} max={100} step={5}
+            value={opacity}
+            onChange={e => setOpacity(Number(e.target.value))}
+            data-testid="snow-opacity"
+            className="w-full h-2 rounded-full appearance-none bg-neutral-200 accent-blue-500 cursor-pointer"
+          />
+          <div className="flex justify-between text-[10px] text-neutral-400 mt-1">
+            <span>%10 (şeffaf)</span><span>%100 (tam)</span>
+          </div>
+        </div>
+
+        {/* Önizleme ipucu */}
+        <div className="flex items-start gap-2 p-3 bg-blue-50 border border-blue-100 rounded-lg text-xs text-blue-700">
+          <Snowflake className="w-4 h-4 mt-0.5 shrink-0" />
+          <span>
+            Ayarları kaydettikten sonra mağaza sayfasında kar efekti görünür hale gelir.
+            Admin panelinde efekt gösterilmez.
+          </span>
+        </div>
+      </div>
+
+      {/* Footer */}
+      <div className="px-6 py-4 bg-neutral-50 border-t border-neutral-100 flex items-center justify-between gap-4">
+        {result ? (
+          <p className={`text-xs ${result.ok ? 'text-neutral-600' : 'text-red-600'}`} data-testid="text-snow-result">
+            {result.text}
+          </p>
+        ) : (
+          <span />
+        )}
+        <button
+          type="button"
+          onClick={handleSave}
+          disabled={saving}
+          data-testid="button-save-snow"
+          className="flex items-center gap-2 px-5 py-2.5 bg-neutral-900 text-white rounded-lg hover:bg-neutral-800 transition-colors text-sm font-medium disabled:opacity-50 disabled:cursor-not-allowed"
+        >
+          {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Snowflake className="w-4 h-4" />}
+          Kaydet
+        </button>
+      </div>
+    </div>
+  );
+}
+
+// ─── Filtre Özellikleri ───────────────────────────────────────────────────────
+function FilterAttributesSection() {
+  const DEFAULT_ATTRS = [
+    { label: 'Ürün Cinsi', key: 'urunCinsi' },
+    { label: 'Çelik Cinsi', key: 'celikCinsi' },
+    { label: 'Sap Cinsi', key: 'sapCinsi' },
+  ];
+
+  const { data: adminSettings, refetch } = useQuery<Record<string, string>>({
+    queryKey: ['/api/admin/settings'],
+  });
+
+  const [attrs, setAttrs] = useState<{ label: string; key: string }[]>(DEFAULT_ATTRS);
+  const [saving, setSaving] = useState(false);
+  const [result, setResult] = useState<{ ok: boolean; text: string } | null>(null);
+
+  useEffect(() => {
+    if (!adminSettings) return;
+    const raw = adminSettings.filter_attributes;
+    if (!raw) return;
+    try {
+      const parsed = JSON.parse(raw);
+      if (Array.isArray(parsed)) setAttrs(parsed);
+    } catch { /* ignore */ }
+  }, [adminSettings]);
+
+  const add = () => setAttrs(prev => [...prev, { label: '', key: '' }]);
+  const remove = (idx: number) => setAttrs(prev => prev.filter((_, i) => i !== idx));
+  const move = (idx: number, dir: -1 | 1) => {
+    setAttrs(prev => {
+      const next = [...prev];
+      const target = idx + dir;
+      if (target < 0 || target >= next.length) return prev;
+      [next[idx], next[target]] = [next[target], next[idx]];
+      return next;
+    });
+  };
+  const update = (idx: number, field: 'label' | 'key', value: string) => {
+    setAttrs(prev => prev.map((a, i) => i === idx ? { ...a, [field]: value } : a));
+  };
+
+  const handleSave = async () => {
+    for (const attr of attrs) {
+      if (!attr.label.trim()) {
+        setResult({ ok: false, text: 'Tüm etiket alanları dolu olmalıdır.' });
+        return;
+      }
+      if (!attr.key.trim() || !/^[a-zA-Z][a-zA-Z0-9_]*$/.test(attr.key)) {
+        setResult({ ok: false, text: `"${attr.key}" geçersiz alan adı. Yalnızca harf, rakam ve alt çizgi kullanın; harf ile başlamalıdır.` });
+        return;
+      }
+    }
+    setSaving(true);
+    setResult(null);
+    try {
+      const res = await fetch('/api/admin/settings', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ filter_attributes: JSON.stringify(attrs) }),
+        credentials: 'include',
+      });
+      if (res.ok) {
+        await refetch();
+        setResult({ ok: true, text: 'Filtre özellikleri kaydedildi.' });
+      } else {
+        const data = await res.json();
+        setResult({ ok: false, text: data.error || 'Kaydedilemedi.' });
+      }
+    } catch {
+      setResult({ ok: false, text: 'Kayıt sırasında hata oluştu.' });
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  return (
+    <div className="bg-white border border-neutral-200 rounded-xl p-6">
+      <div className="flex items-center justify-between mb-5">
+        <div className="flex items-center gap-3">
+          <div className="p-2 bg-neutral-50 rounded-lg">
+            <SlidersHorizontal className="w-5 h-5 text-neutral-900" />
+          </div>
+          <div>
+            <h3 className="text-lg font-semibold text-neutral-900">Filtre Özellikleri</h3>
+            <p className="text-sm text-neutral-500">Mağaza ve kategori sayfalarında gösterilecek ek filtre bölümleri</p>
+          </div>
+        </div>
+        <button
+          type="button"
+          onClick={add}
+          className="flex items-center gap-2 px-3 py-2 bg-neutral-900 text-white rounded-lg hover:bg-neutral-800 transition-colors text-sm font-medium"
+        >
+          <Plus className="w-4 h-4" />
+          Ekle
+        </button>
+      </div>
+
+      {attrs.length === 0 && (
+        <p className="text-sm text-neutral-400 text-center py-6 border border-dashed border-neutral-200 rounded-lg mb-4">
+          Henüz özel filtre eklenmedi. Marka ve Fiyat filtreleri her zaman gösterilir.
+        </p>
+      )}
+
+      <div className="space-y-2 mb-4">
+        {attrs.map((attr, idx) => (
+          <div key={idx} className="flex items-center gap-2 p-3 bg-neutral-50 rounded-lg border border-neutral-100">
+            <div className="flex flex-col">
+              <button
+                type="button"
+                onClick={() => move(idx, -1)}
+                disabled={idx === 0}
+                className="p-0.5 text-neutral-400 hover:text-neutral-900 disabled:opacity-20 transition-colors"
+                aria-label="Yukarı taşı"
+              >
+                <ChevronUp className="w-3.5 h-3.5" />
+              </button>
+              <button
+                type="button"
+                onClick={() => move(idx, 1)}
+                disabled={idx === attrs.length - 1}
+                className="p-0.5 text-neutral-400 hover:text-neutral-900 disabled:opacity-20 transition-colors"
+                aria-label="Aşağı taşı"
+              >
+                <ChevronDownIcon className="w-3.5 h-3.5" />
+              </button>
+            </div>
+            <div className="flex-1">
+              <label className="block text-[10px] font-medium text-neutral-400 mb-1 uppercase tracking-wide">Görünen Başlık</label>
+              <input
+                type="text"
+                value={attr.label}
+                onChange={(e) => update(idx, 'label', e.target.value)}
+                placeholder="ör. Çelik Cinsi"
+                data-testid={`filter-attr-label-${idx}`}
+                className="w-full px-3 py-2 border border-neutral-200 rounded-lg text-sm text-neutral-900 bg-white focus:outline-none focus:border-neutral-900 transition-colors"
+              />
+            </div>
+            <div className="w-44">
+              <label className="block text-[10px] font-medium text-neutral-400 mb-1 uppercase tracking-wide">Alan Adı</label>
+              <input
+                type="text"
+                value={attr.key}
+                onChange={(e) => update(idx, 'key', e.target.value.replace(/[^a-zA-Z0-9_]/g, ''))}
+                placeholder="ör. celikCinsi"
+                data-testid={`filter-attr-key-${idx}`}
+                className="w-full px-3 py-2 border border-neutral-200 rounded-lg text-sm font-mono text-neutral-900 bg-white focus:outline-none focus:border-neutral-900 transition-colors"
+              />
+            </div>
+            <button
+              type="button"
+              onClick={() => remove(idx)}
+              className="mt-4 p-2 text-neutral-400 hover:text-red-600 transition-colors"
+              aria-label="Kaldır"
+            >
+              <Trash2 className="w-4 h-4" />
+            </button>
+          </div>
+        ))}
+      </div>
+
+      <div className="rounded-lg bg-blue-50 border border-blue-100 p-3 text-xs text-blue-700 mb-4">
+        <strong>Alan adı:</strong> Ürün formundaki özellikler bölümündeki alan adıyla eşleşmeli.
+        Mevcut alanlar: <code className="font-mono bg-blue-100 px-1 rounded">celikCinsi</code>, <code className="font-mono bg-blue-100 px-1 rounded">sapCinsi</code>, <code className="font-mono bg-blue-100 px-1 rounded">urunCinsi</code>, <code className="font-mono bg-blue-100 px-1 rounded">etKalinligi</code>, <code className="font-mono bg-blue-100 px-1 rounded">agirlik</code>.
+        Yeni alan eklemek için önce ürün formuna o alanı ekleyin.
+      </div>
+
+      {result && (
+        <div className={`p-3 rounded-lg border text-xs mb-4 ${result.ok ? 'bg-neutral-50 border-neutral-200 text-neutral-800' : 'bg-red-50 border-red-200 text-red-800'}`} data-testid="text-filter-attrs-result">
+          {result.text}
+        </div>
+      )}
+
+      <div className="flex justify-end">
+        <button
+          type="button"
+          onClick={handleSave}
+          disabled={saving}
+          className="flex items-center gap-2 px-5 py-2.5 bg-neutral-900 text-white rounded-lg hover:bg-neutral-800 transition-colors text-sm font-medium disabled:opacity-50 disabled:cursor-not-allowed"
+          data-testid="button-save-filter-attrs"
+        >
+          {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Settings className="w-4 h-4" />}
+          Kaydet
+        </button>
+      </div>
+    </div>
+  );
 }
 
 // ─── Ticker Ayarları ─────────────────────────────────────────────────────────
@@ -765,6 +1535,26 @@ function ContactInfoSection() {
           </div>
         </div>
 
+        {/* WhatsApp Order Button Toggle */}
+        <div className="flex items-center justify-between gap-4 p-3.5 rounded-lg border border-neutral-200 bg-neutral-50">
+          <div>
+            <p className="text-sm font-medium text-neutral-800">Ürün sayfasında "WhatsApp ile Sipariş Ver" butonu</p>
+            <p className="text-[11px] text-neutral-500 mt-0.5">Kapalıyken buton hiçbir ürün sayfasında gösterilmez</p>
+          </div>
+          <button
+            type="button"
+            onClick={() => set({ whatsappOrderEnabled: !identity.whatsappOrderEnabled })}
+            className={`relative inline-flex h-6 w-11 shrink-0 items-center rounded-full transition-colors focus:outline-none ${
+              identity.whatsappOrderEnabled ? 'bg-emerald-500' : 'bg-neutral-300'
+            }`}
+            data-testid="toggle-whatsapp-order"
+          >
+            <span className={`inline-block h-4 w-4 transform rounded-full bg-white shadow transition-transform ${
+              identity.whatsappOrderEnabled ? 'translate-x-6' : 'translate-x-1'
+            }`} />
+          </button>
+        </div>
+
         {/* Working Hours */}
         <div>
           <label className="block text-sm font-medium text-neutral-700 mb-1.5">
@@ -1228,6 +2018,8 @@ export default function SettingsPanel({ initialSection = 'genel', contentOnly = 
     shipentegra_sender_zip: '',
     shipentegra_sender_phone: '',
     shipentegra_sender_email: '',
+    google_tag_code: '',
+    custom_css: '',
     ...Object.fromEntries(WHATSAPP_EVENTS.flatMap(({ key, defaultTpl }) => [
       [`wpileti_evt_${key}`, 'true'],
       [`wpileti_tpl_${key}`, defaultTpl],
@@ -1252,6 +2044,14 @@ export default function SettingsPanel({ initialSection = 'genel', contentOnly = 
     uri?: string;
   } | null>(null);
   const [maintenanceSaving, setMaintenanceSaving] = useState(false);
+  const [maintenanceContentSaving, setMaintenanceContentSaving] = useState(false);
+  const [maintenanceContent, setMaintenanceContent] = useState({
+    title: '',
+    logoUrl: '',
+    heading: '',
+    description: '',
+    instagramHandle: '',
+  });
   const [waTesting, setWaTesting] = useState(false);
   const [waTestPhone, setWaTestPhone] = useState('');
   const [waTestMessage, setWaTestMessage] = useState('');
@@ -1265,9 +2065,27 @@ export default function SettingsPanel({ initialSection = 'genel', contentOnly = 
   type CountryRateRow = { country: string; cost: string };
   const [countryRateRows, setCountryRateRows] = useState<CountryRateRow[]>([]);
 
-  const { data: maintenanceData, refetch: refetchMaintenance } = useQuery<{ enabled: boolean }>({
+  const { data: maintenanceData, refetch: refetchMaintenance } = useQuery<{
+    enabled: boolean;
+    content: { title: string; logoUrl: string; heading: string; description: string; instagramHandle: string };
+  }>({
     queryKey: ['/api/admin/maintenance'],
   });
+
+  // Sunucudan gelen içeriği local state'e yükle (sadece bir kez)
+  const maintenanceContentLoaded = useRef(false);
+  useEffect(() => {
+    if (maintenanceData?.content && !maintenanceContentLoaded.current) {
+      maintenanceContentLoaded.current = true;
+      setMaintenanceContent({
+        title: maintenanceData.content.title || '',
+        logoUrl: maintenanceData.content.logoUrl || '',
+        heading: maintenanceData.content.heading || '',
+        description: maintenanceData.content.description || '',
+        instagramHandle: maintenanceData.content.instagramHandle || '',
+      });
+    }
+  }, [maintenanceData]);
 
   const handleMaintenanceToggle = async (enabled: boolean) => {
     if (!maintenanceData || maintenanceData.enabled === enabled) return;
@@ -1382,6 +2200,7 @@ export default function SettingsPanel({ initialSection = 'genel', contentOnly = 
   const [paytrMerchantId, setPaytrMerchantId] = useState('');
   const [paytrMerchantKey, setPaytrMerchantKey] = useState('');
   const [paytrMerchantSalt, setPaytrMerchantSalt] = useState('');
+  const [paytrMaxInstallment, setPaytrMaxInstallment] = useState<number | null>(null);
   const [paytrCallbackCopied, setPaytrCallbackCopied] = useState(false);
 
   const { data: paytrConfig, refetch: refetchPaytr } = useQuery<{
@@ -1392,6 +2211,7 @@ export default function SettingsPanel({ initialSection = 'genel', contentOnly = 
     merchantSaltMasked: string;
     callbackUrl: string;
     baseUrl: string;
+    maxInstallment: number;
   }>({
     queryKey: ['/api/admin/paytr/config'],
   });
@@ -1420,6 +2240,7 @@ export default function SettingsPanel({ initialSection = 'genel', contentOnly = 
           merchantId: paytrMerchantId.trim(),
           merchantKey: paytrMerchantKey.trim(),
           merchantSalt: paytrMerchantSalt.trim(),
+          ...(paytrMaxInstallment !== null ? { maxInstallment: paytrMaxInstallment } : {}),
         }),
         credentials: 'include',
       });
@@ -1813,9 +2634,12 @@ export default function SettingsPanel({ initialSection = 'genel', contentOnly = 
                 <strong className="text-neutral-900">Mağaza vitrini</strong>
                 <p className="mt-1 text-xs">
                   Ziyaretçilerin mağazaya girdiğinde gördüğü banner, popup ve duyuru bandını burada yönetin.
-                  Ana sayfa bölümleri Ana Sayfa sekmesinde, menü bağlantıları Menü Yönetimi’nde, bilgi sayfaları Sayfalar’da ve yazılar Blog’da düzenlenir.
+                  Ana sayfa bölümleri Ana Sayfa sekmesinde, menü bağlantıları Menü Yönetimi'nde, bilgi sayfaları Sayfalar'da ve yazılar Blog'da düzenlenir.
                 </p>
               </div>
+              <StockVisibilitySection />
+              <SnowSettingsSection />
+              <FilterAttributesSection />
               <TickerSettingsSection />
               <TopBannerSection />
               <PopupBannerSection />
@@ -1831,6 +2655,8 @@ export default function SettingsPanel({ initialSection = 'genel', contentOnly = 
       )}
 
       {section === 'bildirim' && (<>
+      <EmailBrandingSection />
+
       <div className="bg-white border border-neutral-200 rounded-xl p-6">
         <div className="flex items-center gap-3 mb-6">
           <div className="p-2 bg-neutral-50 rounded-lg">
@@ -2002,10 +2828,116 @@ export default function SettingsPanel({ initialSection = 'genel', contentOnly = 
               <div className="flex items-start gap-2 p-3 bg-amber-50 border border-amber-200 rounded-lg">
                 <AlertTriangle className="w-4 h-4 text-amber-600 flex-shrink-0 mt-0.5" />
                 <div className="text-xs text-amber-800">
-                  Site şu anda bakımda. Ziyaretçiler "Yakında yeni tasarımımız ile sizlerle birlikteyiz" mesajını görüyor. Admin paneline (<code>/admin</code>) erişim sürüyor.
+                  Site şu anda bakımda. Ziyaretçiler bakım sayfasını görüyor. Admin paneline (<code>/admin</code>) erişim sürüyor.
                 </div>
               </div>
             )}
+
+            {/* ── Bakım sayfası içerik düzenleyici ───────────────────── */}
+            <div className="border-t border-neutral-100 pt-5 space-y-4">
+              <p className="text-sm font-semibold text-neutral-700">Bakım Sayfası İçeriği</p>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-xs font-medium text-neutral-600 mb-1">Sayfa Başlığı (tarayıcı sekmesi)</label>
+                  <input
+                    type="text"
+                    value={maintenanceContent.title}
+                    onChange={e => setMaintenanceContent(c => ({ ...c, title: e.target.value }))}
+                    placeholder="Bakım Modu - Sepetzen"
+                    className="w-full px-3 py-2 bg-neutral-50 border border-neutral-200 rounded-lg text-sm text-neutral-900 focus:outline-none focus:border-neutral-400 transition-colors"
+                    data-testid="input-maintenance-title"
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs font-medium text-neutral-600 mb-1">Instagram Kullanıcı Adı</label>
+                  <div className="relative">
+                    <span className="absolute left-3 top-1/2 -translate-y-1/2 text-neutral-400 text-sm select-none">@</span>
+                    <input
+                      type="text"
+                      value={maintenanceContent.instagramHandle}
+                      onChange={e => setMaintenanceContent(c => ({ ...c, instagramHandle: e.target.value.replace(/^@/, '') }))}
+                      placeholder="sepetzen"
+                      className="w-full pl-7 pr-3 py-2 bg-neutral-50 border border-neutral-200 rounded-lg text-sm text-neutral-900 focus:outline-none focus:border-neutral-400 transition-colors"
+                      data-testid="input-maintenance-instagram"
+                    />
+                  </div>
+                  <p className="text-xs text-neutral-400 mt-1">Boş bırakılırsa Instagram linki gösterilmez.</p>
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-xs font-medium text-neutral-600 mb-1">Logo URL</label>
+                <input
+                  type="text"
+                  value={maintenanceContent.logoUrl}
+                  onChange={e => setMaintenanceContent(c => ({ ...c, logoUrl: e.target.value }))}
+                  placeholder="/uploads/branding/logo.png"
+                  className="w-full px-3 py-2 bg-neutral-50 border border-neutral-200 rounded-lg text-sm font-mono text-neutral-900 focus:outline-none focus:border-neutral-400 transition-colors"
+                  data-testid="input-maintenance-logo-url"
+                />
+                <p className="text-xs text-neutral-400 mt-1">Boş bırakılırsa logo gösterilmez.</p>
+              </div>
+
+              <div>
+                <label className="block text-xs font-medium text-neutral-600 mb-1">Ana Başlık (h1)</label>
+                <input
+                  type="text"
+                  value={maintenanceContent.heading}
+                  onChange={e => setMaintenanceContent(c => ({ ...c, heading: e.target.value }))}
+                  placeholder="Yakında yeni tasarımımız ile sizlerle birlikteyiz."
+                  className="w-full px-3 py-2 bg-neutral-50 border border-neutral-200 rounded-lg text-sm text-neutral-900 focus:outline-none focus:border-neutral-400 transition-colors"
+                  data-testid="input-maintenance-heading"
+                />
+              </div>
+
+              <div>
+                <label className="block text-xs font-medium text-neutral-600 mb-1">Açıklama Metni</label>
+                <textarea
+                  rows={2}
+                  value={maintenanceContent.description}
+                  onChange={e => setMaintenanceContent(c => ({ ...c, description: e.target.value }))}
+                  placeholder="Sitemiz şu anda bakımda. Daha iyi bir deneyim için çalışıyoruz..."
+                  className="w-full px-3 py-2 bg-neutral-50 border border-neutral-200 rounded-lg text-sm text-neutral-900 resize-y focus:outline-none focus:border-neutral-400 transition-colors"
+                  data-testid="input-maintenance-description"
+                />
+              </div>
+
+              <button
+                type="button"
+                disabled={maintenanceContentSaving}
+                onClick={async () => {
+                  setMaintenanceContentSaving(true);
+                  setMessage(null);
+                  try {
+                    const res = await fetch('/api/admin/maintenance/content', {
+                      method: 'POST',
+                      headers: { 'Content-Type': 'application/json' },
+                      body: JSON.stringify(maintenanceContent),
+                      credentials: 'include',
+                    });
+                    if (res.ok) {
+                      await refetchMaintenance();
+                      maintenanceContentLoaded.current = false;
+                      setMessage({ type: 'success', text: 'Bakım sayfası içeriği kaydedildi.' });
+                    } else {
+                      const d = await res.json();
+                      setMessage({ type: 'error', text: d.error || 'Kaydedilemedi.' });
+                    }
+                  } catch {
+                    setMessage({ type: 'error', text: 'Sunucuya ulaşılamadı.' });
+                  } finally {
+                    setMaintenanceContentSaving(false);
+                  }
+                }}
+                className="flex items-center gap-2 px-4 py-2.5 bg-neutral-900 text-white rounded-lg text-sm font-medium hover:bg-neutral-800 transition-colors disabled:opacity-50"
+                data-testid="button-save-maintenance-content"
+              >
+                {maintenanceContentSaving
+                  ? <><Loader2 className="w-4 h-4 animate-spin" /> Kaydediliyor…</>
+                  : <><CheckCircle2 className="w-4 h-4" /> Bakım Sayfasını Kaydet</>}
+              </button>
+            </div>
           </div>
         )}
       </div>
@@ -2168,6 +3100,106 @@ export default function SettingsPanel({ initialSection = 'genel', contentOnly = 
             >
               {isSaving ? <Loader2 className="w-4 h-4 animate-spin" /> : <CheckCircle2 className="w-4 h-4" />}
               Besleme Ayarlarını Kaydet
+            </button>
+          </div>
+        </div>
+      </div>
+      )}
+
+      {/* ── Google Analiz / Tag ── */}
+      {section === 'genel' && genelTab === 'site' && (
+      <div className="bg-white border border-neutral-200 rounded-xl p-6" data-testid="card-google-tag-settings">
+        <div className="flex items-center gap-3 mb-6">
+          <div className="p-2 bg-neutral-50 rounded-lg">
+            <BarChart2 className="w-5 h-5 text-neutral-900" />
+          </div>
+          <div>
+            <h3 className="text-lg font-semibold text-neutral-900">Google Analiz / Tag</h3>
+            <p className="text-sm text-neutral-500">
+              Measurement ID veya GTM kimliği girin; tam kod snippet da yapıştırılabilir. Tüm sayfalara otomatik eklenir.
+            </p>
+          </div>
+        </div>
+
+        <div className="space-y-4">
+          <div>
+            <label className="block text-sm font-medium text-neutral-700 mb-1.5">
+              Google Tag kodu
+            </label>
+            <textarea
+              value={settings.google_tag_code}
+              onChange={(e) => setSettings(s => ({ ...s, google_tag_code: e.target.value }))}
+              rows={5}
+              spellCheck={false}
+              placeholder={"G-XXXXXXXXXX\nveya GTM-XXXXXXX\nveya tam <script> snippet'i"}
+              className="w-full px-4 py-3 bg-neutral-50 border border-neutral-200 rounded-lg text-neutral-900 focus:border-neutral-900 transition-colors font-mono text-sm resize-y"
+              data-testid="textarea-google-tag-code"
+            />
+            <p className="text-xs text-neutral-500 mt-1">
+              Sadece ID girilirse (G-… veya GTM-…) snippet otomatik oluşturulur. Farklı bir araç için tam kodu yapıştırabilirsiniz.
+            </p>
+          </div>
+
+          <div className="flex justify-end">
+            <button
+              type="button"
+              onClick={handleSave}
+              disabled={isSaving}
+              className="flex items-center gap-2 px-5 py-2.5 bg-neutral-900 text-white rounded-lg hover:bg-neutral-800 transition-colors text-sm font-medium disabled:opacity-50"
+              data-testid="button-save-google-tag"
+            >
+              {isSaving ? <Loader2 className="w-4 h-4 animate-spin" /> : <CheckCircle2 className="w-4 h-4" />}
+              Kaydet
+            </button>
+          </div>
+        </div>
+      </div>
+      )}
+
+      {/* ── Ek CSS ── */}
+      {section === 'genel' && genelTab === 'site' && (
+      <div className="bg-white border border-neutral-200 rounded-xl p-6" data-testid="card-custom-css-settings">
+        <div className="flex items-center gap-3 mb-6">
+          <div className="p-2 bg-neutral-50 rounded-lg">
+            <Code2 className="w-5 h-5 text-neutral-900" />
+          </div>
+          <div>
+            <h3 className="text-lg font-semibold text-neutral-900">Ek CSS</h3>
+            <p className="text-sm text-neutral-500">
+              Tüm sayfalara eklenmesini istediğiniz özel CSS kuralları. Tema stillerinin üzerine yazar.
+            </p>
+          </div>
+        </div>
+
+        <div className="space-y-4">
+          <div>
+            <label className="block text-sm font-medium text-neutral-700 mb-1.5">
+              CSS kodu
+            </label>
+            <textarea
+              value={settings.custom_css}
+              onChange={(e) => setSettings(s => ({ ...s, custom_css: e.target.value }))}
+              rows={8}
+              spellCheck={false}
+              placeholder={".my-class {\n  color: red;\n}"}
+              className="w-full px-4 py-3 bg-neutral-50 border border-neutral-200 rounded-lg text-neutral-900 focus:border-neutral-900 transition-colors font-mono text-sm resize-y"
+              data-testid="textarea-custom-css"
+            />
+            <p className="text-xs text-neutral-500 mt-1">
+              Değişiklikler kaydedildikten sonra en fazla 60 saniye içinde siteye yansır.
+            </p>
+          </div>
+
+          <div className="flex justify-end">
+            <button
+              type="button"
+              onClick={handleSave}
+              disabled={isSaving}
+              className="flex items-center gap-2 px-5 py-2.5 bg-neutral-900 text-white rounded-lg hover:bg-neutral-800 transition-colors text-sm font-medium disabled:opacity-50"
+              data-testid="button-save-custom-css"
+            >
+              {isSaving ? <Loader2 className="w-4 h-4 animate-spin" /> : <CheckCircle2 className="w-4 h-4" />}
+              Kaydet
             </button>
           </div>
         </div>
@@ -2387,6 +3419,63 @@ export default function SettingsPanel({ initialSection = 'genel', contentOnly = 
                   autoComplete="new-password"
                 />
               </div>
+            </div>
+
+            {/* Maksimum taksit sayısı */}
+            <div className="border-t border-neutral-100 pt-5">
+              <label className="block text-sm font-semibold text-neutral-700 mb-1">
+                Maksimum Taksit Sayısı
+              </label>
+              <p className="text-xs text-neutral-500 mb-3">
+                Ödeme adımında ve ürün sayfasında gösterilecek maksimum taksit sayısını belirler. Bu değer PayTR iFrame API'sine aktarılır. PayTR panelinizden de ayrıca kontrol edebilirsiniz:
+                {' '}<a href="https://www.paytr.com/magaza/ayarlar" target="_blank" rel="noopener noreferrer" className="underline text-neutral-600 hover:text-neutral-900">paytr.com/magaza/ayarlar</a>
+              </p>
+              <div className="flex items-center gap-3">
+                <select
+                  value={paytrMaxInstallment ?? paytrConfig.maxInstallment}
+                  onChange={(e) => setPaytrMaxInstallment(Number(e.target.value))}
+                  data-testid="select-paytr-max-installment"
+                  className="px-4 py-3 bg-neutral-50 border border-neutral-200 rounded-lg text-neutral-900 text-sm focus:outline-none focus:border-neutral-900 transition-colors"
+                >
+                  <option value={0}>Sınırsız (PayTR varsayılanı — 12 taksit)</option>
+                  <option value={2}>2 Taksit</option>
+                  <option value={3}>3 Taksit</option>
+                  <option value={6}>6 Taksit</option>
+                  <option value={9}>9 Taksit</option>
+                  <option value={12}>12 Taksit</option>
+                  <option value={1}>Taksit kapalı (tek çekim)</option>
+                </select>
+                <button
+                  type="button"
+                  onClick={async () => {
+                    const val = paytrMaxInstallment ?? paytrConfig.maxInstallment;
+                    try {
+                      const r = await fetch('/api/admin/paytr/max-installment', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ maxInstallment: val }),
+                        credentials: 'include',
+                      });
+                      if (r.ok) {
+                        await refetchPaytr();
+                        setPaytrMaxInstallment(null);
+                        setMessage({ type: 'success', text: 'Maksimum taksit sayısı kaydedildi.' });
+                      }
+                    } catch {
+                      setMessage({ type: 'error', text: 'Taksit ayarı kaydedilemedi.' });
+                    }
+                  }}
+                  disabled={!paytrConfig.configured}
+                  className="flex items-center gap-2 px-4 py-3 bg-neutral-900 text-white rounded-lg hover:bg-neutral-800 transition-colors text-sm font-medium disabled:opacity-40 disabled:cursor-not-allowed"
+                  data-testid="button-save-max-installment"
+                >
+                  <CheckCircle2 className="w-4 h-4" />
+                  Kaydet
+                </button>
+              </div>
+              <p className="text-xs text-neutral-400 mt-2">
+                Ürün sayfasındaki taksit tablosu bu ayara göre otomatik güncellenir. Ödeme adımında PayTR, gerçek banka komisyonlarını gösterir.
+              </p>
             </div>
 
             <div className="flex flex-wrap items-center justify-between gap-3">

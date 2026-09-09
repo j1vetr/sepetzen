@@ -117,11 +117,12 @@ function ReviewCard({ review }: { review: AdminReview }) {
     >
       <div className="flex items-start justify-between gap-3">
         <div className="flex items-center gap-3 min-w-0">
-          {review.productImage ? (
+          {review.productImage && !/\.(mp4|webm|mov)(\?|$)/i.test(review.productImage) ? (
             <img
               src={review.productImage}
               alt={review.productName}
               className="w-12 h-12 rounded object-cover border border-neutral-200 shrink-0"
+              onError={e => { (e.target as HTMLImageElement).style.display = 'none'; }}
             />
           ) : (
             <div className="w-12 h-12 rounded bg-neutral-100 border border-neutral-200 shrink-0" />
@@ -190,7 +191,7 @@ function ReviewCard({ review }: { review: AdminReview }) {
               title="Yorum görselini yeni sekmede aç"
               data-testid="admin-review-image"
             >
-              <img src={src} alt="Yorum görseli" className="w-full h-full object-cover" loading="lazy" />
+              <img src={src} alt="Yorum görseli" className="w-full h-full object-cover" loading="eager" onError={e => { (e.target as HTMLImageElement).closest('a')?.remove(); }} />
             </a>
           ))}
         </div>

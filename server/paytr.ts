@@ -16,6 +16,24 @@ async function getMerchantSalt(): Promise<string> {
   return (await storage.getSiteSetting('paytr_merchant_salt')) || '';
 }
 
+/** Yapılandırılmış maksimum taksit sayısı. 0 = sınırsız (PayTR varsayılanı). */
+export async function getPaytrMaxInstallment(): Promise<number> {
+  const val = await storage.getSiteSetting('paytr_max_installment');
+  return parseInt(val || '0', 10) || 0;
+}
+
+/**
+ * Verilen maksimum taksit sayısına göre ürün sayfasında gösterilecek
+ * standart taksit sayıları listesini döndürür.
+ * 0 → sınırsız olarak yorumlanır (12'ye kadar tüm standart seçenekler).
+ */
+const STANDARD_COUNTS = [1, 2, 3, 6, 9, 12];
+export function getInstallmentCounts(maxInstallment: number): number[] {
+  const max = maxInstallment === 0 ? 12 : maxInstallment;
+  if (max === 1) return [1];
+  return STANDARD_COUNTS.filter(n => n <= max);
+}
+
 export async function isPaytrConfigured(): Promise<boolean> {
   const [id, key, salt] = await Promise.all([getMerchantId(), getMerchantKey(), getMerchantSalt()]);
   return Boolean(id && key && salt);
@@ -53,8 +71,9 @@ export async function createPaytrIframeToken(req: PaytrTokenRequest): Promise<Pa
 
   const paymentAmount = Math.round(req.amountTl * 100); // kuruş
   const userBasket = Buffer.from(JSON.stringify(req.basket), 'utf8').toString('base64');
-  const noInstallment = '0';
-  const maxInstallment = '0';
+  const configuredMax = await getPaytrMaxInstallment();
+  const noInstallment = configuredMax === 1 ? '1' : '0';
+  const maxInstallment = configuredMax <= 1 ? '0' : String(configuredMax);
   const currency = 'TL';
   const testMode = '0'; // LIVE
 

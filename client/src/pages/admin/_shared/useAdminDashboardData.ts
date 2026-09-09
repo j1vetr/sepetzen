@@ -18,18 +18,16 @@ export function useAdminDashboardData({
 }: UseAdminDashboardDataOptions) {
   const queryClient = useQueryClient();
   const isDashboard = activeTab === 'dashboard';
-  const needsProducts = isDashboard || activeTab === 'products' || activeTab === 'wholesale';
+  const needsProducts = isDashboard || activeTab === 'products';
   const needsInventory =
     isDashboard ||
     activeTab === 'products' ||
-    activeTab === 'inventory' ||
-    activeTab === 'wholesale';
+    activeTab === 'inventory';
   const needsCategories = [
     'products',
     'categories',
     'menu',
     'marketplaces',
-    'wholesale',
   ].includes(activeTab);
   const needsBrands = activeTab === 'products' || activeTab === 'brands';
   const needsOrders = isDashboard;

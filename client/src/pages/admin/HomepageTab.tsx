@@ -3,6 +3,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import {
   Loader2, Plus, Trash2, ChevronUp, ChevronDown, Save, Upload,
   Image as ImageIcon, Truck, ShieldCheck, Star, Eye, EyeOff, Video, AlertTriangle,
+  Search, X, FolderOpen, Package,
 } from 'lucide-react';
 import {
   DEFAULT_HOMEPAGE_CONTENT,
@@ -12,6 +13,8 @@ import {
   type HeroSlide,
   type VideoCard,
   type TrustItem,
+  type PartnerItem,
+  type ShowcaseItem,
 } from '@shared/homepage';
 
 const TRUST_ICON_OPTIONS = [
@@ -43,6 +46,30 @@ export default function HomepageTab() {
   const [uploadingIndex, setUploadingIndex] = useState<number | null>(null);
   const [uploadingVideo, setUploadingVideo] = useState<number | null>(null);
   const videoFileRefs = useRef<(HTMLInputElement | null)[]>([]);
+  const [showcaseSearch, setShowcaseSearch] = useState('');
+  const [showcaseDropdown, setShowcaseDropdown] = useState(false);
+  const [heroSearch, setHeroSearch] = useState('');
+  const [heroDropdown, setHeroDropdown] = useState(false);
+
+  const { data: allProducts = [] } = useQuery<any[]>({
+    queryKey: ['admin', 'products', 'showcase-picker'],
+    queryFn: async () => {
+      const res = await fetch('/api/products?limit=500', { credentials: 'include' });
+      if (!res.ok) return [];
+      return res.json();
+    },
+    staleTime: 60_000,
+  });
+
+  const { data: allCategories = [] } = useQuery<any[]>({
+    queryKey: ['categories'],
+    queryFn: async () => {
+      const res = await fetch('/api/categories', { credentials: 'include' });
+      if (!res.ok) return [];
+      return res.json();
+    },
+    staleTime: 60_000,
+  });
 
   const { data, isLoading } = useQuery<HomepageContent>({
     queryKey: ['admin', 'homepage-content'],
@@ -158,6 +185,27 @@ export default function HomepageTab() {
     const items = [...content.trustItems];
     items[i] = { ...items[i], ...patch };
     update({ trustItems: items });
+  };
+  const setPartner = (i: number, patch: Partial<PartnerItem>) => {
+    const items = [...content.partnerStrip.items];
+    items[i] = { ...items[i], ...patch };
+    update({ partnerStrip: { ...content.partnerStrip, items } });
+  };
+  const [uploadingPartnerLogo, setUploadingPartnerLogo] = useState<number | null>(null);
+  const uploadPartnerLogo = async (index: number, file: File) => {
+    setUploadingPartnerLogo(index);
+    try {
+      const fd = new FormData();
+      fd.append('images', file);
+      const res = await fetch('/api/admin/upload/branding', { method: 'POST', body: fd, credentials: 'include' });
+      const data = await res.json();
+      if (!res.ok || !data.urls?.[0]) throw new Error(data.error || 'Yükleme başarısız');
+      setPartner(index, { logoUrl: data.urls[0] });
+    } catch (e) {
+      alert(e instanceof Error ? e.message : 'Logo yüklenemedi');
+    } finally {
+      setUploadingPartnerLogo(null);
+    }
   };
   const visibleSectionIds = new Set(content.sectionOrder.filter((section) => section.isActive).map((section) => section.id));
   const homepageQualityIssues = [
@@ -438,6 +486,406 @@ export default function HomepageTab() {
           </button>
         </div>
       </SectionCard>
+
+      {/* ── Partners Strip ── */}
+      <SectionCard title="Marka ve Bayilikler Şeridi" desc="Ana sayfada kayan marka / bayi logoları şeridi">
+        {/* Başlık + aktif toggle */}
+        <div className="flex flex-col sm:flex-row gap-3 sm:items-end">
+          <div className="flex-1">
+            <label className={labelCls}>Bölüm Başlığı</label>
+            <input
+              className={inputCls}
+              value={content.partnerStrip.title}
+              onChange={e => update({ partnerStrip: { ...content.partnerStrip, title: e.target.value } })}
+              placeholder="Markalar ve Bayilikler"
+            />
+          </div>
+          <button
+            onClick={() => update({ partnerStrip: { ...content.partnerStrip, isActive: !content.partnerStrip.isActive } })}
+            className={`shrink-0 flex items-center gap-1.5 px-3 py-2 rounded-lg text-sm font-medium ${content.partnerStrip.isActive ? 'bg-emerald-100 text-emerald-700' : 'bg-neutral-100 text-neutral-500'}`}
+          >
+            {content.partnerStrip.isActive ? <Eye className="w-4 h-4" /> : <EyeOff className="w-4 h-4" />}
+            {content.partnerStrip.isActive ? 'Aktif' : 'Pasif'}
+          </button>
+        </div>
+
+        {/* Marka listesi */}
+        <div className="space-y-3">
+          {content.partnerStrip.items.map((item, i) => (
+            <div key={i} className="bg-white border border-neutral-200 rounded-lg p-4 flex flex-col sm:flex-row gap-3 sm:items-end">
+              {/* Logo */}
+              <div className="shrink-0">
+                <label className={labelCls}>Logo</label>
+                <label className="flex items-center gap-2 cursor-pointer">
+                  <div className="w-16 h-10 border border-neutral-200 rounded bg-neutral-50 flex items-center justify-center overflow-hidden">
+                    {item.logoUrl
+                      ? <img src={item.logoUrl} alt="" className="max-w-full max-h-full object-contain" />
+                      : <ImageIcon className="w-4 h-4 text-neutral-300" />
+                    }
+                  </div>
+                  <input
+                    type="file"
+                    accept="image/*"
+                    className="hidden"
+                    onChange={e => { const f = e.target.files?.[0]; if (f) uploadPartnerLogo(i, f); e.target.value = ''; }}
+                  />
+                  <span className="text-xs text-neutral-500 hover:text-neutral-800">
+                    {uploadingPartnerLogo === i ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : 'Yükle'}
+                  </span>
+                </label>
+              </div>
+
+              {/* İsim */}
+              <div className="flex-1">
+                <label className={labelCls}>Marka Adı</label>
+                <input
+                  className={inputCls}
+                  value={item.name}
+                  onChange={e => setPartner(i, { name: e.target.value })}
+                  placeholder="Marka Adı"
+                />
+              </div>
+
+              {/* Link */}
+              <div className="flex-1">
+                <label className={labelCls}>Bağlantı (opsiyonel)</label>
+                <input
+                  className={inputCls}
+                  value={item.href}
+                  onChange={e => setPartner(i, { href: e.target.value })}
+                  placeholder="/marka/ornek veya https://..."
+                />
+              </div>
+
+              {/* Aktif + sil */}
+              <div className="flex items-center gap-2 shrink-0">
+                <button
+                  onClick={() => setPartner(i, { isActive: !item.isActive })}
+                  className={`px-2.5 py-1.5 rounded text-xs font-medium ${item.isActive ? 'bg-emerald-100 text-emerald-700' : 'bg-neutral-100 text-neutral-500'}`}
+                >
+                  {item.isActive ? 'Aktif' : 'Pasif'}
+                </button>
+                <button
+                  onClick={() => {
+                    if (confirm('Bu marka silinsin mi?')) {
+                      const items = content.partnerStrip.items.filter((_, x) => x !== i);
+                      update({ partnerStrip: { ...content.partnerStrip, items } });
+                    }
+                  }}
+                  className="p-1.5 hover:bg-red-50 rounded text-neutral-400 hover:text-red-500"
+                >
+                  <Trash2 className="w-4 h-4" />
+                </button>
+              </div>
+            </div>
+          ))}
+
+          <button
+            onClick={() => update({ partnerStrip: { ...content.partnerStrip, items: [...content.partnerStrip.items, { logoUrl: '', name: '', href: '', isActive: true }] } })}
+            className="flex items-center gap-2 px-4 py-2 border border-dashed border-neutral-300 rounded-lg text-sm text-neutral-600 hover:border-neutral-400 hover:text-neutral-900 transition-colors"
+          >
+            <Plus className="w-4 h-4" /> Marka Ekle
+          </button>
+        </div>
+      </SectionCard>
+
+      {/* ── Hero Ürün Şeridi ── */}
+      {(() => {
+        const hm = content.heroMarquee ?? { isActive: false, items: [] };
+        const setHero = (patch: Partial<typeof hm>) =>
+          update({ heroMarquee: { ...hm, ...patch } });
+        const addItem = (type: 'product' | 'category', id: string) => {
+          if (hm.items.some(i => i.type === type && i.id === id)) return;
+          setHero({ items: [...hm.items, { type, id, isActive: true }] });
+          setHeroSearch('');
+          setHeroDropdown(false);
+        };
+        const removeItem = (idx: number) =>
+          setHero({ items: hm.items.filter((_, i) => i !== idx) });
+
+        const q = heroSearch.toLowerCase().trim();
+        const catResults = q ? allCategories.filter((c: any) => c.name.toLowerCase().includes(q)).slice(0, 5) : [];
+        const prodResults = q ? allProducts.filter((p: any) => p.name.toLowerCase().includes(q)).slice(0, 5) : [];
+        const hasResults = catResults.length > 0 || prodResults.length > 0;
+
+        const catName = (id: string) => allCategories.find((c: any) => c.id === id)?.name ?? id;
+        const prodName = (id: string) => allProducts.find((p: any) => p.id === id)?.name ?? id;
+        const catImage = (id: string) => allCategories.find((c: any) => c.id === id)?.image ?? null;
+        const prodImage = (id: string) => { const imgs = allProducts.find((p: any) => p.id === id)?.images; return Array.isArray(imgs) ? imgs[0] ?? null : null; };
+
+        return (
+          <SectionCard
+            title="Hero Ürün Şeridi"
+            desc="Hero slaydının altında akan ürün şeridinde hangi kategori veya ürünlerin görüneceğini seçin. Boş bırakılırsa tüm ürünler rastgele gösterilir."
+          >
+            <div className="flex items-center justify-between mb-2">
+              <span className="text-sm font-medium text-neutral-700">Özel seçim aktif</span>
+              <button
+                onClick={() => setHero({ isActive: !hm.isActive })}
+                className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${hm.isActive ? 'bg-neutral-900' : 'bg-neutral-200'}`}
+                data-testid="toggle-hero-marquee-active"
+              >
+                <span className={`inline-block h-4 w-4 transform rounded-full bg-white shadow transition-transform ${hm.isActive ? 'translate-x-6' : 'translate-x-1'}`} />
+              </button>
+            </div>
+            {!hm.isActive && (
+              <p className="text-xs text-neutral-400 bg-neutral-50 rounded-lg p-3">
+                Kapalıyken şerit, tüm ürünleri otomatik olarak gösterir. Açıkken aşağıdan seçtiğiniz kategori veya ürünler gösterilir.
+              </p>
+            )}
+
+            <div className="relative">
+              <div className="flex items-center gap-2 border border-neutral-200 rounded-lg px-3 bg-white">
+                <Search className="w-4 h-4 text-neutral-400 shrink-0" />
+                <input
+                  type="text"
+                  placeholder="Kategori veya ürün adı yaz..."
+                  value={heroSearch}
+                  onChange={e => { setHeroSearch(e.target.value); setHeroDropdown(true); }}
+                  onFocus={() => setHeroDropdown(true)}
+                  className="flex-1 py-2 text-sm bg-transparent outline-none text-neutral-900 placeholder:text-neutral-400"
+                  data-testid="input-hero-marquee-search"
+                />
+                {heroSearch && (
+                  <button onClick={() => { setHeroSearch(''); setHeroDropdown(false); }}>
+                    <X className="w-4 h-4 text-neutral-400 hover:text-neutral-700" />
+                  </button>
+                )}
+              </div>
+              {heroDropdown && hasResults && (
+                <div className="absolute top-full left-0 right-0 z-50 mt-1 bg-white border border-neutral-200 rounded-lg shadow-lg overflow-hidden max-h-64 overflow-y-auto">
+                  {catResults.length > 0 && (
+                    <>
+                      <div className="px-3 py-1.5 text-[10px] font-semibold tracking-wider text-neutral-400 uppercase bg-neutral-50 border-b border-neutral-100">Kategoriler</div>
+                      {catResults.map((c: any) => (
+                        <button key={c.id} onClick={() => addItem('category', c.id)}
+                          className="w-full flex items-center gap-3 px-3 py-2.5 hover:bg-neutral-50 transition-colors text-left">
+                          {c.image ? <img src={c.image} className="w-8 h-8 rounded object-cover shrink-0 bg-neutral-100" alt="" /> : <div className="w-8 h-8 rounded bg-neutral-100 flex items-center justify-center shrink-0"><FolderOpen className="w-4 h-4 text-neutral-400" /></div>}
+                          <span className="text-sm text-neutral-800 truncate">{c.name}</span>
+                          <span className="ml-auto text-[10px] text-neutral-400 shrink-0">Kategori</span>
+                        </button>
+                      ))}
+                    </>
+                  )}
+                  {prodResults.length > 0 && (
+                    <>
+                      <div className="px-3 py-1.5 text-[10px] font-semibold tracking-wider text-neutral-400 uppercase bg-neutral-50 border-b border-neutral-100">Ürünler</div>
+                      {prodResults.map((p: any) => {
+                        const img = Array.isArray(p.images) ? p.images[0] : null;
+                        return (
+                          <button key={p.id} onClick={() => addItem('product', p.id)}
+                            className="w-full flex items-center gap-3 px-3 py-2.5 hover:bg-neutral-50 transition-colors text-left">
+                            {img ? <img src={img} className="w-8 h-8 rounded object-cover shrink-0 bg-neutral-100" alt="" /> : <div className="w-8 h-8 rounded bg-neutral-100 flex items-center justify-center shrink-0"><Package className="w-4 h-4 text-neutral-400" /></div>}
+                            <span className="text-sm text-neutral-800 truncate">{p.name}</span>
+                            <span className="ml-auto text-[10px] text-neutral-400 shrink-0">Ürün</span>
+                          </button>
+                        );
+                      })}
+                    </>
+                  )}
+                </div>
+              )}
+            </div>
+
+            {hm.items.length > 0 ? (
+              <div className="space-y-1.5 mt-2">
+                {hm.items.map((item, idx) => {
+                  const thumb = item.type === 'category' ? catImage(item.id) : prodImage(item.id);
+                  const label = item.type === 'category' ? catName(item.id) : prodName(item.id);
+                  return (
+                    <div key={idx} className="flex items-center gap-3 bg-white border border-neutral-200 rounded-lg px-3 py-2">
+                      {thumb ? <img src={thumb} className="w-8 h-8 rounded object-cover shrink-0 bg-neutral-100" alt="" /> : <div className="w-8 h-8 rounded bg-neutral-100 flex items-center justify-center shrink-0">{item.type === 'category' ? <FolderOpen className="w-4 h-4 text-neutral-400" /> : <Package className="w-4 h-4 text-neutral-400" />}</div>}
+                      <span className="flex-1 text-sm text-neutral-800 truncate">{label}</span>
+                      <span className="text-[10px] text-neutral-400 shrink-0 mr-1">{item.type === 'category' ? 'Kategori' : 'Ürün'}</span>
+                      <button
+                        onClick={() => { const next = [...hm.items]; next[idx] = { ...next[idx], isActive: !next[idx].isActive }; setHero({ items: next }); }}
+                        className={`text-[11px] px-2 py-0.5 rounded font-medium ${item.isActive ? 'bg-emerald-100 text-emerald-700' : 'bg-neutral-100 text-neutral-500'}`}
+                      >
+                        {item.isActive ? 'Aktif' : 'Pasif'}
+                      </button>
+                      <button onClick={() => removeItem(idx)} className="p-1.5 hover:bg-red-50 rounded text-neutral-400 hover:text-red-500">
+                        <Trash2 className="w-4 h-4" />
+                      </button>
+                    </div>
+                  );
+                })}
+              </div>
+            ) : (
+              <p className="text-sm text-neutral-400 text-center py-4 border border-dashed border-neutral-200 rounded-lg">
+                Henüz eklenmedi. Yukarıdan arama yaparak kategori veya ürün ekleyin.
+              </p>
+            )}
+          </SectionCard>
+        );
+      })()}
+
+      {/* ── Showcase Marquee ── */}
+      {(() => {
+        const sm = content.showcaseMarquee;
+        const setShowcase = (patch: Partial<typeof sm>) =>
+          update({ showcaseMarquee: { ...sm, ...patch } });
+        const addItem = (type: 'product' | 'category', id: string, name: string) => {
+          if (sm.items.some(i => i.type === type && i.id === id)) return;
+          setShowcase({ items: [...sm.items, { type, id, isActive: true }] });
+          setShowcaseSearch('');
+          setShowcaseDropdown(false);
+        };
+        const removeItem = (idx: number) =>
+          setShowcase({ items: sm.items.filter((_, i) => i !== idx) });
+
+        // Search results: up to 5 categories + 5 products
+        const q = showcaseSearch.toLowerCase().trim();
+        const catResults = q
+          ? allCategories.filter((c: any) => c.name.toLowerCase().includes(q)).slice(0, 5)
+          : [];
+        const prodResults = q
+          ? allProducts.filter((p: any) => p.name.toLowerCase().includes(q)).slice(0, 5)
+          : [];
+        const hasResults = catResults.length > 0 || prodResults.length > 0;
+
+        // Name lookup helpers for display
+        const catName = (id: string) => allCategories.find((c: any) => c.id === id)?.name ?? id;
+        const prodName = (id: string) => allProducts.find((p: any) => p.id === id)?.name ?? id;
+        const catImage = (id: string) => allCategories.find((c: any) => c.id === id)?.image ?? null;
+        const prodImage = (id: string) => {
+          const imgs = allProducts.find((p: any) => p.id === id)?.images;
+          return Array.isArray(imgs) ? imgs[0] ?? null : null;
+        };
+
+        return (
+          <SectionCard
+            title="Vitrin Şeridi"
+            desc="Ana sayfada yalnızca ürün fotoğraflarının aktığı kayan bir vitrin. Fiyat veya metin gösterilmez — tıklayınca ürüne gidilir."
+          >
+            {/* Toggle */}
+            <div className="flex items-center justify-between mb-2">
+              <span className="text-sm font-medium text-neutral-700">Şerit aktif</span>
+              <button
+                onClick={() => setShowcase({ isActive: !sm.isActive })}
+                className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${sm.isActive ? 'bg-neutral-900' : 'bg-neutral-200'}`}
+                data-testid="toggle-showcase-active"
+              >
+                <span className={`inline-block h-4 w-4 transform rounded-full bg-white shadow transition-transform ${sm.isActive ? 'translate-x-6' : 'translate-x-1'}`} />
+              </button>
+            </div>
+
+            {/* Search and add */}
+            <div className="relative">
+              <div className="flex items-center gap-2 border border-neutral-200 rounded-lg px-3 bg-white">
+                <Search className="w-4 h-4 text-neutral-400 shrink-0" />
+                <input
+                  type="text"
+                  placeholder="Ürün veya kategori adı yaz..."
+                  value={showcaseSearch}
+                  onChange={e => { setShowcaseSearch(e.target.value); setShowcaseDropdown(true); }}
+                  onFocus={() => setShowcaseDropdown(true)}
+                  className="flex-1 py-2 text-sm bg-transparent outline-none text-neutral-900 placeholder:text-neutral-400"
+                  data-testid="input-showcase-search"
+                />
+                {showcaseSearch && (
+                  <button onClick={() => { setShowcaseSearch(''); setShowcaseDropdown(false); }}>
+                    <X className="w-4 h-4 text-neutral-400 hover:text-neutral-700" />
+                  </button>
+                )}
+              </div>
+
+              {/* Dropdown */}
+              {showcaseDropdown && hasResults && (
+                <div className="absolute top-full left-0 right-0 z-50 mt-1 bg-white border border-neutral-200 rounded-lg shadow-lg overflow-hidden max-h-64 overflow-y-auto">
+                  {catResults.length > 0 && (
+                    <>
+                      <div className="px-3 py-1.5 text-[10px] font-semibold tracking-wider text-neutral-400 uppercase bg-neutral-50 border-b border-neutral-100">
+                        Kategoriler
+                      </div>
+                      {catResults.map((c: any) => (
+                        <button
+                          key={c.id}
+                          onClick={() => addItem('category', c.id, c.name)}
+                          className="w-full flex items-center gap-3 px-3 py-2.5 hover:bg-neutral-50 transition-colors text-left"
+                        >
+                          {c.image
+                            ? <img src={c.image} className="w-8 h-8 rounded object-cover shrink-0 bg-neutral-100" alt="" />
+                            : <div className="w-8 h-8 rounded bg-neutral-100 flex items-center justify-center shrink-0"><FolderOpen className="w-4 h-4 text-neutral-400" /></div>
+                          }
+                          <span className="text-sm text-neutral-800 truncate">{c.name}</span>
+                          <span className="ml-auto text-[10px] text-neutral-400 shrink-0">Kategori</span>
+                        </button>
+                      ))}
+                    </>
+                  )}
+                  {prodResults.length > 0 && (
+                    <>
+                      <div className="px-3 py-1.5 text-[10px] font-semibold tracking-wider text-neutral-400 uppercase bg-neutral-50 border-b border-neutral-100">
+                        Ürünler
+                      </div>
+                      {prodResults.map((p: any) => {
+                        const img = Array.isArray(p.images) ? p.images[0] : null;
+                        return (
+                          <button
+                            key={p.id}
+                            onClick={() => addItem('product', p.id, p.name)}
+                            className="w-full flex items-center gap-3 px-3 py-2.5 hover:bg-neutral-50 transition-colors text-left"
+                          >
+                            {img
+                              ? <img src={img} className="w-8 h-8 rounded object-cover shrink-0 bg-neutral-100" alt="" />
+                              : <div className="w-8 h-8 rounded bg-neutral-100 flex items-center justify-center shrink-0"><Package className="w-4 h-4 text-neutral-400" /></div>
+                            }
+                            <span className="text-sm text-neutral-800 truncate">{p.name}</span>
+                            <span className="ml-auto text-[10px] text-neutral-400 shrink-0">Ürün</span>
+                          </button>
+                        );
+                      })}
+                    </>
+                  )}
+                </div>
+              )}
+            </div>
+
+            {/* Items list */}
+            {sm.items.length > 0 && (
+              <div className="space-y-1.5 mt-2">
+                {sm.items.map((item, idx) => {
+                  const thumb = item.type === 'category' ? catImage(item.id) : prodImage(item.id);
+                  const label = item.type === 'category' ? catName(item.id) : prodName(item.id);
+                  return (
+                    <div key={idx} className="flex items-center gap-3 bg-white border border-neutral-200 rounded-lg px-3 py-2">
+                      {thumb
+                        ? <img src={thumb} className="w-8 h-8 rounded object-cover shrink-0 bg-neutral-100" alt="" />
+                        : <div className="w-8 h-8 rounded bg-neutral-100 flex items-center justify-center shrink-0">
+                            {item.type === 'category' ? <FolderOpen className="w-4 h-4 text-neutral-400" /> : <Package className="w-4 h-4 text-neutral-400" />}
+                          </div>
+                      }
+                      <span className="flex-1 text-sm text-neutral-800 truncate">{label}</span>
+                      <span className="text-[10px] text-neutral-400 shrink-0 mr-1">
+                        {item.type === 'category' ? 'Kategori' : 'Ürün'}
+                      </span>
+                      <button
+                        onClick={() => {
+                          const next = [...sm.items];
+                          next[idx] = { ...next[idx], isActive: !next[idx].isActive };
+                          setShowcase({ items: next });
+                        }}
+                        className={`text-[11px] px-2 py-0.5 rounded font-medium ${item.isActive ? 'bg-emerald-100 text-emerald-700' : 'bg-neutral-100 text-neutral-500'}`}
+                      >
+                        {item.isActive ? 'Aktif' : 'Pasif'}
+                      </button>
+                      <button onClick={() => removeItem(idx)} className="p-1.5 hover:bg-red-50 rounded text-neutral-400 hover:text-red-500">
+                        <Trash2 className="w-4 h-4" />
+                      </button>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+
+            {sm.items.length === 0 && (
+              <p className="text-sm text-neutral-400 text-center py-4 border border-dashed border-neutral-200 rounded-lg">
+                Henüz ürün veya kategori eklenmedi. Yukarıdan arama yaparak ekleyebilirsiniz.
+              </p>
+            )}
+          </SectionCard>
+        );
+      })()}
 
       {/* ── Section Order ── */}
       <SectionCard title="Bölüm Sırası" desc="Ana sayfa bölümlerinin sırasını ve görünürlüğünü ayarlayın (hero her zaman en üsttedir)">

@@ -1,17 +1,20 @@
-import React, { useState, memo } from 'react';
-import { Heart, Loader2, ArrowRight, Play } from 'lucide-react';
+import React, { useState, memo, useRef, useEffect, useCallback } from 'react';
+import { Heart, Loader2, ArrowRight, Play, Volume2, VolumeX } from 'lucide-react';
+import { isYouTubeUrl, getYouTubeThumbnail } from '@/lib/youtube';
 
 function isVideoUrl(url: string): boolean {
   if (!url) return false;
   const lower = url.toLowerCase().split('?')[0];
   return lower.endsWith('.mp4') || lower.endsWith('.webm') || lower.endsWith('.mov');
 }
+
+
 import { motion } from 'framer-motion';
 import { Link } from 'wouter';
 import { useFavoriteIds, useToggleFavorite } from '@/hooks/useFavorites';
 import { QuickViewModal } from './QuickViewModal';
 import { FreeShippingBadge } from './FreeShippingBadge';
-import { getOriginalPrice } from '@/lib/discountPrice';
+import { getOriginalPrice, normalizeBadge } from '@/lib/discountPrice';
 import { useFreeShippingThreshold } from '@/hooks/useShippingSettings';
 import { isFreeShippingPromotion } from '@/lib/promotionBadge';
 import { isDiscountBadgeActive } from '@/lib/discountBadgeActive';
@@ -50,20 +53,80 @@ interface ProductCardProps {
 export const ProductCard = memo(function ProductCard({ product }: ProductCardProps) {
   const [isHovered, setIsHovered] = useState(false);
   const [quickViewOpen, setQuickViewOpen] = useState(false);
+  const videoRef = useRef<HTMLVideoElement>(null);
+  const scrubBarRef = useRef<HTMLDivElement>(null);
+  const longPressRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const [videoProgress, setVideoProgress] = useState(0);
+  const [isScrubbing, setIsScrubbing] = useState(false);
+  const [mobileScrubbingActive, setMobileScrubbingActive] = useState(false);
+
+  // muted prop React'te DOM mount sonrası dinamik güncellenmiyor;
+  // ref ile doğrudan DOM property'si set edilmesi gerekiyor.
+  useEffect(() => {
+    const el = videoRef.current;
+    if (!el) return;
+    el.muted = !isHovered;
+  }, [isHovered]);
+
+  // Hover'da video oynar, ayrılınca durur ve başa döner.
+  // autoPlay kaldırıldı — her kartta otomatik yükleme/oynatma
+  // bant genişliğini ve CPU'yu gereksiz tüketiyordu.
+  useEffect(() => {
+    const el = videoRef.current;
+    if (!el) return;
+    if (isHovered) {
+      el.play().catch(() => {});
+    } else {
+      el.pause();
+      el.currentTime = 0;
+    }
+  }, [isHovered]);
+
+  // Video süre takibi
+  useEffect(() => {
+    const el = videoRef.current;
+    if (!el) return;
+    const onTime = () => { if (el.duration) setVideoProgress(el.currentTime / el.duration); };
+    el.addEventListener('timeupdate', onTime);
+    return () => el.removeEventListener('timeupdate', onTime);
+  }, []);
+
+  const seekTo = useCallback((clientX: number) => {
+    const bar = scrubBarRef.current;
+    const el = videoRef.current;
+    if (!bar || !el || !el.duration) return;
+    const rect = bar.getBoundingClientRect();
+    const ratio = Math.max(0, Math.min(1, (clientX - rect.left) / rect.width));
+    el.currentTime = ratio * el.duration;
+    setVideoProgress(ratio);
+  }, []);
+
+  // Global fare hareketi (scrubbing sırasında)
+  useEffect(() => {
+    if (!isScrubbing) return;
+    const onMove = (e: MouseEvent) => seekTo(e.clientX);
+    const onUp = () => setIsScrubbing(false);
+    window.addEventListener('mousemove', onMove);
+    window.addEventListener('mouseup', onUp);
+    return () => { window.removeEventListener('mousemove', onMove); window.removeEventListener('mouseup', onUp); };
+  }, [isScrubbing, seekTo]);
   const { data: favoriteIds = [] } = useFavoriteIds();
   const { toggleFavorite, isLoading: isFavoriteLoading } = useToggleFavorite();
 
   const isLiked = favoriteIds.includes(product.id);
   const price = parseFloat(product.basePrice || '0') || 0;
-  const originalPrice = getOriginalPrice(price, product.discountBadge);
   const freeShippingThreshold = useFreeShippingThreshold();
+  const rawBadge = product.discountBadge ?? null;
+  const normalizedBadge = rawBadge ? normalizeBadge(rawBadge) : null;
   const visibleDiscountBadge =
-    !isFreeShippingPromotion(product.discountBadge) &&
-    isDiscountBadgeActive(product.discountBadge, product.discountBadgeStartDate, product.discountBadgeEndDate)
-      ? product.discountBadge
+    normalizedBadge &&
+    !isFreeShippingPromotion(normalizedBadge) &&
+    isDiscountBadgeActive(rawBadge, product.discountBadgeStartDate, product.discountBadgeEndDate)
+      ? normalizedBadge
       : null;
+  const originalPrice = getOriginalPrice(price, visibleDiscountBadge);
   const mainImage = product.images && product.images.length > 0
-    ? product.images[0]
+    ? (product.images.find(u => !/\.(mp4|webm|mov)(\?|$)/i.test(u)) ?? product.images[0])
     : 'https://images.unsplash.com/photo-1618354691373-d851c5c3a990?w=600&h=800&fit=crop';
 
   const totalStock = product.variants?.reduce((sum, v) => sum + (v.stock || 0), 0) ?? 0;
@@ -86,22 +149,109 @@ export const ProductCard = memo(function ProductCard({ product }: ProductCardPro
         >
           {/* Image container */}
           <div className="relative aspect-[3/4] overflow-hidden bg-[#151515]">
-            {isVideoUrl(mainImage) ? (
+            {isYouTubeUrl(mainImage) ? (
+              <>
+                <motion.img
+                  src={getYouTubeThumbnail(mainImage, 'hq')}
+                  alt={product.name}
+                  className="w-full h-full object-cover"
+                  loading="lazy"
+                  decoding="async"
+                  animate={{ scale: isHovered ? 1.06 : 1 }}
+                  transition={{ duration: 0.7, ease: [0.33, 1, 0.68, 1] }}
+                  data-testid={`img-product-${product.id}`}
+                />
+                <div className="absolute top-3 left-3 z-20 w-7 h-7 rounded-full bg-red-600 flex items-center justify-center shadow">
+                  <Play className="w-3 h-3 text-white fill-white ml-px" />
+                </div>
+              </>
+            ) : isVideoUrl(mainImage) ? (
               <>
                 <motion.video
+                  ref={videoRef}
                   src={mainImage}
                   className="w-full h-full object-cover"
                   muted
-                  autoPlay
+                  preload="metadata"
                   loop
                   playsInline
                   animate={{ scale: isHovered ? 1.06 : 1 }}
                   transition={{ duration: 0.7, ease: [0.33, 1, 0.68, 1] }}
                   data-testid={`img-product-${product.id}`}
+                  onTouchStart={() => {
+                    longPressRef.current = setTimeout(() => setMobileScrubbingActive(true), 380);
+                  }}
+                  onTouchMove={() => {
+                    if (longPressRef.current && !mobileScrubbingActive) {
+                      clearTimeout(longPressRef.current);
+                      longPressRef.current = null;
+                    }
+                  }}
+                  onTouchEnd={() => {
+                    if (longPressRef.current) { clearTimeout(longPressRef.current); longPressRef.current = null; }
+                  }}
                 />
-                <div className="absolute top-3 left-3 z-20 w-7 h-7 rounded-full bg-black/50 backdrop-blur-sm flex items-center justify-center">
-                  <Play className="w-3 h-3 text-white fill-white" />
-                </div>
+                {/* Ses göstergesi — hover'da mikrofon ikonu */}
+                <motion.div
+                  className="absolute top-3 left-3 z-20 w-7 h-7 rounded-full bg-black/50 backdrop-blur-sm flex items-center justify-center"
+                  animate={{ opacity: 1 }}
+                >
+                  {isHovered
+                    ? <Volume2 className="w-3.5 h-3.5 text-white" />
+                    : <VolumeX className="w-3.5 h-3.5 text-white/70" />
+                  }
+                </motion.div>
+
+                {/* Scrubber bar — masaüstünde hover'da, mobilde uzun basışta görünür */}
+                <motion.div
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: isHovered || mobileScrubbingActive ? 1 : 0 }}
+                  transition={{ duration: 0.18 }}
+                  className="absolute bottom-0 left-0 right-0 z-30 px-2 pb-2 pt-5"
+                  style={{ background: 'linear-gradient(to top, rgba(0,0,0,0.55) 0%, transparent 100%)' }}
+                >
+                  {/* Track */}
+                  <div
+                    ref={scrubBarRef}
+                    className="w-full relative cursor-pointer"
+                    style={{ height: 20, display: 'flex', alignItems: 'center' }}
+                    onMouseDown={(e) => {
+                      e.preventDefault();
+                      e.stopPropagation();
+                      setIsScrubbing(true);
+                      seekTo(e.clientX);
+                    }}
+                    onClick={(e) => e.preventDefault()}
+                    onTouchStart={(e) => {
+                      e.stopPropagation();
+                      setIsScrubbing(true);
+                      seekTo(e.touches[0].clientX);
+                    }}
+                    onTouchMove={(e) => {
+                      if (!isScrubbing) return;
+                      e.preventDefault();
+                      e.stopPropagation();
+                      seekTo(e.touches[0].clientX);
+                    }}
+                    onTouchEnd={(e) => {
+                      e.stopPropagation();
+                      setIsScrubbing(false);
+                      setMobileScrubbingActive(false);
+                    }}
+                  >
+                    <div className="w-full h-[3px] bg-white/25 rounded-full overflow-visible relative">
+                      <div
+                        className="absolute left-0 top-0 h-full bg-red-500 rounded-full"
+                        style={{ width: `${videoProgress * 100}%`, transition: isScrubbing ? 'none' : 'width 0.25s linear' }}
+                      />
+                      {/* Sürükleme topu */}
+                      <div
+                        className="absolute top-1/2 -translate-y-1/2 w-3 h-3 rounded-full bg-white shadow-md"
+                        style={{ left: `calc(${videoProgress * 100}% - 6px)`, transition: isScrubbing ? 'none' : 'left 0.25s linear' }}
+                      />
+                    </div>
+                  </div>
+                </motion.div>
               </>
             ) : (
               <motion.img
@@ -116,21 +266,21 @@ export const ProductCard = memo(function ProductCard({ product }: ProductCardPro
               />
             )}
 
-            {/* Out of stock overlay */}
+            {/* Tükendi badge — soft transparent, sağ üstte; tam overlay yok, Google indeksi korunur */}
             {isOutOfStock && (
-              <div className="absolute inset-0 bg-black/65 flex items-center justify-center">
-                <span className="text-[10px] font-semibold tracking-[0.2em] uppercase text-white/70 border border-white/25 px-3 py-1.5">
+              <div className="absolute top-3 right-3 z-10">
+                <span className="backdrop-blur-md bg-black/35 border border-white/20 text-white/85 text-[9px] font-semibold tracking-[0.18em] uppercase px-2.5 py-1 rounded-md shadow-sm">
                   Tükendi
                 </span>
               </div>
             )}
 
-            {/* Badges — sol üstte dikey yığın */}
+            {/* Badges — sol üstte dikey yığın; video/YT kartlarda play butonunun altından başlar */}
             {!isOutOfStock && (
-              <div className="absolute top-3 left-3 z-10 flex flex-col items-start gap-1.5">
+              <div className={`absolute left-3 z-10 flex flex-col items-start gap-1.5 ${(isYouTubeUrl(mainImage) || isVideoUrl(mainImage)) ? 'top-12' : 'top-3'}`}>
                 {visibleDiscountBadge && (
                   <span
-                    className="backdrop-blur-sm bg-red-600/70 text-white text-[10px] font-bold tracking-wider px-2.5 py-1 uppercase"
+                    className="backdrop-blur-md bg-red-600/55 border border-red-400/20 text-white text-[10px] font-bold tracking-wider px-2.5 py-1 uppercase rounded-md shadow-[0_2px_8px_rgba(220,38,38,0.35)]"
                     data-testid={`badge-discount-${product.id}`}
                   >
                     {visibleDiscountBadge}
@@ -230,17 +380,17 @@ export const ProductCard = memo(function ProductCard({ product }: ProductCardPro
             )}
 
             {/* Fiyat */}
-            <div className="flex items-center gap-2">
+            <div className="flex flex-col gap-0.5">
               {originalPrice && visibleDiscountBadge && (
                 <span
-                  className="text-xs text-white/35 line-through"
+                  className="text-[11px] text-white/35 line-through leading-none"
                   data-testid={`text-original-price-${product.id}`}
                 >
                   {originalPrice.toLocaleString('tr-TR', { maximumFractionDigits: 0 })} ₺
                 </span>
               )}
               <span
-                className={`text-sm font-semibold ${originalPrice && visibleDiscountBadge ? 'text-amber-400' : 'text-white'}`}
+                className={`text-sm font-semibold leading-none ${originalPrice && visibleDiscountBadge ? 'text-amber-400' : 'text-white'}`}
                 data-testid={`text-price-${product.id}`}
               >
                 {price.toLocaleString('tr-TR')} ₺

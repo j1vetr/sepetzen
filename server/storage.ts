@@ -227,9 +227,10 @@ export interface IStorage {
     sizes?: string[];
     colors?: string[];
     sort?: 'price_asc' | 'price_desc' | 'newest' | 'popular';
+    showOutOfStock?: boolean;
   }): Promise<Product[]>;
   getProduct(id: string): Promise<Product | undefined>;
-  getProductBySlug(slug: string): Promise<Product | undefined>;
+  getProductBySlug(slug: string, showOutOfStock?: boolean): Promise<Product | undefined>;
   createProduct(product: InsertProduct): Promise<Product>;
   updateProduct(id: string, product: Partial<InsertProduct>): Promise<Product | undefined>;
   deleteProduct(id: string): Promise<void>;
@@ -759,6 +760,7 @@ export class DbStorage implements IStorage {
     sizes?: string[];
     colors?: string[];
     sort?: 'price_asc' | 'price_desc' | 'newest' | 'popular';
+    showOutOfStock?: boolean;
   }): Promise<Product[]> {
     const conditions = [eq(products.isActive, true)];
 
@@ -836,14 +838,17 @@ export class DbStorage implements IStorage {
     }
 
     // Stoksuz ürünleri public listelerden gizle (en az 1 aktif variant'ta stok > 0).
-    // Trendyol senkronu sonrası stok dolarsa otomatik geri görünür.
-    const inStockRows = await db
-      .select({ productId: productVariants.productId })
-      .from(productVariants)
-      .where(and(eq(productVariants.isActive, true), gt(productVariants.stock, 0)))
-      .groupBy(productVariants.productId);
-    const inStockSet = new Set(inStockRows.map(r => r.productId));
-    result = result.filter(p => inStockSet.has(p.id));
+    // show_outofstock_products ayarı açıksa bu filtre atlanır; ürün listede kalır,
+    // kart üzerinde "Tükendi" etiketiyle işaretlenir.
+    if (!filters?.showOutOfStock) {
+      const inStockRows = await db
+        .select({ productId: productVariants.productId })
+        .from(productVariants)
+        .where(and(eq(productVariants.isActive, true), gt(productVariants.stock, 0)))
+        .groupBy(productVariants.productId);
+      const inStockSet = new Set(inStockRows.map(r => r.productId));
+      result = result.filter(p => inStockSet.has(p.id));
+    }
 
     return result;
   }
@@ -853,16 +858,18 @@ export class DbStorage implements IStorage {
     return product;
   }
 
-  async getProductBySlug(slug: string): Promise<Product | undefined> {
+  async getProductBySlug(slug: string, showOutOfStock?: boolean): Promise<Product | undefined> {
     const [product] = await db.select().from(products).where(eq(products.slug, slug));
     if (!product) return undefined;
-    // Stoksuz ürünün public detay sayfası da açılmasın (admin ayrı endpoint kullanır).
-    const [agg] = await db
-      .select({ total: sum(productVariants.stock) })
-      .from(productVariants)
-      .where(and(eq(productVariants.productId, product.id), eq(productVariants.isActive, true)));
-    const total = Number(agg?.total ?? 0);
-    if (!Number.isFinite(total) || total <= 0) return undefined;
+    // showOutOfStock ayarı açıksa stoksuz ürün detay sayfası da açılabilir.
+    if (!showOutOfStock) {
+      const [agg] = await db
+        .select({ total: sum(productVariants.stock) })
+        .from(productVariants)
+        .where(and(eq(productVariants.productId, product.id), eq(productVariants.isActive, true)));
+      const total = Number(agg?.total ?? 0);
+      if (!Number.isFinite(total) || total <= 0) return undefined;
+    }
     return product;
   }
 
@@ -1831,7 +1838,11 @@ export class DbStorage implements IStorage {
       userEmail: users.email,
       productName: products.name,
       productSlug: products.slug,
-      productImage: sql<string | null>`(${products.images}->>0)`,
+      productImage: sql<string | null>`(
+        SELECT elem FROM jsonb_array_elements_text(${products.images}) AS elem
+        WHERE elem NOT SIMILAR TO '%(\.mp4|\.webm|\.mov)%'
+        LIMIT 1
+      )`,
     };
 
     let whereClause: SQL | undefined;

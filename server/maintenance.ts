@@ -29,6 +29,54 @@ export async function setMaintenanceMode(enabled: boolean): Promise<void> {
   cachedAt = Date.now();
 }
 
+export interface MaintenanceContent {
+  title: string;
+  logoUrl: string;
+  heading: string;
+  description: string;
+  instagramHandle: string;
+}
+
+const DEFAULT_CONTENT: MaintenanceContent = {
+  title: "Bakım Modu - Sepetzen",
+  logoUrl: "",
+  heading: "Yakında yeni tasarımımız ile sizlerle birlikteyiz.",
+  description: "Sitemiz şu anda bakımda. Daha iyi bir deneyim için çalışıyoruz, kısa süre içinde yeniden hizmetinizdeyiz.",
+  instagramHandle: "",
+};
+
+export async function getMaintenanceContent(): Promise<MaintenanceContent> {
+  try {
+    const [title, logoUrl, heading, description, instagramHandle] = await Promise.all([
+      storage.getSiteSetting("maintenance_title"),
+      storage.getSiteSetting("maintenance_logo_url"),
+      storage.getSiteSetting("maintenance_heading"),
+      storage.getSiteSetting("maintenance_description"),
+      storage.getSiteSetting("maintenance_instagram"),
+    ]);
+    return {
+      title: title || DEFAULT_CONTENT.title,
+      logoUrl: logoUrl || DEFAULT_CONTENT.logoUrl,
+      heading: heading || DEFAULT_CONTENT.heading,
+      description: description || DEFAULT_CONTENT.description,
+      instagramHandle: instagramHandle || DEFAULT_CONTENT.instagramHandle,
+    };
+  } catch {
+    return DEFAULT_CONTENT;
+  }
+
+}
+
+export async function setMaintenanceContent(content: Partial<MaintenanceContent>): Promise<void> {
+  const ops: Promise<void>[] = [];
+  if (content.title !== undefined)           ops.push(storage.setSiteSetting("maintenance_title",       content.title));
+  if (content.logoUrl !== undefined)         ops.push(storage.setSiteSetting("maintenance_logo_url",    content.logoUrl));
+  if (content.heading !== undefined)         ops.push(storage.setSiteSetting("maintenance_heading",     content.heading));
+  if (content.description !== undefined)     ops.push(storage.setSiteSetting("maintenance_description", content.description));
+  if (content.instagramHandle !== undefined) ops.push(storage.setSiteSetting("maintenance_instagram",   content.instagramHandle));
+  await Promise.all(ops);
+}
+
 const ALLOW_PREFIXES = [
   "/admin",
   "/toov-admin",
@@ -80,24 +128,47 @@ export function maintenanceMiddleware() {
     }
 
     res.setHeader("Content-Type", "text/html; charset=utf-8");
-    return res.send(renderMaintenancePage());
+    const content = await getMaintenanceContent();
+    return res.send(renderMaintenancePage(content));
   };
 }
 
-function renderMaintenancePage(): string {
+function esc(str: string): string {
+  return str.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
+}
+
+function renderMaintenancePage(c: MaintenanceContent): string {
+  const igHandle = c.instagramHandle.replace(/^@/, "").trim();
+  const igUrl = igHandle ? `https://www.instagram.com/${igHandle}` : "";
+  const logoHtml = c.logoUrl
+    ? `<img class="logo" src="${esc(c.logoUrl)}" alt="${esc(c.title)}" />`
+    : "";
+  const footerHtml = igHandle
+    ? `<footer>
+    <a class="ig" href="${esc(igUrl)}" target="_blank" rel="noopener noreferrer">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+        <rect x="2" y="2" width="20" height="20" rx="5" ry="5"></rect>
+        <path d="M16 11.37A4 4 0 1 1 12.63 8 4 4 0 0 1 16 11.37z"></path>
+        <line x1="17.5" y1="6.5" x2="17.51" y2="6.5"></line>
+      </svg>
+      <span>@${esc(igHandle)}</span>
+    </a>
+  </footer>`
+    : "";
+
   return `<!doctype html>
 <html lang="tr">
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
 <meta name="robots" content="noindex,nofollow" />
-<title>Bakım Modu - Polen Stone</title>
+<title>${esc(c.title)}</title>
 <style>
   *, *::before, *::after { box-sizing: border-box; }
   html, body { height: 100%; margin: 0; padding: 0; }
   body {
-    background: #ffffff;
-    color: #111111;
+    background: #0a0a0a;
+    color: #f5f5f5;
     font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Inter, Roboto, "Helvetica Neue", Arial, sans-serif;
     -webkit-font-smoothing: antialiased;
     display: flex;
@@ -114,27 +185,27 @@ function renderMaintenancePage(): string {
     text-align: center;
   }
   .logo {
-    max-width: 240px;
+    max-width: 200px;
     width: 100%;
     height: auto;
-    margin-bottom: 56px;
+    margin-bottom: 48px;
     display: block;
   }
   h1 {
-    font-size: clamp(22px, 4vw, 30px);
+    font-size: clamp(20px, 3.5vw, 28px);
     font-weight: 500;
     letter-spacing: -0.01em;
-    color: #111111;
+    color: #f5f5f5;
     margin: 0 0 16px 0;
     line-height: 1.35;
     max-width: 640px;
   }
   p {
-    font-size: clamp(14px, 2.4vw, 16px);
-    color: #6b7280;
-    max-width: 520px;
+    font-size: clamp(14px, 2.2vw, 16px);
+    color: rgba(255,255,255,0.45);
+    max-width: 480px;
     margin: 0;
-    line-height: 1.6;
+    line-height: 1.65;
   }
   footer {
     padding: 32px 24px;
@@ -146,35 +217,26 @@ function renderMaintenancePage(): string {
     display: inline-flex;
     align-items: center;
     gap: 10px;
-    color: #111111;
+    color: rgba(255,255,255,0.65);
     text-decoration: none;
     font-size: 14px;
     font-weight: 500;
     padding: 10px 18px;
-    border: 1px solid #e5e7eb;
+    border: 1px solid rgba(255,255,255,0.12);
     border-radius: 999px;
     transition: background 0.15s ease, border-color 0.15s ease;
   }
-  .ig:hover { background: #f9fafb; border-color: #d1d5db; }
+  .ig:hover { background: rgba(255,255,255,0.06); border-color: rgba(255,255,255,0.22); }
   .ig svg { width: 18px; height: 18px; }
 </style>
 </head>
 <body>
   <main>
-    <img class="logo" src="/uploads/branding/polen-logo.png" alt="Polen Stone" />
-    <h1>Yakında yeni tasarımımız ile sizlerle birlikteyiz.</h1>
-    <p>Sitemiz şu anda bakımda. Daha iyi bir deneyim için çalışıyoruz, kısa süre içinde yeniden hizmetinizdeyiz.</p>
+    ${logoHtml}
+    <h1>${esc(c.heading)}</h1>
+    <p>${esc(c.description)}</p>
   </main>
-  <footer>
-    <a class="ig" href="https://www.instagram.com/polenstone" target="_blank" rel="noopener noreferrer">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-        <rect x="2" y="2" width="20" height="20" rx="5" ry="5"></rect>
-        <path d="M16 11.37A4 4 0 1 1 12.63 8 4 4 0 0 1 16 11.37z"></path>
-        <line x1="17.5" y1="6.5" x2="17.51" y2="6.5"></line>
-      </svg>
-      <span>@polenstone</span>
-    </a>
-  </footer>
+  ${footerHtml}
 </body>
 </html>`;
 }

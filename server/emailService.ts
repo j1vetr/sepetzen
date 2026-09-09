@@ -52,6 +52,7 @@ async function getSmtpConfig(): Promise<SmtpConfig | null> {
 }
 
 async function createTransporter() {
+  await refreshEmailBranding();   // always sync branding before generating HTML
   const config = await getSmtpConfig();
   if (!config) return null;
   
@@ -72,7 +73,7 @@ async function createTransporter() {
 // Marka: Sepetzen — koyu yeşil (#2D5A27) vurgu, açık krem zemin.
 // ─────────────────────────────────────────────────────────────────────────────
 
-const BRAND = {
+let BRAND = {
   primary: '#2D5A27',
   primaryDeep: '#1f3e1c',
   ink: '#0f1a0e',
@@ -84,7 +85,7 @@ const BRAND = {
   bg: '#e8f2e7',
 };
 
-const CONTACT = {
+let CONTACT = {
   phoneDisplay: '0536 630 11 38',
   phoneTel: '+905366301138',
   email: 'sepetzen@gmail.com',
@@ -95,6 +96,52 @@ const CONTACT = {
   whatsapp: 'https://wa.me/905366301138',
   instagram: 'https://www.instagram.com/sepetzen',
 };
+
+// ─── Admin-configured email brand (refreshed before every send) ────────────
+let EMAIL_BRAND_NAME = 'SEPETZEN';
+let EMAIL_BRAND_TAGLINE = 'Kamp, Outdoor & Bıçak';
+
+async function refreshEmailBranding(): Promise<void> {
+  try {
+    const s = await storage.getSiteSettings();
+
+    // Primary color ─ update BRAND palette if set
+    if (s.email_primary_color) {
+      BRAND = {
+        ...BRAND,
+        primary: s.email_primary_color,
+        primaryDeep: s.email_primary_color,
+        border: s.email_primary_color + '55',
+        borderSoft: s.email_primary_color + '33',
+        card: '#f8f8f8',
+      };
+    }
+
+    // Contact overrides
+    CONTACT = {
+      ...CONTACT,
+      email:        s.email_contact_email  || CONTACT.email,
+      phoneDisplay: s.email_phone_display  || CONTACT.phoneDisplay,
+      phoneTel:     s.email_phone_tel      || CONTACT.phoneTel,
+      addressLine1: s.email_address_line1  || CONTACT.addressLine1,
+      addressLine2: s.email_address_line2  || CONTACT.addressLine2,
+      siteUrl:      s.email_site_url       || CONTACT.siteUrl,
+      site:         (s.email_site_url || CONTACT.siteUrl).replace(/^https?:\/\//, ''),
+    };
+
+    EMAIL_BRAND_NAME    = s.email_brand_name    || 'SEPETZEN';
+    EMAIL_BRAND_TAGLINE = s.email_brand_tagline || 'Kamp, Outdoor & Bıçak';
+
+    // Logo URL
+    if (s.email_logo_url) {
+      LOGO_URL = s.email_logo_url;
+    } else {
+      LOGO_URL = `${CONTACT.siteUrl}/email-logo.png`;
+    }
+  } catch {
+    // silently fall back to defaults
+  }
+}
 
 function escapeHtml(s: string | number | undefined | null): string {
   if (s === null || s === undefined) return '';
@@ -203,7 +250,7 @@ function sectionTitle(text: string): string {
   return `<p style="margin:28px 0 10px 0;font-family:Helvetica,Arial,sans-serif;color:${BRAND.muted};font-size:11px;font-weight:700;letter-spacing:2px;text-transform:uppercase;">${text}</p>`;
 }
 
-const LOGO_URL = `${CONTACT.siteUrl}/email-logo.png`;
+let LOGO_URL = `${CONTACT.siteUrl}/email-logo.png`;
 
 function brandHeader(): string {
   // Görsel destekleyen istemcilerde logo, blok eden istemcilerde alt-text + kalın
@@ -223,12 +270,12 @@ function brandHeader(): string {
         </tr>
         <tr>
           <td align="center" style="padding-top:14px;font-family:'Helvetica Neue',Helvetica,Arial,sans-serif;color:${BRAND.ink};font-size:20px;font-weight:800;letter-spacing:5px;line-height:1;">
-            <a href="${CONTACT.siteUrl}" style="color:${BRAND.ink};text-decoration:none;">SEPETZEN</a>
+            <a href="${CONTACT.siteUrl}" style="color:${BRAND.ink};text-decoration:none;">${EMAIL_BRAND_NAME}</a>
           </td>
         </tr>
         <tr>
           <td align="center" style="padding-top:6px;font-family:Helvetica,Arial,sans-serif;color:${BRAND.muted};font-size:10px;font-weight:600;letter-spacing:3px;text-transform:uppercase;">
-            Kamp, Outdoor & Bıçak
+            ${EMAIL_BRAND_TAGLINE}
           </td>
         </tr>
       </table>
@@ -256,7 +303,7 @@ function brandFooter(opts?: { unsubscribeEmail?: string }): string {
       <table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%">
         <tr>
           <td align="center" style="font-size:14px;font-weight:700;letter-spacing:3px;color:#ffffff;padding-bottom:4px;">
-            SEPETZEN
+            ${EMAIL_BRAND_NAME}
           </td>
         </tr>
         <tr>
@@ -279,7 +326,7 @@ function brandFooter(opts?: { unsubscribeEmail?: string }): string {
         <tr>
           <td align="center" style="padding-top:18px;border-top:1px solid rgba(255,255,255,0.08);">
             <p style="margin:0;font-size:11px;color:rgba(255,255,255,0.4);line-height:1.6;">
-              © ${new Date().getFullYear()} Sepetzen. Tüm hakları saklıdır.<br>
+              © ${new Date().getFullYear()} ${EMAIL_BRAND_NAME}. Tüm hakları saklıdır.<br>
               Bu e-postayı, hesabınızla ilgili bir işlem nedeniyle aldınız.
             </p>
           </td>
@@ -915,7 +962,7 @@ export async function sendOrderConfirmationEmail(order: Order, items: OrderItem[
         if (!item.productId) return item;
         try {
           const product = await storage.getProduct(item.productId);
-          const firstImage = product?.images && product.images.length > 0 ? product.images[0] : null;
+          const firstImage = product?.images?.find(u => !/\.(mp4|webm|mov)(\?|$)/i.test(u)) ?? null;
           return { ...item, productImage: firstImage };
         } catch {
           return item;
@@ -1248,7 +1295,7 @@ export async function sendBankTransferPendingEmail(order: Order, items: OrderIte
         if (!item.productId) return item;
         try {
           const product = await storage.getProduct(item.productId);
-          const firstImage = product?.images && product.images.length > 0 ? product.images[0] : null;
+          const firstImage = product?.images?.find(u => !/\.(mp4|webm|mov)(\?|$)/i.test(u)) ?? null;
           return { ...item, productImage: firstImage };
         } catch {
           return item;

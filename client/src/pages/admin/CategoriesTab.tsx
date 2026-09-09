@@ -10,7 +10,9 @@ import {
   FolderTree,
   Loader2,
   CornerDownRight,
+  ChevronDown,
 } from 'lucide-react';
+import { SearchInput } from './_ui/AdminUI';
 import type { Category } from './_shared/types';
 import { useToast } from '@/hooks/use-toast';
 import {
@@ -195,6 +197,9 @@ export default function CategoriesTab({
 }: CategoriesTabProps) {
   const { toast } = useToast();
   const queryClient = useQueryClient();
+  const [searchQuery, setSearchQuery] = useState('');
+  const [statusFilter, setStatusFilter] = useState<'all' | 'missing_image' | 'missing_seo'>('all');
+
   // Hiyerarşik durum: ana kategoriler + her ana kategorinin alt listesi.
   // Sürükle-bırak yalnızca kendi seviyesinde çalışır.
   const [parents, setParents] = useState<Category[]>([]);
@@ -305,6 +310,20 @@ export default function CategoriesTab({
   const missingImageCount = categories.filter((category) => !category.image).length;
   const missingSeoCount = categories.filter((category) => !category.seoTitle?.trim() || !category.seoDescription?.trim()).length;
 
+  const isFiltering = searchQuery.trim() !== '' || statusFilter !== 'all';
+
+  const filteredCategories = useMemo(() => {
+    if (!isFiltering) return [];
+    let result = categories;
+    if (searchQuery.trim()) {
+      const q = searchQuery.toLowerCase();
+      result = result.filter(c => c.name.toLowerCase().includes(q) || c.slug.toLowerCase().includes(q));
+    }
+    if (statusFilter === 'missing_image') result = result.filter(c => !c.image);
+    if (statusFilter === 'missing_seo') result = result.filter(c => !c.seoTitle?.trim() || !c.seoDescription?.trim());
+    return result;
+  }, [categories, searchQuery, statusFilter, isFiltering]);
+
   return (
     <div data-testid="tab-categories" className="space-y-4 sm:space-y-5">
       <PageHeader
@@ -324,7 +343,43 @@ export default function CategoriesTab({
         }
       />
 
-      {(missingImageCount > 0 || missingSeoCount > 0) && (
+      {/* Arama ve filtre */}
+      <div className="flex flex-wrap items-center gap-3">
+        <SearchInput
+          placeholder="Kategori adı veya slug ara"
+          value={searchQuery}
+          onChange={e => setSearchQuery(e.target.value)}
+          className="w-full sm:w-64"
+          data-testid="input-search-categories"
+        />
+        <div className="relative">
+          <select
+            value={statusFilter}
+            onChange={e => setStatusFilter(e.target.value as typeof statusFilter)}
+            data-testid="select-category-status-filter"
+            className="h-9 pl-3 pr-8 bg-white border border-neutral-200 rounded-lg text-sm text-neutral-700 appearance-none cursor-pointer hover:border-neutral-300 focus:outline-none focus:ring-1 focus:ring-neutral-300"
+          >
+            <option value="all">Tüm kategoriler</option>
+            <option value="missing_image">Görseli eksik</option>
+            <option value="missing_seo">SEO eksik</option>
+          </select>
+          <ChevronDown className="absolute right-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-neutral-400 pointer-events-none" />
+        </div>
+        {isFiltering && (
+          <>
+            <button
+              onClick={() => { setSearchQuery(''); setStatusFilter('all'); }}
+              className="text-[12px] text-neutral-400 hover:text-neutral-700 transition-colors"
+              data-testid="button-clear-category-filters"
+            >
+              Filtreleri temizle
+            </button>
+            <span className="ml-auto text-[12px] text-neutral-400">{filteredCategories.length} sonuç</span>
+          </>
+        )}
+      </div>
+
+      {(missingImageCount > 0 || missingSeoCount > 0) && !isFiltering && (
         <InlineAlert tone="warning">
           <strong>İçerik kontrolü:</strong>{' '}
           {missingImageCount > 0 && `${missingImageCount} kategoride görsel eksik`}
@@ -355,6 +410,56 @@ export default function CategoriesTab({
             <CategoryCardSkeleton key={i} />
           ))}
         </div>
+      ) : isFiltering ? (
+        /* Filtre/arama aktifken düz liste — sürükle-bırak devre dışı */
+        filteredCategories.length === 0 ? (
+          <Card className="py-2">
+            <EmptyState icon={FolderTree} title="Sonuç bulunamadı" description="Farklı bir arama veya filtre deneyin." />
+          </Card>
+        ) : (
+          <div className="space-y-2" data-testid="list-categories-filtered">
+            {filteredCategories.map((cat, index) => {
+              const isChild = !!cat.parentId;
+              return (
+                <div key={cat.id} className={isChild ? 'pl-6 sm:pl-10' : ''}>
+                  <Card className="p-0 overflow-hidden">
+                    <div className="flex items-stretch">
+                      <div className="relative w-20 sm:w-24 shrink-0 bg-neutral-50 border-r border-neutral-200 overflow-hidden">
+                        {cat.image ? (
+                          <img src={cat.image} alt={cat.name} className="absolute inset-0 w-full h-full object-cover" />
+                        ) : (
+                          <div className="absolute inset-0 flex items-center justify-center">
+                            <ImageIcon className="w-5 h-5 text-neutral-300" />
+                          </div>
+                        )}
+                      </div>
+                      <div className="flex-1 min-w-0 px-3 sm:px-4 py-2.5 sm:py-3 flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-3">
+                        <div className="min-w-0 flex-1">
+                          <div className="flex items-center gap-2">
+                            {isChild && <CornerDownRight className="w-3.5 h-3.5 text-neutral-400 shrink-0" />}
+                            <span className="inline-flex items-center justify-center min-w-[22px] h-[18px] px-1.5 rounded bg-neutral-100 border border-neutral-200 text-[10px] font-semibold tabular-nums text-neutral-600">
+                              {index + 1}
+                            </span>
+                            <h3 className="text-[13px] font-medium text-neutral-900 truncate">{cat.name}</h3>
+                          </div>
+                          <p className="text-[11px] text-neutral-500 truncate mt-0.5">/{cat.slug}</p>
+                        </div>
+                        <div className="flex items-center gap-1 sm:gap-1.5 shrink-0">
+                          <IconButton onClick={() => handleEdit(cat)} aria-label="Düzenle" data-testid={`button-edit-category-${cat.id}`}>
+                            <Pencil className="w-3.5 h-3.5" />
+                          </IconButton>
+                          <IconButton onClick={() => handleDelete(cat)} aria-label="Sil" tone="danger" data-testid={`button-delete-category-${cat.id}`}>
+                            <Trash2 className="w-3.5 h-3.5" />
+                          </IconButton>
+                        </div>
+                      </div>
+                    </div>
+                  </Card>
+                </div>
+              );
+            })}
+          </div>
+        )
       ) : parents.length === 0 ? (
         <Card className="py-2">
           <EmptyState

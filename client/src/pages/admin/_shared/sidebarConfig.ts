@@ -14,7 +14,7 @@ import {
   Database,
   Ticket,
   MessageSquare,
-  HandCoins,
+
   Newspaper,
   Tag,
 } from 'lucide-react';
@@ -40,7 +40,6 @@ export const VALID_TABS: TabType[] = [
   'marketplaces',
   'coupons',
   'reviews',
-  'wholesale',
 ];
 
 export const SIDEBAR_CATEGORIES: SidebarCategory[] = [
@@ -55,7 +54,6 @@ export const SIDEBAR_CATEGORIES: SidebarCategory[] = [
     title: 'Satış ve Operasyon',
     items: [
       { id: 'orders', icon: ShoppingCart, label: 'Site Siparişleri' },
-      { id: 'wholesale', icon: HandCoins, label: 'Toptan Satış' },
       { id: 'inventory', icon: Package, label: 'Stok' },
       { id: 'marketplaces', icon: Globe, label: 'Satış Kanalları' },
     ],
@@ -108,7 +106,6 @@ export const TAB_DESCRIPTIONS: Record<TabType, string> = {
   brands: 'Marka listesini yönetin, ürün formunda tutarlı marka seçimi yapın.',
   inventory: 'Ürün stoklarını tek ekrandan görüp güncelleyin.',
   orders: 'Sitenizden gelen siparişleri görüntüleyin ve yönetin.',
-  wholesale: 'Toptan satış müşterileri ve özel fiyatlar.',
   marketplaces: 'Trendyol ve diğer satış kanallarının bağlantı, ürün ve sipariş yönetimi.',
   users: 'Kayıtlı müşterilerinizi görüntüleyin.',
   reviews: 'Müşteri yorumlarını onaylayın veya kaldırın.',

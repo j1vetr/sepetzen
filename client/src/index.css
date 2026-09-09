@@ -51,6 +51,16 @@
   /* Mobile bottom nav height token — used for padding/offset across the app */
   --mobile-nav-bar-h: 58px;
   --mobile-nav-total: calc(var(--mobile-nav-bar-h) + env(safe-area-inset-bottom, 0px));
+}
+
+/* Desktop'ta mobil alt nav yok — yapışık CTA çubuğu ekrana dayansın */
+@media (min-width: 1024px) {
+  :root {
+    --mobile-nav-total: 0px;
+  }
+}
+
+:root {
 
   --background: 0 0% 100%;
   --foreground: 0 0% 5%;

@@ -53,10 +53,16 @@ function ProductThumb({ images, name }: { images: string[]; name: string }) {
       <video
         src={src}
         muted
-        autoPlay
+        preload="metadata"
         loop
         playsInline
         className="absolute inset-0 w-full h-full object-cover transition-transform duration-700 group-hover:scale-[1.07]"
+        onMouseEnter={(e) => (e.currentTarget as HTMLVideoElement).play().catch(() => {})}
+        onMouseLeave={(e) => {
+          const v = e.currentTarget as HTMLVideoElement;
+          v.pause();
+          v.currentTime = 0;
+        }}
       />
     );
   }

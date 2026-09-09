@@ -232,5 +232,4 @@ export type TabType =
   | 'marketplaces'
   | 'coupons'
   | 'reviews'
-  | 'wholesale'
   | 'brands';

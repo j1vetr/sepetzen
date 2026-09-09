@@ -22,7 +22,7 @@ declare global {
   }
 }
 
-import { Link, useParams } from 'wouter';
+import { Link, useParams, useLocation } from 'wouter';
 import { motion, AnimatePresence, useReducedMotion } from 'framer-motion';
 import useEmblaCarousel from 'embla-carousel-react';
 import {
@@ -61,6 +61,36 @@ function isVideoUrl(url: string): boolean {
   return lower.endsWith('.mp4') || lower.endsWith('.webm') || lower.endsWith('.mov');
 }
 
+/** YouTube videosunu tıklanana kadar thumbnail olarak gösterir; iframe yalnızca play sonrası yüklenir. */
+function YouTubeEmbed({ videoUrl }: { videoUrl: string }) {
+  const [playing, setPlaying] = useState(false);
+  const thumb = getYouTubeThumbnail(videoUrl, 'hq');
+  const embedUrl = `${getYouTubeEmbedUrl(videoUrl)}&autoplay=1`;
+  if (playing) {
+    return (
+      <iframe
+        src={embedUrl}
+        className="w-full h-full"
+        style={{ border: 'none' }}
+        allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+        allowFullScreen
+        title="YouTube video"
+      />
+    );
+  }
+  return (
+    <div className="w-full h-full relative group/yt cursor-pointer" onClick={() => setPlaying(true)}>
+      <img src={thumb} alt="Video" className="w-full h-full object-cover" />
+      <div className="absolute inset-0 flex items-center justify-center bg-black/25 group-hover/yt:bg-black/40 transition-colors">
+        <div className="flex items-center gap-2 bg-red-600 px-5 py-2.5 rounded-xl shadow-2xl group-hover/yt:scale-105 transition-transform">
+          <Play className="w-4 h-4 text-white fill-white" />
+          <span className="text-white text-[12px] font-semibold tracking-wide">İzle</span>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 function WhatsAppIcon({ className }: { className?: string }) {
   return (
     <svg viewBox="0 0 24 24" fill="currentColor" xmlns="http://www.w3.org/2000/svg" className={className} aria-hidden="true">
@@ -79,10 +109,11 @@ import { isDiscountBadgeActive } from '@/lib/discountBadgeActive';
 import { useFreeShippingThreshold } from '@/hooks/useShippingSettings';
 import { formatShippingThreshold } from '@shared/shipping';
 
-import { getOriginalPrice } from '@/lib/discountPrice';
+import { getOriginalPrice, normalizeBadge } from '@/lib/discountPrice';
 import { useProduct, useProducts, useCategories } from '@/hooks/useProducts';
 import { useCart } from '@/hooks/useCart';
 import { useCartModal } from '@/hooks/useCartModal';
+import { isYouTubeUrl, getYouTubeThumbnail, getYouTubeEmbedUrl } from '@/lib/youtube';
 import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/hooks/useAuth';
 import { useFavoriteIds, useToggleFavorite } from '@/hooks/useFavorites';
@@ -438,7 +469,37 @@ const SPEC_ROWS: [key: string, label: string][] = [
   ['sapCinsi', 'Sap Cinsi'],
 ];
 
-const INSTALLMENT_COUNTS = [1, 2, 3, 6, 9];
+const DEFAULT_INSTALLMENT_COUNTS = [1, 2, 3, 6, 9];
+
+function InstallmentTab({ price, tabInstallmentNote }: { price: number; tabInstallmentNote?: string | null }) {
+  const { data } = useQuery<{ paytrEnabled: boolean; counts: number[] }>({
+    queryKey: ['/api/payment/installment-info'],
+    staleTime: 5 * 60 * 1000,
+  });
+  const counts = data?.counts ?? DEFAULT_INSTALLMENT_COUNTS;
+  return (
+    <div className="max-w-xl">
+      <dl className="divide-y divide-white/8 border-t border-b border-white/8" data-testid="table-installments">
+        {counts.map((n) => (
+          <div key={n} className="flex items-baseline justify-between gap-6 py-2.5">
+            <dt className="text-[12px] text-white/45">
+              {n === 1 ? 'Tek Çekim' : `${n} Taksit`}
+            </dt>
+            <dd className="text-[13px] text-white font-medium tabular-nums">
+              {n === 1
+                ? `${price.toLocaleString('tr-TR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} ₺`
+                : `${n} × ${(price / n).toLocaleString('tr-TR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} ₺`}
+            </dd>
+          </div>
+        ))}
+      </dl>
+      <p className="mt-4 text-[11.5px] text-white/40 leading-relaxed">
+        {tabInstallmentNote?.trim() ||
+          'Taksit seçenekleri kredi kartıyla ödemelerde geçerlidir. Bankanıza göre taksit sayısı ve tutarlar değişiklik gösterebilir, güncel tutarlar ödeme adımında görüntülenir. Havale/EFT ile ödemelerde %3 indirim uygulanır.'}
+      </p>
+    </div>
+  );
+}
 
 function ProductTabs({
   html,
@@ -461,9 +522,23 @@ function ProductTabs({
   const freeShippingThreshold = useFreeShippingThreshold();
   const thresholdText = formatShippingThreshold(freeShippingThreshold);
 
+  // Ürün renk linkleri — 2+ renk girişi varsa çapraz-ürün renk navigasyonu aktif olur
+  type ColorEntry = { name: string; hex: string | null; slug?: string | null };
+  const colorLinks = (product?.availableColors || []) as ColorEntry[];
+  const hasColorLinks = colorLinks.length >= 2;
+  const currentColorLink = hasColorLinks
+    ? (colorLinks.find((c) => !c.slug || c.slug === product?.slug) ?? colorLinks[0])
+    : null;
+
+  const knownSpecKeys = new Set(SPEC_ROWS.map(([key]) => key));
   const specRows = SPEC_ROWS
     .map(([key, label]) => [label, (specs?.[key] || '').trim()] as [string, string])
     .filter(([, value]) => value.length > 0);
+  // Hardcoded listede olmayan özel özellikler de tabloya eklenir
+  const customSpecRows = Object.entries(specs || {})
+    .filter(([key, value]) => !knownSpecKeys.has(key) && value?.trim())
+    .map(([key, value]) => [key, value.trim()] as [string, string]);
+  const allSpecRows = [...specRows, ...customSpecRows];
 
   const TABS = [
     { id: 'desc', label: 'Ürün Açıklaması' },
@@ -510,13 +585,13 @@ function ProductTabs({
         {/* ── Ürün Açıklaması ── */}
          {active === 'desc' && (
            <div className="max-w-3xl space-y-8">
-             {specRows.length > 0 && (
+             {allSpecRows.length > 0 && (
                <div>
                  <h3 className="text-[12px] font-semibold uppercase tracking-[0.16em] text-white/50 mb-3">
                    Teknik Özellikler
                  </h3>
                  <dl className="divide-y divide-white/8 border-t border-b border-white/8 max-w-xl" data-testid="table-product-specs">
-                   {specRows.map(([label, value]) => (
+                   {allSpecRows.map(([label, value]) => (
                      <div key={label} className="flex items-baseline gap-6 py-2.5">
                        <dt className="text-[12px] text-white/45 w-36 shrink-0">{label}</dt>
                        <dd className="text-[13px] text-white font-medium">{value}</dd>
@@ -553,26 +628,7 @@ function ProductTabs({
 
         {/* ── Taksit Seçenekleri ── */}
         {active === 'installments' && (
-          <div className="max-w-xl">
-            <dl className="divide-y divide-white/8 border-t border-b border-white/8" data-testid="table-installments">
-              {INSTALLMENT_COUNTS.map((n) => (
-                <div key={n} className="flex items-baseline justify-between gap-6 py-2.5">
-                  <dt className="text-[12px] text-white/45">
-                    {n === 1 ? 'Tek Çekim' : `${n} Taksit`}
-                  </dt>
-                  <dd className="text-[13px] text-white font-medium tabular-nums">
-                    {n === 1
-                      ? `${price.toLocaleString('tr-TR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} ₺`
-                      : `${n} × ${(price / n).toLocaleString('tr-TR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} ₺`}
-                  </dd>
-                </div>
-              ))}
-            </dl>
-            <p className="mt-4 text-[11.5px] text-white/40 leading-relaxed">
-              {tabInstallmentNote?.trim() ||
-                'Taksit seçenekleri kredi kartıyla ödemelerde geçerlidir. Bankanıza göre taksit sayısı ve tutarlar değişiklik gösterebilir, güncel tutarlar ödeme adımında görüntülenir. Havale/EFT ile ödemelerde %3 indirim uygulanır.'}
-            </p>
-          </div>
+          <InstallmentTab price={price} tabInstallmentNote={tabInstallmentNote} />
         )}
 
         {/* ── Teslimat ve İade ── */}
@@ -700,6 +756,8 @@ export default function ProductDetail() {
   const { toggleFavorite, isLoading: isFavoriteLoading } = useToggleFavorite();
   const isLiked = product ? favoriteIds.includes(product.id) : false;
 
+  const [, navigate] = useLocation();
+
   // UI state
   const [selectedImage, setSelectedImage] = useState(0);
   const [quantity, setQuantity] = useState(1);
@@ -818,6 +876,18 @@ export default function ProductDetail() {
   const reviewFileInputRef = useRef<HTMLInputElement | null>(null);
   const turnstileContainerRef = useRef<HTMLDivElement | null>(null);
   const turnstileWidgetIdRef = useRef<string | null>(null);
+
+  const { data: siteIdentity } = useQuery({
+    queryKey: ['/api/site-identity'],
+    queryFn: async () => {
+      const res = await fetch('/api/site-identity');
+      if (!res.ok) return null;
+      return res.json() as Promise<{ phoneHref: string; whatsappOrderEnabled: boolean }>;
+    },
+    staleTime: 5 * 60 * 1000,
+  });
+  const whatsappOrderEnabled = siteIdentity?.whatsappOrderEnabled !== false;
+  const whatsappPhone = (siteIdentity?.phoneHref ?? '+905366301138').replace(/^\+/, '');
 
   const { data: captchaConfig } = useQuery({
     queryKey: ['/api/config/captcha'],
@@ -1162,7 +1232,15 @@ export default function ProductDetail() {
   const price = selectedVariant?.price
     ? parseFloat(selectedVariant.price)
     : parseFloat(product.basePrice || '0');
-  const originalPrice = getOriginalPrice(price, product.discountBadge);
+  const rawBadge = (product as any).discountBadge ?? null;
+  const normalizedBadge = rawBadge ? normalizeBadge(rawBadge) : null;
+  const visibleDiscountBadge =
+    normalizedBadge &&
+    !isFreeShippingPromotion(normalizedBadge) &&
+    isDiscountBadgeActive(rawBadge, (product as any).discountBadgeStartDate, (product as any).discountBadgeEndDate)
+      ? normalizedBadge
+      : null;
+  const originalPrice = getOriginalPrice(price, visibleDiscountBadge);
   // Kişiselleştirme ayarı (isim yazdırma): açık ise yazı alanı gösterilir,
   // yazı girildiyse birim fiyata ek ücret yansıtılır.
   const personalization = product.personalization;
@@ -1172,11 +1250,6 @@ export default function ProductDetail() {
   const persMaxChars = personalization?.maxChars && personalization.maxChars > 0 ? personalization.maxChars : 30;
   const persApplied = persEnabled && personalizationText.trim() !== '';
   const displayPrice = price + (persApplied ? persFee : 0);
-  const visibleDiscountBadge =
-    !isFreeShippingPromotion(product.discountBadge) &&
-    isDiscountBadgeActive((product as any).discountBadge, (product as any).discountBadgeStartDate, (product as any).discountBadgeEndDate)
-      ? product.discountBadge
-      : null;
   const category = categories.find((c) => c.id === product.categoryId);
   // Stok yalnızca aktif varyantlar üzerinden hesaplanır.
   const totalStock = activeVariants.reduce((sum, v) => sum + (v.stock || 0), 0);
@@ -1221,7 +1294,7 @@ export default function ProductDetail() {
   // ─── Render ───────────────────────────────────────────────────────────────
 
   return (
-    <div className="min-h-screen bg-[#0A0A0A] overflow-x-hidden">
+    <div className="min-h-screen bg-[#0A0A0A]">
       <SEO
         title={product.name}
         description={
@@ -1245,6 +1318,7 @@ export default function ProductDetail() {
       />
 
       <Header />
+      <div className="overflow-x-hidden">
 
       {/* ── Lightbox ── */}
       <AnimatePresence>
@@ -1280,7 +1354,14 @@ export default function ProductDetail() {
 
             <div className="hidden sm:flex w-full h-full items-center justify-center p-10">
               <AnimatePresence mode="wait">
-                {isVideoUrl(images[selectedImage]) ? (
+                {isYouTubeUrl(images[selectedImage]) ? (
+                  <div
+                    className="w-[800px] max-w-[90vw] aspect-video rounded-lg overflow-hidden"
+                    onClick={(e) => e.stopPropagation()}
+                  >
+                    <YouTubeEmbed videoUrl={images[selectedImage]} />
+                  </div>
+                ) : isVideoUrl(images[selectedImage]) ? (
                   <motion.video
                     key={selectedImage}
                     initial={{ opacity: 0, scale: 0.97 }}
@@ -1315,7 +1396,11 @@ export default function ProductDetail() {
                 <div className="flex">
                   {images.map((img, i) => (
                     <div key={i} className="flex-[0_0_100%] min-w-0 flex items-center justify-center px-4">
-                      {isVideoUrl(img) ? (
+                      {isYouTubeUrl(img) ? (
+                        <div className="w-[800px] max-w-[90vw] aspect-video rounded-lg overflow-hidden">
+                          <YouTubeEmbed videoUrl={img} />
+                        </div>
+                      ) : isVideoUrl(img) ? (
                         <video src={img} className="max-w-full max-h-[80vh] object-contain" controls playsInline />
                       ) : (
                         <img src={img} alt={product.name} loading="lazy" decoding="async" className="max-w-full max-h-[80vh] object-contain" draggable={false} />
@@ -1374,7 +1459,7 @@ export default function ProductDetail() {
                     <button
                       type="button"
                       onClick={() => setSelectedImage(prev => Math.max(0, prev - 1))}
-                      className="w-full h-8 flex items-center justify-center bg-white hover:bg-white/90 text-black rounded-lg transition-colors"
+                      className="w-full h-8 flex items-center justify-center backdrop-blur-md bg-white/15 hover:bg-white/25 border border-white/20 text-white rounded-lg transition-colors"
                       aria-label="Önceki görsel"
                     >
                       <ChevronDown className="w-4 h-4 rotate-180" />
@@ -1406,7 +1491,16 @@ export default function ProductDetail() {
                                 : 'opacity-50 hover:opacity-100'
                             }`}
                           >
-                            {isVideoUrl(img) ? (
+                            {isYouTubeUrl(img) ? (
+                              <>
+                                <img src={getYouTubeThumbnail(img, 'mq')} alt="" className="w-full h-full object-cover" loading="lazy" />
+                                <div className="absolute inset-0 flex items-center justify-center bg-black/30">
+                                  <div className="w-5 h-4 bg-red-600 rounded-sm flex items-center justify-center">
+                                    <Play className="w-2.5 h-2.5 text-white fill-white ml-px" />
+                                  </div>
+                                </div>
+                              </>
+                            ) : isVideoUrl(img) ? (
                               <>
                                 <video src={img} className="w-full h-full object-cover" muted playsInline preload="metadata" />
                                 <div className="absolute inset-0 flex items-center justify-center bg-black/30">
@@ -1427,7 +1521,7 @@ export default function ProductDetail() {
                     <button
                       type="button"
                       onClick={() => setSelectedImage(prev => Math.min(images.length - 1, prev + 1))}
-                      className="w-full h-8 flex items-center justify-center bg-white hover:bg-white/90 text-black rounded-lg transition-colors"
+                      className="w-full h-8 flex items-center justify-center backdrop-blur-md bg-white/15 hover:bg-white/25 border border-white/20 text-white rounded-lg transition-colors"
                       aria-label="Sonraki görsel"
                     >
                       <ChevronDown className="w-4 h-4" />
@@ -1444,11 +1538,11 @@ export default function ProductDetail() {
                   <div className="product-gallery-orbit rounded-xl w-full h-full">
                     <div
                       ref={heroImageRef}
-                      className={`group/gallery relative w-full h-full rounded-[11px] bg-zinc-900 overflow-hidden border border-white/15 ${isVideoUrl(images[selectedImage]) ? 'cursor-default' : 'cursor-zoom-in'}`}
-                      onMouseEnter={() => { if (!isVideoUrl(images[selectedImage])) setIsZooming(true); }}
+                      className={`group/gallery relative w-full h-full rounded-[11px] bg-zinc-900 overflow-hidden border border-white/15 ${(isVideoUrl(images[selectedImage]) || isYouTubeUrl(images[selectedImage])) ? 'cursor-default' : 'cursor-zoom-in'}`}
+                      onMouseEnter={() => { if (!isVideoUrl(images[selectedImage]) && !isYouTubeUrl(images[selectedImage])) setIsZooming(true); }}
                       onMouseLeave={() => setIsZooming(false)}
                       onMouseMove={handleHeroMove}
-                      onClick={() => { if (!isVideoUrl(images[selectedImage])) setLightboxOpen(true); }}
+                      onClick={() => { if (!isVideoUrl(images[selectedImage]) && !isYouTubeUrl(images[selectedImage])) setLightboxOpen(true); }}
                       data-testid="img-product-main"
                     >
                       <AnimatePresence mode="wait">
@@ -1460,7 +1554,11 @@ export default function ProductDetail() {
                           exit={{ opacity: 0 }}
                           transition={{ duration: reduceMotion ? 0 : 0.28, ease: [0.33, 1, 0.68, 1] }}
                         >
-                          {isVideoUrl(images[selectedImage]) ? (
+                          {isYouTubeUrl(images[selectedImage]) ? (
+                            <div className="absolute inset-0">
+                              <YouTubeEmbed videoUrl={images[selectedImage]} />
+                            </div>
+                          ) : isVideoUrl(images[selectedImage]) ? (
                             <>
                             <video
                               ref={desktopVideoRef}
@@ -1557,7 +1655,11 @@ export default function ProductDetail() {
                             className="flex-[0_0_100%] min-w-0 h-full relative"
                             onClick={() => setLightboxOpen(true)}
                           >
-                            {isVideoUrl(img) ? (
+                            {isYouTubeUrl(img) ? (
+                              <div className="absolute inset-0">
+                                <YouTubeEmbed videoUrl={img} />
+                              </div>
+                            ) : isVideoUrl(img) ? (
                               <>
                               <video
                                 ref={i === images.indexOf(img) ? mobileVideoRef : undefined}
@@ -1630,7 +1732,16 @@ export default function ProductDetail() {
                               : 'opacity-50 hover:opacity-80'
                           }`}
                         >
-                          {isVideoUrl(img) ? (
+                          {isYouTubeUrl(img) ? (
+                            <>
+                              <img src={getYouTubeThumbnail(img, 'mq')} alt="" className="w-full h-full object-cover" loading="lazy" />
+                              <div className="absolute inset-0 flex items-center justify-center bg-black/30">
+                                <div className="w-5 h-4 bg-red-600 rounded-sm flex items-center justify-center">
+                                  <Play className="w-2.5 h-2.5 text-white fill-white ml-px" />
+                                </div>
+                              </div>
+                            </>
+                          ) : isVideoUrl(img) ? (
                             <>
                               <video src={img} className="w-full h-full object-cover" muted playsInline preload="metadata" />
                               <div className="absolute inset-0 flex items-center justify-center bg-black/30">
@@ -1719,7 +1830,7 @@ export default function ProductDetail() {
                     <p className="font-sans text-[17px] lg:text-[15px] tracking-[0.12em] text-white flex items-center gap-0.5">
                        SEPETZEN
                        <svg viewBox="0 0 20 20" fill="none" className="w-[18px] h-[18px] lg:w-4 lg:h-4 shrink-0" aria-label="Doğrulanmış satıcı">
-                         <circle cx="10" cy="10" r="10" fill="#1D9BF0"/>
+                         <circle cx="10" cy="10" r="10" fill="#000"/>
                          <path d="M5.5 10.5l3 3 6-6" stroke="#fff" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round"/>
                        </svg>
                     </p>
@@ -1805,12 +1916,12 @@ export default function ProductDetail() {
                               type="button"
                               onClick={() => !disabled && pickSize(size)}
                               disabled={disabled}
-                              className={`min-w-[44px] px-3 h-10 text-[12px] tracking-[0.08em] uppercase border transition-colors ${
+                              className={`min-w-[44px] px-3 h-10 text-[12px] tracking-[0.08em] uppercase border rounded-md backdrop-blur-sm transition-all duration-200 ${
                                 active
-                                  ? 'border-white bg-white text-black font-semibold'
+                                  ? 'border-white/70 bg-white/15 text-white font-semibold ring-1 ring-inset ring-white/20 shadow-[inset_0_1px_0_0_rgba(255,255,255,0.12)]'
                                   : disabled
-                                    ? 'border-white/10 text-white/25 line-through cursor-not-allowed'
-                                    : 'border-white/25 text-white/80 hover:border-white hover:text-white'
+                                    ? 'border-white/8 bg-white/3 text-white/20 line-through cursor-not-allowed'
+                                    : 'border-white/15 bg-white/5 text-white/65 hover:border-white/40 hover:bg-white/10 hover:text-white/90'
                               }`}
                               data-testid={`button-variant-size-${size}`}
                             >
@@ -1821,7 +1932,45 @@ export default function ProductDetail() {
                       </div>
                     </div>
                   )}
-                  {colorOptions.length > 0 && (
+                  {hasColorLinks ? (
+                    /* Çapraz-ürün renk navigasyonu: her renk farklı ürüne yönlendiriri */
+                    <div>
+                      <p className="text-[10px] tracking-[0.25em] uppercase text-white/40 font-medium mb-2">
+                        Renk{currentColorLink ? <span className="text-white/70 ml-2 tracking-normal normal-case">{currentColorLink.name}</span> : null}
+                      </p>
+                      <div className="flex flex-wrap gap-2">
+                        {colorLinks.map((entry) => {
+                          const isCurrent = !entry.slug || entry.slug === product?.slug;
+                          return (
+                            <button
+                              key={entry.name}
+                              type="button"
+                              onClick={() => {
+                                if (!isCurrent && entry.slug) navigate(`/urun/${entry.slug}`);
+                              }}
+                              className={`px-3 h-10 text-[12px] tracking-[0.08em] uppercase border rounded-md backdrop-blur-sm transition-all duration-200 ${
+                                isCurrent
+                                  ? 'border-white/70 bg-white/15 text-white font-semibold ring-1 ring-inset ring-white/20 shadow-[inset_0_1px_0_0_rgba(255,255,255,0.12)]'
+                                  : 'border-white/15 bg-white/5 text-white/65 hover:border-white/40 hover:bg-white/10 hover:text-white/90'
+                              }`}
+                              data-testid={`button-color-link-${entry.name}`}
+                            >
+                              {entry.hex ? (
+                                <span className="flex items-center gap-1.5">
+                                  <span
+                                    className="w-3 h-3 rounded-full shrink-0 border border-white/20"
+                                    style={{ backgroundColor: entry.hex }}
+                                  />
+                                  {entry.name}
+                                </span>
+                              ) : entry.name}
+                            </button>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  ) : colorOptions.length > 0 ? (
+                    /* Tek-ürün varyant renk seçimi (aynı üründe renk değişimi) */
                     <div>
                       <p className="text-[10px] tracking-[0.25em] uppercase text-white/40 font-medium mb-2">
                         Renk{selectedColor ? <span className="text-white/70 ml-2 tracking-normal normal-case">{selectedColor}</span> : null}
@@ -1836,12 +1985,12 @@ export default function ProductDetail() {
                               type="button"
                               onClick={() => !disabled && pickColor(color)}
                               disabled={disabled}
-                              className={`px-3 h-10 text-[12px] tracking-[0.08em] uppercase border transition-colors ${
+                              className={`px-3 h-10 text-[12px] tracking-[0.08em] uppercase border rounded-md backdrop-blur-sm transition-all duration-200 ${
                                 active
-                                  ? 'border-white bg-white text-black font-semibold'
+                                  ? 'border-white/70 bg-white/15 text-white font-semibold ring-1 ring-inset ring-white/20 shadow-[inset_0_1px_0_0_rgba(255,255,255,0.12)]'
                                   : disabled
-                                    ? 'border-white/10 text-white/25 line-through cursor-not-allowed'
-                                    : 'border-white/25 text-white/80 hover:border-white hover:text-white'
+                                    ? 'border-white/8 bg-white/3 text-white/20 line-through cursor-not-allowed'
+                                    : 'border-white/15 bg-white/5 text-white/65 hover:border-white/40 hover:bg-white/10 hover:text-white/90'
                               }`}
                               data-testid={`button-variant-color-${color}`}
                             >
@@ -1851,7 +2000,7 @@ export default function ProductDetail() {
                         })}
                       </div>
                     </div>
-                  )}
+                  ) : null}
                   {selectedUnavailable && (
                     <p className="text-[12px] text-red-500 font-medium" data-testid="text-variant-unavailable">
                       Bu seçim stokta yok. Lütfen başka bir seçenek deneyin.
@@ -1874,7 +2023,7 @@ export default function ProductDetail() {
                   {isOutOfStock ? (
                     <span className="text-[12px] text-red-500 font-medium">Tükendi</span>
                   ) : totalStock <= 5 ? (
-                    <span className="flex items-center gap-1.5 text-[12px] text-amber-400 font-semibold">
+                    <span className="flex items-center gap-1.5 text-[12px] text-white font-semibold">
                       <Check className="w-3.5 h-3.5" strokeWidth={2.5} />
                       Son {totalStock} ürün!
                     </span>
@@ -1954,7 +2103,7 @@ export default function ProductDetail() {
                     onClick={handleAddToCart}
                     disabled={isAdding || isOutOfStock || selectedUnavailable || maxAdditional === 0}
                     whileTap={reduceMotion || isOutOfStock || selectedUnavailable ? undefined : { scale: 0.97 }}
-                      className={`flex-1 h-12 lg:h-10 font-semibold text-[11px] uppercase tracking-[0.2em] flex items-center justify-center gap-2 rounded-lg ${
+                      className={`flex-1 h-12 lg:h-12 font-semibold text-[11px] uppercase tracking-[0.2em] flex items-center justify-center gap-2 rounded-lg ${
                        isOutOfStock || selectedUnavailable || maxAdditional === 0 ? 'bg-[#141414]/10 text-white/30 cursor-not-allowed border border-white/10' : 'all-cats-gold'
                     }`}
                     data-testid="button-add-to-cart"
@@ -1986,9 +2135,9 @@ export default function ProductDetail() {
                 </div>
 
                 {/* WhatsApp */}
-                {!isOutOfStock && (
+                {!isOutOfStock && whatsappOrderEnabled && (
                   <a
-                    href={`https://wa.me/905366301138?text=${encodeURIComponent([
+                    href={`https://wa.me/${whatsappPhone}?text=${encodeURIComponent([
                       `Merhaba, "${product.name}" ürününü sipariş vermek istiyorum.`,
                       showVariantPicker && selectedVariant ? `Seçim: ${[selectedVariant.size, selectedVariant.color].filter(Boolean).join(' / ')}` : '',
                       `Adet: ${quantity}`,
@@ -2411,7 +2560,7 @@ export default function ProductDetail() {
         )}
       </AnimatePresence>
 
-      {/* ── Mobile sticky CTA ── */}
+      {/* ── Sticky CTA (mobil + masaüstü) ── */}
       <AnimatePresence>
         {showMobileCta && (
           <motion.div
@@ -2419,35 +2568,39 @@ export default function ProductDetail() {
             animate={{ y: 0, opacity: 1 }}
             exit={{ y: 80, opacity: 0 }}
             transition={{ duration: reduceMotion ? 0 : 0.22 }}
-            className="lg:hidden fixed inset-x-0 z-[90] surface-glass-dark border-t border-transparent shadow-[0_-6px_20px_rgba(0,0,0,0.35)] px-4 py-3 flex items-center gap-3"
-            style={{ bottom: 'var(--mobile-nav-total, 58px)' }}
+            className="fixed inset-x-0 z-[90] surface-glass-dark border-t border-white/[0.07] shadow-[0_-8px_24px_rgba(0,0,0,0.45)]"
+            style={{ bottom: 'var(--mobile-nav-total, 0px)' }}
             data-testid="mobile-sticky-cta"
           >
-            <div className="flex-1 min-w-0">
-              <p className="text-[10px] uppercase tracking-[0.16em] text-white/45 leading-tight truncate">{product.name}</p>
-              <p className="text-lg font-bold text-white tabular-nums leading-tight">
-                {displayPrice.toLocaleString('tr-TR', { minimumFractionDigits: 2 })} ₺
-              </p>
+            {/* İçerik: mobilde tam genişlik, masaüstünde ortalanmış */}
+            <div className="w-full max-w-6xl mx-auto px-4 lg:px-8 py-3 flex items-center gap-4">
+              <div className="flex-1 min-w-0">
+                <p className="text-[10px] uppercase tracking-[0.16em] text-white/45 leading-tight truncate">{product.name}</p>
+                <p className="text-lg font-bold text-white tabular-nums leading-tight">
+                  {displayPrice.toLocaleString('tr-TR', { minimumFractionDigits: 2 })} ₺
+                </p>
+              </div>
+              <motion.button
+                type="button"
+                onClick={handleAddToCart}
+                disabled={isAdding || isOutOfStock || selectedUnavailable}
+                whileTap={reduceMotion || isOutOfStock || selectedUnavailable ? undefined : { scale: 0.96 }}
+                className={`h-11 px-6 lg:px-8 font-semibold text-[11px] uppercase tracking-[0.18em] flex items-center justify-center gap-2 rounded-lg shrink-0 ${
+                  isOutOfStock || selectedUnavailable ? 'bg-[#141414]/10 text-white/35 cursor-not-allowed border border-white/10' : 'all-cats-gold'
+                }`}
+                data-testid="button-add-to-cart-sticky"
+              >
+                {isAdding
+                  ? <Loader2 className="w-4 h-4 animate-spin" />
+                  : justAdded
+                    ? <span className="flex items-center gap-2"><Check className="w-4 h-4" strokeWidth={2.5} />Eklendi</span>
+                    : <span>{isOutOfStock ? 'Tükendi' : selectedUnavailable ? 'Stokta Yok' : 'Sepete Ekle'}</span>}
+              </motion.button>
             </div>
-            <motion.button
-              type="button"
-              onClick={handleAddToCart}
-              disabled={isAdding || isOutOfStock || selectedUnavailable}
-              whileTap={reduceMotion || isOutOfStock || selectedUnavailable ? undefined : { scale: 0.96 }}
-              className={`h-10 px-5 font-semibold text-[11px] uppercase tracking-[0.18em] flex items-center justify-center gap-2 rounded-lg ${
-                isOutOfStock || selectedUnavailable ? 'bg-[#141414]/10 text-white/35 cursor-not-allowed border border-white/10' : 'all-cats-gold'
-              }`}
-              data-testid="button-add-to-cart-mobile"
-            >
-              {isAdding
-                ? <Loader2 className="w-4 h-4 animate-spin" />
-                : justAdded
-                  ? <span className="flex items-center gap-2"><Check className="w-4 h-4" strokeWidth={2.5} />Eklendi</span>
-                  : <span>{isOutOfStock ? 'Tükendi' : selectedUnavailable ? 'Stokta Yok' : 'Sepete Ekle'}</span>}
-            </motion.button>
           </motion.div>
         )}
       </AnimatePresence>
+      </div>
     </div>
   );
 }

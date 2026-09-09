@@ -148,7 +148,7 @@ export const products = pgTable("products", {
   basePrice: decimal("base_price", { precision: 10, scale: 2 }).notNull(),
   images: jsonb("images").$type<string[]>().default([]).notNull(),
   availableSizes: jsonb("available_sizes").$type<string[]>().default([]).notNull(),
-  availableColors: jsonb("available_colors").$type<{name: string, hex: string | null}[]>().default([]).notNull(),
+  availableColors: jsonb("available_colors").$type<{name: string, hex: string | null, slug?: string | null}[]>().default([]).notNull(),
   specs: jsonb("specs").$type<{
     urunCinsi?: string;
     tamUzunluk?: string;
@@ -192,7 +192,7 @@ export const insertProductSchema = createInsertSchema(products).omit({
   // Alan şeması burada açıkça bildirilerek tip kesinliği sağlanır.
   images: z.array(z.string()).optional(),
   availableSizes: z.array(z.string()).optional(),
-  availableColors: z.array(z.object({ name: z.string(), hex: z.string().nullable() })).optional(),
+  availableColors: z.array(z.object({ name: z.string(), hex: z.string().nullable(), slug: z.string().nullable().optional() })).optional(),
   specs: z.object({
     urunCinsi: z.string().optional(),
     tamUzunluk: z.string().optional(),

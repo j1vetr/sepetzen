@@ -9,10 +9,12 @@ import { CartModalProvider } from "@/hooks/useCartModal";
 import { lazy, Suspense, memo, useEffect } from "react";
 import { Loader2 } from "lucide-react";
 import { ScrollToTop } from "@/components/ScrollToTop";
+import { BackToTop } from "@/components/BackToTop";
 import { MobileBottomNav } from "@/components/MobileBottomNav";
 import { GoogleAuthNotice } from "@/components/GoogleAuthNotice";
 import { CookieConsent } from "@/components/CookieConsent";
 import { PopupBanner } from "@/components/PopupBanner";
+import { Snowfall } from "@/components/Snowfall";
 
 const Home = lazy(() => import("@/pages/Home"));
 const Category = lazy(() => import("@/pages/Category"));
@@ -126,6 +128,8 @@ function AppShell() {
       <CookieConsent />
       <MobileBottomNav />
       {!isAdmin && <PopupBanner />}
+      {!isAdmin && <Snowfall />}
+      {!isAdmin && <BackToTop />}
     </div>
   );
 }
