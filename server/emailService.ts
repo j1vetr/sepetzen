@@ -142,6 +142,14 @@ async function refreshEmailBranding(): Promise<void> {
     } else {
       LOGO_URL = `${CONTACT.siteUrl}/email-logo.png`;
     }
+
+    // Logo genişliği — px cinsinden, yükseklik height:auto ile orantılı hesaplanır
+    if (s.email_logo_width) {
+      const w = parseInt(s.email_logo_width, 10);
+      if (!isNaN(w) && w > 0 && w <= 400) LOGO_WIDTH = w;
+    } else {
+      LOGO_WIDTH = 160;
+    }
   } catch {
     // silently fall back to defaults
   }
@@ -252,11 +260,13 @@ function sectionTitle(text: string): string {
   return `<p style="margin:28px 0 10px 0;font-family:Helvetica,Arial,sans-serif;color:${BRAND.accent};font-size:10px;font-weight:700;letter-spacing:2.5px;text-transform:uppercase;border-bottom:1px solid ${BRAND.borderSoft};padding-bottom:8px;">${text}</p>`;
 }
 
-let LOGO_URL = `${CONTACT.siteUrl}/email-logo.png`;
+let LOGO_URL   = `${CONTACT.siteUrl}/email-logo.png`;
+let LOGO_WIDTH = 160; // px — admin'den ayarlanabilir, orantı height:auto ile korunur
 
 function brandHeader(): string {
   // Koyu header: logo ortalı, yüklenemezse wordmark fallback.
   // Altın accent çizgi header'ı içerikten ayırır.
+  // height attribute kasıtlı bırakılmıştır: height:auto orantıyı korur.
   return `
 <table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%" style="background-color:${BRAND.ink};">
   <tr>
@@ -265,7 +275,7 @@ function brandHeader(): string {
         <tr>
           <td align="center" style="line-height:0;font-size:0;">
             <a href="${CONTACT.siteUrl}" style="text-decoration:none;">
-              <img src="${LOGO_URL}" alt="${EMAIL_BRAND_NAME}" width="160" height="56" style="display:block;width:160px;height:auto;max-width:160px;max-height:56px;border:0;outline:none;text-decoration:none;-ms-interpolation-mode:bicubic;" />
+              <img src="${LOGO_URL}" alt="${EMAIL_BRAND_NAME}" width="${LOGO_WIDTH}" style="display:block;width:${LOGO_WIDTH}px;height:auto;max-width:${LOGO_WIDTH}px;border:0;outline:none;text-decoration:none;-ms-interpolation-mode:bicubic;" />
             </a>
           </td>
         </tr>

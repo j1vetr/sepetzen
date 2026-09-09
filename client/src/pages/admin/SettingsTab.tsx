@@ -268,6 +268,7 @@ function EmailBrandingSection() {
   const [tagline,      setTagline]      = useState('');
   const [primaryColor, setPrimaryColor] = useState('#2D5A27');
   const [logoUrl,      setLogoUrl]      = useState('');
+  const [logoWidth,    setLogoWidth]    = useState('160');
   const [siteUrl,      setSiteUrl]      = useState('');
   const [contactEmail, setContactEmail] = useState('');
   const [phoneDisplay, setPhoneDisplay] = useState('');
@@ -284,6 +285,7 @@ function EmailBrandingSection() {
     if (adminSettings.email_brand_tagline !== undefined) setTagline(adminSettings.email_brand_tagline);
     if (adminSettings.email_primary_color !== undefined) setPrimaryColor(adminSettings.email_primary_color);
     if (adminSettings.email_logo_url      !== undefined) setLogoUrl(adminSettings.email_logo_url);
+    if (adminSettings.email_logo_width    !== undefined) setLogoWidth(adminSettings.email_logo_width || '160');
     if (adminSettings.email_site_url      !== undefined) setSiteUrl(adminSettings.email_site_url);
     if (adminSettings.email_contact_email !== undefined) setContactEmail(adminSettings.email_contact_email);
     if (adminSettings.email_phone_display !== undefined) setPhoneDisplay(adminSettings.email_phone_display);
@@ -322,6 +324,7 @@ function EmailBrandingSection() {
           email_brand_tagline: tagline,
           email_primary_color: primaryColor,
           email_logo_url:      logoUrl,
+          email_logo_width:    logoWidth,
           email_site_url:      siteUrl,
           email_contact_email: contactEmail,
           email_phone_display: phoneDisplay,
@@ -413,7 +416,34 @@ function EmailBrandingSection() {
               />
             )}
           </div>
-          <p className="text-xs text-neutral-400 mt-1">Boş bırakılırsa /email-logo.png kullanılır. Önerilen: 240×96 px, PNG veya WebP, şeffaf zemin.</p>
+          <p className="text-xs text-neutral-400 mt-1">PNG, WebP, GIF desteklenir. Boş bırakılırsa /email-logo.png kullanılır. Şeffaf zemin önerilir.</p>
+        </div>
+
+        {/* Logo genişliği */}
+        <div>
+          <label className="block text-sm font-medium text-neutral-700 mb-1.5">Logo Genişliği (px)</label>
+          <div className="flex items-center gap-3">
+            <input
+              type="number"
+              min={40}
+              max={400}
+              value={logoWidth}
+              onChange={e => setLogoWidth(e.target.value)}
+              className="w-28 px-3 py-2.5 bg-neutral-50 border border-neutral-200 rounded-lg text-sm text-neutral-900 font-mono focus:outline-none focus:border-neutral-900"
+              placeholder="160"
+            />
+            <span className="text-sm text-neutral-500">px — yükseklik orantılı hesaplanır (40–400)</span>
+          </div>
+          {logoUrl && (
+            <div className="mt-2 inline-flex items-center gap-2 px-3 py-1.5 bg-neutral-900 rounded">
+              <img
+                src={logoUrl}
+                alt="Önizleme"
+                style={{ width: `${Math.min(parseInt(logoWidth) || 160, 200)}px`, height: 'auto', maxHeight: '48px', objectFit: 'contain' }}
+              />
+            </div>
+          )}
+          <p className="text-xs text-neutral-400 mt-1">Varsayılan: 160 px. WebP veya geniş logolar için artırın.</p>
         </div>
 
         {/* Ana renk */}
