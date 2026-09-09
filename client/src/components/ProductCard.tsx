@@ -128,6 +128,8 @@ export const ProductCard = memo(function ProductCard({ product }: ProductCardPro
   const mainImage = product.images && product.images.length > 0
     ? (product.images.find(u => !/\.(mp4|webm|mov)(\?|$)/i.test(u)) ?? product.images[0])
     : 'https://images.unsplash.com/photo-1618354691373-d851c5c3a990?w=600&h=800&fit=crop';
+  // Üründe video varsa hover'da oynatmak için ayrıca sakla
+  const hoverVideoSrc = product.images?.find(u => isVideoUrl(u)) ?? null;
 
   const totalStock = product.variants?.reduce((sum, v) => sum + (v.stock || 0), 0) ?? 0;
   const isOutOfStock = product.variants && product.variants.length > 0 && totalStock === 0;
@@ -169,7 +171,7 @@ export const ProductCard = memo(function ProductCard({ product }: ProductCardPro
               <>
                 <motion.video
                   ref={videoRef}
-                  src={mainImage}
+                  src={hoverVideoSrc ?? mainImage}
                   className="w-full h-full object-cover"
                   muted
                   preload="metadata"
@@ -254,16 +256,32 @@ export const ProductCard = memo(function ProductCard({ product }: ProductCardPro
                 </motion.div>
               </>
             ) : (
-              <motion.img
-                src={mainImage}
-                alt={product.name}
-                className="w-full h-full object-cover"
-                loading="lazy"
-                decoding="async"
-                animate={{ scale: isHovered ? 1.06 : 1 }}
-                transition={{ duration: 0.7, ease: [0.33, 1, 0.68, 1] }}
-                data-testid={`img-product-${product.id}`}
-              />
+              <>
+                <motion.img
+                  src={mainImage}
+                  alt={product.name}
+                  className="w-full h-full object-cover"
+                  loading="lazy"
+                  decoding="async"
+                  animate={{ scale: isHovered ? 1.06 : 1 }}
+                  transition={{ duration: 0.7, ease: [0.33, 1, 0.68, 1] }}
+                  data-testid={`img-product-${product.id}`}
+                />
+                {/* Video hover katmanı — ürünün videosu varsa hover'da fade-in ile oynar */}
+                {hoverVideoSrc && (
+                  <motion.video
+                    ref={videoRef}
+                    src={hoverVideoSrc}
+                    className="absolute inset-0 w-full h-full object-cover pointer-events-none"
+                    muted
+                    preload="none"
+                    loop
+                    playsInline
+                    animate={{ opacity: isHovered ? 1 : 0, scale: isHovered ? 1.06 : 1 }}
+                    transition={{ duration: 0.35, ease: [0.33, 1, 0.68, 1] }}
+                  />
+                )}
+              </>
             )}
 
             {/* Tükendi badge — soft transparent, sağ üstte; tam overlay yok, Google indeksi korunur */}

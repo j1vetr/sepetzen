@@ -579,29 +579,11 @@ function NewArrivals({ products }: { products: Product[] }) {
                 >
                   {/* Image */}
                   <div className="relative aspect-[3/4] overflow-hidden bg-zinc-900 mb-3">
-                    {p.images?.[0] && /\.(mp4|webm|mov)(\?.*)?$/i.test(p.images[0]) ? (
-                      <video
-                        src={p.images[0]}
-                        className="absolute inset-0 w-full h-full object-cover transition-transform duration-700 ease-out group-hover:scale-105"
-                        muted
-                        preload="metadata"
-                        loop
-                        playsInline
-                        onMouseEnter={(e) => (e.currentTarget as HTMLVideoElement).play().catch(() => {})}
-                        onMouseLeave={(e) => {
-                          const v = e.currentTarget as HTMLVideoElement;
-                          v.pause();
-                          v.currentTime = 0;
-                        }}
-                      />
-                    ) : (
-                    <img
-                      src={p.images?.[0] || ''}
+                    <MarqueeThumb
+                      images={p.images ?? []}
                       alt={p.name}
-                      loading="lazy"
-                      className="absolute inset-0 w-full h-full object-cover transition-transform duration-700 ease-out group-hover:scale-105"
+                      className="w-full h-full transition-transform duration-700 ease-out group-hover:scale-105"
                     />
-                    )}
                     {/* Badges — sol üstte dikey yığın */}
                     <div className="absolute top-2.5 left-2.5 z-10 flex flex-col items-start gap-1.5">
                       {!isFreeShippingPromotion(p.discountBadge) && p.discountBadge && (
