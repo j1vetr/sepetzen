@@ -70,19 +70,20 @@ async function createTransporter() {
 // ─────────────────────────────────────────────────────────────────────────────
 // EMAIL TEMPLATE SYSTEM
 // Outlook + Gmail + Apple Mail uyumlu, table-based, inline-style.
-// Marka: Sepetzen — koyu yeşil (#2D5A27) vurgu, açık krem zemin.
+// Marka: Sepetzen — koyu siyah header, altın vurgu, temiz beyaz içerik.
 // ─────────────────────────────────────────────────────────────────────────────
 
 let BRAND = {
-  primary: '#2D5A27',
-  primaryDeep: '#1f3e1c',
-  ink: '#0f1a0e',
-  body: '#374737',
-  muted: '#5a7a57',
-  border: '#c8ddc5',
-  borderSoft: '#dceeda',
-  card: '#f0f7ef',
-  bg: '#e8f2e7',
+  primary:     '#1a1a1a',   // siyah buton / vurgu
+  primaryDeep: '#000000',
+  accent:      '#C8A84B',   // altın / amber — rozet, çizgi, bağlantı
+  ink:         '#111111',
+  body:        '#444444',
+  muted:       '#888888',
+  border:      '#E0DBD3',
+  borderSoft:  '#EDE9E2',
+  card:        '#F8F7F4',
+  bg:          '#EDEBE6',
 };
 
 let CONTACT = {
@@ -132,9 +133,12 @@ async function refreshEmailBranding(): Promise<void> {
     EMAIL_BRAND_NAME    = s.email_brand_name    || 'SEPETZEN';
     EMAIL_BRAND_TAGLINE = s.email_brand_tagline || 'Kamp, Outdoor & Bıçak';
 
-    // Logo URL
+    // Logo URL — relative path'leri mutlak URL'ye çevir (e-posta istemcileri relative desteklemez)
     if (s.email_logo_url) {
-      LOGO_URL = s.email_logo_url;
+      const raw = s.email_logo_url.trim();
+      LOGO_URL = raw.startsWith('http://') || raw.startsWith('https://')
+        ? raw
+        : `${CONTACT.siteUrl}${raw.startsWith('/') ? '' : '/'}${raw}`;
     } else {
       LOGO_URL = `${CONTACT.siteUrl}/email-logo.png`;
     }
@@ -213,33 +217,31 @@ function buildBillingInfoHtml(
 
 function emailButton(href: string, label: string, opts?: { variant?: 'primary' | 'ghost' }): string {
   const variant = opts?.variant ?? 'primary';
-  const bg = variant === 'primary' ? BRAND.primary : '#ffffff';
-  const color = variant === 'primary' ? BRAND.ink : BRAND.ink;
-  const stroke = variant === 'primary' ? 'f' : 't';
-  const strokeColor = variant === 'primary' ? BRAND.primary : BRAND.border;
-  const bgFallback = variant === 'primary' ? BRAND.primary : '#ffffff';
+  const bg      = variant === 'primary' ? BRAND.ink    : '#ffffff';
+  const color   = variant === 'primary' ? '#ffffff'    : BRAND.ink;
+  const border  = variant === 'primary' ? BRAND.ink    : BRAND.border;
   return `
-<table role="presentation" cellspacing="0" cellpadding="0" border="0" align="center" style="margin:24px auto;">
+<table role="presentation" cellspacing="0" cellpadding="0" border="0" align="center" style="margin:28px auto;">
   <tr>
-    <td align="center" bgcolor="${bgFallback}" style="border-radius:4px;mso-padding-alt:0;background-color:${bgFallback};">
+    <td align="center" bgcolor="${bg}" style="border-radius:2px;mso-padding-alt:0;background-color:${bg};">
       <!--[if mso]>
-      <v:roundrect xmlns:v="urn:schemas-microsoft-com:vml" xmlns:w="urn:schemas-microsoft-com:office:word" href="${href}" style="height:48px;v-text-anchor:middle;width:280px;" arcsize="8%" stroke="${stroke}" strokecolor="${strokeColor}" fillcolor="${bg}">
+      <v:roundrect xmlns:v="urn:schemas-microsoft-com:vml" xmlns:w="urn:schemas-microsoft-com:office:word" href="${href}" style="height:50px;v-text-anchor:middle;width:260px;" arcsize="2%" stroke="f" fillcolor="${bg}">
         <w:anchorlock/>
-        <center style="color:${color};font-family:Helvetica,Arial,sans-serif;font-size:13px;font-weight:bold;letter-spacing:1.2px;text-transform:uppercase;">${label}</center>
+        <center style="color:${color};font-family:Helvetica,Arial,sans-serif;font-size:12px;font-weight:bold;letter-spacing:2px;text-transform:uppercase;">${label}</center>
       </v:roundrect>
       <![endif]-->
-      <a href="${href}" style="background-color:${bg};border:1px solid ${variant === 'primary' ? BRAND.primary : BRAND.border};border-radius:4px;color:${color};display:inline-block;font-family:Helvetica,Arial,sans-serif;font-size:13px;font-weight:bold;line-height:46px;text-align:center;text-decoration:none;width:280px;-webkit-text-size-adjust:none;letter-spacing:1.2px;text-transform:uppercase;mso-hide:all;">${label}</a>
+      <a href="${href}" style="background-color:${bg};border:1px solid ${border};border-radius:2px;color:${color};display:inline-block;font-family:Helvetica,Arial,sans-serif;font-size:12px;font-weight:700;line-height:48px;text-align:center;text-decoration:none;width:260px;-webkit-text-size-adjust:none;letter-spacing:2px;text-transform:uppercase;mso-hide:all;">${label}</a>
     </td>
   </tr>
 </table>`;
 }
 
 function infoCard(innerHtml: string, opts?: { padding?: string }): string {
-  const padding = opts?.padding ?? '20px 22px';
+  const padding = opts?.padding ?? '20px 24px';
   return `
-<table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%" style="background-color:${BRAND.card};border:1px solid ${BRAND.borderSoft};border-collapse:separate;border-radius:6px;margin:16px 0;">
+<table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%" style="background-color:${BRAND.card};border:1px solid ${BRAND.borderSoft};border-collapse:separate;border-radius:3px;margin:16px 0;">
   <tr>
-    <td style="padding:${padding};font-family:Helvetica,Arial,sans-serif;color:${BRAND.body};font-size:14px;line-height:1.65;">
+    <td style="padding:${padding};font-family:Helvetica,Arial,sans-serif;color:${BRAND.body};font-size:14px;line-height:1.7;">
       ${innerHtml}
     </td>
   </tr>
@@ -247,42 +249,43 @@ function infoCard(innerHtml: string, opts?: { padding?: string }): string {
 }
 
 function sectionTitle(text: string): string {
-  return `<p style="margin:28px 0 10px 0;font-family:Helvetica,Arial,sans-serif;color:${BRAND.muted};font-size:11px;font-weight:700;letter-spacing:2px;text-transform:uppercase;">${text}</p>`;
+  return `<p style="margin:28px 0 10px 0;font-family:Helvetica,Arial,sans-serif;color:${BRAND.accent};font-size:10px;font-weight:700;letter-spacing:2.5px;text-transform:uppercase;border-bottom:1px solid ${BRAND.borderSoft};padding-bottom:8px;">${text}</p>`;
 }
 
 let LOGO_URL = `${CONTACT.siteUrl}/email-logo.png`;
 
 function brandHeader(): string {
-  // Görsel destekleyen istemcilerde logo, blok eden istemcilerde alt-text + kalın
-  // wordmark fallback gösterilir. Logo image yüklenmezse altındaki text wordmark
-  // her zaman görünür kalır (defansif: text wordmark logo ile birlikte yer alır).
+  // Koyu header: logo ortalı, yüklenemezse wordmark fallback.
+  // Altın accent çizgi header'ı içerikten ayırır.
   return `
-<table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%" style="background-color:#ffffff;">
+<table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%" style="background-color:${BRAND.ink};">
   <tr>
-    <td align="center" style="padding:32px 30px 22px 30px;border-bottom:1px solid ${BRAND.borderSoft};">
+    <td align="center" style="padding:32px 30px 26px 30px;">
       <table role="presentation" cellspacing="0" cellpadding="0" border="0">
         <tr>
           <td align="center" style="line-height:0;font-size:0;">
-            <a href="${CONTACT.siteUrl}" style="text-decoration:none;color:${BRAND.ink};">
-              <img src="${LOGO_URL}" alt="SEPETZEN" width="120" height="48" style="display:block;width:120px;height:auto;max-width:120px;border:0;outline:none;text-decoration:none;-ms-interpolation-mode:bicubic;" />
+            <a href="${CONTACT.siteUrl}" style="text-decoration:none;">
+              <img src="${LOGO_URL}" alt="${EMAIL_BRAND_NAME}" width="160" height="56" style="display:block;width:160px;height:auto;max-width:160px;max-height:56px;border:0;outline:none;text-decoration:none;-ms-interpolation-mode:bicubic;" />
             </a>
           </td>
         </tr>
+        <!--[if !mso]><!-- Logo yüklenmezse wordmark göster -->
         <tr>
-          <td align="center" style="padding-top:14px;font-family:'Helvetica Neue',Helvetica,Arial,sans-serif;color:${BRAND.ink};font-size:20px;font-weight:800;letter-spacing:5px;line-height:1;">
-            <a href="${CONTACT.siteUrl}" style="color:${BRAND.ink};text-decoration:none;">${EMAIL_BRAND_NAME}</a>
+          <td align="center" style="padding-top:10px;font-family:'Helvetica Neue',Helvetica,Arial,sans-serif;font-size:20px;font-weight:800;letter-spacing:6px;color:#ffffff;line-height:1;">
+            <a href="${CONTACT.siteUrl}" style="color:#ffffff;text-decoration:none;">${EMAIL_BRAND_NAME}</a>
           </td>
         </tr>
         <tr>
-          <td align="center" style="padding-top:6px;font-family:Helvetica,Arial,sans-serif;color:${BRAND.muted};font-size:10px;font-weight:600;letter-spacing:3px;text-transform:uppercase;">
+          <td align="center" style="padding-top:5px;font-family:Helvetica,Arial,sans-serif;font-size:9px;font-weight:600;letter-spacing:3px;text-transform:uppercase;color:${BRAND.accent};">
             ${EMAIL_BRAND_TAGLINE}
           </td>
         </tr>
+        <!--<![endif]-->
       </table>
     </td>
   </tr>
   <tr>
-    <td style="height:3px;background-color:${BRAND.primary};line-height:3px;font-size:0;">&nbsp;</td>
+    <td style="height:3px;background-color:${BRAND.accent};line-height:3px;font-size:0;">&nbsp;</td>
   </tr>
 </table>`;
 }
@@ -291,42 +294,45 @@ function brandFooter(opts?: { unsubscribeEmail?: string }): string {
   const unsubEmail = opts?.unsubscribeEmail;
   const unsubBlock = unsubEmail ? `
         <tr>
-          <td align="center" style="padding-top:14px;font-size:11px;line-height:1.7;color:rgba(255,255,255,0.55);">
-            Bu e-postayı pazarlama izniniz nedeniyle <strong style="color:rgba(255,255,255,0.75);">${escapeHtml(unsubEmail)}</strong> adresine gönderdik.<br>
-            <a href="mailto:${CONTACT.email}?subject=${encodeURIComponent('Abonelik İptali')}&body=${encodeURIComponent(`Lütfen ${unsubEmail} adresini pazarlama e-posta listesinden çıkarın.`)}" style="color:${BRAND.primary};text-decoration:underline;font-weight:600;">Abonelikten çık</a>
+          <td align="center" style="padding-top:16px;font-size:11px;line-height:1.7;color:rgba(255,255,255,0.45);">
+            Bu e-postayı <strong style="color:rgba(255,255,255,0.65);">${escapeHtml(unsubEmail)}</strong> adresine gönderdik.<br>
+            <a href="mailto:${CONTACT.email}?subject=${encodeURIComponent('Abonelik İptali')}&body=${encodeURIComponent(`Lütfen ${unsubEmail} adresini pazarlama e-posta listesinden çıkarın.`)}" style="color:${BRAND.accent};text-decoration:underline;">Abonelikten çık</a>
           </td>
         </tr>` : '';
   return `
 <table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%" style="background-color:${BRAND.ink};">
   <tr>
-    <td style="padding:32px 30px 22px 30px;font-family:Helvetica,Arial,sans-serif;color:#ffffff;">
+    <td style="height:3px;background-color:${BRAND.accent};line-height:3px;font-size:0;">&nbsp;</td>
+  </tr>
+  <tr>
+    <td style="padding:32px 30px 28px 30px;font-family:Helvetica,Arial,sans-serif;">
       <table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%">
         <tr>
-          <td align="center" style="font-size:14px;font-weight:700;letter-spacing:3px;color:#ffffff;padding-bottom:4px;">
-            ${EMAIL_BRAND_NAME}
+          <td align="center" style="padding-bottom:6px;">
+            <a href="${CONTACT.siteUrl}" style="font-family:'Helvetica Neue',Helvetica,Arial,sans-serif;font-size:16px;font-weight:800;letter-spacing:5px;color:#ffffff;text-decoration:none;text-transform:uppercase;">${EMAIL_BRAND_NAME}</a>
           </td>
         </tr>
         <tr>
-          <td align="center" style="font-size:10px;color:rgba(255,255,255,0.45);letter-spacing:2px;text-transform:uppercase;padding-bottom:18px;">
-            ${CONTACT.site}
+          <td align="center" style="padding-bottom:20px;font-size:9px;color:${BRAND.accent};letter-spacing:2.5px;text-transform:uppercase;font-weight:600;">
+            ${EMAIL_BRAND_TAGLINE}
           </td>
         </tr>
         <tr>
-          <td align="center" style="padding-bottom:6px;font-size:13px;color:rgba(255,255,255,0.85);">
-            <a href="tel:${CONTACT.phoneTel}" style="color:${BRAND.primary};text-decoration:none;font-weight:600;">${CONTACT.phoneDisplay}</a>
-            <span style="color:rgba(255,255,255,0.25);padding:0 8px;">|</span>
-            <a href="mailto:${CONTACT.email}" style="color:${BRAND.primary};text-decoration:none;font-weight:600;">${CONTACT.email}</a>
+          <td align="center" style="padding-bottom:8px;">
+            <a href="tel:${CONTACT.phoneTel}" style="font-family:Helvetica,Arial,sans-serif;font-size:13px;color:rgba(255,255,255,0.8);text-decoration:none;">${CONTACT.phoneDisplay}</a>
+            <span style="color:rgba(255,255,255,0.2);padding:0 10px;">&bull;</span>
+            <a href="mailto:${CONTACT.email}" style="font-family:Helvetica,Arial,sans-serif;font-size:13px;color:rgba(255,255,255,0.8);text-decoration:none;">${CONTACT.email}</a>
           </td>
         </tr>
         <tr>
-          <td align="center" style="padding:6px 0 18px 0;font-size:12px;line-height:1.6;color:rgba(255,255,255,0.6);">
-            ${CONTACT.addressLine1}<br>${CONTACT.addressLine2}
+          <td align="center" style="padding-bottom:22px;font-family:Helvetica,Arial,sans-serif;font-size:12px;line-height:1.65;color:rgba(255,255,255,0.45);">
+            ${CONTACT.addressLine1}, ${CONTACT.addressLine2}
           </td>
         </tr>
         <tr>
-          <td align="center" style="padding-top:18px;border-top:1px solid rgba(255,255,255,0.08);">
-            <p style="margin:0;font-size:11px;color:rgba(255,255,255,0.4);line-height:1.6;">
-              © ${new Date().getFullYear()} ${EMAIL_BRAND_NAME}. Tüm hakları saklıdır.<br>
+          <td align="center" style="border-top:1px solid rgba(255,255,255,0.08);padding-top:20px;">
+            <p style="margin:0;font-family:Helvetica,Arial,sans-serif;font-size:11px;color:rgba(255,255,255,0.35);line-height:1.6;">
+              &copy; ${new Date().getFullYear()} ${EMAIL_BRAND_NAME}. Tüm hakları saklıdır.<br>
               Bu e-postayı, hesabınızla ilgili bir işlem nedeniyle aldınız.
             </p>
           </td>
@@ -364,7 +370,7 @@ function wrapTemplate(content: string, opts?: { preheader?: string; title?: stri
   table, td { mso-table-lspace:0pt; mso-table-rspace:0pt; }
   img { -ms-interpolation-mode:bicubic; border:0; outline:none; text-decoration:none; }
   body { margin:0 !important; padding:0 !important; width:100% !important; background-color:${BRAND.bg}; }
-  a { color:${BRAND.primary}; }
+  a { color:${BRAND.accent}; }
   @media screen and (max-width: 620px) {
     .container { width:100% !important; max-width:100% !important; }
     .px-mobile { padding-left:20px !important; padding-right:20px !important; }
@@ -376,11 +382,11 @@ function wrapTemplate(content: string, opts?: { preheader?: string; title?: stri
 <div style="display:none;font-size:1px;color:${BRAND.bg};line-height:1px;max-height:0;max-width:0;opacity:0;overflow:hidden;mso-hide:all;">${escapeHtml(preheader)}</div>
 <table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%" style="background-color:${BRAND.bg};">
   <tr>
-    <td align="center" style="padding:24px 12px;">
-      <table role="presentation" cellspacing="0" cellpadding="0" border="0" width="600" class="container" style="max-width:600px;width:100%;background-color:#ffffff;border:1px solid ${BRAND.borderSoft};">
+    <td align="center" style="padding:28px 12px 36px 12px;">
+      <table role="presentation" cellspacing="0" cellpadding="0" border="0" width="600" class="container" style="max-width:600px;width:100%;background-color:#ffffff;border:1px solid ${BRAND.border};box-shadow:0 2px 12px rgba(0,0,0,0.08);">
         <tr><td>${brandHeader()}</td></tr>
         <tr>
-          <td class="px-mobile" style="padding:36px 36px 28px 36px;font-family:Helvetica,Arial,sans-serif;color:${BRAND.body};">
+          <td class="px-mobile" style="padding:36px 40px 32px 40px;font-family:Helvetica,Arial,sans-serif;color:${BRAND.body};">
             ${content}
           </td>
         </tr>
@@ -395,13 +401,13 @@ function wrapTemplate(content: string, opts?: { preheader?: string; title?: stri
 
 // Inline yardımcılar — şablonlar için
 const H1 = (text: string) =>
-  `<h1 style="margin:0 0 10px 0;font-family:'Helvetica Neue',Helvetica,Arial,sans-serif;color:${BRAND.ink};font-size:24px;font-weight:700;line-height:1.25;letter-spacing:-0.2px;">${text}</h1>`;
+  `<h1 style="margin:0 0 12px 0;font-family:'Helvetica Neue',Helvetica,Arial,sans-serif;color:${BRAND.ink};font-size:26px;font-weight:800;line-height:1.2;letter-spacing:-0.3px;">${text}</h1>`;
 const Lede = (text: string) =>
-  `<p style="margin:0 0 22px 0;font-family:Helvetica,Arial,sans-serif;color:${BRAND.body};font-size:15px;line-height:1.65;">${text}</p>`;
+  `<p style="margin:0 0 24px 0;font-family:Helvetica,Arial,sans-serif;color:${BRAND.body};font-size:15px;line-height:1.7;">${text}</p>`;
 const P = (text: string, color?: string) =>
-  `<p style="margin:0 0 14px 0;font-family:Helvetica,Arial,sans-serif;color:${color ?? BRAND.body};font-size:14px;line-height:1.65;">${text}</p>`;
+  `<p style="margin:0 0 14px 0;font-family:Helvetica,Arial,sans-serif;color:${color ?? BRAND.body};font-size:14px;line-height:1.7;">${text}</p>`;
 const Small = (text: string) =>
-  `<p style="margin:18px 0 0 0;font-family:Helvetica,Arial,sans-serif;color:${BRAND.muted};font-size:12px;line-height:1.6;text-align:center;">${text}</p>`;
+  `<p style="margin:20px 0 0 0;font-family:Helvetica,Arial,sans-serif;color:${BRAND.muted};font-size:12px;line-height:1.65;text-align:center;border-top:1px solid ${BRAND.borderSoft};padding-top:20px;">${text}</p>`;
 const HR = () =>
   `<table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%"><tr><td style="border-top:1px solid ${BRAND.borderSoft};font-size:0;line-height:0;height:1px;">&nbsp;</td></tr></table>`;
 
@@ -411,38 +417,38 @@ function welcomeEmailTemplate(userName: string): string {
   const safeName = escapeHtml(userName);
   return wrapTemplate(`
     ${H1(`Hoş geldiniz, ${safeName}.`)}
-    ${Lede('Sepetzen ailesine katıldığınız için çok mutluyuz. Atölyemizde el işçiliğiyle şekillenen mermer parçalar artık sizin için bir tık uzakta.')}
+    ${Lede('Sepetzen ailesine katıldığınız için çok mutluyuz. Kamp ekipmanından el yapımı bıçaklara, outdoor dünyanızı tamamlayacak her ürün sizin için burada.')}
 
     ${infoCard(`
       <table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%">
         <tr>
-          <td style="padding-bottom:14px;font-size:14px;color:${BRAND.ink};font-weight:700;letter-spacing:0.4px;">Sizi neler bekliyor</td>
+          <td style="padding-bottom:14px;font-size:13px;color:${BRAND.accent};font-weight:700;letter-spacing:2px;text-transform:uppercase;">Sizi neler bekliyor</td>
         </tr>
         <tr>
-          <td style="padding-bottom:10px;">
-            <span style="display:inline-block;width:6px;height:6px;background:${BRAND.primary};border-radius:50%;margin-right:10px;vertical-align:middle;"></span>
-            <strong style="color:${BRAND.ink};">El işçiliği</strong> <span style="color:${BRAND.body};">- her parça atölyemizde özenle şekillenir</span>
+          <td style="padding-bottom:12px;font-family:Helvetica,Arial,sans-serif;font-size:14px;color:${BRAND.body};line-height:1.6;">
+            <span style="display:inline-block;width:14px;height:2px;background:${BRAND.accent};margin-right:10px;vertical-align:middle;"></span>
+            <strong style="color:${BRAND.ink};">El yapımı ürünler</strong> — her bıçak, ustasının izini taşır
           </td>
         </tr>
         <tr>
-          <td style="padding-bottom:10px;">
-            <span style="display:inline-block;width:6px;height:6px;background:${BRAND.primary};border-radius:50%;margin-right:10px;vertical-align:middle;"></span>
-            <strong style="color:${BRAND.ink};">Güvenli kargo</strong> <span style="color:${BRAND.body};">- Aras Kargo ile hızlı, kırılmaz paketleme</span>
+          <td style="padding-bottom:12px;font-family:Helvetica,Arial,sans-serif;font-size:14px;color:${BRAND.body};line-height:1.6;">
+            <span style="display:inline-block;width:14px;height:2px;background:${BRAND.accent};margin-right:10px;vertical-align:middle;"></span>
+            <strong style="color:${BRAND.ink};">Hızlı ve güvenli kargo</strong> — Türkiye genelinde kapınıza kadar
           </td>
         </tr>
         <tr>
-          <td>
-            <span style="display:inline-block;width:6px;height:6px;background:${BRAND.primary};border-radius:50%;margin-right:10px;vertical-align:middle;"></span>
-            <strong style="color:${BRAND.ink};">Üyeye özel</strong> <span style="color:${BRAND.body};">- kampanyalardan ilk siz haberdar olun</span>
+          <td style="font-family:Helvetica,Arial,sans-serif;font-size:14px;color:${BRAND.body};line-height:1.6;">
+            <span style="display:inline-block;width:14px;height:2px;background:${BRAND.accent};margin-right:10px;vertical-align:middle;"></span>
+            <strong style="color:${BRAND.ink};">Üyeye özel fırsatlar</strong> — kampanyalardan ilk siz haberdar olun
           </td>
         </tr>
       </table>
     `)}
 
-    ${emailButton(CONTACT.siteUrl, 'Koleksiyona Göz At')}
+    ${emailButton(CONTACT.siteUrl, 'Koleksiyonu İncele')}
 
-    ${Small(`Sorularınız için <a href="mailto:${CONTACT.email}" style="color:${BRAND.primaryDeep};text-decoration:none;">${CONTACT.email}</a> adresinden bize ulaşabilirsiniz.`)}
-  `, { preheader: `Hoş geldiniz ${safeName} - Sepetzen ailesindesiniz.`, title: 'Hoş geldiniz' });
+    ${Small(`Sorularınız için <a href="mailto:${CONTACT.email}" style="color:${BRAND.accent};">${CONTACT.email}</a> adresinden bize ulaşabilirsiniz.`)}
+  `, { preheader: `Hoş geldiniz ${safeName} — Sepetzen ailesindesiniz.`, title: 'Hoş geldiniz' });
 }
 
 type OrderItemForEmail = OrderItem & { productImage?: string | null };
@@ -521,7 +527,7 @@ function orderConfirmationTemplate(order: Order, items: OrderItemForEmail[], sit
       ${order.discountAmount && parseFloat(order.discountAmount) > 0 ? `
       <tr>
         <td style="padding:8px 0;font-family:Helvetica,Arial,sans-serif;color:${BRAND.body};font-size:13px;">İndirim</td>
-        <td align="right" style="padding:8px 0;font-family:Helvetica,Arial,sans-serif;color:${BRAND.primaryDeep};font-size:13px;font-weight:700;white-space:nowrap;">−${escapeHtml(order.discountAmount)}&nbsp;₺</td>
+        <td align="right" style="padding:8px 0;font-family:Helvetica,Arial,sans-serif;color:${BRAND.accent};font-size:13px;font-weight:700;white-space:nowrap;">−${escapeHtml(order.discountAmount)}&nbsp;₺</td>
       </tr>` : ''}
       <tr>
         <td style="padding:14px 0 0 0;border-top:2px solid ${BRAND.ink};font-family:Helvetica,Arial,sans-serif;color:${BRAND.ink};font-size:15px;font-weight:700;letter-spacing:0.5px;">Toplam</td>
@@ -538,7 +544,7 @@ function orderConfirmationTemplate(order: Order, items: OrderItemForEmail[], sit
       ${billingHtml ? `${HR()}${billingHtml}` : ''}
     `)}
 
-    ${Small(`Sorularınız için <a href="mailto:${CONTACT.email}" style="color:${BRAND.primaryDeep};text-decoration:none;font-weight:600;">${CONTACT.email}</a> veya <a href="tel:${CONTACT.phoneTel}" style="color:${BRAND.primaryDeep};text-decoration:none;font-weight:600;">${CONTACT.phoneDisplay}</a>`)}
+    ${Small(`Sorularınız için <a href="mailto:${CONTACT.email}" style="color:${BRAND.accent};text-decoration:none;font-weight:600;">${CONTACT.email}</a> veya <a href="tel:${CONTACT.phoneTel}" style="color:${BRAND.accent};text-decoration:none;font-weight:600;">${CONTACT.phoneDisplay}</a>`)}
   `, { preheader: `Sipariş #${order.orderNumber} alındı - toplam ${order.total} ₺`, title: `Sipariş #${order.orderNumber}` });
 }
 
@@ -562,11 +568,11 @@ function preparingNotificationTemplate(order: Order): string {
       </table>
     `)}
 
-    <table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%" style="background-color:${BRAND.ink};margin:18px 0;">
+    <table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%" style="background-color:${BRAND.ink};margin:24px 0;border-left:4px solid ${BRAND.accent};">
       <tr>
-        <td align="center" style="padding:26px 24px;">
-          <div style="font-size:11px;color:${BRAND.primary};letter-spacing:2px;text-transform:uppercase;font-weight:700;">Tahmini Kargo Süresi</div>
-          <div style="font-size:28px;color:#ffffff;font-weight:800;margin-top:8px;letter-spacing:0.5px;">1–2 iş günü</div>
+        <td align="center" style="padding:28px 24px;">
+          <div style="font-size:10px;color:${BRAND.accent};letter-spacing:2.5px;text-transform:uppercase;font-weight:700;">Tahmini Kargo Süresi</div>
+          <div style="font-size:30px;color:#ffffff;font-weight:800;margin-top:10px;letter-spacing:0.5px;">1–2 iş günü</div>
         </td>
       </tr>
     </table>
@@ -589,12 +595,12 @@ function shippingNotificationTemplate(order: Order): string {
     ${H1('Kargoya verildi.')}
     ${Lede('Siparişiniz paketlendi ve kargoya teslim edildi. Aşağıdaki takip numarası ile her aşamayı izleyebilirsiniz.')}
 
-    <table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%" style="background-color:${BRAND.ink};margin:18px 0;">
+    <table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%" style="background-color:${BRAND.ink};margin:24px 0;border-left:4px solid ${BRAND.accent};">
       <tr>
         <td align="center" style="padding:30px 24px;">
-          <div style="font-size:11px;color:${BRAND.primary};letter-spacing:2px;text-transform:uppercase;font-weight:700;">Kargo Takip Numarası</div>
-          <div style="font-size:24px;color:#ffffff;font-weight:800;margin:12px 0 6px 0;letter-spacing:2px;font-family:'Courier New',monospace;">${escapeHtml(order.trackingNumber || 'Henüz belirlenmedi')}</div>
-          <div style="font-size:13px;color:rgba(255,255,255,0.6);font-weight:500;">${escapeHtml(carrier)}</div>
+          <div style="font-size:10px;color:${BRAND.accent};letter-spacing:2.5px;text-transform:uppercase;font-weight:700;">Kargo Takip Numarası</div>
+          <div style="font-size:24px;color:#ffffff;font-weight:800;margin:14px 0 8px 0;letter-spacing:2px;font-family:'Courier New',monospace;">${escapeHtml(order.trackingNumber || 'Henüz belirlenmedi')}</div>
+          <div style="font-size:12px;color:rgba(255,255,255,0.55);font-weight:500;letter-spacing:1px;text-transform:uppercase;">${escapeHtml(carrier)}</div>
         </td>
       </tr>
     </table>
@@ -622,7 +628,7 @@ function shippingNotificationTemplate(order: Order): string {
       </table>
     `)}
 
-    ${Small(`Kargo süresince sorularınız için <a href="tel:${CONTACT.phoneTel}" style="color:${BRAND.primaryDeep};text-decoration:none;font-weight:600;">${CONTACT.phoneDisplay}</a>`)}
+    ${Small(`Kargo süresince sorularınız için <a href="tel:${CONTACT.phoneTel}" style="color:${BRAND.accent};text-decoration:none;font-weight:600;">${CONTACT.phoneDisplay}</a>`)}
   `, { preheader: `#${order.orderNumber} kargoda - takip: ${order.trackingNumber || 'yakında'}`, title: 'Kargoya Verildi' });
 }
 
@@ -676,11 +682,12 @@ function bankTransferPendingTemplate(order: Order, items: OrderItemForEmail[], s
       </table>
     `)}
 
-    <table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%" style="background-color:${BRAND.primary};margin:18px 0;">
+    <table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%" style="background-color:${BRAND.ink};margin:24px 0;border-left:4px solid ${BRAND.accent};">
       <tr>
-        <td align="center" style="padding:18px 24px;font-family:Helvetica,Arial,sans-serif;color:${BRAND.ink};font-size:14px;font-weight:600;line-height:1.5;">
-          🏦 <strong>Havale ile %${bank.discountPercent} indirim uygulandı.</strong><br/>
-          <span style="font-size:13px;font-weight:500;">Ödenecek tutar: <strong>${escapeHtml(order.total)}&nbsp;₺</strong></span>
+        <td align="center" style="padding:20px 24px;font-family:Helvetica,Arial,sans-serif;color:#ffffff;font-size:14px;font-weight:600;line-height:1.6;">
+          <div style="font-size:10px;color:${BRAND.accent};letter-spacing:2px;text-transform:uppercase;font-weight:700;margin-bottom:8px;">Havale İndirimi Uygulandı</div>
+          <strong style="font-size:16px;">%${bank.discountPercent} indirimle ödeyeceksiniz:</strong><br/>
+          <span style="font-size:22px;font-weight:800;color:${BRAND.accent};">${escapeHtml(order.total)}&nbsp;₺</span>
         </td>
       </tr>
     </table>
@@ -702,7 +709,7 @@ function bankTransferPendingTemplate(order: Order, items: OrderItemForEmail[], s
         </tr>
         <tr>
           <td style="padding:6px 0;font-size:12px;color:${BRAND.muted};letter-spacing:1.2px;text-transform:uppercase;font-weight:600;">Tutar</td>
-          <td style="padding:6px 0;font-size:15px;color:${BRAND.primaryDeep};font-weight:800;">${escapeHtml(order.total)}&nbsp;₺</td>
+          <td style="padding:6px 0;font-size:15px;color:${BRAND.accent};font-weight:800;">${escapeHtml(order.total)}&nbsp;₺</td>
         </tr>
       </table>
     `)}
@@ -728,7 +735,7 @@ function bankTransferPendingTemplate(order: Order, items: OrderItemForEmail[], s
       ${order.discountAmount && parseFloat(order.discountAmount) > 0 ? `
       <tr>
         <td style="padding:8px 0;font-family:Helvetica,Arial,sans-serif;color:${BRAND.body};font-size:13px;">İndirim ${order.couponCode ? `(${escapeHtml(order.couponCode)})` : '(Havale)'}</td>
-        <td align="right" style="padding:8px 0;font-family:Helvetica,Arial,sans-serif;color:${BRAND.primaryDeep};font-size:13px;font-weight:700;white-space:nowrap;">−${escapeHtml(order.discountAmount)}&nbsp;₺</td>
+        <td align="right" style="padding:8px 0;font-family:Helvetica,Arial,sans-serif;color:${BRAND.accent};font-size:13px;font-weight:700;white-space:nowrap;">−${escapeHtml(order.discountAmount)}&nbsp;₺</td>
       </tr>` : ''}
       <tr>
         <td style="padding:14px 0 0 0;border-top:2px solid ${BRAND.ink};font-family:Helvetica,Arial,sans-serif;color:${BRAND.ink};font-size:15px;font-weight:700;letter-spacing:0.5px;">Ödenecek Toplam</td>
@@ -736,7 +743,7 @@ function bankTransferPendingTemplate(order: Order, items: OrderItemForEmail[], s
       </tr>
     </table>
 
-    ${Small(`Sorularınız için <a href="tel:${CONTACT.phoneTel}" style="color:${BRAND.primaryDeep};text-decoration:none;font-weight:600;">${CONTACT.phoneDisplay}</a>`)}
+    ${Small(`Sorularınız için <a href="tel:${CONTACT.phoneTel}" style="color:${BRAND.accent};text-decoration:none;font-weight:600;">${CONTACT.phoneDisplay}</a>`)}
   `, { preheader: `#${order.orderNumber} - Havale onayı bekleniyor (${order.total} ₺)`, title: 'Havalenizi Bekliyoruz' });
 }
 
@@ -772,7 +779,7 @@ function adminOrderNotificationTemplate(order: Order, items: OrderItem[]): strin
           </td>
           <td class="stack-col" align="right" style="vertical-align:top;width:33%;">
             <div style="font-size:11px;color:${BRAND.muted};letter-spacing:1.5px;text-transform:uppercase;font-weight:600;">Toplam</div>
-            <div style="font-size:18px;color:${BRAND.primaryDeep};font-weight:800;margin-top:4px;">${escapeHtml(order.total)}&nbsp;₺</div>
+            <div style="font-size:18px;color:${BRAND.accent};font-weight:800;margin-top:4px;">${escapeHtml(order.total)}&nbsp;₺</div>
           </td>
         </tr>
       </table>
@@ -781,8 +788,8 @@ function adminOrderNotificationTemplate(order: Order, items: OrderItem[]): strin
     ${sectionTitle('Müşteri')}
     ${infoCard(`
       <div style="font-size:14px;color:${BRAND.ink};font-weight:700;margin-bottom:6px;">${escapeHtml(order.customerName)}</div>
-      <div style="font-size:13px;color:${BRAND.body};line-height:1.6;"><a href="mailto:${escapeHtml(order.customerEmail)}" style="color:${BRAND.primaryDeep};text-decoration:none;">${escapeHtml(order.customerEmail)}</a></div>
-      <div style="font-size:13px;color:${BRAND.body};line-height:1.6;"><a href="tel:${escapeHtml(order.customerPhone)}" style="color:${BRAND.primaryDeep};text-decoration:none;">${escapeHtml(order.customerPhone)}</a></div>
+      <div style="font-size:13px;color:${BRAND.body};line-height:1.6;"><a href="mailto:${escapeHtml(order.customerEmail)}" style="color:${BRAND.accent};text-decoration:none;">${escapeHtml(order.customerEmail)}</a></div>
+      <div style="font-size:13px;color:${BRAND.body};line-height:1.6;"><a href="tel:${escapeHtml(order.customerPhone)}" style="color:${BRAND.accent};text-decoration:none;">${escapeHtml(order.customerPhone)}</a></div>
       ${HR()}
       <div style="font-size:11px;color:${BRAND.muted};letter-spacing:1.5px;text-transform:uppercase;font-weight:600;margin:8px 0 4px 0;">Teslimat Adresi</div>
       <div style="font-size:13px;color:${BRAND.body};line-height:1.6;">${escapeHtml(shippingAddress.address)}</div>
@@ -794,10 +801,10 @@ function adminOrderNotificationTemplate(order: Order, items: OrderItem[]): strin
     <table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%" style="background-color:${BRAND.card};border:1px solid ${BRAND.borderSoft};border-collapse:collapse;margin-top:6px;">
       <thead>
         <tr style="background-color:${BRAND.ink};">
-          <th align="left" style="padding:11px 12px;color:${BRAND.primary};font-size:10px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;">Ürün</th>
-          <th align="left" style="padding:11px 12px;color:${BRAND.primary};font-size:10px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;">Varyant</th>
-          <th align="center" style="padding:11px 12px;color:${BRAND.primary};font-size:10px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;">Adet</th>
-          <th align="right" style="padding:11px 12px;color:${BRAND.primary};font-size:10px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;">Tutar</th>
+          <th align="left" style="padding:11px 12px;color:${BRAND.accent};font-size:10px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;">Ürün</th>
+          <th align="left" style="padding:11px 12px;color:${BRAND.accent};font-size:10px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;">Varyant</th>
+          <th align="center" style="padding:11px 12px;color:${BRAND.accent};font-size:10px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;">Adet</th>
+          <th align="right" style="padding:11px 12px;color:${BRAND.accent};font-size:10px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;">Tutar</th>
         </tr>
       </thead>
       <tbody>${itemRows}</tbody>
@@ -825,7 +832,7 @@ function passwordResetTemplate(userName: string, resetLink: string): string {
 
     <p style="margin:20px 0 0 0;font-family:Helvetica,Arial,sans-serif;color:${BRAND.muted};font-size:11px;line-height:1.6;word-break:break-all;">
       Buton çalışmıyorsa aşağıdaki bağlantıyı tarayıcınıza kopyalayın:<br>
-      <a href="${resetLink}" style="color:${BRAND.primaryDeep};text-decoration:none;">${escapeHtml(resetLink)}</a>
+      <a href="${resetLink}" style="color:${BRAND.accent};text-decoration:none;">${escapeHtml(resetLink)}</a>
     </p>
   `, { preheader: 'Şifrenizi sıfırlamak için bağlantı içeride.', title: 'Şifre Sıfırlama' });
 }
@@ -834,7 +841,7 @@ function reviewRequestTemplate(userName: string, orderNumber: string, products: 
   const productsList = products.map(p => `
     <tr>
       <td style="padding:8px 0;font-family:Helvetica,Arial,sans-serif;color:${BRAND.body};font-size:13px;line-height:1.6;">
-        <span style="display:inline-block;width:5px;height:5px;background:${BRAND.primary};border-radius:50%;margin-right:10px;vertical-align:middle;"></span>
+        <span style="display:inline-block;width:5px;height:5px;background:${BRAND.accent};border-radius:50%;margin-right:10px;vertical-align:middle;"></span>
         ${escapeHtml(p)}
       </td>
     </tr>
@@ -899,14 +906,14 @@ function abandonedCartTemplate(userName: string, cartItems: CartItem[], cartTota
     ${emailButton(`${siteUrl}/sepet`, 'Sepetime Dön')}
 
     ${remaining > 0 ? `
-    <table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%" style="background-color:${BRAND.primary};margin:18px 0;">
+    <table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%" style="background-color:${BRAND.accent};margin:18px 0;">
       <tr>
         <td align="center" style="padding:18px 24px;font-family:Helvetica,Arial,sans-serif;color:${BRAND.ink};font-size:14px;font-weight:600;">
           <strong>${remaining.toLocaleString('tr-TR')} ₺</strong> daha ekleyin, kargo bizden!
         </td>
       </tr>
     </table>` : `
-    <table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%" style="background-color:${BRAND.primary};margin:18px 0;">
+    <table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%" style="background-color:${BRAND.accent};margin:18px 0;">
       <tr>
         <td align="center" style="padding:18px 24px;font-family:Helvetica,Arial,sans-serif;color:${BRAND.ink};font-size:14px;font-weight:600;">
           Tebrikler - kargoya hak kazandınız!
@@ -1115,7 +1122,7 @@ export async function sendAdminReviewNotificationEmail(
 
     const stars = '★'.repeat(payload.rating) + '☆'.repeat(5 - payload.rating);
     const guestBadge = payload.isGuest
-      ? `<span style="display:inline-block;background:${BRAND.primary};color:${BRAND.ink};font-size:10px;font-weight:700;padding:3px 8px;border-radius:3px;letter-spacing:1px;text-transform:uppercase;">Misafir</span>`
+      ? `<span style="display:inline-block;background:${BRAND.accent};color:${BRAND.ink};font-size:10px;font-weight:700;padding:3px 8px;border-radius:3px;letter-spacing:1px;text-transform:uppercase;">Misafir</span>`
       : `<span style="display:inline-block;background:${BRAND.borderSoft};color:${BRAND.body};font-size:10px;font-weight:700;padding:3px 8px;border-radius:3px;letter-spacing:1px;text-transform:uppercase;">Üye</span>`;
 
     const adminUrl = `${CONTACT.siteUrl}/toov-admin?tab=reviews`;
@@ -1141,7 +1148,7 @@ export async function sendAdminReviewNotificationEmail(
             <td style="padding-bottom:6px;font-size:13px;color:${BRAND.muted};">Puan</td>
           </tr>
           <tr>
-            <td style="padding-bottom:14px;font-size:18px;color:${BRAND.primary};letter-spacing:2px;">${stars} <span style="color:${BRAND.muted};font-size:13px;">(${payload.rating}/5)</span></td>
+            <td style="padding-bottom:14px;font-size:18px;color:${BRAND.accent};letter-spacing:2px;">${stars} <span style="color:${BRAND.muted};font-size:13px;">(${payload.rating}/5)</span></td>
           </tr>
           ${payload.title ? `
           <tr>
@@ -1207,7 +1214,7 @@ export async function sendGuestReviewApprovedEmail(
       ${Lede(`Merhaba ${escapeHtml(payload.guestName)}, <strong>${escapeHtml(payload.productName)}</strong> ürünü için yazdığınız değerlendirme onaylandı ve şimdi ürün sayfasında yayında. Düşünceleriniz için teşekkür ederiz.`)}
 
       ${infoCard(`
-        <div style="text-align:center;font-size:24px;color:${BRAND.primary};letter-spacing:3px;padding:8px 0;">${stars}</div>
+        <div style="text-align:center;font-size:24px;color:${BRAND.accent};letter-spacing:3px;padding:8px 0;">${stars}</div>
       `)}
 
       ${emailButton(productUrl, 'Ürün Sayfasını Gör')}
@@ -1396,7 +1403,7 @@ export async function sendTestEmail(toEmail: string): Promise<EmailResult> {
         ${Lede('Bu bir test e-postasıdır. SMTP ayarlarınız başarıyla yapılandırıldı.')}
         ${infoCard(`
           <div style="font-family:Helvetica,Arial,sans-serif;color:${BRAND.ink};font-size:14px;font-weight:600;">
-            <span style="display:inline-block;width:8px;height:8px;background:${BRAND.primary};border-radius:50%;margin-right:10px;vertical-align:middle;"></span>
+            <span style="display:inline-block;width:8px;height:8px;background:${BRAND.accent};border-radius:50%;margin-right:10px;vertical-align:middle;"></span>
             E-posta sistemi çalışıyor.
           </div>
         `)}
@@ -1485,7 +1492,7 @@ function quoteEmailTemplate(data: QuoteEmailData): string {
               </tr>
               <tr>
                 <td style="padding-top:10px;font-size:13px;color:${BRAND.body};font-weight:600;">Toplam Tutar</td>
-                <td align="right" style="padding-top:10px;font-size:20px;color:${BRAND.primaryDeep};font-weight:800;">${grandTotalFormatted}&nbsp;TL</td>
+                <td align="right" style="padding-top:10px;font-size:20px;color:${BRAND.accent};font-weight:800;">${grandTotalFormatted}&nbsp;TL</td>
               </tr>
             </table>
           </td>
@@ -1563,7 +1570,7 @@ export async function sendContactEmail(params: {
   <tr><td align="center">
     <table width="560" cellpadding="0" cellspacing="0" style="max-width:560px;width:100%;background:#ffffff;border-radius:4px;overflow:hidden;border:1px solid #e0e8df;">
       <!-- Header -->
-      <tr><td style="background:${BRAND.primary};padding:28px 32px;">
+      <tr><td style="background:${BRAND.accent};padding:28px 32px;">
         <div style="font-size:18px;font-weight:700;color:#ffffff;letter-spacing:2px;">SEPETZEN</div>
         <div style="font-size:11px;color:rgba(255,255,255,0.65);letter-spacing:1px;margin-top:4px;">İLETİŞİM FORMU</div>
       </td></tr>
@@ -1581,7 +1588,7 @@ export async function sendContactEmail(params: {
           <tr>
             <td style="padding:10px 16px;font-size:11px;color:${BRAND.muted};letter-spacing:1px;text-transform:uppercase;font-weight:600;border-top:1px solid ${BRAND.borderSoft};">E-posta</td>
             <td style="padding:10px 16px;font-size:14px;color:${BRAND.ink};border-top:1px solid ${BRAND.borderSoft};">
-              <a href="mailto:${escapeHtml(params.email)}" style="color:${BRAND.primary};text-decoration:none;">${escapeHtml(params.email)}</a>
+              <a href="mailto:${escapeHtml(params.email)}" style="color:${BRAND.accent};text-decoration:none;">${escapeHtml(params.email)}</a>
             </td>
           </tr>
           <tr style="background:${BRAND.card};">
