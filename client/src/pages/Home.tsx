@@ -866,7 +866,10 @@ function DesktopHeroMarquee({ products }: { products: Product[] }) {
       <div className="marquee-loop gap-3 px-4">
         {tripled.map((p, i) => {
           const price = parseFloat(String(p.basePrice || '0')) || 0;
-          const isVideo = /\.(mp4|webm|mov)(\?.*)?$/i.test(p.images?.[0] || '');
+          const isVideoUrl = (url: string) => /\.(mp4|webm|mov)(\?.*)?$/i.test(url);
+          // Video olmayan ilk görseli bul; yoksa video'dan preload=metadata ile ilk kare göster
+          const thumbSrc = p.images?.find(img => !isVideoUrl(img)) ?? p.images?.[0];
+          const thumbIsVideo = thumbSrc ? isVideoUrl(thumbSrc) : false;
           return (
             <Link
               key={`desk-${p.id}-${i}`}
@@ -874,21 +877,21 @@ function DesktopHeroMarquee({ products }: { products: Product[] }) {
               className="group shrink-0 w-[148px] flex flex-col overflow-hidden"
               data-testid={`link-desktop-marquee-${p.id}`}
             >
-              {/* Görsel — video ürünler marquee içinde de görünür */}
+              {/* Görsel — video ürünlerde static kare kullanılır */}
               <div className="relative w-[148px] h-[188px] overflow-hidden bg-black/30 shrink-0">
-                {p.images?.[0] ? (
-                  isVideo ? (
+                {thumbSrc ? (
+                  thumbIsVideo ? (
                     <video
-                      src={p.images[0]}
+                      src={thumbSrc}
                       muted
-                      preload="none"
+                      preload="metadata"
                       loop
                       playsInline
                       className="absolute inset-0 w-full h-full object-cover"
                     />
                   ) : (
                     <img
-                      src={p.images[0]}
+                      src={thumbSrc}
                       alt={p.name}
                       loading="lazy"
                       decoding="async"
@@ -944,6 +947,9 @@ function MobileMarquee({ products }: { products: Product[] }) {
       <div className="marquee-track gap-3 px-3">
         {doubled.map((p, i) => {
           const price = parseFloat(String(p.basePrice || '0')) || 0;
+          const isVideoUrl = (url: string) => /\.(mp4|webm|mov)(\?.*)?$/i.test(url);
+          const thumbSrc = p.images?.find(img => !isVideoUrl(img)) ?? p.images?.[0];
+          const thumbIsVideo = thumbSrc ? isVideoUrl(thumbSrc) : false;
           return (
             <Link
               key={`${p.id}-${i}`}
@@ -952,19 +958,19 @@ function MobileMarquee({ products }: { products: Product[] }) {
               data-testid={`link-marquee-product-${p.id}`}
             >
               <div className="relative w-32 h-40 overflow-hidden bg-black/20 shrink-0">
-                {p.images?.[0] ? (
-                  /\.(mp4|webm|mov)(\?.*)?$/i.test(p.images[0]) ? (
+                {thumbSrc ? (
+                  thumbIsVideo ? (
                     <video
-                      src={p.images[0]}
+                      src={thumbSrc}
                       className="absolute inset-0 w-full h-full object-cover"
                       muted
-                      preload="none"
+                      preload="metadata"
                       loop
                       playsInline
                     />
                   ) : (
                     <img
-                      src={p.images[0]}
+                      src={thumbSrc}
                       alt={p.name}
                       loading="lazy"
                       decoding="async"
