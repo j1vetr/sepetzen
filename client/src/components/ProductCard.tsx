@@ -284,17 +284,22 @@ export const ProductCard = memo(function ProductCard({ product }: ProductCardPro
               </>
             )}
 
-            {/* Tükendi badge — soft transparent, sağ üstte; tam overlay yok, Google indeksi korunur */}
+            {/* Tükendi — görsel dimmer + alt-orta pill badge */}
             {isOutOfStock && (
-              <div className="absolute top-3 right-3 z-10">
-                <span className="backdrop-blur-md bg-black/35 border border-white/20 text-white/85 text-[9px] font-semibold tracking-[0.18em] uppercase px-2.5 py-1 rounded-md shadow-sm">
-                  Tükendi
-                </span>
-              </div>
+              <>
+                {/* Hafif karartma katmanı */}
+                <div className="absolute inset-0 z-10 bg-black/30 pointer-events-none" />
+                {/* Pill badge — alt orta, diğer badge'lerle çakışmaz */}
+                <div className="absolute bottom-3 left-1/2 -translate-x-1/2 z-20 pointer-events-none">
+                  <span className="backdrop-blur-md bg-black/55 border border-white/15 text-white/60 text-[9px] font-semibold tracking-[0.22em] uppercase px-3 py-1 rounded-full whitespace-nowrap">
+                    Tükendi
+                  </span>
+                </div>
+              </>
             )}
 
             {/* Badges — sol üstte dikey yığın; video/YT kartlarda play butonunun altından başlar */}
-            {!isOutOfStock && (
+            {(
               <div className={`absolute left-3 z-10 flex flex-col items-start gap-1.5 ${(isYouTubeUrl(mainImage) || isVideoUrl(mainImage)) ? 'top-12' : 'top-3'}`}>
                 {visibleDiscountBadge && (
                   <span
