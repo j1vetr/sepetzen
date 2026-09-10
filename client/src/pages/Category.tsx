@@ -26,6 +26,17 @@ const sortOptions = [
 
 const COLLAPSE_THRESHOLD = 5;
 
+// ── Ürün ızgarası animasyon varyantları ──────────────────────────────────────
+const gridVariants = {
+  hidden: {},
+  show: { transition: { staggerChildren: 0.07, delayChildren: 0.04 } },
+};
+
+const cardVariants = {
+  hidden: { opacity: 0, y: 32 },
+  show: { opacity: 1, y: 0, transition: { duration: 0.44, ease: [0.25, 0.46, 0.45, 0.94] } },
+};
+
 // ── Yardımcı bileşenler ──────────────────────────────────────────────────────
 
 function FilterGroup({
@@ -490,41 +501,56 @@ export default function Category() {
       {/* ─── ÜRÜN IZGARASI ─── */}
       <main className="py-10 lg:py-14 px-5 lg:px-8">
         <div className="max-w-[1400px] mx-auto">
-          {isLoading ? (
-            <div className="grid grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 lg:gap-6">
-              {Array.from({ length: 8 }).map((_, i) => (
-                <div key={i} className="animate-pulse">
-                  <div className="aspect-[3/4] bg-[#151515]" />
-                  <div className="mt-3 space-y-2">
-                    <div className="h-3.5 bg-white/10 w-4/5" />
-                    <div className="h-3.5 bg-white/10 w-1/3" />
+          <AnimatePresence mode="wait">
+            {isLoading ? (
+              <motion.div
+                key="skeleton"
+                initial={{ opacity: 1 }}
+                exit={{ opacity: 0, transition: { duration: 0.18 } }}
+                className="grid grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 lg:gap-6"
+              >
+                {Array.from({ length: 8 }).map((_, i) => (
+                  <div key={i} className="animate-pulse">
+                    <div className="aspect-[3/4] bg-white/[0.06] overflow-hidden relative">
+                      <div className="absolute inset-0 -translate-x-full animate-[shimmer_1.6s_infinite] bg-gradient-to-r from-transparent via-white/[0.05] to-transparent" />
+                    </div>
+                    <div className="mt-3 space-y-2">
+                      <div className="h-3 bg-white/[0.07] w-3/4" />
+                      <div className="h-3 bg-white/[0.05] w-1/3" />
+                    </div>
                   </div>
-                </div>
-              ))}
-            </div>
-          ) : filteredProducts.length === 0 ? (
-            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="text-center py-24">
-              <p className="font-display text-3xl text-white mb-2">Ürün Bulunamadı</p>
-              <p className="text-sm text-white/50 mb-8">
-                {hasActiveFilters ? 'Filtreleri değiştirerek tekrar deneyin.' : 'Bu kategoride henüz ürün bulunmuyor.'}
-              </p>
-              {hasActiveFilters ? (
-                <button onClick={clearFilters} className="text-[11px] tracking-[0.15em] uppercase border border-white/25 text-white px-6 py-3 hover:bg-white hover:text-black transition-colors">
-                  Filtreleri Temizle
-                </button>
-              ) : (
-                <Link href="/"><span className="text-[11px] tracking-[0.15em] uppercase border border-white/25 text-white px-6 py-3 hover:bg-white hover:text-black transition-colors">Alışverişe Devam Et</span></Link>
-              )}
-            </motion.div>
-          ) : (
-            <div className="grid grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 lg:gap-6">
-              {filteredProducts.map((product, index) => (
-                <motion.div key={product.id} initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true, margin: '-40px' }} transition={{ duration: 0.45, delay: (index % 4) * 0.06 }}>
-                  <ProductCard product={product} />
-                </motion.div>
-              ))}
-            </div>
-          )}
+                ))}
+              </motion.div>
+            ) : filteredProducts.length === 0 ? (
+              <motion.div key="empty" initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="text-center py-24">
+                <p className="font-display text-3xl text-white mb-2">Ürün Bulunamadı</p>
+                <p className="text-sm text-white/50 mb-8">
+                  {hasActiveFilters ? 'Filtreleri değiştirerek tekrar deneyin.' : 'Bu kategoride henüz ürün bulunmuyor.'}
+                </p>
+                {hasActiveFilters ? (
+                  <button onClick={clearFilters} className="text-[11px] tracking-[0.15em] uppercase border border-white/25 text-white px-6 py-3 hover:bg-white hover:text-black transition-colors">
+                    Filtreleri Temizle
+                  </button>
+                ) : (
+                  <Link href="/"><span className="text-[11px] tracking-[0.15em] uppercase border border-white/25 text-white px-6 py-3 hover:bg-white hover:text-black transition-colors">Alışverişe Devam Et</span></Link>
+                )}
+              </motion.div>
+            ) : (
+              <motion.div
+                key={`grid-${slug}`}
+                className="grid grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 lg:gap-6"
+                variants={gridVariants}
+                initial="hidden"
+                animate="show"
+              >
+                {filteredProducts.map((product) => (
+                  <motion.div key={product.id} variants={cardVariants}>
+                    <ProductCard product={product} />
+                  </motion.div>
+                ))}
+              </motion.div>
+            )}
+          </AnimatePresence>
         </div>
       </main>
 

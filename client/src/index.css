@@ -657,6 +657,11 @@
   }
 }
 
+/* Skeleton shimmer */
+@keyframes shimmer {
+  100% { transform: translateX(200%); }
+}
+
 /* Mobile product marquee */
 @keyframes sepetzen-marquee {
   from { transform: translateX(0); }
