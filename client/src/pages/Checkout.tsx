@@ -1763,7 +1763,7 @@ export default function Checkout() {
                           </div>
 
                           <div className="border border-white/10 rounded-lg p-4 space-y-3">
-                            <h3 className="font-display text-[13px] tracking-[0.14em] text-white/80">BANKA BİLGİLERİ</h3>
+                            <h3 className="font-body text-[13px] tracking-[0.08em] font-semibold text-white/80">BANKA BİLGİLERİ</h3>
                             <div className="space-y-2.5">
                               {[
                                 { key: 'bank' as const, label: 'Banka', value: bankInfo.bankName, testId: 'bank-name' },
@@ -1774,7 +1774,7 @@ export default function Checkout() {
                                   <p className="text-[11px] text-white/45 mb-0.5">{label}</p>
                                   <div className="flex items-center justify-between gap-2 min-w-0">
                                     <span
-                                      className={`text-white font-semibold break-all text-[13px] ${mono ? 'font-mono' : ''}`}
+                                      className={`text-white font-semibold break-all text-[13px] font-body`}
                                       data-testid={`text-${testId}`}
                                     >
                                       {value}

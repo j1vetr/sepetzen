@@ -2125,7 +2125,7 @@ export default function ProductDetail() {
                     disabled={isAdding || isOutOfStock || selectedUnavailable || maxAdditional === 0}
                     whileTap={reduceMotion || isOutOfStock || selectedUnavailable ? undefined : { scale: 0.97 }}
                       className={`flex-1 h-12 lg:h-12 font-semibold text-[14px] uppercase tracking-[0.2em] flex items-center justify-center gap-2 rounded-lg ${
-                       isOutOfStock || selectedUnavailable || maxAdditional === 0 ? 'bg-[#141414]/10 text-white/30 cursor-not-allowed border border-white/10' : 'all-cats-gold'
+                       isOutOfStock || selectedUnavailable || maxAdditional === 0 ? 'bg-[#141414]/10 text-white/30 cursor-not-allowed border border-white/10' : 'all-cats-gold cursor-pointer'
                     }`}
                     data-testid="button-add-to-cart"
                   >
@@ -2166,7 +2166,7 @@ export default function ProductDetail() {
                       typeof window !== 'undefined' ? window.location.href : '',
                     ].filter(Boolean).join('\n'))}`}
                     target="_blank" rel="noopener noreferrer"
-                    className="flex items-center justify-center gap-2 w-full h-10 lg:h-9 border border-[#25D366]/30 text-[#25D366] hover:bg-[#25D366]/6 transition-colors text-[11px] font-semibold tracking-[0.16em] uppercase"
+                    className="flex items-center justify-center gap-2 w-full h-10 lg:h-9 border border-[#25D366]/30 text-[#25D366] hover:bg-[#25D366]/6 transition-colors text-[11px] font-semibold tracking-[0.16em] uppercase cursor-pointer"
                     data-testid="link-whatsapp-order"
                   >
                     <WhatsAppIcon className="w-4 h-4" />
@@ -2607,7 +2607,7 @@ export default function ProductDetail() {
                 disabled={isAdding || isOutOfStock || selectedUnavailable}
                 whileTap={reduceMotion || isOutOfStock || selectedUnavailable ? undefined : { scale: 0.96 }}
                 className={`h-11 px-6 lg:px-8 font-semibold text-[13px] uppercase tracking-[0.18em] flex items-center justify-center gap-2 rounded-lg shrink-0 ${
-                  isOutOfStock || selectedUnavailable ? 'bg-[#141414]/10 text-white/35 cursor-not-allowed border border-white/10' : 'all-cats-gold'
+                  isOutOfStock || selectedUnavailable ? 'bg-[#141414]/10 text-white/35 cursor-not-allowed border border-white/10' : 'all-cats-gold cursor-pointer'
                 }`}
                 data-testid="button-add-to-cart-sticky"
               >

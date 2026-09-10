@@ -1011,23 +1011,37 @@ function MobileMarquee({ products }: { products: Product[] }) {
 function ShowcaseMarquee({ items }: { items: ShowcaseItem[] }) {
   const activeItems = useMemo(() => items.filter(i => i.isActive !== false), [items]);
 
-  const { data: products = [] } = useQuery<Product[]>({
-    queryKey: ['showcase-products', activeItems],
+  // Custom tipler direkt render edilir — sadece product/category için API çağrısı yapılır
+  const customItems = useMemo(() => activeItems.filter(i => i.type === 'custom'), [activeItems]);
+  const apiItems    = useMemo(() => activeItems.filter(i => i.type !== 'custom'), [activeItems]);
+
+  const { data: apiProducts = [] } = useQuery<Product[]>({
+    queryKey: ['showcase-products', apiItems],
     queryFn: async () => {
-      if (!activeItems.length) return [];
-      const encoded = encodeURIComponent(JSON.stringify(activeItems));
+      if (!apiItems.length) return [];
+      const encoded = encodeURIComponent(JSON.stringify(apiItems));
       const res = await fetch(`/api/showcase-products?items=${encoded}`);
       if (!res.ok) return [];
       return res.json();
     },
-    enabled: activeItems.length > 0,
+    enabled: apiItems.length > 0,
     staleTime: 120_000,
   });
 
-  if (!products.length) return null;
+  // Custom kartları Product şeklinde birleştir
+  type CustomCard = { _custom: true; imageUrl: string; linkUrl: string };
+  type MarqueeCard = Product | CustomCard;
+  const isCustom = (c: MarqueeCard): c is CustomCard => '_custom' in c;
+
+  const allCards: MarqueeCard[] = useMemo(() => [
+    ...apiProducts,
+    ...customItems.map(i => ({ _custom: true as const, imageUrl: i.imageUrl!, linkUrl: i.linkUrl! })),
+  ], [apiProducts, customItems]);
+
+  if (!allCards.length) return null;
 
   // 3× kopyala — geniş ekranlarda sonsuz döngü için yeterli
-  const tripled = [...products, ...products, ...products];
+  const tripled = [...allCards, ...allCards, ...allCards];
 
   return (
     <section
@@ -1040,7 +1054,27 @@ function ShowcaseMarquee({ items }: { items: ShowcaseItem[] }) {
       data-testid="scene-showcase-marquee"
     >
       <div className="marquee-loop gap-3 px-4">
-        {tripled.map((p, i) => {
+        {tripled.map((card, i) => {
+          if (isCustom(card)) {
+            return (
+              <Link
+                key={`showcase-custom-${i}`}
+                href={card.linkUrl}
+                className="group shrink-0 block"
+              >
+                <div className="relative w-44 h-56 overflow-hidden rounded-sm">
+                  <img
+                    src={card.imageUrl}
+                    alt=""
+                    loading="lazy"
+                    decoding="async"
+                    className="absolute inset-0 w-full h-full object-contain group-hover:scale-105 transition-transform duration-500"
+                  />
+                </div>
+              </Link>
+            );
+          }
+          const p = card as Product;
           const isVideo = /\.(mp4|webm|mov)(\?.*)?$/i.test(p.images?.[0] || '');
           const isYT = /youtube\.com|youtu\.be/.test(p.images?.[0] || '');
           return (
@@ -1070,7 +1104,6 @@ function ShowcaseMarquee({ items }: { items: ShowcaseItem[] }) {
                 ) : (
                   <div className="absolute inset-0 bg-white/5" />
                 )}
-                {/* İnce kenarlık efekti */}
                 <div className="absolute inset-0 border border-white/[0.08] rounded-sm pointer-events-none group-hover:border-white/20 transition-colors duration-300" />
               </div>
             </Link>

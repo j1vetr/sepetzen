@@ -3,7 +3,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import {
   Loader2, Plus, Trash2, ChevronUp, ChevronDown, Save, Upload,
   Image as ImageIcon, Truck, ShieldCheck, Star, Eye, EyeOff, Video, AlertTriangle,
-  Search, X, FolderOpen, Package,
+  Search, X, FolderOpen, Package, Link2,
 } from 'lucide-react';
 import {
   DEFAULT_HOMEPAGE_CONTENT,
@@ -46,8 +46,10 @@ export default function HomepageTab() {
   const [uploadingIndex, setUploadingIndex] = useState<number | null>(null);
   const [uploadingVideo, setUploadingVideo] = useState<number | null>(null);
   const videoFileRefs = useRef<(HTMLInputElement | null)[]>([]);
-  const [showcaseSearch, setShowcaseSearch] = useState('');
-  const [showcaseDropdown, setShowcaseDropdown] = useState(false);
+  const [showcaseNewImageUrl, setShowcaseNewImageUrl] = useState('');
+  const [showcaseNewLinkUrl, setShowcaseNewLinkUrl] = useState('');
+  const [uploadingShowcase, setUploadingShowcase] = useState(false);
+  const showcaseFileRef = useRef<HTMLInputElement>(null);
   const [heroSearch, setHeroSearch] = useState('');
   const [heroDropdown, setHeroDropdown] = useState(false);
   const [uploadingPartnerLogo, setUploadingPartnerLogo] = useState<number | null>(null);
@@ -205,6 +207,22 @@ export default function HomepageTab() {
       alert(e instanceof Error ? e.message : 'Logo yüklenemedi');
     } finally {
       setUploadingPartnerLogo(null);
+    }
+  };
+
+  const uploadShowcaseImage = async (file: File) => {
+    setUploadingShowcase(true);
+    try {
+      const fd = new FormData();
+      fd.append('images', file);
+      const res = await fetch('/api/admin/upload/branding', { method: 'POST', body: fd, credentials: 'include' });
+      const data = await res.json();
+      if (!res.ok || !data.urls?.[0]) throw new Error(data.error || 'Yükleme başarısız');
+      setShowcaseNewImageUrl(data.urls[0]);
+    } catch (e) {
+      alert(e instanceof Error ? e.message : 'Görsel yüklenemedi');
+    } finally {
+      setUploadingShowcase(false);
     }
   };
   const visibleSectionIds = new Set(content.sectionOrder.filter((section) => section.isActive).map((section) => section.id));
@@ -724,39 +742,27 @@ export default function HomepageTab() {
         const sm = content.showcaseMarquee;
         const setShowcase = (patch: Partial<typeof sm>) =>
           update({ showcaseMarquee: { ...sm, ...patch } });
-        const addItem = (type: 'product' | 'category', id: string, name: string) => {
-          if (sm.items.some(i => i.type === type && i.id === id)) return;
-          setShowcase({ items: [...sm.items, { type, id, isActive: true }] });
-          setShowcaseSearch('');
-          setShowcaseDropdown(false);
-        };
         const removeItem = (idx: number) =>
           setShowcase({ items: sm.items.filter((_, i) => i !== idx) });
-
-        // Search results: up to 5 categories + 5 products
-        const q = showcaseSearch.toLowerCase().trim();
-        const catResults = q
-          ? allCategories.filter((c: any) => c.name.toLowerCase().includes(q)).slice(0, 5)
-          : [];
-        const prodResults = q
-          ? allProducts.filter((p: any) => p.name.toLowerCase().includes(q)).slice(0, 5)
-          : [];
-        const hasResults = catResults.length > 0 || prodResults.length > 0;
-
-        // Name lookup helpers for display
-        const catName = (id: string) => allCategories.find((c: any) => c.id === id)?.name ?? id;
-        const prodName = (id: string) => allProducts.find((p: any) => p.id === id)?.name ?? id;
-        const catImage = (id: string) => allCategories.find((c: any) => c.id === id)?.image ?? null;
-        const prodImage = (id: string) => {
-          const imgs = allProducts.find((p: any) => p.id === id)?.images;
-          if (!Array.isArray(imgs)) return null;
-          return imgs.find((u: string) => !/\.(mp4|webm|mov)(\?.*)?$/i.test(u)) ?? imgs[0] ?? null;
+        const addCustomItem = () => {
+          if (!showcaseNewImageUrl) { alert('Önce bir görsel yükleyin.'); return; }
+          if (!showcaseNewLinkUrl.trim()) { alert('Ürün linki giriniz.'); return; }
+          setShowcase({
+            items: [...sm.items, {
+              type: 'custom',
+              imageUrl: showcaseNewImageUrl,
+              linkUrl: showcaseNewLinkUrl.trim(),
+              isActive: true,
+            }],
+          });
+          setShowcaseNewImageUrl('');
+          setShowcaseNewLinkUrl('');
         };
 
         return (
           <SectionCard
             title="Vitrin Şeridi"
-            desc="Ana sayfada yalnızca ürün fotoğraflarının aktığı kayan bir vitrin. Fiyat veya metin gösterilmez — tıklayınca ürüne gidilir."
+            desc="Ana sayfada şeffaf görsellerinin aktığı kayan vitrin. Her kart için görsel yükleyip ürün linki girin."
           >
             {/* Toggle */}
             <div className="flex items-center justify-between mb-2">
@@ -770,107 +776,118 @@ export default function HomepageTab() {
               </button>
             </div>
 
-            {/* Search and add */}
-            <div className="relative">
-              <div className="flex items-center gap-2 border border-neutral-200 rounded-lg px-3 bg-white">
-                <Search className="w-4 h-4 text-neutral-400 shrink-0" />
+            {/* Add new item form */}
+            <div className="border border-neutral-200 rounded-xl bg-white p-4 space-y-3">
+              <p className="text-xs font-semibold text-neutral-500 uppercase tracking-wider">Yeni Kart Ekle</p>
+
+              {/* Image upload */}
+              <div>
+                <p className="text-xs text-neutral-500 mb-1.5">Şeffaf Görsel (PNG önerilir)</p>
                 <input
-                  type="text"
-                  placeholder="Ürün veya kategori adı yaz..."
-                  value={showcaseSearch}
-                  onChange={e => { setShowcaseSearch(e.target.value); setShowcaseDropdown(true); }}
-                  onFocus={() => setShowcaseDropdown(true)}
-                  className="flex-1 py-2 text-sm bg-transparent outline-none text-neutral-900 placeholder:text-neutral-400"
-                  data-testid="input-showcase-search"
+                  ref={showcaseFileRef}
+                  type="file"
+                  accept="image/png,image/webp,image/gif"
+                  className="hidden"
+                  onChange={e => { const f = e.target.files?.[0]; if (f) uploadShowcaseImage(f); e.target.value = ''; }}
                 />
-                {showcaseSearch && (
-                  <button onClick={() => { setShowcaseSearch(''); setShowcaseDropdown(false); }}>
-                    <X className="w-4 h-4 text-neutral-400 hover:text-neutral-700" />
+                {showcaseNewImageUrl ? (
+                  <div className="relative group rounded-lg overflow-hidden border border-neutral-200 bg-[repeating-conic-gradient(#e5e7eb_0%_25%,#f9fafb_0%_50%)] bg-[length:16px_16px]">
+                    <img src={showcaseNewImageUrl} alt="" className="h-28 w-full object-contain" />
+                    <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-2">
+                      <button
+                        type="button"
+                        onClick={() => showcaseFileRef.current?.click()}
+                        className="px-2.5 py-1.5 bg-white text-black rounded text-xs font-medium flex items-center gap-1"
+                      >
+                        <Upload className="w-3 h-3" /> Değiştir
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setShowcaseNewImageUrl('')}
+                        className="px-2.5 py-1.5 bg-red-600 text-white rounded text-xs font-medium flex items-center gap-1"
+                      >
+                        <X className="w-3 h-3" /> Kaldır
+                      </button>
+                    </div>
+                  </div>
+                ) : (
+                  <button
+                    type="button"
+                    onClick={() => showcaseFileRef.current?.click()}
+                    disabled={uploadingShowcase}
+                    className="w-full h-20 border-2 border-dashed border-neutral-200 rounded-lg flex flex-col items-center justify-center gap-1.5 hover:border-neutral-400 text-neutral-400 text-xs disabled:opacity-50 transition-colors"
+                  >
+                    {uploadingShowcase
+                      ? <Loader2 className="w-4 h-4 animate-spin" />
+                      : <ImageIcon className="w-4 h-4" />}
+                    {uploadingShowcase ? 'Yükleniyor…' : 'Görsel seç (PNG / WebP)'}
                   </button>
                 )}
               </div>
 
-              {/* Dropdown */}
-              {showcaseDropdown && hasResults && (
-                <div className="absolute top-full left-0 right-0 z-50 mt-1 bg-white border border-neutral-200 rounded-lg shadow-lg overflow-hidden max-h-64 overflow-y-auto">
-                  {catResults.length > 0 && (
-                    <>
-                      <div className="px-3 py-1.5 text-[10px] font-semibold tracking-wider text-neutral-400 uppercase bg-neutral-50 border-b border-neutral-100">
-                        Kategoriler
-                      </div>
-                      {catResults.map((c: any) => (
-                        <button
-                          key={c.id}
-                          onClick={() => addItem('category', c.id, c.name)}
-                          className="w-full flex items-center gap-3 px-3 py-2.5 hover:bg-neutral-50 transition-colors text-left"
-                        >
-                          {c.image
-                            ? <img src={c.image} className="w-8 h-8 rounded object-cover shrink-0 bg-neutral-100" alt="" />
-                            : <div className="w-8 h-8 rounded bg-neutral-100 flex items-center justify-center shrink-0"><FolderOpen className="w-4 h-4 text-neutral-400" /></div>
-                          }
-                          <span className="text-sm text-neutral-800 truncate">{c.name}</span>
-                          <span className="ml-auto text-[10px] text-neutral-400 shrink-0">Kategori</span>
-                        </button>
-                      ))}
-                    </>
-                  )}
-                  {prodResults.length > 0 && (
-                    <>
-                      <div className="px-3 py-1.5 text-[10px] font-semibold tracking-wider text-neutral-400 uppercase bg-neutral-50 border-b border-neutral-100">
-                        Ürünler
-                      </div>
-                      {prodResults.map((p: any) => {
-                        const img = Array.isArray(p.images) ? (p.images.find((u: string) => !/\.(mp4|webm|mov)(\?.*)?$/i.test(u)) ?? p.images[0] ?? null) : null;
-                        return (
-                          <button
-                            key={p.id}
-                            onClick={() => addItem('product', p.id, p.name)}
-                            className="w-full flex items-center gap-3 px-3 py-2.5 hover:bg-neutral-50 transition-colors text-left"
-                          >
-                            {img
-                              ? <img src={img} className="w-8 h-8 rounded object-cover shrink-0 bg-neutral-100" alt="" />
-                              : <div className="w-8 h-8 rounded bg-neutral-100 flex items-center justify-center shrink-0"><Package className="w-4 h-4 text-neutral-400" /></div>
-                            }
-                            <span className="text-sm text-neutral-800 truncate">{p.name}</span>
-                            <span className="ml-auto text-[10px] text-neutral-400 shrink-0">Ürün</span>
-                          </button>
-                        );
-                      })}
-                    </>
+              {/* Link URL */}
+              <div>
+                <p className="text-xs text-neutral-500 mb-1.5">Ürün Linki</p>
+                <div className="flex items-center gap-2 border border-neutral-200 rounded-lg px-3 bg-white focus-within:border-neutral-400 transition-colors">
+                  <Link2 className="w-3.5 h-3.5 text-neutral-400 shrink-0" />
+                  <input
+                    type="text"
+                    value={showcaseNewLinkUrl}
+                    onChange={e => setShowcaseNewLinkUrl(e.target.value)}
+                    placeholder="/urun/urun-adi veya https://..."
+                    className="flex-1 py-2 text-sm bg-transparent outline-none text-neutral-900 placeholder:text-neutral-400"
+                    onKeyDown={e => e.key === 'Enter' && addCustomItem()}
+                  />
+                  {showcaseNewLinkUrl && (
+                    <button onClick={() => setShowcaseNewLinkUrl('')}>
+                      <X className="w-3.5 h-3.5 text-neutral-400 hover:text-neutral-700" />
+                    </button>
                   )}
                 </div>
-              )}
+              </div>
+
+              <button
+                type="button"
+                onClick={addCustomItem}
+                disabled={!showcaseNewImageUrl || !showcaseNewLinkUrl.trim() || uploadingShowcase}
+                className="w-full flex items-center justify-center gap-2 h-9 bg-neutral-900 text-white rounded-lg text-sm font-medium disabled:opacity-40 hover:bg-black transition-colors"
+              >
+                <Plus className="w-4 h-4" />
+                Listeye Ekle
+              </button>
             </div>
 
             {/* Items list */}
             {sm.items.length > 0 && (
-              <div className="space-y-1.5 mt-2">
+              <div className="space-y-1.5 mt-1">
                 {sm.items.map((item, idx) => {
-                  const thumb = item.type === 'category' ? catImage(item.id) : prodImage(item.id);
-                  const label = item.type === 'category' ? catName(item.id) : prodName(item.id);
+                  const thumb = item.type === 'custom' ? item.imageUrl : undefined;
+                  const href = item.type === 'custom' ? item.linkUrl : undefined;
                   return (
                     <div key={idx} className="flex items-center gap-3 bg-white border border-neutral-200 rounded-lg px-3 py-2">
-                      {thumb
-                        ? <img src={thumb} className="w-8 h-8 rounded object-cover shrink-0 bg-neutral-100" alt="" />
-                        : <div className="w-8 h-8 rounded bg-neutral-100 flex items-center justify-center shrink-0">
-                            {item.type === 'category' ? <FolderOpen className="w-4 h-4 text-neutral-400" /> : <Package className="w-4 h-4 text-neutral-400" />}
-                          </div>
-                      }
-                      <span className="flex-1 text-sm text-neutral-800 truncate">{label}</span>
-                      <span className="text-[10px] text-neutral-400 shrink-0 mr-1">
-                        {item.type === 'category' ? 'Kategori' : 'Ürün'}
+                      {/* Thumbnail — checkered bg for transparency */}
+                      <div className="w-10 h-10 shrink-0 rounded overflow-hidden border border-neutral-100 bg-[repeating-conic-gradient(#e5e7eb_0%_25%,#f9fafb_0%_50%)] bg-[length:12px_12px] flex items-center justify-center">
+                        {thumb
+                          ? <img src={thumb} alt="" className="w-full h-full object-contain" />
+                          : <ImageIcon className="w-4 h-4 text-neutral-300" />
+                        }
+                      </div>
+                      {/* Link */}
+                      <span className="flex-1 text-xs text-neutral-500 truncate font-mono">
+                        {href ?? '—'}
                       </span>
+                      {/* Active toggle */}
                       <button
                         onClick={() => {
                           const next = [...sm.items];
                           next[idx] = { ...next[idx], isActive: !next[idx].isActive };
                           setShowcase({ items: next });
                         }}
-                        className={`text-[11px] px-2 py-0.5 rounded font-medium ${item.isActive ? 'bg-emerald-100 text-emerald-700' : 'bg-neutral-100 text-neutral-500'}`}
+                        className={`text-[11px] px-2 py-0.5 rounded font-medium shrink-0 ${item.isActive ? 'bg-emerald-100 text-emerald-700' : 'bg-neutral-100 text-neutral-500'}`}
                       >
                         {item.isActive ? 'Aktif' : 'Pasif'}
                       </button>
-                      <button onClick={() => removeItem(idx)} className="p-1.5 hover:bg-red-50 rounded text-neutral-400 hover:text-red-500">
+                      <button onClick={() => removeItem(idx)} className="p-1.5 hover:bg-red-50 rounded text-neutral-400 hover:text-red-500 shrink-0">
                         <Trash2 className="w-4 h-4" />
                       </button>
                     </div>
@@ -881,7 +898,7 @@ export default function HomepageTab() {
 
             {sm.items.length === 0 && (
               <p className="text-sm text-neutral-400 text-center py-4 border border-dashed border-neutral-200 rounded-lg">
-                Henüz ürün veya kategori eklenmedi. Yukarıdan arama yaparak ekleyebilirsiniz.
+                Henüz kart eklenmedi. Yukarıdan görsel ve link ekleyin.
               </p>
             )}
           </SectionCard>

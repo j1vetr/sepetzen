@@ -42,9 +42,11 @@ export const partnerStripSchema = z.object({
 });
 
 export const showcaseItemSchema = z.object({
-  type: z.enum(["product", "category"]),
-  id: z.string(),
+  type: z.enum(["product", "category", "custom"]),
+  id: z.string().optional(),
   isActive: z.boolean().default(true),
+  imageUrl: z.string().optional(),  // custom tipi için şeffaf görsel URL'i
+  linkUrl: z.string().optional(),   // custom tipi için hedef link
 });
 
 export const showcaseMarqueeSchema = z.object({
