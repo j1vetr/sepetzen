@@ -1,0 +1,116 @@
+<soapenv:Envelope xmlns:soapenv="http://schemas.xmlsoap.org/soap/envelope/" xmlns:tem="http://tempuri.org/" xmlns:ein="http://schemas.datacontract.org/2004/07/EInvoice.Service.Model" xmlns:arr="http://schemas.microsoft.com/2003/10/Serialization/Arrays">
+   <soapenv:Header/>
+   <soapenv:Body>
+      <tem:SendInvoice>
+         <tem:request>
+            <ein:CompanyTaxCode>4810173324</ein:CompanyTaxCode>
+            <ein:Invoices>
+               <ein:Invoice>
+                  <ein:CrossRate>1</ein:CrossRate>
+                  <ein:CrossRateDate>2021-04-15T00:00:00</ein:CrossRateDate>
+                  <ein:CurrencyCode>TRY</ein:CurrencyCode>
+                  <ein:ExternalInvoiceCode>552512861225</ein:ExternalInvoiceCode>
+                  <ein:FinancialAccount>
+                     <!--Zero or more repetitions:-->
+                     <ein:FinancialAccount>
+                       
+                        <!--Optional:-->
+                        <ein:Iban>TR260004600798888000093459</ein:Iban>
+                        <!--Optional:-->
+                        
+                     </ein:FinancialAccount>
+                  </ein:FinancialAccount>
+                  <ein:FinancialAccount>
+                     <ein:Iban>TR260004600798888000093459</ein:Iban>
+                  </ein:FinancialAccount>
+                  <ein:InvoiceDate>2021-12-09T12:54:19</ein:InvoiceDate>
+                  <ein:InvoiceDetails>
+                     <ein:InvoiceDetail>
+                        <ein:CurrencyCode>TRY</ein:CurrencyCode>
+                        <ein:DiscountAmount>86.40</ein:DiscountAmount>
+                        <ein:DiscountRate>48.00</ein:DiscountRate>
+                        <ein:LineExtensionAmount>200.00</ein:LineExtensionAmount>
+                        <ein:Mensei>TR</ein:Mensei>
+                        <ein:Product>
+                           <ein:ExternalProductCode>MNGSTDKARGO</ein:ExternalProductCode>
+                           <ein:MeasureUnit>NIU</ein:MeasureUnit>
+                           <ein:ProductName>KARGO TAŞIMA HİZMET BEDELİ</ein:ProductName>
+                           <ein:UnitPrice>180</ein:UnitPrice>
+                        </ein:Product>
+                        <ein:Quantity>1</ein:Quantity>
+                        <ein:SiniflandirmaKodu>53.20.11</ein:SiniflandirmaKodu>
+                        <ein:StockDescription/>
+                        <ein:TaxExemptionReason/>
+                        <ein:TaxExemptionReasonCode/>
+                        <ein:VATAmount>1.72</ein:VATAmount>
+                        <ein:VATRate>18</ein:VATRate>
+                          <ein:WitholdingTaxes>
+                           <!--Zero or more repetitions:-->
+                           <ein:Tax>
+                              <!--Optional:-->
+                              <ein:TaxAmount>10</ein:TaxAmount>
+                              <!--Optional:-->
+                              <ein:TaxCode>601</ein:TaxCode>
+                              <!--Optional:-->
+                              <ein:TaxRate>40</ein:TaxRate>
+                           </ein:Tax>
+                        </ein:WitholdingTaxes>
+
+                     </ein:InvoiceDetail>
+                  </ein:InvoiceDetails>
+                  <ein:InvoiceType>TEVKIFAT</ein:InvoiceType>
+                  <ein:LastPaymentDate>2021-05-15T00:00:00</ein:LastPaymentDate>
+                  <ein:Notes>
+                     <arr:string>EFATURA DETAYLARI  IÇIN ASAGIDAKI BAGLANTIYA TIKLAYINIZ</arr:string>
+                     <arr:string>http://service.mngkargo.com.tr/musteri/WebFaturaListesi/PE.aspx?key=VlhQTlhDTUI=</arr:string>
+                     <arr:string>Ayrıca bu bilgilere https://www.mngkargo.com.tr/icerik/e-fatura-sorgula adresinden de ulaşabilirsiniz.</arr:string>
+                     <arr:string>Vadesinde ödenmeyen faturalar için aylık %3 vade farkı uygulanmaktadır.
+Banka/Şube  Adı: AKBANK / DOĞU KURUMSAL ŞUBE - Şube Kodu : 798 - Hesap Numarası: 92759 (TL) - IBAN Numarası: TR26 0004 6007 9888 8000 0927 59  (TL)
+Gönderen Birim : MARMARİS
+İLGİLİ BİRİM : MUĞLA MARMARİS KOM GRUP A.</arr:string>
+                  </ein:Notes>
+                  <ein:Payment>
+                     <ein:PaymentAccount>
+                        <ein:Iban>TR260004600798888000092759</ein:Iban>
+                     </ein:PaymentAccount>
+                  </ein:Payment>
+                  <ein:PublicReceiver>
+                   <ein:PublicReceiverTitle>test</ein:PublicReceiverTitle>
+                     <ein:PublicReceiverVkn>0690248641</ein:PublicReceiverVkn>
+                    
+                  </ein:PublicReceiver>
+                  <ein:Receiver>
+                     <ein:Address>
+                        <ein:BoulevardAveneuStreetName>TEPE Mh. KORDON Cd. 42 Sk. ÇARŞI POLİS MERKEZİ AMİRLİĞİ MARMARİS/MUĞLA TÜRKIYE</ein:BoulevardAveneuStreetName>
+                        <ein:CityCode>48</ein:CityCode>
+                        <ein:CityName>MUĞLA</ein:CityName>
+                        <ein:TaxOfficeCode>006260</ein:TaxOfficeCode>
+                        <ein:TaxOfficeName>ULUS VD</ein:TaxOfficeName>
+                        <ein:TownCode>1517</ein:TownCode>
+                        <ein:TownName>MARMARİS</ein:TownName>
+                     </ein:Address>
+                     <ein:ReceiverName>ANKARA İL EMNİYET MÜDÜRLÜĞÜ</ein:ReceiverName>
+                     <ein:ReceiverTaxCode>0690248641</ein:ReceiverTaxCode>
+                  </ein:Receiver>
+                  <ein:ReceiverBranchAddress>
+                     <ein:BoulevardAveneuStreetName>TEPE Mh. KORDON Cd. 42 Sk. ÇARŞI POLİS MERKEZİ AMİRLİĞİ MARMARİS/MUĞLA TÜRKIYE</ein:BoulevardAveneuStreetName>
+                     <ein:CityCode>48</ein:CityCode>
+                     <ein:CityName>MUĞLA</ein:CityName>
+                     <ein:TaxOfficeCode>006260</ein:TaxOfficeCode>
+                     <ein:TaxOfficeName>ULUS VD</ein:TaxOfficeName>
+                     <ein:TownCode>1517</ein:TownCode>
+                     <ein:TownName>MARMARİS</ein:TownName>
+                  </ein:ReceiverBranchAddress>
+                  <ein:ReceiverInboxTag>urn:mail:defaultpk@muhasebat.gov.tr</ein:ReceiverInboxTag>
+                  <ein:ScenarioType>TEMELFATURA</ein:ScenarioType>
+                  <ein:TotalDiscountAmount>0</ein:TotalDiscountAmount>
+                  <ein:TotalLineExtensionAmount>9.56</ein:TotalLineExtensionAmount>
+                  <ein:TotalPayableAmount>11.28</ein:TotalPayableAmount>
+                  <ein:TotalTaxInclusiveAmount>11.28</ein:TotalTaxInclusiveAmount>
+                  <ein:TotalVATAmount>1.72</ein:TotalVATAmount>
+               </ein:Invoice>
+            </ein:Invoices>
+         </tem:request>
+      </tem:SendInvoice>
+   </soapenv:Body>
+</soapenv:Envelope>
