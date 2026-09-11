@@ -334,6 +334,12 @@ export const orders = pgTable("orders", {
   shipmentId: text("shipment_id"),
   shipmentLabelUrl: text("shipment_label_url"),
   invoiceUrl: text("invoice_url"),
+  // e-Fatura / e-Arşiv (İŞNET)
+  ettn: text("ettn"),
+  eInvoiceNumber: text("e_invoice_number"),
+  eInvoiceStatus: text("e_invoice_status"), // 'queued' | 'sent' | 'failed' | 'cancelled'
+  eInvoiceSentAt: timestamp("e_invoice_sent_at"),
+  eInvoiceType: text("e_invoice_type"),      // 'earchive' | 'einvoice'
   processingAt: timestamp("processing_at"),
   shippedAt: timestamp("shipped_at"),
   deliveredAt: timestamp("delivered_at"),

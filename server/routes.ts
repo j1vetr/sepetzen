@@ -2,6 +2,7 @@ import type { Express, Request, Response, NextFunction } from "express";
 import { createServer, type Server } from "http";
 import { storage, db } from "./storage";
 import { sanitizeStoredHtml } from "./htmlSanitize";
+import { issueInvoiceForOrder, cancelArchiveInvoice } from "./isnetService";
 import { getOpenAiApiKey, mapOpenAiError, stripEmDashes, OPENAI_KEY_MISSING_MESSAGE } from "./openaiKey";
 import { DEFAULT_FREE_SHIPPING_THRESHOLD, DEFAULT_DOMESTIC_SHIPPING_COST, DEFAULT_INTERNATIONAL_SHIPPING_COST } from "@shared/shipping";
 import { z } from "zod";
@@ -4965,6 +4966,11 @@ Bu ürün için 4 bölümlü HTML açıklama üret. Teknik Özellikler bölümü
         const order = await finalizePaidPendingPayment(pendingPayment, merchantOid, 'iyzico');
         terminalized = true;
 
+        // e-Arşiv fatura (fire-and-forget, hata sipariş akışını etkilemez)
+        storage.getOrderItems(order.id).then(items =>
+          issueInvoiceForOrder(order, items, (data) => storage.updateOrder(order.id, data as any).then(() => {}))
+        ).catch(() => {});
+
         console.log('[iyzico Callback] Order created successfully:', order.orderNumber);
         return sendRedirect(`/odeme-basarili?oid=${merchantOid}`);
       } else {
@@ -5046,6 +5052,10 @@ Bu ürün için 4 bölümlü HTML açıklama üret. Teknik Özellikler bölümü
             return res.send('OK');
           }
           const order = await finalizePaidPendingPayment(claimed, merchantOid, 'paytr');
+          // e-Arşiv fatura (fire-and-forget)
+          storage.getOrderItems(order.id).then(items =>
+            issueInvoiceForOrder(order, items, (data) => storage.updateOrder(order.id, data as any).then(() => {}))
+          ).catch(() => {});
           console.log('[PayTR Callback] Order created successfully:', order.orderNumber);
         } else {
           await storage.updatePendingPaymentStatus(merchantOid, 'failed');
@@ -8033,6 +8043,10 @@ window.addEventListener('load', function() {
         sendOrderReceivedToCustomer(updatedOrder).catch(err =>
           console.error('[WhatsApp] Order received (bank transfer confirmed) failed:', err)
         );
+        // e-Arşiv fatura (fire-and-forget)
+        issueInvoiceForOrder(updatedOrder, orderItems, (data) =>
+          storage.updateOrder(updatedOrder.id, data as any).then(() => {})
+        ).catch(() => {});
       }
 
       res.json(updatedOrder);
@@ -8082,6 +8096,52 @@ window.addEventListener('load', function() {
     } catch (error) {
       console.error('[bank-transfer reject] error:', error);
       res.status(500).json({ error: "Havale reddedilemedi" });
+    }
+  });
+
+  // ── e-Fatura / e-Arşiv (İŞNET) Admin Route'ları ──────────────────────────
+
+  /** Siparişe manuel fatura kes (yeniden deneme veya ilk kez). */
+  app.post("/api/admin/orders/:id/issue-invoice", requireAdmin, async (req, res) => {
+    try {
+      const order = await storage.getOrder(req.params.id);
+      if (!order) return res.status(404).json({ error: "Sipariş bulunamadı" });
+      if (!['paid', 'completed', 'success'].includes(order.paymentStatus)) {
+        return res.status(400).json({ error: "Ödeme alınmamış sipariş için fatura kesilemez" });
+      }
+      const items = await storage.getOrderItems(order.id);
+      // Mevcut iptal edilmemiş faturayı önce iptal et
+      if (order.ettn && order.eInvoiceStatus === 'sent') {
+        await cancelArchiveInvoice(order.ettn, 'Yeniden düzenleme').catch(err =>
+          console.warn('[İŞNET] Eski fatura iptal edilemedi:', err?.message),
+        );
+      }
+      await storage.updateOrder(order.id, { eInvoiceStatus: 'queued' } as any);
+      // Senkron çalıştır ki admin anlık sonucu görsün
+      await issueInvoiceForOrder(order, items, (data) =>
+        storage.updateOrder(order.id, data as any).then(() => {}),
+      );
+      const updated = await storage.getOrder(order.id);
+      res.json(updated);
+    } catch (error) {
+      console.error('[admin issue-invoice] error:', error);
+      res.status(500).json({ error: "Fatura kesilemedi" });
+    }
+  });
+
+  /** Fatura iptal et. */
+  app.post("/api/admin/orders/:id/cancel-invoice", requireAdmin, async (req, res) => {
+    try {
+      const order = await storage.getOrder(req.params.id);
+      if (!order) return res.status(404).json({ error: "Sipariş bulunamadı" });
+      if (!order.ettn) return res.status(400).json({ error: "Bu siparişe ait fatura yok" });
+      const reason = (req.body?.reason as string) || 'Admin iptali';
+      await cancelArchiveInvoice(order.ettn, reason);
+      const updated = await storage.updateOrder(order.id, { eInvoiceStatus: 'cancelled' } as any);
+      res.json(updated);
+    } catch (error) {
+      console.error('[admin cancel-invoice] error:', error);
+      res.status(500).json({ error: "Fatura iptal edilemedi" });
     }
   });
 

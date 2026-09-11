@@ -26,6 +26,9 @@ import {
   PackageCheck,
   Wallet,
   AlertTriangle,
+  FileText,
+  MailCheck,
+  XOctagon,
 } from 'lucide-react';
 import {
   Card,
@@ -148,6 +151,12 @@ interface Order {
   shipmentProvider?: string | null;
   shipmentId?: string | null;
   shipmentLabelUrl?: string | null;
+  // e-Fatura / e-Arşiv
+  ettn?: string | null;
+  eInvoiceNumber?: string | null;
+  eInvoiceStatus?: string | null;
+  eInvoiceSentAt?: string | null;
+  eInvoiceType?: string | null;
   createdAt: string;
   items: OrderItem[];
   returnRequests?: ReturnRequest[];
@@ -308,6 +317,125 @@ function OperationFlow({
   );
 }
 
+// ── e-Fatura / e-Arşiv Paneli ────────────────────────────────────────────────
+
+function EInvoiceCard({ order, onRefresh }: { order: Order | null; onRefresh: () => void }) {
+  const [busy, setBusy] = useState<'issue' | 'cancel' | null>(null);
+  const [err, setErr] = useState<string | null>(null);
+
+  if (!order) return null;
+
+  const status = order.eInvoiceStatus;
+  const hasSentInvoice = status === 'sent' && order.ettn;
+  const isPaid = ['paid', 'completed', 'success'].includes(order.paymentStatus || '');
+
+  const statusLabel =
+    status === 'sent' ? 'Gönderildi'
+    : status === 'failed' ? 'Hata'
+    : status === 'cancelled' ? 'İptal edildi'
+    : status === 'queued' ? 'Sıraya alındı'
+    : 'Henüz kesilmedi';
+
+  const statusColor =
+    status === 'sent' ? 'text-emerald-700 bg-emerald-50'
+    : status === 'failed' ? 'text-red-700 bg-red-50'
+    : status === 'cancelled' ? 'text-neutral-500 bg-neutral-100'
+    : status === 'queued' ? 'text-amber-700 bg-amber-50'
+    : 'text-neutral-400 bg-neutral-100';
+
+  async function handleIssue() {
+    setBusy('issue');
+    setErr(null);
+    try {
+      const res = await fetch(`/api/admin/orders/${order!.id}/issue-invoice`, { method: 'POST' });
+      if (!res.ok) { const d = await res.json(); throw new Error(d.error || 'Hata'); }
+      onRefresh();
+    } catch (e: any) { setErr(e.message); }
+    finally { setBusy(null); }
+  }
+
+  async function handleCancel() {
+    if (!confirm('Fatura iptal edilsin mi?')) return;
+    setBusy('cancel');
+    setErr(null);
+    try {
+      const res = await fetch(`/api/admin/orders/${order!.id}/cancel-invoice`, { method: 'POST' });
+      if (!res.ok) { const d = await res.json(); throw new Error(d.error || 'Hata'); }
+      onRefresh();
+    } catch (e: any) { setErr(e.message); }
+    finally { setBusy(null); }
+  }
+
+  return (
+    <Card className="p-5" data-testid="card-einvoice">
+      <SectionHeading title="e-Fatura / e-Arşiv" description="İŞNET entegrasyonu" />
+
+      <div className="space-y-3">
+        {/* Durum */}
+        <div className="flex items-center justify-between text-[12px]">
+          <span className="text-neutral-500">Durum</span>
+          <span className={`px-2 py-0.5 rounded-full text-[11px] font-medium ${statusColor}`}>
+            {statusLabel}
+          </span>
+        </div>
+
+        {/* ETTN */}
+        {order.ettn && (
+          <div className="flex items-start justify-between gap-2 text-[12px]">
+            <span className="text-neutral-500 shrink-0">ETTN</span>
+            <span className="font-mono text-[10.5px] text-neutral-700 break-all text-right">{order.ettn}</span>
+          </div>
+        )}
+
+        {/* Fatura No */}
+        {order.eInvoiceNumber && (
+          <div className="flex items-center justify-between text-[12px]">
+            <span className="text-neutral-500">Fatura No</span>
+            <span className="font-medium text-neutral-800">{order.eInvoiceNumber}</span>
+          </div>
+        )}
+
+        {/* Gönderim tarihi */}
+        {order.eInvoiceSentAt && (
+          <div className="flex items-center justify-between text-[12px]">
+            <span className="text-neutral-500">Gönderilme</span>
+            <span className="text-neutral-700">{formatTRDateTime(order.eInvoiceSentAt)}</span>
+          </div>
+        )}
+
+        {/* Hata mesajı */}
+        {err && (
+          <p className="text-[11px] text-red-600 bg-red-50 px-2 py-1.5 rounded">{err}</p>
+        )}
+
+        {/* Aksiyonlar */}
+        {isPaid && (
+          <div className="flex gap-2 pt-1 border-t border-neutral-100">
+            <button
+              onClick={handleIssue}
+              disabled={busy !== null}
+              className="flex items-center gap-1.5 text-[11px] font-medium px-3 py-1.5 bg-neutral-900 text-white rounded hover:bg-neutral-700 disabled:opacity-50 transition-colors"
+            >
+              {busy === 'issue' ? <Loader2 className="w-3 h-3 animate-spin" /> : <FileText className="w-3 h-3" />}
+              {hasSentInvoice ? 'Yeniden Kes' : 'Fatura Kes'}
+            </button>
+            {hasSentInvoice && (
+              <button
+                onClick={handleCancel}
+                disabled={busy !== null}
+                className="flex items-center gap-1.5 text-[11px] font-medium px-3 py-1.5 border border-neutral-200 text-neutral-600 rounded hover:border-red-300 hover:text-red-600 disabled:opacity-50 transition-colors"
+              >
+                {busy === 'cancel' ? <Loader2 className="w-3 h-3 animate-spin" /> : <XOctagon className="w-3 h-3" />}
+                İptal Et
+              </button>
+            )}
+          </div>
+        )}
+      </div>
+    </Card>
+  );
+}
+
 function DetailSkeleton() {
   return (
     <div className="min-h-screen bg-neutral-50">
@@ -366,6 +494,7 @@ export default function AdminOrderDetail() {
   const [returnUpdatingId, setReturnUpdatingId] = useState<string | null>(null);
   const [returnMessage, setReturnMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
   const [approvalQuantities, setApprovalQuantities] = useState<Record<string, number>>({});
+  const [orderRefreshKey, setOrderRefreshKey] = useState(0);
   const autoPollCount = useRef(0);
   const statusRequestInFlight = useRef(false);
   const [carrier, setCarrier] = useState<{ id: string; label: string; enabled: boolean; configured: boolean; missing?: string } | null>(null);
@@ -432,7 +561,7 @@ export default function AdminOrderDetail() {
     return () => {
       cancelled = true;
     };
-  }, [params.id]);
+  }, [params.id, orderRefreshKey]);
 
   const handleStatusUpdate = async () => {
     if (!order) return;
@@ -1383,6 +1512,9 @@ export default function AdminOrderDetail() {
                 )}
               </dl>
             </Card>
+
+            {/* e-Fatura / e-Arşiv */}
+            <EInvoiceCard order={order} onRefresh={() => setOrderRefreshKey(k => k + 1)} />
 
             {/* Customer */}
             <Card className="p-5">
