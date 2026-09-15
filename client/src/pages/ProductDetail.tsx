@@ -496,44 +496,73 @@ function fmt(v: number) {
 }
 
 function InstallmentTab({ price, tabInstallmentNote }: { price: number; tabInstallmentNote?: string | null }) {
+  const rows = INSTALLMENT_RATES.map(({ n, rate }) => {
+    const total   = price * (1 + rate / 100);
+    const monthly = total / n;
+    return { n, total, monthly };
+  });
+
   return (
-    <div data-testid="table-installments" className="max-w-lg">
-      {/* Tek çekim satırı */}
-      <div className="flex items-center justify-between px-4 py-3 mb-2 rounded-xl bg-white/5 border border-white/10">
-        <div className="flex items-center gap-3">
-          <span className="w-7 h-7 rounded-full bg-white/10 flex items-center justify-center text-[11px] font-bold text-white/70">1</span>
-          <span className="text-sm font-medium text-white/80">Tek Çekim</span>
-        </div>
-        <div className="text-right">
-          <p className="text-sm font-semibold text-white tabular-nums">{fmt(price)} ₺</p>
-          <p className="text-[10px] text-white/35 mt-0.5">komisyon yok</p>
-        </div>
+    <div data-testid="table-installments">
+      {/* ── Masaüstü: yatay tablo ── */}
+      <div className="hidden md:block overflow-x-auto rounded-xl border border-white/10">
+        <table className="w-full text-sm border-collapse">
+          <thead>
+            <tr className="border-b border-white/10 bg-white/5">
+              <th className="px-4 py-2.5 text-left text-[11px] font-semibold uppercase tracking-wider text-white/40 whitespace-nowrap">Taksit</th>
+              {rows.map(({ n }) => (
+                <th key={n} className="px-3 py-2.5 text-center text-[11px] font-semibold uppercase tracking-wider text-white/40 whitespace-nowrap">
+                  {n} Taksit
+                </th>
+              ))}
+            </tr>
+          </thead>
+          <tbody>
+            <tr className="border-b border-white/6 hover:bg-white/3 transition-colors">
+              <td className="px-4 py-2.5 text-[11px] text-white/40 whitespace-nowrap">Aylık Tutar</td>
+              {rows.map(({ n, monthly }) => (
+                <td key={n} className="px-3 py-2.5 text-center text-[13px] font-semibold text-white tabular-nums whitespace-nowrap">
+                  {fmt(monthly)} ₺
+                </td>
+              ))}
+            </tr>
+            <tr className="hover:bg-white/3 transition-colors">
+              <td className="px-4 py-2.5 text-[11px] text-white/40 whitespace-nowrap">Toplam</td>
+              {rows.map(({ n, total }) => (
+                <td key={n} className="px-3 py-2.5 text-center text-[11px] text-white/40 tabular-nums whitespace-nowrap">
+                  {fmt(total)} ₺
+                </td>
+              ))}
+            </tr>
+          </tbody>
+        </table>
       </div>
 
-      {/* Taksit satırları */}
-      <div className="rounded-xl border border-white/10 overflow-hidden divide-y divide-white/8">
-        {INSTALLMENT_RATES.map(({ n, rate }) => {
-          const total   = price * (1 + rate / 100);
-          const monthly = total / n;
-          return (
+      {/* ── Mobil: dikey liste ── */}
+      <div className="md:hidden">
+        {/* Tek çekim */}
+        <div className="flex items-center justify-between px-4 py-3 mb-2 rounded-xl bg-white/5 border border-white/10">
+          <div className="flex items-center gap-3">
+            <span className="w-7 h-7 rounded-full bg-white/10 flex items-center justify-center text-[11px] font-bold text-white/70">1</span>
+            <span className="text-sm font-medium text-white/80">Tek Çekim</span>
+          </div>
+          <p className="text-sm font-semibold text-white tabular-nums">{fmt(price)} ₺</p>
+        </div>
+        {/* Taksit satırları */}
+        <div className="rounded-xl border border-white/10 overflow-hidden divide-y divide-white/8">
+          {rows.map(({ n, monthly, total }) => (
             <div key={n} className="flex items-center justify-between px-4 py-2.5 hover:bg-white/4 transition-colors">
               <div className="flex items-center gap-3">
-                <span className="w-7 h-7 rounded-full bg-white/8 flex items-center justify-center text-[11px] font-bold text-white/50 shrink-0">
-                  {n}
-                </span>
+                <span className="w-7 h-7 rounded-full bg-white/8 flex items-center justify-center text-[11px] font-bold text-white/50 shrink-0">{n}</span>
                 <span className="text-[13px] text-white/70">{n} Taksit</span>
               </div>
               <div className="text-right">
-                <p className="text-[13px] font-semibold text-white tabular-nums">
-                  {n} × {fmt(monthly)} ₺
-                </p>
-                <p className="text-[10px] text-white/35 tabular-nums mt-0.5">
-                  Toplam {fmt(total)} ₺
-                </p>
+                <p className="text-[13px] font-semibold text-white tabular-nums">{n} × {fmt(monthly)} ₺</p>
+                <p className="text-[10px] text-white/35 tabular-nums mt-0.5">Toplam {fmt(total)} ₺</p>
               </div>
             </div>
-          );
-        })}
+          ))}
+        </div>
       </div>
 
       <p className="mt-4 text-[11px] text-white/35 leading-relaxed">
