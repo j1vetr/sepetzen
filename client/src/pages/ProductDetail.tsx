@@ -477,33 +477,68 @@ const SPEC_ROWS: [key: string, label: string][] = [
 
 const DEFAULT_INSTALLMENT_COUNTS = [1, 2, 3, 6, 9];
 
+const INSTALLMENT_RATES: { n: number; rate: number }[] = [
+  { n: 2,  rate: 8.06  },
+  { n: 3,  rate: 10.50 },
+  { n: 4,  rate: 13.03 },
+  { n: 5,  rate: 15.71 },
+  { n: 6,  rate: 18.50 },
+  { n: 7,  rate: 21.42 },
+  { n: 8,  rate: 24.50 },
+  { n: 9,  rate: 27.76 },
+  { n: 10, rate: 31.15 },
+  { n: 11, rate: 34.75 },
+  { n: 12, rate: 38.56 },
+];
+
+function fmt(v: number) {
+  return v.toLocaleString('tr-TR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+}
+
 function InstallmentTab({ price, tabInstallmentNote }: { price: number; tabInstallmentNote?: string | null }) {
-  const [iframeHeight, setIframeHeight] = useState(320);
-  const priceStr = price.toFixed(2);
-
-  // iframe içindeki PayTR widget yüksekliğini dinle
-  useEffect(() => {
-    const handler = (e: MessageEvent) => {
-      if (e.data?.type === 'paytr-height' && typeof e.data.height === 'number') {
-        setIframeHeight(Math.max(120, e.data.height + 16));
-      }
-    };
-    window.addEventListener('message', handler);
-    return () => window.removeEventListener('message', handler);
-  }, []);
-
   return (
-    <div data-testid="table-installments">
-      <iframe
-        key={priceStr}
-        src={`/paytr-widget?amount=${priceStr}`}
-        style={{ width: '100%', height: iframeHeight, border: 'none', display: 'block' }}
-        title="Taksit Seçenekleri"
-        scrolling="no"
-      />
-      <p className="mt-3 text-[11.5px] text-white/40 leading-relaxed">
+    <div data-testid="table-installments" className="max-w-lg">
+      {/* Tek çekim satırı */}
+      <div className="flex items-center justify-between px-4 py-3 mb-2 rounded-xl bg-white/5 border border-white/10">
+        <div className="flex items-center gap-3">
+          <span className="w-7 h-7 rounded-full bg-white/10 flex items-center justify-center text-[11px] font-bold text-white/70">1</span>
+          <span className="text-sm font-medium text-white/80">Tek Çekim</span>
+        </div>
+        <div className="text-right">
+          <p className="text-sm font-semibold text-white tabular-nums">{fmt(price)} ₺</p>
+          <p className="text-[10px] text-white/35 mt-0.5">komisyon yok</p>
+        </div>
+      </div>
+
+      {/* Taksit satırları */}
+      <div className="rounded-xl border border-white/10 overflow-hidden divide-y divide-white/8">
+        {INSTALLMENT_RATES.map(({ n, rate }) => {
+          const total   = price * (1 + rate / 100);
+          const monthly = total / n;
+          return (
+            <div key={n} className="flex items-center justify-between px-4 py-2.5 hover:bg-white/4 transition-colors">
+              <div className="flex items-center gap-3">
+                <span className="w-7 h-7 rounded-full bg-white/8 flex items-center justify-center text-[11px] font-bold text-white/50 shrink-0">
+                  {n}
+                </span>
+                <span className="text-[13px] text-white/70">{n} Taksit</span>
+              </div>
+              <div className="text-right">
+                <p className="text-[13px] font-semibold text-white tabular-nums">
+                  {n} × {fmt(monthly)} ₺
+                </p>
+                <p className="text-[10px] text-white/35 tabular-nums mt-0.5">
+                  Toplam {fmt(total)} ₺
+                </p>
+              </div>
+            </div>
+          );
+        })}
+      </div>
+
+      <p className="mt-4 text-[11px] text-white/35 leading-relaxed">
         {tabInstallmentNote?.trim() ||
-          'Taksit seçenekleri kredi kartıyla ödemelerde geçerlidir. Bankanıza göre taksit sayısı ve tutarlar değişiklik gösterebilir, güncel tutarlar ödeme adımında görüntülenir. Havale/EFT ile ödemelerde %3 indirim uygulanır.'}
+          'Taksit seçenekleri kredi kartıyla ödemelerde geçerlidir. Havale/EFT ile ödemelerde %3 indirim uygulanır.'}
       </p>
     </div>
   );
