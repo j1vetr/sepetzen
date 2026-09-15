@@ -42,6 +42,7 @@ function SectionCard({ title, desc, children }: { title: string; desc: string; c
 export default function HomepageTab() {
   const queryClient = useQueryClient();
   const [content, setContent] = useState<HomepageContent | null>(null);
+  const contentRef = useRef<HomepageContent | null>(null);
   const [dirty, setDirty] = useState(false);
   const [uploadingIndex, setUploadingIndex] = useState<number | null>(null);
   const [uploadingVideo, setUploadingVideo] = useState<number | null>(null);
@@ -90,7 +91,10 @@ export default function HomepageTab() {
   });
 
   useEffect(() => {
-    if (data && !content) setContent(data);
+    if (data && !content) {
+      contentRef.current = data;
+      setContent(data);
+    }
   }, [data, content]);
 
   const saveMutation = useMutation({
@@ -116,7 +120,11 @@ export default function HomepageTab() {
   });
 
   const update = (patch: Partial<HomepageContent>) => {
-    setContent(c => (c ? { ...c, ...patch } : c));
+    setContent(c => {
+      const next = c ? { ...c, ...patch } : c;
+      contentRef.current = next;
+      return next;
+    });
     setDirty(true);
   };
 
@@ -1026,9 +1034,11 @@ export default function HomepageTab() {
               <div className="flex flex-col gap-0.5">
                 <button
                   onClick={() => {
-                    const next = move(content.sectionOrder, i, -1);
+                    const cur = contentRef.current;
+                    if (!cur) return;
+                    const next = move(cur.sectionOrder, i, -1);
                     update({ sectionOrder: next });
-                    saveMutation.mutate({ ...content, sectionOrder: next });
+                    saveMutation.mutate({ ...cur, sectionOrder: next });
                   }}
                   disabled={i === 0 || saveMutation.isPending}
                   className="p-1 hover:bg-neutral-100 rounded disabled:opacity-30"
@@ -1038,9 +1048,11 @@ export default function HomepageTab() {
                 </button>
                 <button
                   onClick={() => {
-                    const next = move(content.sectionOrder, i, 1);
+                    const cur = contentRef.current;
+                    if (!cur) return;
+                    const next = move(cur.sectionOrder, i, 1);
                     update({ sectionOrder: next });
-                    saveMutation.mutate({ ...content, sectionOrder: next });
+                    saveMutation.mutate({ ...cur, sectionOrder: next });
                   }}
                   disabled={i === content.sectionOrder.length - 1 || saveMutation.isPending}
                   className="p-1 hover:bg-neutral-100 rounded disabled:opacity-30"
@@ -1054,10 +1066,12 @@ export default function HomepageTab() {
               </span>
               <button
                 onClick={() => {
-                  const next = [...content.sectionOrder];
+                  const cur = contentRef.current;
+                  if (!cur) return;
+                  const next = [...cur.sectionOrder];
                   next[i] = { ...next[i], isActive: !next[i].isActive };
                   update({ sectionOrder: next });
-                  saveMutation.mutate({ ...content, sectionOrder: next });
+                  saveMutation.mutate({ ...cur, sectionOrder: next });
                 }}
                 disabled={saveMutation.isPending}
                 className={`flex items-center gap-1.5 px-2.5 py-1 rounded text-xs font-medium disabled:opacity-50 ${s.isActive ? 'bg-emerald-100 text-emerald-700' : 'bg-neutral-100 text-neutral-500'}`}

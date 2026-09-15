@@ -8498,11 +8498,14 @@ window.addEventListener('load', function() {
     try {
       const parsed = homepageContentSchema.safeParse(req.body);
       if (!parsed.success) {
+        console.error('[homepage-content PUT] Validation failed:', JSON.stringify(parsed.error.flatten()));
         return res.status(400).json({ error: "Geçersiz içerik", details: parsed.error.flatten() });
       }
+      console.log('[homepage-content PUT] sectionOrder:', JSON.stringify(parsed.data.sectionOrder.map(s => s.id)));
       await storage.setSiteSetting(HOMEPAGE_CONTENT_KEY, JSON.stringify(parsed.data));
       res.json({ success: true });
     } catch (error) {
+      console.error('[homepage-content PUT] Error:', error);
       res.status(500).json({ error: "Failed to save homepage content" });
     }
   });

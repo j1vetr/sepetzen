@@ -32,7 +32,7 @@ function useHomepageContent(): HomepageContent {
       if (!res.ok) throw new Error('Failed to fetch homepage content');
       return resolveHomepageContent(await res.json());
     },
-    staleTime: 10_000,
+    staleTime: 0,
   });
   return data ?? DEFAULT_HOMEPAGE_CONTENT;
 }
