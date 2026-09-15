@@ -477,46 +477,31 @@ const SPEC_ROWS: [key: string, label: string][] = [
 
 const DEFAULT_INSTALLMENT_COUNTS = [1, 2, 3, 6, 9];
 
-const PAYTR_INSTALLMENT_STYLES = `
-  #paytr_taksit_tablosu{clear:both;font-size:12px;max-width:1200px;text-align:center;font-family:Arial,sans-serif;}
-  #paytr_taksit_tablosu::before{display:table;content:" ";}
-  #paytr_taksit_tablosu::after{content:"";clear:both;display:table;}
-  .taksit-tablosu-wrapper{margin:5px;width:280px;padding:12px;cursor:default;text-align:center;display:inline-block;border:1px solid #e1e1e1;}
-  .taksit-logo img{max-height:28px;padding-bottom:10px;}
-  .taksit-tutari-text{float:left;width:126px;color:#a2a2a2;margin-bottom:5px;}
-  .taksit-tutar-wrapper{display:inline-block;background-color:#f7f7f7;}
-  .taksit-tutar-wrapper:hover{background-color:#e8e8e8;}
-  .taksit-tutari{float:left;width:126px;padding:6px 0;color:#474747;border:2px solid #ffffff;}
-  .taksit-tutari-bold{font-weight:bold;}
-  @media all and (max-width:600px){.taksit-tablosu-wrapper{margin:5px 0;}}
-`;
-
 function InstallmentTab({ price, tabInstallmentNote }: { price: number; tabInstallmentNote?: string | null }) {
-  const containerRef = useRef<HTMLDivElement>(null);
-  // Formatı PayTR'nin beklediği şekle getir: "162.10"
+  const [iframeHeight, setIframeHeight] = useState(320);
   const priceStr = price.toFixed(2);
 
+  // iframe içindeki PayTR widget yüksekliğini dinle
   useEffect(() => {
-    const container = containerRef.current;
-    // Önceki script'i kaldır (fiyat değişince yeniden yüklenmesi için)
-    document.querySelectorAll('script[src*="paytr.com/odeme/taksit-tablosu"]').forEach(s => s.remove());
-    if (container) container.innerHTML = '';
-
-    const script = document.createElement('script');
-    script.src = `https://www.paytr.com/odeme/taksit-tablosu/v2?token=82ceabfa37fc4f5810cf7a782982a1836794153385938d1b3f28e4c22bf7f055&merchant_id=483600&amount=${priceStr}&taksit=0&tumu=0`;
-    document.body.appendChild(script);
-
-    return () => {
-      script.remove();
-      if (container) container.innerHTML = '';
+    const handler = (e: MessageEvent) => {
+      if (e.data?.type === 'paytr-height' && typeof e.data.height === 'number') {
+        setIframeHeight(Math.max(120, e.data.height + 16));
+      }
     };
-  }, [priceStr]);
+    window.addEventListener('message', handler);
+    return () => window.removeEventListener('message', handler);
+  }, []);
 
   return (
     <div data-testid="table-installments">
-      <style>{PAYTR_INSTALLMENT_STYLES}</style>
-      <div id="paytr_taksit_tablosu" ref={containerRef} />
-      <p className="mt-4 text-[11.5px] text-white/40 leading-relaxed">
+      <iframe
+        key={priceStr}
+        src={`/paytr-widget?amount=${priceStr}`}
+        style={{ width: '100%', height: iframeHeight, border: 'none', display: 'block' }}
+        title="Taksit Seçenekleri"
+        scrolling="no"
+      />
+      <p className="mt-3 text-[11.5px] text-white/40 leading-relaxed">
         {tabInstallmentNote?.trim() ||
           'Taksit seçenekleri kredi kartıyla ödemelerde geçerlidir. Bankanıza göre taksit sayısı ve tutarlar değişiklik gösterebilir, güncel tutarlar ödeme adımında görüntülenir. Havale/EFT ile ödemelerde %3 indirim uygulanır.'}
       </p>
