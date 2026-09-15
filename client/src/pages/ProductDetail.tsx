@@ -61,9 +61,15 @@ function isVideoUrl(url: string): boolean {
   return lower.endsWith('.mp4') || lower.endsWith('.webm') || lower.endsWith('.mov');
 }
 
-/** YouTube videosunu tıklanana kadar thumbnail olarak gösterir; iframe yalnızca play sonrası yüklenir. */
-function YouTubeEmbed({ videoUrl }: { videoUrl: string }) {
+/** YouTube videosunu tıklanana kadar thumbnail olarak gösterir; iframe yalnızca play sonrası yüklenir.
+ *  `active` false olduğunda iframe DOM'dan kaldırılır — swipe ile başka slide'a geçilince ses kesilir. */
+function YouTubeEmbed({ videoUrl, active = true }: { videoUrl: string; active?: boolean }) {
   const [playing, setPlaying] = useState(false);
+
+  // Slide görünür olmaktan çıkınca iframe'i kaldır (ses durdurulur)
+  useEffect(() => {
+    if (!active) setPlaying(false);
+  }, [active]);
   const thumb = getYouTubeThumbnail(videoUrl, 'hq');
   const embedUrl = `${getYouTubeEmbedUrl(videoUrl)}&autoplay=1`;
   if (playing) {
@@ -471,28 +477,45 @@ const SPEC_ROWS: [key: string, label: string][] = [
 
 const DEFAULT_INSTALLMENT_COUNTS = [1, 2, 3, 6, 9];
 
+const PAYTR_INSTALLMENT_STYLES = `
+  #paytr_taksit_tablosu{clear:both;font-size:12px;max-width:1200px;text-align:center;font-family:Arial,sans-serif;}
+  #paytr_taksit_tablosu::before{display:table;content:" ";}
+  #paytr_taksit_tablosu::after{content:"";clear:both;display:table;}
+  .taksit-tablosu-wrapper{margin:5px;width:280px;padding:12px;cursor:default;text-align:center;display:inline-block;border:1px solid #e1e1e1;}
+  .taksit-logo img{max-height:28px;padding-bottom:10px;}
+  .taksit-tutari-text{float:left;width:126px;color:#a2a2a2;margin-bottom:5px;}
+  .taksit-tutar-wrapper{display:inline-block;background-color:#f7f7f7;}
+  .taksit-tutar-wrapper:hover{background-color:#e8e8e8;}
+  .taksit-tutari{float:left;width:126px;padding:6px 0;color:#474747;border:2px solid #ffffff;}
+  .taksit-tutari-bold{font-weight:bold;}
+  @media all and (max-width:600px){.taksit-tablosu-wrapper{margin:5px 0;}}
+`;
+
 function InstallmentTab({ price, tabInstallmentNote }: { price: number; tabInstallmentNote?: string | null }) {
-  const { data } = useQuery<{ paytrEnabled: boolean; counts: number[] }>({
-    queryKey: ['/api/payment/installment-info'],
-    staleTime: 5 * 60 * 1000,
-  });
-  const counts = data?.counts ?? DEFAULT_INSTALLMENT_COUNTS;
+  const containerRef = useRef<HTMLDivElement>(null);
+  // Formatı PayTR'nin beklediği şekle getir: "162.10"
+  const priceStr = price.toFixed(2);
+
+  useEffect(() => {
+    const container = containerRef.current;
+    // Önceki script'i kaldır (fiyat değişince yeniden yüklenmesi için)
+    document.querySelectorAll('script[src*="paytr.com/odeme/taksit-tablosu"]').forEach(s => s.remove());
+    if (container) container.innerHTML = '';
+
+    const script = document.createElement('script');
+    script.src = `https://www.paytr.com/odeme/taksit-tablosu/v2?token=82ceabfa37fc4f5810cf7a782982a1836794153385938d1b3f28e4c22bf7f055&merchant_id=483600&amount=${priceStr}&taksit=0&tumu=0`;
+    document.body.appendChild(script);
+
+    return () => {
+      script.remove();
+      if (container) container.innerHTML = '';
+    };
+  }, [priceStr]);
+
   return (
-    <div className="max-w-xl">
-      <dl className="divide-y divide-white/8 border-t border-b border-white/8" data-testid="table-installments">
-        {counts.map((n) => (
-          <div key={n} className="flex items-baseline justify-between gap-6 py-2.5">
-            <dt className="text-[12px] text-white/45">
-              {n === 1 ? 'Tek Çekim' : `${n} Taksit`}
-            </dt>
-            <dd className="text-[13px] text-white font-medium tabular-nums">
-              {n === 1
-                ? `${price.toLocaleString('tr-TR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} ₺`
-                : `${n} × ${(price / n).toLocaleString('tr-TR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} ₺`}
-            </dd>
-          </div>
-        ))}
-      </dl>
+    <div data-testid="table-installments">
+      <style>{PAYTR_INSTALLMENT_STYLES}</style>
+      <div id="paytr_taksit_tablosu" ref={containerRef} />
       <p className="mt-4 text-[11.5px] text-white/40 leading-relaxed">
         {tabInstallmentNote?.trim() ||
           'Taksit seçenekleri kredi kartıyla ödemelerde geçerlidir. Bankanıza göre taksit sayısı ve tutarlar değişiklik gösterebilir, güncel tutarlar ödeme adımında görüntülenir. Havale/EFT ile ödemelerde %3 indirim uygulanır.'}
@@ -937,6 +960,24 @@ export default function ProductDetail() {
     if (emblaApi && emblaApi.selectedScrollSnap() !== selectedImage) {
       emblaApi.scrollTo(selectedImage);
     }
+  }, [selectedImage, emblaApi]);
+
+  // Mobil carousel: aktif olmayan slide'lardaki <video> elemanlarını durdur
+  useEffect(() => {
+    if (!emblaApi) return;
+    const container = emblaApi.rootNode();
+    if (!container) return;
+    const slides = container.querySelectorAll<HTMLElement>('.flex-\\[0_0_100\\%\\]');
+    slides.forEach((slide, i) => {
+      const vid = slide.querySelector<HTMLVideoElement>('video');
+      if (!vid) return;
+      if (i === selectedImage) {
+        // Aktif slide — kullanıcı zaten ses durumunu yönetiyor, sadece pause olmadığından emin ol
+        if (vid.paused) vid.play().catch(() => {});
+      } else {
+        vid.pause();
+      }
+    });
   }, [selectedImage, emblaApi]);
 
   const onLightboxSelect = useCallback(() => {
@@ -1602,6 +1643,7 @@ export default function ProductDetail() {
                         <button
                           type="button"
                           onClick={(e) => { e.stopPropagation(); setSelectedImage((p) => p - 1); }}
+                          onMouseEnter={() => setIsZooming(false)}
                           className="absolute left-3 top-1/2 -translate-y-1/2 z-20 w-8 h-8 flex items-center justify-center rounded-full bg-black/35 backdrop-blur-sm text-white opacity-0 group-hover/gallery:opacity-100 transition-opacity duration-200 hover:bg-black/55"
                           aria-label="Önceki görsel"
                         >
@@ -1612,6 +1654,7 @@ export default function ProductDetail() {
                         <button
                           type="button"
                           onClick={(e) => { e.stopPropagation(); setSelectedImage((p) => p + 1); }}
+                          onMouseEnter={() => setIsZooming(false)}
                           className="absolute right-3 top-1/2 -translate-y-1/2 z-20 w-8 h-8 flex items-center justify-center rounded-full bg-black/35 backdrop-blur-sm text-white opacity-0 group-hover/gallery:opacity-100 transition-opacity duration-200 hover:bg-black/55"
                           aria-label="Sonraki görsel"
                         >
@@ -1657,7 +1700,7 @@ export default function ProductDetail() {
                           >
                             {isYouTubeUrl(img) ? (
                               <div className="absolute inset-0">
-                                <YouTubeEmbed videoUrl={img} />
+                                <YouTubeEmbed videoUrl={img} active={i === selectedImage} />
                               </div>
                             ) : isVideoUrl(img) ? (
                               <>

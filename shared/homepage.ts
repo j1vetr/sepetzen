@@ -225,14 +225,6 @@ export function resolveHomepageContent(raw: unknown): HomepageContent {
     }
   }
 
-  // Marka şeridi (partners) güven şeridinden (trust) önce gelmeli
-  const partnersIdx = order.findIndex(s => s.id === 'partners');
-  const trustIdx = order.findIndex(s => s.id === 'trust');
-  if (partnersIdx !== -1 && trustIdx !== -1 && partnersIdx > trustIdx) {
-    const [partnersItem] = order.splice(partnersIdx, 1);
-    order.splice(trustIdx, 0, partnersItem);
-  }
-
   return {
     heroSlides: c.heroSlides.length ? c.heroSlides : d.heroSlides,
     videoSection: {

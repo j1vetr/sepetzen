@@ -32,7 +32,7 @@ function useHomepageContent(): HomepageContent {
       if (!res.ok) throw new Error('Failed to fetch homepage content');
       return resolveHomepageContent(await res.json());
     },
-    staleTime: 60_000,
+    staleTime: 10_000,
   });
   return data ?? DEFAULT_HOMEPAGE_CONTENT;
 }
@@ -131,17 +131,26 @@ function HeroSlider({ products, slides, heroMarquee = EMPTY_HERO_MARQUEE }: { pr
   const [dir, setDir] = useState(1);
   const slideTimer = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
 
+  // Slide sayısı değişince (admin pasif yapınca) index sınır dışına çıkmasın
+  useEffect(() => {
+    if (HERO_SLIDES.length > 0 && active >= HERO_SLIDES.length) {
+      setActive(0);
+    }
+  }, [HERO_SLIDES.length, active]);
+
   const go = (next: number, direction = 1) => { setDir(direction); setActive(next); };
   const prev = () => go((active - 1 + HERO_SLIDES.length) % HERO_SLIDES.length, -1);
   const next = () => go((active + 1) % HERO_SLIDES.length, 1);
 
   // Slide auto-advance
   useEffect(() => {
+    if (HERO_SLIDES.length === 0) return;
     slideTimer.current = setTimeout(() => go((active + 1) % HERO_SLIDES.length, 1), 6000);
     return () => clearTimeout(slideTimer.current);
-  }, [active]);
+  }, [active, HERO_SLIDES.length]);
 
-  const slide = HERO_SLIDES[active];
+  // Güvenli erişim: index henüz sıfırlanmadan bir render geçerse boş slide göstermez
+  const slide = HERO_SLIDES[Math.min(active, HERO_SLIDES.length - 1)] ?? HERO_SLIDES[0];
 
   return (
     <section

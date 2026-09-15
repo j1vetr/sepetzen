@@ -3,7 +3,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import {
   Loader2, Plus, Trash2, ChevronUp, ChevronDown, Save, Upload,
   Image as ImageIcon, Truck, ShieldCheck, Star, Eye, EyeOff, Video, AlertTriangle,
-  Search, X, FolderOpen, Package, Link2,
+  Search, X, FolderOpen, Package, Link2, Pencil,
 } from 'lucide-react';
 import {
   DEFAULT_HOMEPAGE_CONTENT,
@@ -50,6 +50,12 @@ export default function HomepageTab() {
   const [showcaseNewLinkUrl, setShowcaseNewLinkUrl] = useState('');
   const [uploadingShowcase, setUploadingShowcase] = useState(false);
   const showcaseFileRef = useRef<HTMLInputElement>(null);
+  // Inline edit state for existing showcase items
+  const [editingShowcaseIdx, setEditingShowcaseIdx] = useState<number | null>(null);
+  const [editShowcaseImageUrl, setEditShowcaseImageUrl] = useState('');
+  const [editShowcaseLinkUrl, setEditShowcaseLinkUrl] = useState('');
+  const [uploadingShowcaseEdit, setUploadingShowcaseEdit] = useState(false);
+  const showcaseEditFileRef = useRef<HTMLInputElement>(null);
   const [heroSearch, setHeroSearch] = useState('');
   const [heroDropdown, setHeroDropdown] = useState(false);
   const [uploadingPartnerLogo, setUploadingPartnerLogo] = useState<number | null>(null);
@@ -223,6 +229,22 @@ export default function HomepageTab() {
       alert(e instanceof Error ? e.message : 'Görsel yüklenemedi');
     } finally {
       setUploadingShowcase(false);
+    }
+  };
+
+  const uploadShowcaseEditImage = async (file: File) => {
+    setUploadingShowcaseEdit(true);
+    try {
+      const fd = new FormData();
+      fd.append('images', file);
+      const res = await fetch('/api/admin/upload/branding', { method: 'POST', body: fd, credentials: 'include' });
+      const data = await res.json();
+      if (!res.ok || !data.urls?.[0]) throw new Error(data.error || 'Yükleme başarısız');
+      setEditShowcaseImageUrl(data.urls[0]);
+    } catch (e) {
+      alert(e instanceof Error ? e.message : 'Görsel yüklenemedi');
+    } finally {
+      setUploadingShowcaseEdit(false);
     }
   };
   const visibleSectionIds = new Set(content.sectionOrder.filter((section) => section.isActive).map((section) => section.id));
@@ -790,6 +812,13 @@ export default function HomepageTab() {
                   className="hidden"
                   onChange={e => { const f = e.target.files?.[0]; if (f) uploadShowcaseImage(f); e.target.value = ''; }}
                 />
+                <input
+                  ref={showcaseEditFileRef}
+                  type="file"
+                  accept="image/png,image/webp,image/gif"
+                  className="hidden"
+                  onChange={e => { const f = e.target.files?.[0]; if (f) uploadShowcaseEditImage(f); e.target.value = ''; }}
+                />
                 {showcaseNewImageUrl ? (
                   <div className="relative group rounded-lg overflow-hidden border border-neutral-200 bg-[repeating-conic-gradient(#e5e7eb_0%_25%,#f9fafb_0%_50%)] bg-[length:16px_16px]">
                     <img src={showcaseNewImageUrl} alt="" className="h-28 w-full object-contain" />
@@ -863,6 +892,78 @@ export default function HomepageTab() {
                 {sm.items.map((item, idx) => {
                   const thumb = item.type === 'custom' ? item.imageUrl : undefined;
                   const href = item.type === 'custom' ? item.linkUrl : undefined;
+                  const isEditing = editingShowcaseIdx === idx;
+
+                  if (isEditing) {
+                    return (
+                      <div key={idx} className="border border-neutral-300 rounded-xl bg-white p-4 space-y-3">
+                        <p className="text-xs font-semibold text-neutral-500 uppercase tracking-wider">Kartı Düzenle</p>
+
+                        {/* Image */}
+                        <div>
+                          <p className="text-xs text-neutral-500 mb-1.5">Görsel</p>
+                          <div className="relative group rounded-lg overflow-hidden border border-neutral-200 bg-[repeating-conic-gradient(#e5e7eb_0%_25%,#f9fafb_0%_50%)] bg-[length:16px_16px]">
+                            {editShowcaseImageUrl
+                              ? <img src={editShowcaseImageUrl} alt="" className="h-24 w-full object-contain" />
+                              : <div className="h-24 flex items-center justify-center"><ImageIcon className="w-6 h-6 text-neutral-300" /></div>
+                            }
+                            <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                              <button
+                                type="button"
+                                onClick={() => showcaseEditFileRef.current?.click()}
+                                disabled={uploadingShowcaseEdit}
+                                className="px-2.5 py-1.5 bg-white text-black rounded text-xs font-medium flex items-center gap-1"
+                              >
+                                {uploadingShowcaseEdit ? <Loader2 className="w-3 h-3 animate-spin" /> : <Upload className="w-3 h-3" />}
+                                {uploadingShowcaseEdit ? 'Yükleniyor…' : 'Değiştir'}
+                              </button>
+                            </div>
+                          </div>
+                        </div>
+
+                        {/* Link */}
+                        <div>
+                          <p className="text-xs text-neutral-500 mb-1.5">Ürün Linki</p>
+                          <div className="flex items-center gap-2 border border-neutral-200 rounded-lg px-3 bg-white focus-within:border-neutral-400 transition-colors">
+                            <Link2 className="w-3.5 h-3.5 text-neutral-400 shrink-0" />
+                            <input
+                              type="text"
+                              value={editShowcaseLinkUrl}
+                              onChange={e => setEditShowcaseLinkUrl(e.target.value)}
+                              placeholder="/urun/urun-adi veya https://..."
+                              className="flex-1 py-2 text-sm bg-transparent outline-none text-neutral-900 placeholder:text-neutral-400"
+                            />
+                          </div>
+                        </div>
+
+                        {/* Actions */}
+                        <div className="flex gap-2">
+                          <button
+                            type="button"
+                            onClick={() => {
+                              if (!editShowcaseImageUrl) { alert('Görsel seçin.'); return; }
+                              if (!editShowcaseLinkUrl.trim()) { alert('Link girin.'); return; }
+                              const next = [...sm.items];
+                              next[idx] = { ...next[idx], imageUrl: editShowcaseImageUrl, linkUrl: editShowcaseLinkUrl.trim() };
+                              setShowcase({ items: next });
+                              setEditingShowcaseIdx(null);
+                            }}
+                            className="flex-1 h-9 bg-neutral-900 text-white rounded-lg text-sm font-medium hover:bg-black transition-colors"
+                          >
+                            Kaydet
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => setEditingShowcaseIdx(null)}
+                            className="h-9 px-4 border border-neutral-200 rounded-lg text-sm text-neutral-600 hover:bg-neutral-50 transition-colors"
+                          >
+                            İptal
+                          </button>
+                        </div>
+                      </div>
+                    );
+                  }
+
                   return (
                     <div key={idx} className="flex items-center gap-3 bg-white border border-neutral-200 rounded-lg px-3 py-2">
                       {/* Thumbnail — checkered bg for transparency */}
@@ -886,6 +987,18 @@ export default function HomepageTab() {
                         className={`text-[11px] px-2 py-0.5 rounded font-medium shrink-0 ${item.isActive ? 'bg-emerald-100 text-emerald-700' : 'bg-neutral-100 text-neutral-500'}`}
                       >
                         {item.isActive ? 'Aktif' : 'Pasif'}
+                      </button>
+                      {/* Edit button */}
+                      <button
+                        onClick={() => {
+                          setEditingShowcaseIdx(idx);
+                          setEditShowcaseImageUrl(thumb ?? '');
+                          setEditShowcaseLinkUrl(href ?? '');
+                        }}
+                        className="p-1.5 hover:bg-neutral-100 rounded text-neutral-400 hover:text-neutral-700 shrink-0"
+                        title="Düzenle"
+                      >
+                        <Pencil className="w-4 h-4" />
                       </button>
                       <button onClick={() => removeItem(idx)} className="p-1.5 hover:bg-red-50 rounded text-neutral-400 hover:text-red-500 shrink-0">
                         <Trash2 className="w-4 h-4" />
@@ -911,10 +1024,28 @@ export default function HomepageTab() {
           {content.sectionOrder.map((s, i) => (
             <div key={s.id} className="flex items-center gap-3 px-4 py-3" data-testid={`section-order-${s.id}`}>
               <div className="flex flex-col gap-0.5">
-                <button onClick={() => update({ sectionOrder: move(content.sectionOrder, i, -1) })} disabled={i === 0} className="p-1 hover:bg-neutral-100 rounded disabled:opacity-30" data-testid={`button-section-up-${s.id}`}>
+                <button
+                  onClick={() => {
+                    const next = move(content.sectionOrder, i, -1);
+                    update({ sectionOrder: next });
+                    saveMutation.mutate({ ...content, sectionOrder: next });
+                  }}
+                  disabled={i === 0 || saveMutation.isPending}
+                  className="p-1 hover:bg-neutral-100 rounded disabled:opacity-30"
+                  data-testid={`button-section-up-${s.id}`}
+                >
                   <ChevronUp className="w-4 h-4" />
                 </button>
-                <button onClick={() => update({ sectionOrder: move(content.sectionOrder, i, 1) })} disabled={i === content.sectionOrder.length - 1} className="p-1 hover:bg-neutral-100 rounded disabled:opacity-30" data-testid={`button-section-down-${s.id}`}>
+                <button
+                  onClick={() => {
+                    const next = move(content.sectionOrder, i, 1);
+                    update({ sectionOrder: next });
+                    saveMutation.mutate({ ...content, sectionOrder: next });
+                  }}
+                  disabled={i === content.sectionOrder.length - 1 || saveMutation.isPending}
+                  className="p-1 hover:bg-neutral-100 rounded disabled:opacity-30"
+                  data-testid={`button-section-down-${s.id}`}
+                >
                   <ChevronDown className="w-4 h-4" />
                 </button>
               </div>
@@ -926,16 +1057,24 @@ export default function HomepageTab() {
                   const next = [...content.sectionOrder];
                   next[i] = { ...next[i], isActive: !next[i].isActive };
                   update({ sectionOrder: next });
+                  saveMutation.mutate({ ...content, sectionOrder: next });
                 }}
-                className={`flex items-center gap-1.5 px-2.5 py-1 rounded text-xs font-medium ${s.isActive ? 'bg-emerald-100 text-emerald-700' : 'bg-neutral-100 text-neutral-500'}`}
+                disabled={saveMutation.isPending}
+                className={`flex items-center gap-1.5 px-2.5 py-1 rounded text-xs font-medium disabled:opacity-50 ${s.isActive ? 'bg-emerald-100 text-emerald-700' : 'bg-neutral-100 text-neutral-500'}`}
                 data-testid={`button-section-active-${s.id}`}
               >
-                {s.isActive ? <Eye className="w-3.5 h-3.5" /> : <EyeOff className="w-3.5 h-3.5" />}
+                {saveMutation.isPending ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : s.isActive ? <Eye className="w-3.5 h-3.5" /> : <EyeOff className="w-3.5 h-3.5" />}
                 {s.isActive ? 'Görünür' : 'Gizli'}
               </button>
             </div>
           ))}
         </div>
+        {saveMutation.isPending && (
+          <p className="text-[11px] text-neutral-400 text-right pt-2">Kaydediliyor...</p>
+        )}
+        {saveMutation.isSuccess && !dirty && (
+          <p className="text-[11px] text-emerald-600 text-right pt-2">Kaydedildi</p>
+        )}
       </SectionCard>
 
       {dirty && (

@@ -779,7 +779,8 @@ export default function ProductsTab({
       return res.json();
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['/api/admin/products'] });
+      queryClient.invalidateQueries({ queryKey: ['admin', 'products'] });
+      queryClient.invalidateQueries({ queryKey: ['admin-inventory'] });
     },
     onError: (err: Error) => alert('❌ ' + err.message),
   });
@@ -798,7 +799,8 @@ export default function ProductsTab({
       return res.json();
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['/api/admin/products'] });
+      queryClient.invalidateQueries({ queryKey: ['admin', 'products'] });
+      queryClient.invalidateQueries({ queryKey: ['admin-inventory'] });
     },
     onError: (err: Error) => alert('Hata: ' + err.message),
   });
