@@ -648,9 +648,13 @@ export async function registerRoutes(
   });
 
   // PayTR taksit tablosu widget sayfası — iframe içinde gömülür
-  app.get("/paytr-widget", (req, res) => {
+  app.get("/paytr-widget", async (req, res) => {
     const amount = String(req.query.amount ?? '0').replace(/[^0-9.]/g, '');
     const safeAmount = parseFloat(amount) > 0 ? parseFloat(amount).toFixed(2) : '0.00';
+
+    // Merchant ID'yi site ayarlarından oku
+    const merchantId = (await storage.getSiteSetting('paytr_merchant_id')) ?? '';
+
     res.setHeader('Content-Type', 'text/html; charset=utf-8');
     res.setHeader('Cache-Control', 'no-store');
     res.send(`<!DOCTYPE html>
@@ -676,7 +680,6 @@ export async function registerRoutes(
 <body>
 <div id="paytr_taksit_tablosu"></div>
 <script>
-  // iframe yüksekliğini içeriğe göre ayarla
   function notifyHeight(){
     var h = document.body.scrollHeight;
     window.parent.postMessage({type:'paytr-height',height:h},'*');
@@ -684,7 +687,7 @@ export async function registerRoutes(
   var mo = new MutationObserver(notifyHeight);
   mo.observe(document.body,{childList:true,subtree:true});
 </script>
-<script src="https://www.paytr.com/odeme/taksit-tablosu/v2?token=82ceabfa37fc4f5810cf7a782982a1836794153385938d1b3f28e4c22bf7f055&merchant_id=483600&amount=${safeAmount}&taksit=0&tumu=0"></script>
+<script src="https://www.paytr.com/odeme/taksit-tablosu/v2?token=82ceabfa37fc4f5810cf7a782982a1836794153385938d1b3f28e4c22bf7f055&merchant_id=${merchantId}&amount=${safeAmount}&taksit=0&tumu=0"></script>
 </body>
 </html>`);
   });
