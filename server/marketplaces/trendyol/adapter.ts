@@ -197,11 +197,16 @@ class TrendyolAdapter
    * Boş katalogda Trendyol 404 "product.not.found" döndürür; bunu boş sayfa
    * olarak normalize ederiz (yeni satıcı hesabı = henüz onaylı ürün yok).
    */
-  private async fetchApprovedPage(page: number, size = DEFAULT_PAGE_SIZE): Promise<TrendyolListResponse> {
+  private async fetchApprovedPage(
+    page: number,
+    size = DEFAULT_PAGE_SIZE,
+    filters?: { barcode?: string },
+  ): Promise<TrendyolListResponse> {
     try {
+      const params = new URLSearchParams({ page: String(page), size: String(size) });
+      if (filters?.barcode) params.set("barcode", filters.barcode);
       return await this.client.request<TrendyolListResponse>(
-        `/product/sellers/${encodeURIComponent(this.supplierId)}/products/approved` +
-          `?page=${page}&size=${size}`,
+        `/product/sellers/${encodeURIComponent(this.supplierId)}/products/approved?${params}`,
       );
     } catch (err) {
       if (err instanceof MarketplaceError && err.statusCode === 404) {
@@ -209,6 +214,26 @@ class TrendyolAdapter
       }
       throw err;
     }
+  }
+
+  /** Barkoda göre Trendyol onaylı katalogda ara (tek sayfa, hızlı). */
+  async findApprovedByBarcode(barcode: string): Promise<{
+    found: boolean;
+    contentId?: string;
+    salePrice?: number;
+    quantity?: number;
+  }> {
+    const resp = await this.fetchApprovedPage(0, 10, { barcode });
+    const item = (resp.content ?? []).find(
+      (p) => p.barcode === barcode || String(p.contentId) === barcode,
+    );
+    if (!item) return { found: false };
+    return {
+      found: true,
+      contentId: item.contentId ? String(item.contentId) : undefined,
+      salePrice: item.salePrice != null ? Number(item.salePrice) : undefined,
+      quantity: item.quantity != null ? Number(item.quantity) : undefined,
+    };
   }
 
   async testConnection(): Promise<ConnectionTestResult> {

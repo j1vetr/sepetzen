@@ -100,8 +100,10 @@ type QueueItem = {
 };
 
 const PUSH_STATUS_BADGE: Record<string, { label: string; tone: 'blue' | 'emerald' | 'amber' | 'red' | 'neutral' }> = {
-  sent: { label: 'Gönderildi', tone: 'blue' },
-  approved: { label: 'Kabul edildi', tone: 'emerald' },
+  sent: { label: 'İletiliyor', tone: 'blue' },
+  // "approved": Trendyol batch API'si isteği kabul etti; ürünün Trendyol kataloğunda
+  // görünmesi için Trendyol'un ayrı içerik incelemesinden geçmesi gerekir.
+  approved: { label: 'API Kabul', tone: 'emerald' },
   rejected: { label: 'Reddedildi', tone: 'red' },
   error: { label: 'Hata', tone: 'red' },
 };
@@ -310,6 +312,35 @@ export function ProductLinksPanel({
       toast({ title: 'Gönderilemedi', description: err.message, variant: 'destructive' }),
   });
 
+  const [checkingBarcode, setCheckingBarcode] = useState<string | null>(null);
+
+  const checkBarcodeMutation = useMutation({
+    mutationFn: async (barcode: string) => {
+      setCheckingBarcode(barcode);
+      const res = await apiRequest('GET', `/api/admin/marketplaces/${marketplaceId}/check-barcode?barcode=${encodeURIComponent(barcode)}`);
+      return await res.json() as { found: boolean; contentId?: string; salePrice?: number; quantity?: number };
+    },
+    onSuccess: (data, barcode) => {
+      if (data.found) {
+        toast({
+          title: 'Trendyol\'da bulundu',
+          description: `Barkod "${barcode}" onaylı katalogda mevcut. Fiyat: ${data.salePrice ? data.salePrice.toLocaleString('tr-TR') + ' TL' : '?'}, Stok: ${data.quantity ?? '?'}`,
+        });
+      } else {
+        toast({
+          title: 'Trendyol\'da bulunamadı',
+          description: `Barkod "${barcode}" onaylı katalogda görünmüyor. Ürün hâlâ inceleme aşamasında veya içerik moderasyonunda reddedilmiş olabilir.`,
+          variant: 'destructive',
+        });
+      }
+      setCheckingBarcode(null);
+    },
+    onError: (err: Error) => {
+      toast({ title: 'Sorgu başarısız', description: err.message, variant: 'destructive' });
+      setCheckingBarcode(null);
+    },
+  });
+
   const links = linksQuery.data ?? [];
   const linkedProductIds = new Set(links.map((l) => l.productId).filter(Boolean));
   const products = productsQuery.data ?? [];
@@ -464,6 +495,19 @@ export function ProductLinksPanel({
                         ) : (
                           <StatusBadge tone={badge.tone}>{badge.label}</StatusBadge>
                         ))}
+                      {link.syncDirection === 'push' && link.pushStatus === 'approved' && link.barcode && (
+                        <GhostButton
+                          onClick={() => checkBarcodeMutation.mutate(link.barcode!)}
+                          disabled={checkingBarcode === link.barcode}
+                          title="Barkodu Trendyol onaylı katalogda ara — API Kabul durumundaki ürün gerçekten yayında mı kontrol et"
+                          data-testid={`button-check-trendyol-${link.id}`}
+                        >
+                          {checkingBarcode === link.barcode
+                            ? <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                            : <ShoppingCart className="w-3.5 h-3.5" />}
+                          TY&apos;da Sorgula
+                        </GhostButton>
+                      )}
                       {link.pushStatus === 'rejected' && link.productId && (
                         <GhostButton
                           onClick={() => {
@@ -719,6 +763,9 @@ function PushWizardDialog({
   const [vatRate, setVatRate] = useState('20');
   const [listPrice, setListPrice] = useState('');
   const [dimensionalWeight, setDimensionalWeight] = useState('1');
+  // "API Kabul" durumundaki mevcut bağlantı yeniden gönderilirken zorla CREATE
+  const isResubmit = !!initialLink?.pushStatus && initialLink.pushStatus !== 'rejected';
+  const [forceCreate, setForceCreate] = useState(false);
   const [ruleType, setRuleType] = useState<'none' | 'percent' | 'fixed'>(
     initialLink?.priceRule?.type ?? defaultRule?.type ?? 'none',
   );
@@ -828,13 +875,16 @@ function PushWizardDialog({
         ...(listPrice ? { listPrice: Number(listPrice) } : {}),
         ...(wizardPriceRule ? { priceRule: wizardPriceRule } : {}),
         dimensionalWeight: Number(dimensionalWeight) || 1,
+        forceCreate,
       });
       return await res.json();
     },
     onSuccess: () => {
       toast({
         title: 'Ürün gönderildi',
-        description: 'Trendyol batch işleme aldı; sonuç birkaç dakika içinde bağlantı listesinde görünür.',
+        description: forceCreate
+          ? 'Trendyol\'a yeni ürün (CREATE) olarak iletildi. Sonuç birkaç dakika içinde bağlantı listesinde görünür.'
+          : 'Trendyol batch işleme aldı; sonuç birkaç dakika içinde bağlantı listesinde görünür.',
       });
       onDone();
     },
@@ -878,6 +928,25 @@ function PushWizardDialog({
       }
     >
       <div className="space-y-4" data-testid="dialog-push-wizard">
+        {/* Yeniden gönderim uyarısı — "API Kabul" durumundaki ürünler için */}
+        {isResubmit && (
+          <div className="rounded-md border border-amber-200 bg-amber-50 p-3 text-[12px] text-amber-800 space-y-2">
+            <p>
+              Bu ürün daha önce Trendyol&apos;a gönderildi ve <strong>API Kabul</strong> durumunda.
+              Varsayılan olarak güncelleme (UPDATE) gönderilir. Ürün Trendyol satıcı panelinizde
+              görünmüyorsa <strong>Yeniden Oluştur</strong> seçeneğini işaretleyip yeni ürün olarak gönderin.
+            </p>
+            <label className="flex items-center gap-2 cursor-pointer select-none">
+              <input
+                type="checkbox"
+                checked={forceCreate}
+                onChange={(e) => setForceCreate(e.target.checked)}
+                className="w-3.5 h-3.5 accent-amber-600"
+              />
+              <span className="font-medium">Yeniden Oluştur — Trendyol&apos;a yeni ürün (CREATE) olarak gönder</span>
+            </label>
+          </div>
+        )}
         {/* Medya önizleme - video URL'leri Trendyol'a gönderilmez */}
         {(product.images ?? []).length > 0 && (
           <MediaPreviewStrip images={product.images ?? []} />

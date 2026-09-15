@@ -706,6 +706,8 @@ export function registerMarketplaceRoutes(
       dimensionalWeight: z.number().min(0).default(1),
       deliveryDuration: z.number().int().min(1).max(30).optional(),
       cargoCompanyId: z.number().int().optional(),
+      /** true: mevcut kayıt bulunsa bile Trendyol'a CREATE (yeni ürün) gönderilir. */
+      forceCreate: z.boolean().default(false),
     });
     const parsed = schema.safeParse(req.body ?? {});
     if (!parsed.success) {
@@ -817,7 +819,7 @@ export function registerMarketplaceRoutes(
       });
     }
 
-    const isUpdate = !!existing?.pushStatus && existing.pushStatus !== "rejected";
+    const isUpdate = !d.forceCreate && !!existing?.pushStatus && existing.pushStatus !== "rejected";
     await storage.enqueuePushItem({
       marketplaceId: ctx.mp.id,
       productId: d.productId,
@@ -832,6 +834,30 @@ export function registerMarketplaceRoutes(
     void processPushQueue(ctx.mp.id).catch(() => {});
     res.status(202).json({ ok: true, link });
   });
+
+  // Barkod bazlı Trendyol onaylı katalog sorgusu — gerçek durumu gösterir.
+  app.get(
+    "/api/admin/marketplaces/:id/check-barcode",
+    requireAdmin,
+    async (req, res) => {
+      const barcode = String(req.query.barcode ?? "").trim();
+      if (!barcode) return res.status(400).json({ message: "barcode parametresi zorunlu" });
+      const mp = await storage.getMarketplace(req.params.id);
+      if (!mp) return res.status(404).json({ message: "Pazaryeri bulunamadı" });
+      try {
+        const adapter = adapterFromMarketplace(mp) as unknown as {
+          findApprovedByBarcode?: (b: string) => Promise<{ found: boolean; contentId?: string; salePrice?: number; quantity?: number }>;
+        };
+        if (!adapter.findApprovedByBarcode) {
+          return res.status(400).json({ message: "Bu pazaryeri barkod sorgusu desteklemiyor" });
+        }
+        const result = await adapter.findApprovedByBarcode(barcode);
+        res.json(result);
+      } catch (err) {
+        res.status(502).json({ message: err instanceof Error ? err.message : String(err) });
+      }
+    },
+  );
 
   // Push kuyruğu görünümü
   app.get("/api/admin/marketplaces/:id/push-queue", requireAdmin, async (req, res) => {
