@@ -42,6 +42,7 @@ interface OrderDetail {
   cancelledAt?: string | null;
   total: string;
   shippingCost: string;
+  shippingPayment?: string | null;
   trackingNumber?: string;
   trackingUrl?: string;
   shippingCarrier?: string;
@@ -763,7 +764,9 @@ export default function OrderTracking() {
                     <div className="flex justify-between text-[12px] text-white/65">
                       <span>Kargo</span>
                       <span>
-                        {parseFloat(order.shippingCost) === 0
+                        {order.shippingPayment === 'receiver'
+                          ? 'Alıcı Ödemeli'
+                          : parseFloat(order.shippingCost) === 0
                           ? 'Ücretsiz'
                           : `${order.shippingCost}₺`}
                       </span>

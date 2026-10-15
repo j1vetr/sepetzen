@@ -218,6 +218,7 @@ export default function Checkout() {
     country: 'Türkiye',
   });
   const [useSeparateBillingAddress, setUseSeparateBillingAddress] = useState(false);
+  const [receiverPaysShipping, setReceiverPaysShipping] = useState(false);
   const [billingAddress, setBillingAddress] = useState({
     address: '',
     city: '',
@@ -336,7 +337,8 @@ export default function Checkout() {
   const baseShippingCost = isDomestic
     ? (subtotal >= freeShippingThreshold ? 0 : rawRate)
     : rawRate;
-  const shippingCost = appliedCoupon?.freeShipping ? 0 : baseShippingCost;
+  const receiverPays = receiverPaysShipping && isDomestic;
+  const shippingCost = appliedCoupon?.freeShipping || receiverPays ? 0 : baseShippingCost;
   const remainingForFreeShipping = isDomestic && !appliedCoupon?.freeShipping ? (freeShippingThreshold - subtotal) : 0;
   const shippingProgress = isDomestic ? Math.min((subtotal / freeShippingThreshold) * 100, 100) : 100;
   
@@ -551,6 +553,7 @@ export default function Checkout() {
             ...invoicePayload(invoiceInfo),
           },
           couponCode: appliedCoupon?.code || null,
+          shippingPayment: receiverPays ? 'receiver' : 'sender',
           createAccount: !user && createAccount,
           accountPassword: !user && createAccount ? accountPassword : null,
         }),
@@ -624,6 +627,7 @@ export default function Checkout() {
             ...invoicePayload(invoiceInfo),
           },
           couponCode: appliedCoupon?.code || null,
+          shippingPayment: receiverPays ? 'receiver' : 'sender',
           createAccount: !user && createAccount,
           accountPassword: !user && createAccount ? accountPassword : null,
           provider,
@@ -793,7 +797,7 @@ export default function Checkout() {
       <div className="flex justify-between gap-3">
         <span className="text-white/50">Kargo</span>
         <span className="text-white tabular-nums" data-testid="text-shipping">
-          {shippingCost === 0 ? 'ÜCRETSİZ' : `${shippingCost.toLocaleString('tr-TR')} ₺`}
+          {receiverPays ? 'Alıcı Ödemeli' : shippingCost === 0 ? 'ÜCRETSİZ' : `${shippingCost.toLocaleString('tr-TR')} ₺`}
         </span>
       </div>
       {bankTransferDiscount > 0 && (
@@ -1350,6 +1354,25 @@ export default function Checkout() {
                             Yeni Adres Ekle
                           </button>
                         </div>
+                      )}
+
+                      {isDomestic && (
+                        <label
+                          className={`flex items-start gap-3 cursor-pointer p-3 rounded-lg border transition-colors ${receiverPaysShipping ? 'border-white/40 bg-white/[0.04]' : 'border-white/10 bg-[#0F0F0F] hover:bg-white/[0.02]'}`}
+                          data-testid="label-receiver-pays"
+                        >
+                          <input
+                            type="checkbox"
+                            checked={receiverPaysShipping}
+                            onChange={(e) => setReceiverPaysShipping(e.target.checked)}
+                            className="mt-0.5"
+                            data-testid="checkbox-receiver-pays"
+                          />
+                          <span className="text-[13px] text-white/80">
+                            <strong className="text-white">Alıcı Ödemeli</strong>
+                            <span className="block text-[12px] text-white/50">Kargo ücretini teslimatta kargo firmasına ödersiniz.</span>
+                          </span>
+                        </label>
                       )}
 
                       {(!user || savedAddresses.length === 0 || showNewAddressForm) && (
@@ -2032,7 +2055,7 @@ export default function Checkout() {
                     </div>
                   </div>
                 )}
-                {shippingCost === 0 && isDomestic && (
+                {shippingCost === 0 && isDomestic && !receiverPays && (
                   <div className="mb-4 p-3 bg-white/5 border border-white/12 rounded-lg flex items-center gap-2">
                     <Truck className="w-4 h-4 text-white/70 shrink-0" />
                     <p className="text-[12px] text-white/70 font-medium">Ücretsiz kargo kazandınız</p>

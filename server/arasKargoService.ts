@@ -130,6 +130,8 @@ export async function createShipment(params: {
   city: string;
   district: string;
   isWorldwide?: boolean;
+  /** Alıcı ödemeli gönderi (PayorTypeCode 2) */
+  receiverPays?: boolean;
 }): Promise<SetOrderResult> {
   const creds = await getArasCredentials();
 
@@ -165,7 +167,7 @@ export async function createShipment(params: {
           <ReceiverTownName>${escapeXml(districtName)}</ReceiverTownName>
           <VolumetricWeight>${escapeXml(desi)}</VolumetricWeight>
           <PieceCount>1</PieceCount>
-          <PayorTypeCode>1</PayorTypeCode>
+          <PayorTypeCode>${params.receiverPays ? '2' : '1'}</PayorTypeCode>
           <IsWorldWide>${params.isWorldwide ? '1' : '0'}</IsWorldWide>
           <PieceDetails>
             <PieceDetail>

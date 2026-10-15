@@ -137,6 +137,7 @@ interface Order {
   } | null;
   subtotal: string;
   shippingCost: string;
+  shippingPayment?: string | null;
   discountAmount: string;
   couponCode?: string;
   total: string;
@@ -1228,7 +1229,7 @@ export default function AdminOrderDetail() {
                 <div className="flex justify-between text-[12px] text-neutral-600">
                   <span>Kargo</span>
                   <span className="tabular-nums">
-                    ₺{formatCurrency(order.shippingCost || '0')}
+                    {order.shippingPayment === 'receiver' ? 'Alıcı Ödemeli' : `₺${formatCurrency(order.shippingCost || '0')}`}
                   </span>
                 </div>
                 {order.discountAmount && parseFloat(order.discountAmount) > 0 && (

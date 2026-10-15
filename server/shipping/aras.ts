@@ -66,6 +66,7 @@ export const arasProvider: CargoProvider = {
       city: input.recipient.city,
       district: input.recipient.district,
       isWorldwide: input.isWorldwide,
+      receiverPays: input.receiverPays,
     });
 
     if (!result.success) {

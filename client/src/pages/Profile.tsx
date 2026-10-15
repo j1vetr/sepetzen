@@ -56,6 +56,7 @@ interface Order {
   };
   subtotal: string;
   shippingCost: string;
+  shippingPayment?: string | null;
   total: string;
   status: string;
   paymentMethod: string;
@@ -1370,7 +1371,7 @@ export default function Profile() {
                     </div>
                     <div className="flex justify-between text-white/55">
                       <span>Kargo</span>
-                      <span>{parseFloat(selectedOrder.shippingCost) === 0 ? 'Ücretsiz' : `${selectedOrder.shippingCost}₺`}</span>
+                      <span>{selectedOrder.shippingPayment === 'receiver' ? 'Alıcı Ödemeli' : parseFloat(selectedOrder.shippingCost) === 0 ? 'Ücretsiz' : `${selectedOrder.shippingCost}₺`}</span>
                     </div>
                     <div className="flex justify-between text-white font-bold text-lg pt-2 border-t border-white/12">
                       <span>Toplam</span>

@@ -318,6 +318,7 @@ export const orders = pgTable("orders", {
   billingAddress: jsonb("billing_address").$type<BillingAddress>(),
   subtotal: decimal("subtotal", { precision: 10, scale: 2 }).notNull(),
   shippingCost: decimal("shipping_cost", { precision: 10, scale: 2 }).default("0").notNull(),
+  shippingPayment: text("shipping_payment").default("sender").notNull(), // 'sender' | 'receiver' (alıcı ödemeli)
   discountAmount: decimal("discount_amount", { precision: 10, scale: 2 }).default("0"),
   couponCode: text("coupon_code"),
   total: decimal("total", { precision: 10, scale: 2 }).notNull(),
@@ -790,6 +791,7 @@ export const pendingPayments = pgTable("pending_payments", {
   }>>().notNull(),
   subtotal: decimal("subtotal", { precision: 10, scale: 2 }).notNull(),
   shippingCost: decimal("shipping_cost", { precision: 10, scale: 2 }).notNull(),
+  shippingPayment: text("shipping_payment").default("sender").notNull(),
   discountAmount: decimal("discount_amount", { precision: 10, scale: 2 }).default("0"),
   couponCode: text("coupon_code"),
   total: decimal("total", { precision: 10, scale: 2 }).notNull(),

@@ -35,6 +35,8 @@ export interface CreateShipmentInput {
   totalAmount?: string;
   currency?: string;
   isWorldwide: boolean;
+  /** Alıcı ödemeli: kargo bedelini alıcı teslimatta öder. */
+  receiverPays?: boolean;
 }
 
 /** Sipariş üzerinde saklanan, sağlayıcıya tekrar erişmek için gereken referanslar. */

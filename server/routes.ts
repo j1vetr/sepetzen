@@ -392,6 +392,11 @@ async function resolveShippingCosts(): Promise<ShippingCosts> {
   return { domestic, international, countryMap };
 }
 
+/** Alıcı ödemeli seçimi yalnızca yurt içinde geçerlidir; ücret siparişe yansımaz. */
+function isReceiverPays(body: any, country: string): boolean {
+  return body?.shippingPayment === 'receiver' && country === 'Türkiye';
+}
+
 /** Belirli bir ülke için kargo ücretini hesaplar (threshold kontrolü dahil değil). */
 function shippingCostForCountry(country: string, costs: ShippingCosts): number {
   if (country === 'Türkiye') return costs.domestic;
@@ -2443,6 +2448,7 @@ KURALLAR:
         cancelledAt: order.cancelledAt,
         total: order.total,
         shippingCost: order.shippingCost,
+        shippingPayment: order.shippingPayment,
         trackingNumber: order.trackingNumber,
         trackingUrl: order.trackingUrl,
         shippingCarrier: order.shippingCarrier,
@@ -4137,7 +4143,8 @@ Bu ürün için 4 bölümlü HTML açıklama üret. Teknik Özellikler bölümü
         ? (serverSubtotal >= FREE_SHIPPING_THRESHOLD ? 0 : baseRate)
         : baseRate;
 
-      if (couponFreeShipping) {
+      const receiverPays = isReceiverPays(req.body, selectedCountry);
+      if (couponFreeShipping || receiverPays) {
         shippingCost = 0;
       }
 
@@ -4216,6 +4223,7 @@ Bu ürün için 4 bölümlü HTML açıklama üret. Teknik Özellikler bölümü
         cartItems: cartItemsForStorage,
         subtotal: serverSubtotal.toFixed(2),
         shippingCost: shippingCost.toFixed(2),
+        shippingPayment: receiverPays ? 'receiver' : 'sender',
         discountAmount: discountAmount.toFixed(2),
         couponCode: validatedCoupon?.code || null,
         total: serverTotal.toFixed(2),
@@ -4500,7 +4508,8 @@ Bu ürün için 4 bölümlü HTML açıklama üret. Teknik Özellikler bölümü
       let shippingCost = isDomestic
         ? (serverSubtotal >= FREE_SHIPPING_THRESHOLD ? 0 : baseRate)
         : baseRate;
-      if (couponFreeShipping) shippingCost = 0;
+      const receiverPays = isReceiverPays(req.body, selectedCountry);
+      if (couponFreeShipping || receiverPays) shippingCost = 0;
 
       // Kargo dahil kupon: indirim tabanı subtotal + kargo olur (kart akışı ile aynı mantık)
       if (validatedCoupon?.appliesToShipping && shippingCost > 0) {
@@ -4549,6 +4558,7 @@ Bu ürün için 4 bölümlü HTML açıklama üret. Teknik Özellikler bölümü
         billingAddress,
         subtotal: serverSubtotal.toFixed(2),
         shippingCost: shippingCost.toFixed(2),
+        shippingPayment: receiverPays ? 'receiver' : 'sender',
         discountAmount: totalDiscount.toFixed(2),
         couponCode: validatedCoupon?.code || null,
         total: serverTotal.toFixed(2),
@@ -4659,6 +4669,7 @@ Bu ürün için 4 bölümlü HTML açıklama üret. Teknik Özellikler bölümü
       billingAddress: pendingPayment.billingAddress,
       subtotal: pendingPayment.subtotal,
       shippingCost: pendingPayment.shippingCost,
+      shippingPayment: pendingPayment.shippingPayment,
       discountAmount: pendingPayment.discountAmount || '0',
       couponCode: pendingPayment.couponCode,
       total: pendingPayment.total,
@@ -5732,7 +5743,8 @@ Bu ürün için 4 bölümlü HTML açıklama üret. Teknik Özellikler bölümü
       const orderCountry = req.body.shippingAddress?.country || 'Türkiye';
       const isDomestic = orderCountry === 'Türkiye';
       const baseRate = shippingCostForCountry(orderCountry, shippingCosts);
-      const shippingCost = isDomestic
+      const receiverPays = isReceiverPays(req.body, orderCountry);
+      const shippingCost = receiverPays ? 0 : isDomestic
         ? (serverSubtotal >= FREE_SHIPPING_THRESHOLD ? 0 : baseRate)
         : baseRate;
       const serverTotal = Math.max(0, serverSubtotal - discountAmount + shippingCost);
@@ -5742,6 +5754,7 @@ Bu ürün için 4 bölümlü HTML açıklama üret. Teknik Özellikler bölümü
         orderNumber,
         subtotal: serverSubtotal.toFixed(2),
         shippingCost: shippingCost.toFixed(2),
+        shippingPayment: receiverPays ? 'receiver' : 'sender',
         couponCode: validatedCoupon?.code || null,
         discountAmount: discountAmount.toFixed(2),
         total: serverTotal.toFixed(2),
@@ -7007,6 +7020,7 @@ Bu ürün için 4 bölümlü HTML açıklama üret. Teknik Özellikler bölümü
         city: addr?.city || '',
         district: addr?.district || addr?.city || '',
         isWorldwide: !!isWorldwide,
+        receiverPays: order.shippingPayment === 'receiver',
       });
 
       if (result.success) {
@@ -7795,6 +7809,7 @@ window.addEventListener('load', function() {
         totalAmount: order.total,
         currency: 'TRY',
         isWorldwide: !isTurkey,
+        receiverPays: order.shippingPayment === 'receiver',
       });
 
       if (!result.success) {
