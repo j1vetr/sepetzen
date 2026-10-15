@@ -266,8 +266,6 @@ function EmailBrandingSection() {
   });
 
   const [brandName,    setBrandName]    = useState('');
-  const [tagline,      setTagline]      = useState('');
-  const [primaryColor, setPrimaryColor] = useState('#2D5A27');
   const [logoUrl,      setLogoUrl]      = useState('');
   const [logoWidth,    setLogoWidth]    = useState('160');
   const [siteUrl,      setSiteUrl]      = useState('');
@@ -283,8 +281,6 @@ function EmailBrandingSection() {
   useEffect(() => {
     if (!adminSettings) return;
     if (adminSettings.email_brand_name    !== undefined) setBrandName(adminSettings.email_brand_name);
-    if (adminSettings.email_brand_tagline !== undefined) setTagline(adminSettings.email_brand_tagline);
-    if (adminSettings.email_primary_color !== undefined) setPrimaryColor(adminSettings.email_primary_color);
     if (adminSettings.email_logo_url      !== undefined) setLogoUrl(adminSettings.email_logo_url);
     if (adminSettings.email_logo_width    !== undefined) setLogoWidth(adminSettings.email_logo_width || '160');
     if (adminSettings.email_site_url      !== undefined) setSiteUrl(adminSettings.email_site_url);
@@ -322,8 +318,6 @@ function EmailBrandingSection() {
         credentials: 'include',
         body: JSON.stringify({
           email_brand_name:    brandName,
-          email_brand_tagline: tagline,
-          email_primary_color: primaryColor,
           email_logo_url:      logoUrl,
           email_logo_width:    logoWidth,
           email_site_url:      siteUrl,
@@ -375,18 +369,6 @@ function EmailBrandingSection() {
             />
             <p className="text-xs text-neutral-400 mt-1">E-posta başlığında ve altbilgide büyük harf görünür</p>
           </div>
-          <div>
-            <label className="block text-sm font-medium text-neutral-700 mb-1.5">Kısa Tanım (Tagline)</label>
-            <input
-              type="text"
-              value={tagline}
-              onChange={e => setTagline(e.target.value)}
-              placeholder="Kamp, Outdoor & Bıçak"
-              data-testid="input-email-tagline"
-              className="w-full px-3 py-2.5 bg-neutral-50 border border-neutral-200 rounded-lg text-sm text-neutral-900 focus:outline-none focus:border-neutral-900"
-            />
-            <p className="text-xs text-neutral-400 mt-1">Marka adının hemen altında küçük harf çıkar</p>
-          </div>
         </div>
 
         {/* Logo */}
@@ -417,7 +399,7 @@ function EmailBrandingSection() {
               />
             )}
           </div>
-          <p className="text-xs text-neutral-400 mt-1">PNG, WebP, GIF desteklenir. Boş bırakılırsa /email-logo.png kullanılır. Şeffaf zemin önerilir.</p>
+          <p className="text-xs text-neutral-400 mt-1">PNG, WebP, GIF desteklenir. Boş bırakılırsa Sepetzen logosu kullanılır. Şeffaf zemin önerilir.</p>
         </div>
 
         {/* Logo genişliği */}
@@ -445,28 +427,6 @@ function EmailBrandingSection() {
             </div>
           )}
           <p className="text-xs text-neutral-400 mt-1">Varsayılan: 160 px. WebP veya geniş logolar için artırın.</p>
-        </div>
-
-        {/* Ana renk */}
-        <div>
-          <label className="block text-sm font-medium text-neutral-700 mb-1.5">Ana Renk (Düğme ve Vurgu)</label>
-          <div className="flex items-center gap-3">
-            <input
-              type="color"
-              value={primaryColor}
-              onChange={e => setPrimaryColor(e.target.value)}
-              className="w-10 h-10 rounded cursor-pointer border border-neutral-200 bg-neutral-50 p-0.5"
-              data-testid="input-email-primary-color"
-            />
-            <input
-              type="text"
-              value={primaryColor}
-              onChange={e => setPrimaryColor(e.target.value)}
-              placeholder="#2D5A27"
-              className="w-32 px-3 py-2.5 bg-neutral-50 border border-neutral-200 rounded-lg text-sm text-neutral-900 font-mono focus:outline-none focus:border-neutral-900"
-            />
-            <span className="text-xs text-neutral-400">Sipariş takibi butonu, bağlantı renkleri</span>
-          </div>
         </div>
 
         {/* Site URL + İletişim e-postası */}
@@ -2800,7 +2760,7 @@ export default function SettingsPanel({ initialSection = 'genel', contentOnly = 
               type="text"
               value={settings.site_url}
               onChange={(e) => setSettings(s => ({ ...s, site_url: e.target.value }))}
-              placeholder="https://polenstone.com"
+              placeholder="https://sepetzen.com"
               className="w-full px-4 py-3 bg-neutral-50 border border-neutral-200 rounded-lg text-neutral-900 focus:border-white transition-colors"
               data-testid="input-site-url"
             />
@@ -4434,7 +4394,7 @@ export default function SettingsPanel({ initialSection = 'genel', contentOnly = 
               type="text"
               value={settings.site_name}
               onChange={(e) => setSettings(s => ({ ...s, site_name: e.target.value }))}
-              placeholder="Polen Stone"
+              placeholder="Sepetzen"
               className="w-full px-4 py-3 bg-neutral-50 border border-neutral-200 rounded-lg text-neutral-900"
               data-testid="input-site-name"
             />
