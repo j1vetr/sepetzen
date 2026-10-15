@@ -5,7 +5,7 @@ import crypto from "crypto";
 import {
   encryptCredentials,
   decryptCredentials,
-} from "./marketplaces/crypto";
+} from "./crypto";
 import { storage } from "./storage";
 import type { AdminUser } from "@shared/schema";
 

@@ -2,7 +2,6 @@ import { useState, useEffect } from 'react';
 import { useLocation } from 'wouter';
 
 import OrdersTab from './admin/OrdersTab';
-import TrendyolCenter, { type TrendyolCenterTab } from './admin/TrendyolCenter';
 import AdminLayout from './admin/_layout/AdminLayout';
 
 import DashboardTab from './admin/DashboardTab';
@@ -35,18 +34,9 @@ import {
   TAB_DESCRIPTIONS,
   getStatusLabel,
 } from './admin/_shared/sidebarConfig';
-import { useQueries, useQuery } from '@tanstack/react-query';
+import { useQuery } from '@tanstack/react-query';
 import { useAdminDashboardData } from './admin/_shared/useAdminDashboardData';
 import { usePendingReviewsCount } from '@/hooks/useReviews';
-
-type DashboardMarketplace = {
-  id: string;
-  isActive: boolean;
-};
-
-type MarketplaceSyncRun = {
-  status: string;
-};
 
 export default function AdminDashboard() {
   const [, setLocation] = useLocation();
@@ -54,22 +44,9 @@ export default function AdminDashboard() {
   const [activeTab, setActiveTab] = useState<TabType>(() => {
     const params = new URLSearchParams(window.location.search);
     const tab = params.get('tab');
-    // Eski "Trendyol Siparişleri" bağlantıları artık Trendyol Merkezi'ne yönlenir
-    if (tab === 'marketplaceOrders') return 'marketplaces';
     return tab && VALID_TABS.includes(tab as TabType) ? (tab as TabType) : 'dashboard';
   });
 
-  // Ürünler sayfasından tek tıkla gelen ürün ID'si — Trendyol sihirbazını otomatik açar
-  const [trendyolInitialProductId, setTrendyolInitialProductId] = useState<string | undefined>(() => {
-    const params = new URLSearchParams(window.location.search);
-    return params.get('typroduct') ?? undefined;
-  });
-  const [trendyolInitialTab, setTrendyolInitialTab] = useState<TrendyolCenterTab | undefined>(() => {
-    const initialTab = new URLSearchParams(window.location.search).get('marketplaceTab');
-    return ['overview', 'products', 'orders', 'questions', 'claims', 'queue', 'settings'].includes(initialTab || '')
-      ? initialTab as TrendyolCenterTab
-      : undefined;
-  });
   const [searchQuery, setSearchQuery] = useState('');
   // Arama çubuğu navigasyonu için sekmesine özel initial state'ler
   const [ordersInitialSearch, setOrdersInitialSearch] = useState('');
@@ -139,44 +116,14 @@ export default function AdminDashboard() {
     setActiveTab(tabId);
     const url = new URL(window.location.href);
     url.searchParams.set('tab', tabId);
-    // typroduct parametresini temizle — sekme değişiminde sihirbaz otomatik açılmasın
-    url.searchParams.delete('typroduct');
-    if (tabId !== 'marketplaces') url.searchParams.delete('marketplaceTab');
     window.history.pushState({ tab: tabId }, '', url.toString());
-    if (tabId !== 'marketplaces') setTrendyolInitialProductId(undefined);
     if (tabId === 'orders') setOrdersInitialFilter('all');
-    setTrendyolInitialTab(undefined);
   };
 
   const handleOverdueOrders = () => {
     handleTabChange('orders');
     setOrdersInitialSearch('');
     setOrdersInitialFilter('overdue');
-  };
-
-  const handleTrendyolAction = (productId: string) => {
-    setTrendyolInitialProductId(productId);
-    const url = new URL(window.location.href);
-    url.searchParams.set('tab', 'marketplaces');
-    url.searchParams.set('typroduct', productId);
-    url.searchParams.set('marketplaceTab', 'products');
-    window.history.pushState({ tab: 'marketplaces' }, '', url.toString());
-    setActiveTab('marketplaces');
-  };
-
-  const handleMarketplaceOrders = () => {
-    handleMarketplaceTab('orders');
-  };
-
-  const handleMarketplaceTab = (tab: TrendyolCenterTab) => {
-    setTrendyolInitialProductId(undefined);
-    setTrendyolInitialTab(tab);
-    const url = new URL(window.location.href);
-    url.searchParams.set('tab', 'marketplaces');
-    url.searchParams.delete('typroduct');
-    url.searchParams.set('marketplaceTab', tab);
-    window.history.pushState({ tab: 'marketplaces', marketplaceTab: tab }, '', url.toString());
-    setActiveTab('marketplaces');
   };
 
   // Arama çubuğundan gelen navigasyon - her sekme türü için özel hedef davranışı
@@ -211,20 +158,8 @@ export default function AdminDashboard() {
     const onPopState = (e: PopStateEvent) => {
       const params = new URLSearchParams(window.location.search);
       const tab = params.get('tab');
-      // Eski "Trendyol Siparişleri" bağlantıları artık Trendyol Merkezi'ne yönlenir
-      if (tab === 'marketplaceOrders') {
-        setActiveTab('marketplaces');
-      } else if (tab && VALID_TABS.includes(tab as TabType)) {
+      if (tab && VALID_TABS.includes(tab as TabType)) {
         setActiveTab(tab as TabType);
-      }
-      const marketplaceTab = params.get('marketplaceTab');
-      if (tab === 'marketplaces' || tab === 'marketplaceOrders') {
-        setTrendyolInitialProductId(params.get('typroduct') ?? undefined);
-        setTrendyolInitialTab(
-          marketplaceTab && ['overview', 'products', 'orders', 'questions', 'claims', 'queue', 'settings'].includes(marketplaceTab)
-            ? marketplaceTab as TrendyolCenterTab
-            : 'overview',
-        );
       }
     };
     window.addEventListener('popstate', onPopState);
@@ -236,57 +171,6 @@ export default function AdminDashboard() {
     isLoading: pendingReviewsLoading,
     isError: pendingReviewsError,
   } = usePendingReviewsCount(!!adminUser);
-
-  const {
-    data: pendingMpData,
-    isLoading: pendingMarketplaceOrdersLoading,
-    isError: pendingMarketplaceOrdersError,
-  } = useQuery<{ count: number }>({
-    queryKey: ['/api/admin/marketplace-orders/pending-count'],
-    enabled: !!adminUser,
-    refetchInterval: 5 * 60_000,
-    staleTime: 2 * 60_000,
-  });
-  const pendingMarketplaceOrdersCount = pendingMpData?.count ?? 0;
-
-  const {
-    data: marketplacesData,
-    isLoading: marketplacesLoading,
-    isError: marketplacesError,
-  } = useQuery<DashboardMarketplace[]>({
-    queryKey: ['/api/admin/marketplaces'],
-    queryFn: async () => {
-      const response = await fetch('/api/admin/marketplaces', { credentials: 'include' });
-      if (!response.ok) throw new Error('Pazaryerleri alınamadı');
-      return response.json();
-    },
-    enabled: !!adminUser && activeTab === 'dashboard',
-    staleTime: 30_000,
-    refetchInterval: 60_000,
-  });
-  const activeMarketplaces = (marketplacesData ?? []).filter((marketplace) => marketplace.isActive);
-  const marketplaceSyncQueries = useQueries({
-    queries: activeMarketplaces.map((marketplace) => ({
-      queryKey: ['/api/admin/marketplaces', marketplace.id, 'sync-runs', 'latest'],
-      queryFn: async (): Promise<MarketplaceSyncRun[]> => {
-        const response = await fetch(`/api/admin/marketplaces/${marketplace.id}/sync-runs?limit=1`, {
-          credentials: 'include',
-        });
-        if (!response.ok) throw new Error('Senkron geçmişi alınamadı');
-        return response.json();
-      },
-      enabled: !!adminUser && activeTab === 'dashboard',
-      staleTime: 30_000,
-      refetchInterval: 60_000,
-    })),
-  });
-  const marketplaceSyncFailureCount = marketplaceSyncQueries.filter(
-    (query) => query.data?.[0]?.status === 'failed',
-  ).length;
-  const marketplaceSyncLoading =
-    marketplacesLoading || marketplaceSyncQueries.some((query) => query.isLoading);
-  const marketplaceSyncError =
-    marketplacesError || marketplaceSyncQueries.some((query) => query.isError);
 
   const {
     data: pendingReturnsData,
@@ -321,11 +205,9 @@ export default function AdminDashboard() {
         activeTab={activeTab}
         onTabChange={handleTabChange}
         onNavigate={handleSearchNavigate}
-        onMarketplaceNavigate={handleMarketplaceTab}
         onLogout={() => logoutMutation.mutate()}
         pendingOrdersCount={pendingOrdersCount}
         pendingReviewsCount={pendingReviewsCount}
-        pendingMarketplaceOrdersCount={pendingMarketplaceOrdersCount}
         pendingReturnsCount={pendingReturnsCount}
         pageTitle={pageTitle}
         pageDescription={TAB_DESCRIPTIONS[activeTab]}
@@ -339,10 +221,7 @@ export default function AdminDashboard() {
             getStatusLabel={getStatusLabel}
             onNavigate={handleTabChange}
             onOverdueOrders={handleOverdueOrders}
-            onMarketplaceOrders={handleMarketplaceOrders}
-            onMarketplaceSyncIssues={() => handleMarketplaceTab('queue')}
             pendingReviewsCount={pendingReviewsCount}
-            pendingMarketplaceOrdersCount={pendingMarketplaceOrdersCount}
             pendingReturnsCount={pendingReturnsCount}
             statsLoading={statsLoading}
             ordersLoading={ordersLoading}
@@ -351,11 +230,6 @@ export default function AdminDashboard() {
             allVariantsError={allVariantsError}
             pendingReviewsLoading={pendingReviewsLoading}
             pendingReviewsError={pendingReviewsError}
-            pendingMarketplaceOrdersLoading={pendingMarketplaceOrdersLoading}
-            pendingMarketplaceOrdersError={pendingMarketplaceOrdersError}
-            marketplaceSyncFailureCount={marketplaceSyncFailureCount}
-            marketplaceSyncLoading={marketplaceSyncLoading}
-            marketplaceSyncError={marketplaceSyncError}
             pendingReturnsLoading={pendingReturnsLoading}
             pendingReturnsError={pendingReturnsError}
             statsError={statsError}
@@ -377,7 +251,6 @@ export default function AdminDashboard() {
             deleteProductMutation={deleteProductMutation}
             productsLoading={productsLoading}
             productsError={productsError}
-            onTrendyolAction={handleTrendyolAction}
           />
         )}
         {activeTab === 'categories' && (
@@ -411,13 +284,6 @@ export default function AdminDashboard() {
         {activeTab === 'footer' && <FooterTab />}
         {activeTab === 'pages' && <PagesTab initialSelectedId={pagesInitialSelectedId} />}
         {activeTab === 'blog' && <BlogTab initialSelectedId={blogInitialSelectedId} />}
-        {activeTab === 'marketplaces' && (
-          <TrendyolCenter
-            siteCategories={categories.map((c) => ({ id: c.id, name: c.name, slug: c.slug }))}
-            initialProductId={trendyolInitialProductId}
-            initialTab={trendyolInitialTab}
-          />
-        )}
         {activeTab === 'brands' && <BrandsTab />}
         {activeTab === 'coupons' && <CouponsTab />}
         {activeTab === 'reviews' && <ReviewsTab />}

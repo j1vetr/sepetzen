@@ -28,11 +28,9 @@ interface AdminLayoutProps {
   activeTab: TabType;
   onTabChange: (tab: TabType) => void;
   onNavigate: (tab: TabType, options?: { searchQuery?: string; selectedId?: string }) => void;
-  onMarketplaceNavigate: (tab: 'orders' | 'claims') => void;
   onLogout: () => void;
   pendingOrdersCount: number;
   pendingReviewsCount?: number;
-  pendingMarketplaceOrdersCount?: number;
   pendingReturnsCount?: number;
   pageTitle: string;
   pageDescription?: string;
@@ -45,11 +43,9 @@ export default function AdminLayout({
   activeTab,
   onTabChange,
   onNavigate,
-  onMarketplaceNavigate,
   onLogout,
   pendingOrdersCount,
   pendingReviewsCount = 0,
-  pendingMarketplaceOrdersCount = 0,
   pendingReturnsCount = 0,
   pageTitle,
   pageDescription,
@@ -78,8 +74,7 @@ export default function AdminLayout({
   const notifications = [
     { id: 'orders', label: 'Yeni ve bekleyen siparişler', count: pendingOrdersCount, tab: 'orders' as TabType },
     { id: 'reviews', label: 'Onay bekleyen yorumlar', count: pendingReviewsCount, tab: 'reviews' as TabType },
-    { id: 'marketplaces', label: 'Satış kanalı siparişleri', count: pendingMarketplaceOrdersCount, marketplaceTab: 'orders' as const },
-    { id: 'returns', label: 'Bekleyen iade talepleri', count: pendingReturnsCount, marketplaceTab: 'claims' as const },
+    { id: 'returns', label: 'Bekleyen iade talepleri', count: pendingReturnsCount, tab: 'orders' as TabType },
   ].filter((notification) => notification.count > 0);
   const notificationTotal = notifications.reduce((sum, notification) => sum + notification.count, 0);
 
@@ -162,7 +157,6 @@ export default function AdminLayout({
                     let badgeCount = 0;
                     if (item.id === 'orders') badgeCount = pendingOrdersCount;
                     else if (item.id === 'reviews') badgeCount = pendingReviewsCount;
-                    else if (item.id === 'marketplaces') badgeCount = pendingMarketplaceOrdersCount;
                     const showBadge = badgeCount > 0;
                     return (
                       <button
@@ -288,11 +282,7 @@ export default function AdminLayout({
                         key={notification.id}
                         type="button"
                         onClick={() => {
-                          if ('marketplaceTab' in notification && notification.marketplaceTab) {
-                            onMarketplaceNavigate(notification.marketplaceTab);
-                          } else {
-                            onTabChange(notification.tab);
-                          }
+                          onTabChange(notification.tab);
                           setOpenNotifications(false);
                         }}
                         className="w-full flex items-center gap-2.5 rounded-lg px-2.5 py-2 text-left hover:bg-neutral-50 transition-colors"

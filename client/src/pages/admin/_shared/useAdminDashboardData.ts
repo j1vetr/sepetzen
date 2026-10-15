@@ -27,7 +27,6 @@ export function useAdminDashboardData({
     'products',
     'categories',
     'menu',
-    'marketplaces',
   ].includes(activeTab);
   const needsBrands = activeTab === 'products' || activeTab === 'brands';
   const needsOrders = isDashboard;

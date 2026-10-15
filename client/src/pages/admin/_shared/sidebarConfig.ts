@@ -8,7 +8,6 @@ import {
   Grid3x3,
   ShoppingCart,
   Users,
-  Globe,
   Menu as MenuIcon,
   Settings,
   Database,
@@ -37,7 +36,6 @@ export const VALID_TABS: TabType[] = [
   'footer',
   'pages',
   'blog',
-  'marketplaces',
   'coupons',
   'reviews',
 ];
@@ -55,7 +53,6 @@ export const SIDEBAR_CATEGORIES: SidebarCategory[] = [
     items: [
       { id: 'orders', icon: ShoppingCart, label: 'Site Siparişleri' },
       { id: 'inventory', icon: Package, label: 'Stok' },
-      { id: 'marketplaces', icon: Globe, label: 'Satış Kanalları' },
     ],
   },
   {
@@ -106,7 +103,6 @@ export const TAB_DESCRIPTIONS: Record<TabType, string> = {
   brands: 'Marka listesini yönetin, ürün formunda tutarlı marka seçimi yapın.',
   inventory: 'Ürün stoklarını tek ekrandan görüp güncelleyin.',
   orders: 'Sitenizden gelen siparişleri görüntüleyin ve yönetin.',
-  marketplaces: 'Trendyol ve diğer satış kanallarının bağlantı, ürün ve sipariş yönetimi.',
   users: 'Kayıtlı müşterilerinizi görüntüleyin.',
   reviews: 'Müşteri yorumlarını onaylayın veya kaldırın.',
   coupons: 'İndirim kuponları oluşturun ve takip edin.',

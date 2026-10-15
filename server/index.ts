@@ -66,13 +66,13 @@ app.use((req, res, next) => {
 });
 
 (async () => {
-  // Eager olarak pazaryeri şifreleme anahtarını doğrula. Production'da
+  // Eager olarak şifreleme anahtarını doğrula. Production'da
   // MARKETPLACE_ENCRYPTION_KEY yoksa burada throw eder ve sunucu açılmaz.
   try {
-    const { assertEncryptionKeyConfigured } = await import("./marketplaces/crypto");
+    const { assertEncryptionKeyConfigured } = await import("./crypto");
     assertEncryptionKeyConfigured();
   } catch (err) {
-    console.error("[index] FATAL — marketplace encryption key check failed:", err);
+    console.error("[index] FATAL — encryption key check failed:", err);
     throw err;
   }
 
@@ -105,14 +105,6 @@ app.use((req, res, next) => {
     await ensureTable();
   } catch (err) {
     console.error("[index] authRateLimit ensureTable failed:", err);
-  }
-
-  // Pazaryeri senkron zamanlayıcısı (Trendyol delta saatlik / full 03:00)
-  try {
-    const { startScheduler } = await import("./scheduler");
-    startScheduler();
-  } catch (err) {
-    console.error("[index] failed to start marketplace scheduler:", err);
   }
 
   app.use((err: any, _req: Request, res: Response, _next: NextFunction) => {

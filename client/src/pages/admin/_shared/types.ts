@@ -229,7 +229,6 @@ export type TabType =
   | 'footer'
   | 'pages'
   | 'blog'
-  | 'marketplaces'
   | 'coupons'
   | 'reviews'
   | 'brands';

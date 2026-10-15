@@ -16,7 +16,6 @@ import {
   SlidersHorizontal,
   Eye,
   ImageIcon,
-  ExternalLink,
   AlertTriangle,
   Pencil,
   Check,
@@ -56,13 +55,6 @@ interface SyncResult {
   message: string;
 }
 
-type TrendyolStatusEntry = {
-  pushStatus: string | null;
-  linkId: string;
-  externalId: string;
-  syncDirection: string | null;
-};
-
 interface ProductsTabProps {
   products: Product[];
   categories: Category[];
@@ -76,11 +68,9 @@ interface ProductsTabProps {
   deleteProductMutation: { mutate: (id: string) => void };
   productsLoading?: boolean;
   productsError?: unknown;
-  /** Ürün satırındaki Trendyol aksiyonu tıklandığında çağrılır (Trendyol Merkezi'ne yönlendirir) */
-  onTrendyolAction?: (productId: string) => void;
 }
 
-type StatusFilter = 'all' | 'active' | 'inactive' | 'out' | 'needs_attention' | 'trendyol_linked' | 'trendyol_unlinked' | 'trendyol_rejected';
+type StatusFilter = 'all' | 'active' | 'inactive' | 'out' | 'needs_attention';
 type SortKey = 'newest' | 'oldest' | 'name_asc' | 'price_asc' | 'price_desc';
 
 function formatPrice(value: string | number): string {
@@ -108,40 +98,15 @@ function getProductQualityIssues(product: Product, variants: ProductVariant[]): 
   return issues;
 }
 
-/**
- * Trendyol bağlantı rozeti mantığı:
- *   - Pull yönlü link → neutral "Trendyol'da" (çekme yönetimli, gönderim durumu yok)
- *   - Push yönlü link + pushStatus null → rozet yok (henüz gönderim başlatılmamış)
- *   - Push yönlü link + pushStatus → duruma göre renk
- */
-function trendyolBadge(
-  tyStatus: TrendyolStatusEntry | null | undefined,
-): { tone: Parameters<typeof StatusBadge>[0]['tone']; label: string } | null {
-  if (!tyStatus) return null;
-  if (tyStatus.syncDirection === 'pull') {
-    return { tone: 'neutral', label: "Trendyol'da" };
-  }
-  // Push yönlü
-  switch (tyStatus.pushStatus) {
-    case 'approved': return { tone: 'emerald', label: "Trendyol'da" };
-    case 'sent':     return { tone: 'blue',    label: 'Onay bekliyor' };
-    case 'rejected': return { tone: 'red',     label: 'Reddedildi' };
-    case 'error':    return { tone: 'red',     label: 'Hata' };
-    default:         return null; // pushStatus null → push link var ama henüz gönderilmedi
-  }
-}
-
 function ProductStatusChips({
   product,
   stockTotal,
   hasVariants,
-  tyStatus,
   qualityIssues = [],
 }: {
   product: Product;
   stockTotal: number;
   hasVariants: boolean;
-  tyStatus?: TrendyolStatusEntry | null;
   qualityIssues?: string[];
 }) {
   const chips: Array<{ key: string; tone: Parameters<typeof StatusBadge>[0]['tone']; label: string }> = [];
@@ -156,9 +121,6 @@ function ProductStatusChips({
   if (product.isNew) chips.push({ key: 'new', tone: 'blue', label: 'Yeni' });
   if (product.discountBadge) chips.push({ key: 'badge', tone: 'red', label: product.discountBadge });
   if (qualityIssues.length > 0) chips.push({ key: 'quality', tone: 'amber', label: `${qualityIssues.length} eksik` });
-
-  const tyBadge = trendyolBadge(tyStatus);
-  if (tyBadge) chips.push({ key: 'trendyol', tone: tyBadge.tone, label: tyBadge.label });
 
   return (
     <div className="flex flex-wrap gap-1">
@@ -508,19 +470,15 @@ function InlineStatusChips({
   product,
   stockTotal,
   hasVariants,
-  tyStatus,
   qualityIssues = [],
   onPatch,
 }: {
   product: Product;
   stockTotal: number;
   hasVariants: boolean;
-  tyStatus?: TrendyolStatusEntry | null;
   qualityIssues?: string[];
   onPatch: (patch: Record<string, unknown>) => void;
 }) {
-  const tyBadge = trendyolBadge(tyStatus);
-
   return (
     <div className="flex flex-wrap gap-1">
       {/* Aktif/Pasif/Stokta yok — toggle */}
@@ -568,9 +526,6 @@ function InlineStatusChips({
       {qualityIssues.length > 0 && (
         <StatusBadge tone="amber">{qualityIssues.length} eksik</StatusBadge>
       )}
-
-      {/* Trendyol — sadece göster */}
-      {tyBadge && <StatusBadge tone={tyBadge.tone}>{tyBadge.label}</StatusBadge>}
     </div>
   );
 }
@@ -614,41 +569,18 @@ function RowActions({
   onCopy,
   onDelete,
   onView,
-  onTrendyol,
-  tyStatus,
 }: {
   product: Product;
   onEdit: () => void;
   onCopy: () => void;
   onDelete: () => void;
   onView: () => void;
-  onTrendyol?: () => void;
-  tyStatus?: TrendyolStatusEntry | null;
 }) {
   const [open, setOpen] = useState(false);
-
-  /** Duruma göre akıllı Trendyol buton etiketi */
-  const tyLabel = (() => {
-    if (!tyStatus) return "Trendyol'a Gönder";
-    // Pull yönlü link: ürün Trendyol tarafından yönetiliyor
-    if (tyStatus.syncDirection === 'pull') return "Trendyol'da Yönet";
-    // Push yönlü link: gönderim durumuna göre
-    if (tyStatus.pushStatus === 'rejected' || tyStatus.pushStatus === 'error') return 'Yeniden Gönder';
-    return "Trendyol'da Yönet";
-  })();
 
   return (
     <div className="flex items-center justify-end gap-0.5">
       <div className="hidden md:flex items-center gap-0.5">
-        {onTrendyol && (
-          <IconButton
-            title={tyLabel}
-            onClick={onTrendyol}
-            data-testid={`button-trendyol-${product.id}`}
-          >
-            <ExternalLink className="w-4 h-4" />
-          </IconButton>
-        )}
         <IconButton title="Düzenle" onClick={onEdit} data-testid={`button-edit-product-${product.id}`}>
           <Edit3 className="w-4 h-4" />
         </IconButton>
@@ -680,20 +612,6 @@ function RowActions({
               onClick={() => setOpen(false)}
             />
             <div className="absolute right-0 top-9 z-20 w-48 bg-white border border-neutral-200 rounded-md shadow-lg py-1">
-              {onTrendyol && (
-                <button
-                  type="button"
-                  onClick={() => {
-                    setOpen(false);
-                    onTrendyol();
-                  }}
-                  className="w-full flex items-center gap-2 px-3 py-2 text-[13px] text-orange-600 hover:bg-orange-50"
-                  data-testid={`button-trendyol-mobile-${product.id}`}
-                >
-                  <ExternalLink className="w-3.5 h-3.5" />
-                  {tyLabel}
-                </button>
-              )}
               <button
                 type="button"
                 onClick={() => {
@@ -762,7 +680,6 @@ export default function ProductsTab({
   deleteProductMutation,
   productsLoading,
   productsError,
-  onTrendyolAction,
 }: ProductsTabProps) {
   const queryClient = useQueryClient();
   const [, navigate] = useLocation();
@@ -808,13 +725,6 @@ export default function ProductsTab({
     new Promise((resolve, reject) =>
       quickPatchVariantMutation.mutate({ id: variantId, stock }, { onSuccess: () => resolve(), onError: reject })
     );
-
-  // Trendyol bağlantı durumu haritası — ürün başına rozet ve aksiyon için
-  const { data: trendyolStatusMap } = useQuery<Record<string, TrendyolStatusEntry>>({
-    queryKey: ['/api/admin/products/trendyol-status'],
-    staleTime: 60_000,
-    refetchInterval: 120_000,
-  });
 
   // Ürün düzenleme sayfasından dönerken listeyi aynı konumda geri getir
   const PRODUCTS_STATE_KEY = 'admin_products_list_state';
@@ -866,28 +776,10 @@ export default function ProductsTab({
         if (statusFilter === 'inactive' && p.isActive) return false;
         if (statusFilter === 'out' && !(stock.count > 0 && stock.total === 0)) return false;
         if (statusFilter === 'needs_attention' && getProductQualityIssues(p, allVariants).length === 0) return false;
-        if (statusFilter === 'trendyol_linked') {
-          const ty = trendyolStatusMap?.[p.id];
-          if (!ty) return false;
-          // Push-linked with no pushStatus means not yet sent — exclude
-          if (ty.syncDirection !== 'pull' && !ty.pushStatus) return false;
-          // Rejected/error are not "linked" in the positive sense
-          if (ty.pushStatus === 'rejected' || ty.pushStatus === 'error') return false;
-        }
-        if (statusFilter === 'trendyol_unlinked') {
-          const ty = trendyolStatusMap?.[p.id];
-          // Keep only: no link at all, OR push link that hasn't been sent yet
-          if (ty && !(ty.syncDirection !== 'pull' && !ty.pushStatus)) return false;
-        }
-        if (statusFilter === 'trendyol_rejected') {
-          const ty = trendyolStatusMap?.[p.id];
-          if (!ty) return false;
-          if (ty.pushStatus !== 'rejected' && ty.pushStatus !== 'error') return false;
-        }
       }
       return true;
     });
-  }, [products, searchQuery, categoryFilter, brandFilter, statusFilter, allVariants, trendyolStatusMap]);
+  }, [products, searchQuery, categoryFilter, brandFilter, statusFilter, allVariants]);
 
   const sortedProducts = useMemo(() => {
     const list = [...filteredProducts];
@@ -1161,9 +1053,6 @@ export default function ProductsTab({
             <option value="inactive">Pasif</option>
             <option value="out">Stokta yok</option>
             <option value="needs_attention">Eksik bilgi var</option>
-            <option value="trendyol_linked">Trendyol'da</option>
-            <option value="trendyol_unlinked">Trendyol'a gönderilmemiş</option>
-            <option value="trendyol_rejected">Trendyol'da reddedildi</option>
           </SelectInput>
           <SelectInput
             value={sortKey}
@@ -1365,7 +1254,6 @@ export default function ProductsTab({
                     const stock = getStockSummary(product.id, allVariants);
                     const qualityIssues = getProductQualityIssues(product, allVariants);
                     const isSelected = selectedIds.has(product.id);
-                    const tyStatus = trendyolStatusMap?.[product.id] ?? null;
                     return (
                       <tr
                         key={product.id}
@@ -1436,7 +1324,6 @@ export default function ProductsTab({
                             product={product}
                             stockTotal={stock.total}
                             hasVariants={stock.count > 0}
-                            tyStatus={tyStatus}
                             qualityIssues={qualityIssues}
                             onPatch={p => quickPatch(product.id, p)}
                           />
@@ -1444,7 +1331,6 @@ export default function ProductsTab({
                         <td className="px-4 py-3 align-middle">
                           <RowActions
                             product={product}
-                            tyStatus={tyStatus}
                             onEdit={() => { saveListState(); navigate(`/toov-admin/products/${product.id}`); }}
                             onCopy={() => handleDuplicate(product)}
                             onDelete={() => {
@@ -1455,7 +1341,6 @@ export default function ProductsTab({
                             onView={() => {
                               window.open(`/urun/${product.slug}`, '_blank', 'noopener,noreferrer');
                             }}
-                            onTrendyol={onTrendyolAction ? () => onTrendyolAction(product.id) : undefined}
                           />
                         </td>
                       </tr>
@@ -1471,7 +1356,6 @@ export default function ProductsTab({
               const stock = getStockSummary(product.id, allVariants);
               const qualityIssues = getProductQualityIssues(product, allVariants);
               const isSelected = selectedIds.has(product.id);
-              const tyStatus = trendyolStatusMap?.[product.id] ?? null;
               return (
                 <Card
                   key={product.id}
@@ -1505,7 +1389,6 @@ export default function ProductsTab({
                         </div>
                         <RowActions
                           product={product}
-                          tyStatus={tyStatus}
                           onEdit={() => { saveListState(); navigate(`/toov-admin/products/${product.id}`); }}
                           onCopy={() => handleDuplicate(product)}
                           onDelete={() => {
@@ -1516,7 +1399,6 @@ export default function ProductsTab({
                           onView={() => {
                             window.open(`/urun/${product.slug}`, '_blank', 'noopener,noreferrer');
                           }}
-                          onTrendyol={onTrendyolAction ? () => onTrendyolAction(product.id) : undefined}
                         />
                       </div>
                       <div className="mt-2 flex items-center justify-between gap-2">
@@ -1534,7 +1416,6 @@ export default function ProductsTab({
                           product={product}
                           stockTotal={stock.total}
                           hasVariants={stock.count > 0}
-                          tyStatus={tyStatus}
                           qualityIssues={qualityIssues}
                         />
                       </div>

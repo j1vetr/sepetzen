@@ -13,7 +13,6 @@ import {
   RotateCcw,
   ShoppingCart,
   Star,
-  Store,
   Truck,
   Users,
   Wallet,
@@ -34,10 +33,7 @@ interface DashboardTabProps {
   getStatusLabel: (status: string) => string;
   onNavigate: (tab: TabType) => void;
   onOverdueOrders: () => void;
-  onMarketplaceOrders: () => void;
-  onMarketplaceSyncIssues: () => void;
   pendingReviewsCount?: number;
-  pendingMarketplaceOrdersCount?: number;
   pendingReturnsCount?: number;
   statsLoading?: boolean;
   ordersLoading?: boolean;
@@ -46,11 +42,6 @@ interface DashboardTabProps {
   allVariantsError?: boolean;
   pendingReviewsLoading?: boolean;
   pendingReviewsError?: boolean;
-  pendingMarketplaceOrdersLoading?: boolean;
-  pendingMarketplaceOrdersError?: boolean;
-  marketplaceSyncFailureCount?: number;
-  marketplaceSyncLoading?: boolean;
-  marketplaceSyncError?: boolean;
   pendingReturnsLoading?: boolean;
   pendingReturnsError?: boolean;
   statsError?: boolean;
@@ -471,10 +462,7 @@ export default function DashboardTab({
   getStatusLabel,
   onNavigate,
   onOverdueOrders,
-  onMarketplaceOrders,
-  onMarketplaceSyncIssues,
   pendingReviewsCount = 0,
-  pendingMarketplaceOrdersCount = 0,
   pendingReturnsCount = 0,
   statsLoading = false,
   ordersLoading = false,
@@ -483,11 +471,6 @@ export default function DashboardTab({
   allVariantsError = false,
   pendingReviewsLoading = false,
   pendingReviewsError = false,
-  pendingMarketplaceOrdersLoading = false,
-  pendingMarketplaceOrdersError = false,
-  marketplaceSyncFailureCount = 0,
-  marketplaceSyncLoading = false,
-  marketplaceSyncError = false,
   pendingReturnsLoading = false,
   pendingReturnsError = false,
   statsError = false,
@@ -525,10 +508,6 @@ export default function DashboardTab({
     inventoryReady &&
     !pendingReviewsLoading &&
     !pendingReviewsError &&
-    !pendingMarketplaceOrdersLoading &&
-    !pendingMarketplaceOrdersError &&
-    !marketplaceSyncLoading &&
-    !marketplaceSyncError &&
     !pendingReturnsLoading &&
     !pendingReturnsError;
   const queueItems = [
@@ -555,30 +534,6 @@ export default function DashboardTab({
       error: ordersError,
       onClick: () => onNavigate('orders'),
       priority: 7,
-    },
-    {
-      label: 'Pazaryeri siparişleri',
-      description: 'Satış kanalında kontrol bekleyenler',
-      actionLabel: 'Kanala git',
-      count: pendingMarketplaceOrdersCount,
-      icon: Store,
-      tone: 'neutral' as Tone,
-      loading: pendingMarketplaceOrdersLoading,
-      error: pendingMarketplaceOrdersError,
-      onClick: onMarketplaceOrders,
-      priority: 5,
-    },
-    {
-      label: 'Senkron hataları',
-      description: 'Son kanal senkronunda başarısız olan bağlantılar',
-      actionLabel: 'Kanala git',
-      count: marketplaceSyncFailureCount,
-      icon: AlertCircle,
-      tone: 'red' as Tone,
-      loading: marketplaceSyncLoading,
-      error: marketplaceSyncError,
-      onClick: onMarketplaceSyncIssues,
-      priority: 1,
     },
     {
       label: 'Geciken işlemler',
@@ -666,20 +621,6 @@ export default function DashboardTab({
       : pendingReviewsCount > 0
         ? 'attention'
         : 'healthy';
-  const channelHealth: HealthState = pendingMarketplaceOrdersLoading
-    ? 'loading'
-    : pendingMarketplaceOrdersError
-      ? 'error'
-      : pendingMarketplaceOrdersCount > 0
-        ? 'attention'
-        : 'healthy';
-  const syncHealth: HealthState = marketplaceSyncLoading
-    ? 'loading'
-    : marketplaceSyncError
-      ? 'error'
-      : marketplaceSyncFailureCount > 0
-        ? 'attention'
-        : 'healthy';
 
   return (
     <div className="space-y-6 sm:space-y-7" data-testid="tab-dashboard">
@@ -718,7 +659,7 @@ export default function DashboardTab({
 
       {statsError && <InlineError label="Mağaza özeti yüklenemedi. Değerler yeniden bağlantı kurulduğunda güncellenecek." />}
 
-      <div className="grid grid-cols-2 gap-3 md:grid-cols-3 xl:grid-cols-5" data-testid="dashboard-snapshot">
+      <div className="grid grid-cols-2 gap-3 md:grid-cols-4" data-testid="dashboard-snapshot">
         <SnapshotCard
           label="Bugünkü satış"
           value={formatCurrency(todayRevenue)}
@@ -754,15 +695,6 @@ export default function DashboardTab({
           loading={pendingReturnsLoading}
           error={pendingReturnsError}
           onClick={() => onNavigate('orders')}
-        />
-        <SnapshotCard
-          label="Satış kanalı"
-          value={formatNumber(pendingMarketplaceOrdersCount)}
-          detail={pendingMarketplaceOrdersError ? 'Kanal verisi alınamadı' : 'Kontrol bekleyen Trendyol siparişi'}
-          icon={Store}
-          loading={pendingMarketplaceOrdersLoading}
-          error={pendingMarketplaceOrdersError}
-          onClick={onMarketplaceOrders}
         />
       </div>
 
@@ -829,24 +761,6 @@ export default function DashboardTab({
               description={allVariantsError ? 'Stok verisine ulaşılamıyor' : `${formatNumber(totalStock)} adet aktif varyant stoğu`}
               state={inventoryHealth}
               icon={Package}
-            />
-            <HealthRow
-              label="Satış kanalı"
-              description={pendingMarketplaceOrdersError ? 'Kanal kuyruğuna ulaşılamıyor' : `${formatNumber(pendingMarketplaceOrdersCount)} sipariş kontrol bekliyor`}
-              state={channelHealth}
-              icon={Store}
-            />
-            <HealthRow
-              label="Senkron sağlığı"
-              description={
-                marketplaceSyncError
-                  ? 'Senkron geçmişine ulaşılamıyor'
-                  : marketplaceSyncFailureCount > 0
-                    ? `${formatNumber(marketplaceSyncFailureCount)} bağlantının son senkronu başarısız`
-                    : 'Son senkronlarda başarısız bağlantı yok'
-              }
-              state={syncHealth}
-              icon={RefreshCw}
             />
             <HealthRow
               label="Yorum moderasyonu"

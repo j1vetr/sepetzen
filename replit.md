@@ -91,15 +91,6 @@ hakkimizda, mesafeli-satis-sozlesmesi, on-bilgilendirme-formu, uyelik-sozlesmesi
 - **Admin routes**: `/api/admin/shipping/providers`, `/api/admin/shipping/test-connection`, `/api/admin/orders/:id/shipment/{create,status,label}`. Legacy `/aras-kargo/*` routes remain for backward compatibility.
 - **Admin UI**: provider picker + credentials in `SettingsTab.tsx` (Kargo), shipment actions in `AdminOrderDetail.tsx`.
 
-## Marketplace Sync (multi-marketplace adapter framework)
-- **One-way pull**: marketplace → site catalog (categories, products, images, stock, price). No order/push.
-- **Adapter pattern**: `MarketplaceAdapter` interface (`server/marketplaces/types.ts`) + registry (`server/marketplaces/registry.ts`).
-- **Trendyol adapter** (`server/marketplaces/trendyol/adapter.ts`) is the only live implementation.
-- **Sync engine** (`server/marketplaces/sync/engine.ts`): delta and full sync modes.
-- **Credentials encryption**: `MARKETPLACE_ENCRYPTION_KEY` Replit Secret (32-byte hex/base64) drives AES-256-GCM at rest. **Mandatory** — server fail-fasts at startup if missing.
-- **Tables**: `marketplaces`, `marketplace_categories`, `marketplace_products`, `marketplace_sync_runs`.
-- **Admin UI**: `client/src/pages/admin/MarketplacesTab.tsx`.
-
 ## Future Work
 - Replace text wordmark with user-supplied logo asset.
 - Add real IBAN to bank transfer settings in admin panel.

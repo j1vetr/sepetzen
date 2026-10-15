@@ -324,23 +324,6 @@ async function fetchChannelBreakdown(range: AnalyticsRange): Promise<BreakdownRo
   `);
   const siteRow = (siteResult.rows || [])[0] as Record<string, unknown> | undefined;
 
-  // Pazaryeri siparişleri ayrı tabloda satır bazında tutulur; sipariş sayısı
-  // için benzersiz pazaryeri sipariş numarası kullanılır.
-  const marketplaceResult = await db.execute(sql`
-    SELECT
-      COALESCE(m.name, 'Pazaryeri') AS channel,
-      COUNT(DISTINCT l.order_number)::int AS orders,
-      COALESCE(SUM(CAST(l.total_price AS DECIMAL)), 0) AS revenue
-    FROM marketplace_order_lines l
-    LEFT JOIN marketplaces m ON m.id = l.marketplace_id
-    WHERE (COALESCE(l.ordered_at, l.created_at) AT TIME ZONE 'UTC' AT TIME ZONE ${sql.raw(`'${REPORT_TIMEZONE}'`)})
-          BETWEEN ${startTs}::timestamp AND ${endTs}::timestamp
-      AND COALESCE(l.status, '') NOT ILIKE '%cancel%'
-      AND COALESCE(l.status, '') NOT ILIKE '%return%'
-    GROUP BY 1
-    ORDER BY 3 DESC
-  `);
-
   const rows: BreakdownRow[] = [
     {
       key: "site",
@@ -348,12 +331,6 @@ async function fetchChannelBreakdown(range: AnalyticsRange): Promise<BreakdownRo
       orders: numeric(siteRow?.orders),
       revenue: numeric(siteRow?.revenue),
     },
-    ...((marketplaceResult.rows || []) as Record<string, unknown>[]).map((raw) => ({
-      key: `marketplace:${String(raw.channel)}`,
-      label: String(raw.channel),
-      orders: numeric(raw.orders),
-      revenue: numeric(raw.revenue),
-    })),
   ];
 
   return rows.filter((row) => row.orders > 0 || row.revenue > 0);

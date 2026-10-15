@@ -94,24 +94,6 @@ import {
   type InsertMenuItem,
   influencerPayments,
   type InfluencerPayment,
-  marketplaces,
-  marketplaceCategories,
-  marketplaceProducts,
-  marketplaceSyncRuns,
-  marketplacePushQueue,
-  marketplaceOrderLines,
-  type MarketplaceOrderLine,
-  type InsertMarketplaceOrderLine,
-  type MarketplacePushQueueItem,
-  type InsertMarketplacePushQueueItem,
-  type Marketplace,
-  type InsertMarketplace,
-  type MarketplaceCategory,
-  type InsertMarketplaceCategory,
-  type MarketplaceProduct,
-  type InsertMarketplaceProduct,
-  type MarketplaceSyncRun,
-  type InsertMarketplaceSyncRun,
 } from "@shared/schema";
 import { eq, and, desc, asc, sql, ilike, gte, lte, gt, between, inArray, sum, type SQL } from "drizzle-orm";
 
@@ -381,116 +363,6 @@ export interface IStorage {
   updateSizeChart(id: string, sizeChart: Partial<InsertSizeChart>): Promise<SizeChart | undefined>;
   deleteSizeChart(id: string): Promise<void>;
 
-  // Marketplaces (Trendyol / N11 / ...)
-  getMarketplaces(): Promise<Marketplace[]>;
-  getMarketplace(id: string): Promise<Marketplace | undefined>;
-  createMarketplace(insert: InsertMarketplace): Promise<Marketplace>;
-  updateMarketplace(id: string, patch: Partial<InsertMarketplace>): Promise<Marketplace | undefined>;
-  deleteMarketplace(id: string): Promise<void>;
-  updateMarketplaceSyncTime(id: string, mode: "delta" | "full"): Promise<void>;
-
-  // Marketplace category mapping
-  getMarketplaceCategories(marketplaceId: string): Promise<MarketplaceCategory[]>;
-  getMarketplaceCategoryByExternal(
-    marketplaceId: string,
-    externalId: string,
-  ): Promise<MarketplaceCategory | undefined>;
-  upsertMarketplaceCategoryMapping(
-    marketplaceId: string,
-    externalId: string,
-    name: string,
-    parentExternalId: string | null,
-    siteCategoryId: string | null,
-    fullPath?: string | null,
-  ): Promise<MarketplaceCategory>;
-  setMarketplaceCategoryMapping(
-    id: string,
-    siteCategoryId: string | null,
-  ): Promise<MarketplaceCategory | undefined>;
-
-  // Kategori ağacı snapshot cache (pazaryeri kategori listesini saatlik tazeleyip lookup için DB'de tutar).
-  getCategoryTreeFetchedAt(marketplaceId: string): Promise<Date | null>;
-  setCategoryTreeFetchedAt(marketplaceId: string, when: Date | null): Promise<void>;
-  bulkUpsertCategoryTree(
-    marketplaceId: string,
-    nodes: Array<{
-      externalId: string;
-      name: string;
-      parentExternalId: string | null;
-      fullPath: string | null;
-    }>,
-  ): Promise<{ inserted: number; updated: number }>;
-  /** "categoryTreeFetchedAt = NULL" — bir sonraki sync'in cache'i tazelemesini garantiler. */
-  clearCategoryTreeCache(marketplaceId: string): Promise<void>;
-
-  // Marketplace product bridge
-  getMarketplaceProducts(marketplaceId: string): Promise<MarketplaceProduct[]>;
-  getMarketplaceProductByExternal(
-    marketplaceId: string,
-    externalId: string,
-  ): Promise<MarketplaceProduct | undefined>;
-  upsertMarketplaceProduct(insert: InsertMarketplaceProduct): Promise<MarketplaceProduct>;
-  getMarketplaceProduct(id: string): Promise<MarketplaceProduct | undefined>;
-  getMarketplaceProductByProduct(
-    marketplaceId: string,
-    productId: string,
-  ): Promise<MarketplaceProduct | undefined>;
-  /** Bir site ürününün push yönündeki tüm pazaryeri bağlantıları. */
-  getPushLinksForProduct(productId: string): Promise<MarketplaceProduct[]>;
-  updateMarketplaceProduct(
-    id: string,
-    patch: Partial<InsertMarketplaceProduct>,
-  ): Promise<MarketplaceProduct | undefined>;
-  createMarketplaceProductLink(insert: InsertMarketplaceProduct): Promise<MarketplaceProduct>;
-  deleteMarketplaceProduct(id: string): Promise<void>;
-
-  // Marketplace order lines (pazaryeri siparişlerinden stok düşümü)
-  /** Push-yönlü bağlantıyı barkoda göre bul (sipariş satırı eşleştirme). */
-  getPushLinkByBarcode(marketplaceId: string, barcode: string): Promise<MarketplaceProduct | undefined>;
-  /**
-   * Sipariş satırını idempotent kaydet: (marketplaceId, orderNumber, lineId)
-   * varsa mevcut satırı döner (inserted=false), yoksa ekler (inserted=true).
-   */
-  recordMarketplaceOrderLine(
-    insert: InsertMarketplaceOrderLine,
-  ): Promise<{ line: MarketplaceOrderLine; inserted: boolean }>;
-  updateMarketplaceOrderLine(
-    id: string,
-    patch: Partial<InsertMarketplaceOrderLine>,
-  ): Promise<MarketplaceOrderLine | undefined>;
-  /** Sipariş satırlarını (son N) ürün adıyla birlikte listele — admin izleme. */
-  listMarketplaceOrderLines(
-    marketplaceId: string,
-    limit?: number,
-    since?: Date,
-  ): Promise<Array<MarketplaceOrderLine & { productName: string | null }>>;
-
-  // Push queue (site → pazaryeri outbox)
-  enqueuePushItem(insert: InsertMarketplacePushQueueItem): Promise<MarketplacePushQueueItem>;
-  getDuePushItems(limit?: number): Promise<MarketplacePushQueueItem[]>;
-  getSentPushItems(limit?: number): Promise<MarketplacePushQueueItem[]>;
-  getPushQueue(marketplaceId: string, limit?: number): Promise<MarketplacePushQueueItem[]>;
-  updatePushItem(
-    id: string,
-    patch: Partial<InsertMarketplacePushQueueItem>,
-  ): Promise<MarketplacePushQueueItem | undefined>;
-
-  // Sync runs (history)
-  createSyncRun(insert: InsertMarketplaceSyncRun): Promise<MarketplaceSyncRun>;
-  completeSyncRun(
-    id: string,
-    patch: {
-      status: string;
-      stats: Record<string, unknown>;
-      errors: Array<{ context: string; message: string }>;
-      errorSummary?: Record<string, unknown>;
-    },
-  ): Promise<MarketplaceSyncRun>;
-  /** Live progress write — update only the stats jsonb on a running run. */
-  updateSyncRunStats(id: string, stats: Record<string, unknown>): Promise<void>;
-  getRunningSyncRun(marketplaceId: string): Promise<MarketplaceSyncRun | undefined>;
-  getRecentSyncRuns(marketplaceId: string, limit?: number): Promise<MarketplaceSyncRun[]>;
-
   // Pages (static content)
   getPages(): Promise<Page[]>;
   getPageBySlug(slug: string): Promise<Page | undefined>;
@@ -522,36 +394,6 @@ export interface IStorage {
 }
 
 export class DbStorage implements IStorage {
-  /**
-   * Push outbox bildirimi — stok/fiyat değişen ürünün push-yönlü pazaryeri
-   * bağlantıları varsa kuyruğa 'stock_price' item'ı yazar. DAYANIKLI: aynı
-   * çağrı yolunda awaited DB insert'tir; kuyruk yazımı başarısız olursa hata
-   * yukarı fırlar (stok yazıldı ama kuyruk yazılamadıysa sessiz veri kaybı
-   * olmaz — çağıran hata görür). Push bağlantısı olmayan ürünlerde no-op.
-   */
-  private async notifyPushOutbox(productId: string): Promise<void> {
-    const links = await db
-      .select()
-      .from(marketplaceProducts)
-      .where(
-        and(
-          eq(marketplaceProducts.productId, productId),
-          eq(marketplaceProducts.syncDirection, "push"),
-        ),
-      );
-    for (const link of links) {
-      if (!link.barcode) continue;
-      await this.enqueuePushItem({
-        marketplaceId: link.marketplaceId,
-        productId,
-        kind: "stock_price",
-        payload: {},
-        status: "pending",
-        attempts: 0,
-        nextAttemptAt: new Date(),
-      });
-    }
-  }
   async getAdminUser(id: string): Promise<AdminUser | undefined> {
     const [user] = await db.select().from(adminUsers).where(eq(adminUsers.id, id));
     return user;
@@ -882,10 +724,6 @@ export class DbStorage implements IStorage {
     // Remove fields that shouldn't be updated (auto-managed or sent as strings from frontend)
     const { createdAt, updatedAt, id: productId, ...updateData } = product as any;
     const [updated] = await db.update(products).set(updateData).where(eq(products.id, id)).returning();
-    // Push outbox: fiyat/aktiflik değiştiyse push-yönlü pazaryeri bağlantılarını kuyrukla.
-    if (updated && ("basePrice" in updateData || "isActive" in updateData)) {
-      await this.notifyPushOutbox(updated.id);
-    }
     return updated;
   }
 
@@ -946,10 +784,6 @@ export class DbStorage implements IStorage {
 
   async updateProductVariant(id: string, variant: Partial<InsertProductVariant>): Promise<ProductVariant | undefined> {
     const [updated] = await db.update(productVariants).set(variant).where(eq(productVariants.id, id)).returning();
-    // Push outbox: stok/fiyat değiştiyse (sipariş düşümü, admin düzenleme, toplu işlem)
-    if (updated && ("stock" in variant || "price" in variant || "isActive" in variant)) {
-      await this.notifyPushOutbox(updated.productId);
-    }
     return updated;
   }
 
@@ -973,8 +807,6 @@ export class DbStorage implements IStorage {
     rows: Array<{ id?: string; size: string | null; color: string | null; sku: string | null; colorHex?: string | null; price: string; stock: number; isActive: boolean }>,
   ): Promise<{ retiredCount: number; deletedCount: number }> {
     const result = await db.transaction(async (tx) => this.reconcileVariantsInTx(tx, productId, rows));
-    // Marketplace push bildirimi transaction başarıyla bittikten sonra.
-    await this.notifyPushOutbox(productId);
     return result;
   }
 
@@ -1002,9 +834,6 @@ export class DbStorage implements IStorage {
       }
       return { product: updated, ...reconcile };
     });
-    if (outcome) {
-      await this.notifyPushOutbox(id);
-    }
     return outcome;
   }
 
@@ -1058,9 +887,6 @@ export class DbStorage implements IStorage {
         ),
       )
       .returning({ id: productVariants.id });
-    if (updated.length > 0) {
-      await this.notifyPushOutbox(productId);
-    }
     return updated.length;
   }
 
@@ -1076,7 +902,6 @@ export class DbStorage implements IStorage {
       return { retired: false, productId: variant.productId };
     });
     if (!outcome) return undefined;
-    await this.notifyPushOutbox(outcome.productId);
     return { retired: outcome.retired };
   }
 
@@ -1509,7 +1334,6 @@ export class DbStorage implements IStorage {
       const updatedItems = await tx.select().from(returnRequestItems).where(eq(returnRequestItems.returnRequestId, id));
       return { request, items: updatedItems, changedProductIds: Array.from(changedProductIds) };
     });
-    for (const productId of result.changedProductIds) await this.notifyPushOutbox(productId);
     return { ...result.request, items: result.items };
   }
 
@@ -2197,7 +2021,6 @@ export class DbStorage implements IStorage {
           authorId: update.authorId,
         });
         await db.update(productVariants).set({ stock: update.stock }).where(eq(productVariants.id, update.variantId));
-        await this.notifyPushOutbox(variant.productId);
       }
     }
   }
@@ -2801,526 +2624,6 @@ export class DbStorage implements IStorage {
         .set({ displayOrder: item.displayOrder, updatedAt: new Date() })
         .where(eq(menuItems.id, item.id));
     }
-  }
-
-  // --------------------------------------------------------------------------
-  // Marketplaces (Trendyol / N11 / Hepsiburada ...)
-  // --------------------------------------------------------------------------
-
-  async getMarketplaces(): Promise<Marketplace[]> {
-    return db.select().from(marketplaces).orderBy(asc(marketplaces.name));
-  }
-
-  async getMarketplace(id: string): Promise<Marketplace | undefined> {
-    const [row] = await db.select().from(marketplaces).where(eq(marketplaces.id, id));
-    return row;
-  }
-
-  async createMarketplace(insert: InsertMarketplace): Promise<Marketplace> {
-    const [row] = await db.insert(marketplaces).values(insert).returning();
-    return row;
-  }
-
-  async updateMarketplace(
-    id: string,
-    patch: Partial<InsertMarketplace>,
-  ): Promise<Marketplace | undefined> {
-    const [row] = await db
-      .update(marketplaces)
-      .set({ ...patch, updatedAt: new Date() })
-      .where(eq(marketplaces.id, id))
-      .returning();
-    return row;
-  }
-
-  async deleteMarketplace(id: string): Promise<void> {
-    await db.delete(marketplaces).where(eq(marketplaces.id, id));
-  }
-
-  async updateMarketplaceSyncTime(id: string, mode: "delta" | "full"): Promise<void> {
-    const patch =
-      mode === "delta"
-        ? { lastDeltaSyncAt: new Date(), updatedAt: new Date() }
-        : { lastFullSyncAt: new Date(), updatedAt: new Date() };
-    await db.update(marketplaces).set(patch).where(eq(marketplaces.id, id));
-  }
-
-  async getMarketplaceCategories(marketplaceId: string): Promise<MarketplaceCategory[]> {
-    return db
-      .select()
-      .from(marketplaceCategories)
-      .where(eq(marketplaceCategories.marketplaceId, marketplaceId))
-      .orderBy(asc(marketplaceCategories.name));
-  }
-
-  async getMarketplaceCategoryByExternal(
-    marketplaceId: string,
-    externalId: string,
-  ): Promise<MarketplaceCategory | undefined> {
-    const [row] = await db
-      .select()
-      .from(marketplaceCategories)
-      .where(
-        and(
-          eq(marketplaceCategories.marketplaceId, marketplaceId),
-          eq(marketplaceCategories.externalId, externalId),
-        ),
-      );
-    return row;
-  }
-
-  async upsertMarketplaceCategoryMapping(
-    marketplaceId: string,
-    externalId: string,
-    name: string,
-    parentExternalId: string | null,
-    siteCategoryId: string | null,
-    fullPath: string | null = null,
-  ): Promise<MarketplaceCategory> {
-    const existing = await this.getMarketplaceCategoryByExternal(marketplaceId, externalId);
-    if (existing) {
-      const [row] = await db
-        .update(marketplaceCategories)
-        .set({
-          name,
-          parentExternalId: parentExternalId ?? null,
-          // fullPath null olarak gelirse mevcut değeri ezme — başka bir akış set etmiş olabilir.
-          fullPath: fullPath ?? existing.fullPath ?? null,
-          siteCategoryId: siteCategoryId ?? existing.siteCategoryId ?? null,
-          updatedAt: new Date(),
-        })
-        .where(eq(marketplaceCategories.id, existing.id))
-        .returning();
-      return row;
-    }
-    const [row] = await db
-      .insert(marketplaceCategories)
-      .values({
-        marketplaceId,
-        externalId,
-        name,
-        parentExternalId: parentExternalId ?? null,
-        fullPath: fullPath ?? null,
-        siteCategoryId: siteCategoryId ?? null,
-      })
-      .returning();
-    return row;
-  }
-
-  // ----- Kategori ağacı snapshot cache -----
-
-  async getCategoryTreeFetchedAt(marketplaceId: string): Promise<Date | null> {
-    const [row] = await db
-      .select({ at: marketplaces.categoryTreeFetchedAt })
-      .from(marketplaces)
-      .where(eq(marketplaces.id, marketplaceId));
-    return row?.at ?? null;
-  }
-
-  async setCategoryTreeFetchedAt(marketplaceId: string, when: Date | null): Promise<void> {
-    await db
-      .update(marketplaces)
-      .set({ categoryTreeFetchedAt: when, updatedAt: new Date() })
-      .where(eq(marketplaces.id, marketplaceId));
-  }
-
-  async clearCategoryTreeCache(marketplaceId: string): Promise<void> {
-    await this.setCategoryTreeFetchedAt(marketplaceId, null);
-  }
-
-  async bulkUpsertCategoryTree(
-    marketplaceId: string,
-    nodes: Array<{
-      externalId: string;
-      name: string;
-      parentExternalId: string | null;
-      fullPath: string | null;
-    }>,
-  ): Promise<{ inserted: number; updated: number }> {
-    if (nodes.length === 0) return { inserted: 0, updated: 0 };
-    // Aynı marketplace için tek tx içinde çalış: hangi externalId'ler zaten var?
-    return await db.transaction(async (tx) => {
-      const existing = await tx
-        .select({
-          id: marketplaceCategories.id,
-          externalId: marketplaceCategories.externalId,
-        })
-        .from(marketplaceCategories)
-        .where(eq(marketplaceCategories.marketplaceId, marketplaceId));
-      const existingMap = new Map(existing.map((r) => [r.externalId, r.id]));
-
-      let inserted = 0;
-      let updated = 0;
-      const now = new Date();
-
-      // INSERT batch — küçük partilere böl (PG parametre limiti 65535).
-      const toInsert = nodes
-        .filter((n) => !existingMap.has(n.externalId))
-        .map((n) => ({
-          marketplaceId,
-          externalId: n.externalId,
-          name: n.name,
-          parentExternalId: n.parentExternalId,
-          fullPath: n.fullPath,
-        }));
-      const BATCH = 500;
-      for (let i = 0; i < toInsert.length; i += BATCH) {
-        const slice = toInsert.slice(i, i + BATCH);
-        if (slice.length === 0) continue;
-        await tx.insert(marketplaceCategories).values(slice);
-        inserted += slice.length;
-      }
-
-      // UPDATE — sadece adı/parent/path değişmişse, ama yine de updated_at için tek geçiş yeter.
-      // Performansı kabul edilir tutmak için per-node update; tipik snapshot ~5-10K satır.
-      // siteCategoryId koru (admin elle eşlemiş olabilir).
-      for (const n of nodes) {
-        const id = existingMap.get(n.externalId);
-        if (!id) continue;
-        await tx
-          .update(marketplaceCategories)
-          .set({
-            name: n.name,
-            parentExternalId: n.parentExternalId,
-            fullPath: n.fullPath,
-            updatedAt: now,
-          })
-          .where(eq(marketplaceCategories.id, id));
-        updated += 1;
-      }
-      return { inserted, updated };
-    });
-  }
-
-  async setMarketplaceCategoryMapping(
-    id: string,
-    siteCategoryId: string | null,
-  ): Promise<MarketplaceCategory | undefined> {
-    const [row] = await db
-      .update(marketplaceCategories)
-      .set({ siteCategoryId, updatedAt: new Date() })
-      .where(eq(marketplaceCategories.id, id))
-      .returning();
-    return row;
-  }
-
-  async getMarketplaceProducts(marketplaceId: string): Promise<MarketplaceProduct[]> {
-    return db
-      .select()
-      .from(marketplaceProducts)
-      .where(eq(marketplaceProducts.marketplaceId, marketplaceId));
-  }
-
-  async getMarketplaceProductByExternal(
-    marketplaceId: string,
-    externalId: string,
-  ): Promise<MarketplaceProduct | undefined> {
-    const [row] = await db
-      .select()
-      .from(marketplaceProducts)
-      .where(
-        and(
-          eq(marketplaceProducts.marketplaceId, marketplaceId),
-          eq(marketplaceProducts.externalId, externalId),
-        ),
-      );
-    return row;
-  }
-
-  async upsertMarketplaceProduct(insert: InsertMarketplaceProduct): Promise<MarketplaceProduct> {
-    const existing = await this.getMarketplaceProductByExternal(
-      insert.marketplaceId,
-      insert.externalId,
-    );
-    if (existing) {
-      const [row] = await db
-        .update(marketplaceProducts)
-        .set({
-          externalProductCode: insert.externalProductCode ?? existing.externalProductCode,
-          productId: insert.productId ?? existing.productId,
-          imageHashes: insert.imageHashes ?? existing.imageHashes,
-          contentHash: insert.contentHash ?? existing.contentHash,
-          lastSyncedAt: new Date(),
-        })
-        .where(eq(marketplaceProducts.id, existing.id))
-        .returning();
-      return row;
-    }
-    const [row] = await db.insert(marketplaceProducts).values(insert).returning();
-    return row;
-  }
-
-  async getMarketplaceProduct(id: string): Promise<MarketplaceProduct | undefined> {
-    const [row] = await db.select().from(marketplaceProducts).where(eq(marketplaceProducts.id, id));
-    return row;
-  }
-
-  async getMarketplaceProductByProduct(
-    marketplaceId: string,
-    productId: string,
-  ): Promise<MarketplaceProduct | undefined> {
-    const [row] = await db
-      .select()
-      .from(marketplaceProducts)
-      .where(
-        and(
-          eq(marketplaceProducts.marketplaceId, marketplaceId),
-          eq(marketplaceProducts.productId, productId),
-        ),
-      );
-    return row;
-  }
-
-  async getPushLinksForProduct(productId: string): Promise<MarketplaceProduct[]> {
-    return db
-      .select()
-      .from(marketplaceProducts)
-      .where(
-        and(
-          eq(marketplaceProducts.productId, productId),
-          eq(marketplaceProducts.syncDirection, "push"),
-        ),
-      );
-  }
-
-  async updateMarketplaceProduct(
-    id: string,
-    patch: Partial<InsertMarketplaceProduct>,
-  ): Promise<MarketplaceProduct | undefined> {
-    const [row] = await db
-      .update(marketplaceProducts)
-      .set(patch)
-      .where(eq(marketplaceProducts.id, id))
-      .returning();
-    return row;
-  }
-
-  async createMarketplaceProductLink(insert: InsertMarketplaceProduct): Promise<MarketplaceProduct> {
-    const [row] = await db.insert(marketplaceProducts).values(insert).returning();
-    return row;
-  }
-
-  async deleteMarketplaceProduct(id: string): Promise<void> {
-    await db.delete(marketplaceProducts).where(eq(marketplaceProducts.id, id));
-  }
-
-  // === Marketplace order lines (pazaryeri siparişlerinden stok düşümü) ===
-
-  async getPushLinkByBarcode(
-    marketplaceId: string,
-    barcode: string,
-  ): Promise<MarketplaceProduct | undefined> {
-    const [row] = await db
-      .select()
-      .from(marketplaceProducts)
-      .where(
-        and(
-          eq(marketplaceProducts.marketplaceId, marketplaceId),
-          eq(marketplaceProducts.syncDirection, "push"),
-          eq(marketplaceProducts.barcode, barcode),
-        ),
-      );
-    return row;
-  }
-
-  async recordMarketplaceOrderLine(
-    insert: InsertMarketplaceOrderLine,
-  ): Promise<{ line: MarketplaceOrderLine; inserted: boolean }> {
-    // Idempotent: uniq (marketplaceId, orderNumber, lineId) — çakışmada mevcut
-    // satır döner, stok düşümü tekrar uygulanmaz.
-    const [row] = await db
-      .insert(marketplaceOrderLines)
-      .values(insert)
-      .onConflictDoNothing({
-        target: [
-          marketplaceOrderLines.marketplaceId,
-          marketplaceOrderLines.orderNumber,
-          marketplaceOrderLines.lineId,
-        ],
-      })
-      .returning();
-    if (row) return { line: row, inserted: true };
-    const [existing] = await db
-      .select()
-      .from(marketplaceOrderLines)
-      .where(
-        and(
-          eq(marketplaceOrderLines.marketplaceId, insert.marketplaceId),
-          eq(marketplaceOrderLines.orderNumber, insert.orderNumber),
-          eq(marketplaceOrderLines.lineId, insert.lineId),
-        ),
-      );
-    return { line: existing, inserted: false };
-  }
-
-  async updateMarketplaceOrderLine(
-    id: string,
-    patch: Partial<InsertMarketplaceOrderLine>,
-  ): Promise<MarketplaceOrderLine | undefined> {
-    const [row] = await db
-      .update(marketplaceOrderLines)
-      .set({ ...patch, updatedAt: new Date() })
-      .where(eq(marketplaceOrderLines.id, id))
-      .returning();
-    return row;
-  }
-
-  async listMarketplaceOrderLines(
-    marketplaceId: string,
-    limit = 200,
-    since?: Date,
-  ): Promise<Array<MarketplaceOrderLine & { productName: string | null }>> {
-    // since verilirse tarih filtresi DB tarafında uygulanır (limit'e takılıp
-    // aralıktaki satırların sessizce düşmemesi için). orderedAt boşsa
-    // createdAt esas alınır.
-    const conditions = [eq(marketplaceOrderLines.marketplaceId, marketplaceId)];
-    if (since) {
-      conditions.push(
-        sql`COALESCE(${marketplaceOrderLines.orderedAt}, ${marketplaceOrderLines.createdAt}) >= ${since}`,
-      );
-    }
-    const rows = await db
-      .select({
-        line: marketplaceOrderLines,
-        productName: products.name,
-      })
-      .from(marketplaceOrderLines)
-      .leftJoin(products, eq(marketplaceOrderLines.productId, products.id))
-      .where(and(...conditions))
-      .orderBy(desc(marketplaceOrderLines.createdAt))
-      .limit(limit);
-    return rows.map((r) => ({ ...r.line, productName: r.productName ?? null }));
-  }
-
-  // === Push queue (site → pazaryeri outbox) ===
-
-  async enqueuePushItem(insert: InsertMarketplacePushQueueItem): Promise<MarketplacePushQueueItem> {
-    // Dedupe: aynı marketplace+product+kind için pending satır varsa onu tazele.
-    const [existing] = await db
-      .select()
-      .from(marketplacePushQueue)
-      .where(
-        and(
-          eq(marketplacePushQueue.marketplaceId, insert.marketplaceId),
-          eq(marketplacePushQueue.productId, insert.productId),
-          eq(marketplacePushQueue.kind, insert.kind),
-          eq(marketplacePushQueue.status, "pending"),
-        ),
-      );
-    if (existing) {
-      const [row] = await db
-        .update(marketplacePushQueue)
-        .set({ payload: insert.payload ?? existing.payload, updatedAt: new Date() })
-        .where(eq(marketplacePushQueue.id, existing.id))
-        .returning();
-      return row;
-    }
-    const [row] = await db.insert(marketplacePushQueue).values(insert).returning();
-    return row;
-  }
-
-  async getDuePushItems(limit = 100): Promise<MarketplacePushQueueItem[]> {
-    return db
-      .select()
-      .from(marketplacePushQueue)
-      .where(
-        and(
-          eq(marketplacePushQueue.status, "pending"),
-          lte(marketplacePushQueue.nextAttemptAt, new Date()),
-        ),
-      )
-      .orderBy(asc(marketplacePushQueue.nextAttemptAt))
-      .limit(limit);
-  }
-
-  async getSentPushItems(limit = 100): Promise<MarketplacePushQueueItem[]> {
-    return db
-      .select()
-      .from(marketplacePushQueue)
-      .where(eq(marketplacePushQueue.status, "sent"))
-      .orderBy(asc(marketplacePushQueue.updatedAt))
-      .limit(limit);
-  }
-
-  async getPushQueue(marketplaceId: string, limit = 50): Promise<MarketplacePushQueueItem[]> {
-    return db
-      .select()
-      .from(marketplacePushQueue)
-      .where(eq(marketplacePushQueue.marketplaceId, marketplaceId))
-      .orderBy(desc(marketplacePushQueue.updatedAt))
-      .limit(limit);
-  }
-
-  async updatePushItem(
-    id: string,
-    patch: Partial<InsertMarketplacePushQueueItem>,
-  ): Promise<MarketplacePushQueueItem | undefined> {
-    const [row] = await db
-      .update(marketplacePushQueue)
-      .set({ ...patch, updatedAt: new Date() })
-      .where(eq(marketplacePushQueue.id, id))
-      .returning();
-    return row;
-  }
-
-  async createSyncRun(insert: InsertMarketplaceSyncRun): Promise<MarketplaceSyncRun> {
-    const [row] = await db.insert(marketplaceSyncRuns).values(insert).returning();
-    return row;
-  }
-
-  async completeSyncRun(
-    id: string,
-    patch: {
-      status: string;
-      stats: Record<string, unknown>;
-      errors: Array<{ context: string; message: string }>;
-      errorSummary?: Record<string, unknown>;
-    },
-  ): Promise<MarketplaceSyncRun> {
-    const setPatch: Record<string, unknown> = {
-      status: patch.status,
-      stats: patch.stats,
-      errors: patch.errors,
-      completedAt: new Date(),
-    };
-    if (patch.errorSummary !== undefined) setPatch.errorSummary = patch.errorSummary;
-    const [row] = await db
-      .update(marketplaceSyncRuns)
-      .set(setPatch)
-      .where(eq(marketplaceSyncRuns.id, id))
-      .returning();
-    return row;
-  }
-
-  async updateSyncRunStats(id: string, stats: Record<string, unknown>): Promise<void> {
-    await db
-      .update(marketplaceSyncRuns)
-      .set({ stats })
-      .where(eq(marketplaceSyncRuns.id, id));
-  }
-
-  async getRunningSyncRun(marketplaceId: string): Promise<MarketplaceSyncRun | undefined> {
-    const [row] = await db
-      .select()
-      .from(marketplaceSyncRuns)
-      .where(
-        and(
-          eq(marketplaceSyncRuns.marketplaceId, marketplaceId),
-          eq(marketplaceSyncRuns.status, "running"),
-        ),
-      )
-      .orderBy(desc(marketplaceSyncRuns.startedAt))
-      .limit(1);
-    return row;
-  }
-
-  async getRecentSyncRuns(marketplaceId: string, limit = 20): Promise<MarketplaceSyncRun[]> {
-    return db
-      .select()
-      .from(marketplaceSyncRuns)
-      .where(eq(marketplaceSyncRuns.marketplaceId, marketplaceId))
-      .orderBy(desc(marketplaceSyncRuns.startedAt))
-      .limit(limit);
   }
 
   // Pages
