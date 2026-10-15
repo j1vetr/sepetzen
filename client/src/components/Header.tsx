@@ -508,15 +508,6 @@ export function Header() {
 
             <div className="justify-self-end flex items-center gap-0.5">
               <ThemeToggle className="p-2.5" testId="button-theme-toggle-mobile" />
-              <motion.button
-                whileTap={{ scale: 0.9 }}
-                onClick={() => setSearchOpen(true)}
-                className="p-2.5 text-white/65 hover:text-white transition-colors"
-                data-testid="button-search-mobile"
-                aria-label="Ara"
-              >
-                <Search className="w-[18px] h-[18px]" strokeWidth={1.75} />
-              </motion.button>
               <Link href="/sepet" data-testid="link-cart-mobile">
                 <motion.button
                   whileTap={{ scale: 0.9 }}
@@ -1171,6 +1162,20 @@ export function Header() {
                       <span className="text-[9px] font-mono tracking-[0.34em] uppercase text-white/35">Menü</span>
                       <span className="h-px flex-1 bg-gradient-to-r from-white/20 to-transparent" />
                     </div>
+                  </motion.li>
+
+                  {/* Arama */}
+                  <motion.li variants={stagger.item} className="pb-2">
+                    <button
+                      type="button"
+                      onClick={() => { setMobileOpen(false); setSearchOpen(true); }}
+                      className="w-full h-12 flex items-center gap-3 px-4 rounded-xl bg-white/[0.06] border border-white/12 text-left text-[13px] text-white/50 hover:border-white/30 transition-colors"
+                      data-testid="button-search-mobile-drawer"
+                      aria-label="Ara"
+                    >
+                      <Search className="w-4 h-4 shrink-0" strokeWidth={1.75} />
+                      Ürün, kategori veya marka ara...
+                    </button>
                   </motion.li>
 
                   {/* Ana Sayfa */}

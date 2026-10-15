@@ -752,6 +752,7 @@ html[data-theme="light"] .theme-light-zone {
   color: #111111;
 }
 html[data-theme="light"] .theme-light-zone .bg-\[\#0A0A0A\],
+html[data-theme="light"] .theme-light-zone .bg-\[\#080808\],
 html[data-theme="light"] .theme-light-zone .bg-\[\#0F0F0F\] { background-color: #ffffff; }
 html[data-theme="light"] .theme-light-zone .bg-\[\#111111\],
 html[data-theme="light"] .theme-light-zone .bg-\[\#141414\],
@@ -783,3 +784,4 @@ html[data-theme="light"] .theme-light-zone .product-rich-copy blockquote { borde
 html[data-theme="light"] .theme-light-zone .product-rich-copy a { color: rgba(17,17,17,.95); }
 html[data-theme="light"] .theme-light-zone .product-rich-copy hr { border-top: 1px solid rgba(17,17,17,.1); }
 html[data-theme="light"] .theme-light-zone .product-rich-copy img { border: 1px solid rgba(17,17,17,.1); }
+html[data-theme="light"] .theme-light-zone .hover\:bg-\[\#161616\]:hover { background-color: #ececee; }

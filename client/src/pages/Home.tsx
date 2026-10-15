@@ -295,7 +295,7 @@ function FeaturedProducts({ products }: { products: Product[] }) {
   return (
     <section
       ref={ref}
-      className="bg-[#0A0A0A] py-16 lg:py-24 px-5 lg:px-10"
+      className="theme-light-zone bg-[#0A0A0A] py-16 lg:py-24 px-5 lg:px-10"
       data-testid="scene-featured"
     >
       <div className="max-w-[1320px] mx-auto">
@@ -471,7 +471,7 @@ function PopularCategories({ products }: { products: Product[] }) {
   if (!visible.length) return null;
 
   return (
-    <section className="bg-[#0A0A0A] py-14 lg:py-20 px-5 lg:px-10" data-testid="scene-popular-categories">
+    <section className="theme-light-zone bg-[#0A0A0A] py-14 lg:py-20 px-5 lg:px-10" data-testid="scene-popular-categories">
       <div className="max-w-[1320px] mx-auto">
         <div className="flex items-end justify-between mb-8 lg:mb-10">
           <h2
@@ -548,7 +548,7 @@ function NewArrivals({ products }: { products: Product[] }) {
   return (
     <section
       ref={ref}
-      className="bg-[#0F0F0F] py-16 lg:py-24 px-5 lg:px-10"
+      className="theme-light-zone bg-[#0F0F0F] py-16 lg:py-24 px-5 lg:px-10"
       data-testid="scene-new-arrivals"
     >
       <div className="max-w-[1320px] mx-auto">
@@ -772,7 +772,7 @@ function TrustStrip({ items: rawItems }: { items: TrustItem[] }) {
   if (!items.length) return null;
 
   return (
-    <section className="bg-[#0F0F0F] border-t border-white/[0.07]" data-testid="scene-trust">
+    <section className="theme-light-zone bg-[#0F0F0F] border-t border-white/[0.07]" data-testid="scene-trust">
       <div className="max-w-[1100px] mx-auto px-5 lg:px-10">
         <div className="grid grid-cols-1 sm:grid-cols-3">
           {items.map((item, i) => {
@@ -822,7 +822,7 @@ function PartnersStrip({ strip }: { strip: PartnerStrip }) {
   const durationSec = Math.max(20, activeItems.length * 5);
 
   return (
-    <section className="bg-[#080808] border-t border-white/[0.06]" data-testid="scene-partners">
+    <section className="theme-light-zone bg-[#080808] border-t border-white/[0.06]" data-testid="scene-partners">
       {/* Başlık */}
       <div className="max-w-[1400px] mx-auto px-5 lg:px-10 pt-10 pb-6 text-center">
         <p className="text-[10px] tracking-[0.22em] uppercase text-white/30 font-medium">
