@@ -480,6 +480,7 @@ export default function Category() {
         )}
       </AnimatePresence>
 
+      <div className="theme-light-zone">
       {/* ─── ALT KATEGORİLER ─── */}
       {childCategories.length > 0 && (
         <section className="pt-8 px-5 lg:px-8" data-testid="section-subcategories">
@@ -584,6 +585,8 @@ export default function Category() {
           </div>
         </section>
       )}
+
+      </div>
 
       <Footer />
       </div>

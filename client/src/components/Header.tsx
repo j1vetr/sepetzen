@@ -1,3 +1,4 @@
+import { ThemeToggle } from '@/components/ThemeToggle';
 import { useState, useEffect, useRef, useMemo } from 'react';
 import { Link, useLocation } from 'wouter';
 import { ShoppingBag, Search, X, User, LogOut, ChevronDown, ChevronRight, ArrowUpRight, Scissors, PawPrint, Tent, Shovel, Wrench, FlameKindling, Backpack, LayoutGrid, Target, Drill, HardHat, Flashlight, Compass, Map as MapIcon, Mountain, Flower, Bird, Fish, Rabbit, TreeDeciduous, TreePine, UtensilsCrossed, Dog, Cat, Layers, Zap, Waves, PackageSearch, CircleHelp } from 'lucide-react';
@@ -406,6 +407,7 @@ export function Header() {
 
           {/* Sağ: Hesabım + Sepetim */}
           <div className="justify-self-end flex items-center gap-5">
+            <ThemeToggle className="w-10 h-10 rounded-full border border-white/12 hover:border-white/35" testId="button-theme-toggle-desktop" />
             {user ? (
               <DropdownMenu modal={false}>
                 <DropdownMenuTrigger asChild>
@@ -505,6 +507,7 @@ export function Header() {
             </a>
 
             <div className="justify-self-end flex items-center gap-0.5">
+              <ThemeToggle className="p-2.5" testId="button-theme-toggle-mobile" />
               <motion.button
                 whileTap={{ scale: 0.9 }}
                 onClick={() => setSearchOpen(true)}
@@ -874,6 +877,7 @@ export function Header() {
                     >
                       <Search className="w-[18px] h-[18px]" strokeWidth={1.75} />
                     </button>
+                    <ThemeToggle className="p-2.5" testId="button-theme-toggle-compact" />
                     <Link
                       href={user ? '/hesabim' : '/giris'}
                       className="p-2.5 inline-flex transition-colors text-white/65 hover:text-white active:scale-90"

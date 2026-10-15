@@ -739,3 +739,47 @@
 .product-rich-copy a { color: rgba(255,255,255,.95); text-decoration: underline; text-underline-offset: 3px; }
 .product-rich-copy hr { border: 0; border-top: 1px solid rgba(255,255,255,.1); margin: 2rem 0; }
 .product-rich-copy img { border: 1px solid rgba(255,255,255,.1); display: block; margin: 1.5rem 0; max-width: 100%; height: auto; }
+
+/* ── Açık tema ──────────────────────────────────────────────────────────────
+   Mağaza sayfaları koyu renkleri doğrudan sınıf olarak kullanıyor. Açık temada
+   yalnızca `.theme-light-zone` işaretli bölgelerde beyaz ile siyah paleti
+   tersine çevrilir. Başlık, hero, filtre çubuğu ve alt çubuk bölgenin dışında
+   kaldığı için koyu kalır. Koyu temada bu kuralların hiçbiri çalışmaz. */
+html[data-theme="light"] .theme-light-zone {
+  --color-white: #111111;
+  --color-black: #ffffff;
+  background: #ffffff;
+  color: #111111;
+}
+html[data-theme="light"] .theme-light-zone .bg-\[\#0A0A0A\],
+html[data-theme="light"] .theme-light-zone .bg-\[\#0F0F0F\] { background-color: #ffffff; }
+html[data-theme="light"] .theme-light-zone .bg-\[\#111111\],
+html[data-theme="light"] .theme-light-zone .bg-\[\#141414\],
+html[data-theme="light"] .theme-light-zone .bg-\[\#151515\],
+html[data-theme="light"] .theme-light-zone .bg-zinc-900 { background-color: #f4f4f5; }
+html[data-theme="light"] .theme-light-zone .from-\[\#0A0A0A\] { --tw-gradient-from: #ffffff; }
+
+/* Açık temada yarı saydam koyu yüzeyler beyaz zemin üzerinde grileşiyor, opaklığı artır */
+html[data-theme="light"] .surface-glass-dark {
+  background: rgba(10, 10, 10, 0.95);
+}
+html[data-theme="light"] [data-testid="banner-cookie-consent"] > div {
+  background: rgba(10, 10, 10, 0.95) !important;
+}
+html[data-theme="light"] .theme-light-zone .after\:from-\[\#0A0A0A\]::after { --tw-gradient-from: #ffffff; }
+
+/* Ürün açıklaması metni, açık temada koyu renkli */
+html[data-theme="light"] .theme-light-zone .product-rich-copy { color: rgba(17,17,17,.68); }
+html[data-theme="light"] .theme-light-zone .product-rich-copy h1,
+html[data-theme="light"] .theme-light-zone .product-rich-copy h2,
+html[data-theme="light"] .theme-light-zone .product-rich-copy h3,
+html[data-theme="light"] .theme-light-zone .product-rich-copy h4 { color: rgba(17,17,17,.94); }
+html[data-theme="light"] .theme-light-zone .product-rich-copy strong,
+html[data-theme="light"] .theme-light-zone .product-rich-copy b { color: rgba(17,17,17,.92); }
+html[data-theme="light"] .theme-light-zone .product-rich-copy em { color: rgba(17,17,17,.78); }
+html[data-theme="light"] .theme-light-zone .product-rich-copy ul li::before { background: rgba(17,17,17,.65); }
+html[data-theme="light"] .theme-light-zone .product-rich-copy ol li::marker { color: rgba(17,17,17,.45); }
+html[data-theme="light"] .theme-light-zone .product-rich-copy blockquote { border-left: 1px solid rgba(17,17,17,.45); color: rgba(17,17,17,.8); }
+html[data-theme="light"] .theme-light-zone .product-rich-copy a { color: rgba(17,17,17,.95); }
+html[data-theme="light"] .theme-light-zone .product-rich-copy hr { border-top: 1px solid rgba(17,17,17,.1); }
+html[data-theme="light"] .theme-light-zone .product-rich-copy img { border: 1px solid rgba(17,17,17,.1); }

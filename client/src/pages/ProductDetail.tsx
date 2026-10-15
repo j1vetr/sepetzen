@@ -1515,7 +1515,7 @@ export default function ProductDetail() {
       </AnimatePresence>
 
       {/* ── Main ── */}
-      <main className="pt-6 lg:pt-6 pb-24 lg:pb-16">
+      <main className="theme-light-zone pt-6 lg:pt-6 pb-24 lg:pb-16">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
 
           {/* Breadcrumb */}
