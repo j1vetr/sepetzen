@@ -803,3 +803,4 @@ html[data-theme="light"] .theme-light-zone [data-testid="scene-trust"] .rounded-
 html[data-theme="light"] .theme-light-zone .from-\[\#080808\] { --tw-gradient-from: #ffffff; }
 html[data-theme="light"] .theme-light-zone .via-\[\#080808\] { --tw-gradient-via: #ffffff; }
 html[data-theme="light"] .theme-light-zone [data-testid="scene-partners"] img { filter: grayscale(1); }
+html[data-theme="light"] .theme-light-zone .keep-dark.bg-\[\#141414\] { background-color: #141414; }

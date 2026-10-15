@@ -464,12 +464,13 @@ export default function Store() {
         </div>
       </div>
 
+      <div className="theme-light-zone">
       <div className="max-w-[1400px] mx-auto px-4 lg:px-6 py-5 lg:py-6">
         <div className="flex gap-6 lg:gap-8">
 
           {/* Sol Sidebar — masaüstü */}
           <aside className="hidden lg:block w-[220px] xl:w-[240px] shrink-0">
-            <div className="sticky top-24 bg-[#141414] border border-white/8 rounded-sm p-4">
+            <div className="keep-dark sticky top-24 bg-[#141414] border border-white/8 rounded-sm p-4">
               <div className="flex items-center justify-between mb-5">
                 <h3 className="text-[11px] font-bold tracking-[0.20em] uppercase text-white flex items-center gap-2">
                   <SlidersHorizontal className="w-3.5 h-3.5 text-white" strokeWidth={2} />
@@ -630,6 +631,7 @@ export default function Store() {
             )}
           </div>
         </div>
+      </div>
       </div>
 
       <Footer />
