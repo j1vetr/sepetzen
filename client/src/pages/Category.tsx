@@ -440,7 +440,7 @@ export default function Category() {
             className="category-filter-panel overflow-hidden border-b border-white/8 bg-[#0F0F0F]"
             data-testid="category-filter-panel"
           >
-            <div className="max-h-[calc(100dvh-7rem)] overflow-y-auto overscroll-contain touch-pan-y max-w-[1400px] mx-auto px-5 lg:px-8 py-8 pb-[calc(var(--mobile-nav-total,58px)+2rem)] lg:max-h-none lg:overflow-visible lg:pb-8">
+            <div className="max-h-[calc(100dvh-7rem)] overflow-y-auto overscroll-contain no-scrollbar touch-pan-y max-w-[1400px] mx-auto px-5 lg:px-8 py-8 pb-[calc(var(--mobile-nav-total,58px)+2rem)] lg:max-h-none lg:overflow-visible lg:pb-8">
               <div className={`grid grid-cols-1 ${panelCols} gap-x-10 gap-y-8`}>
 
                 {/* Fiyat Aralığı */}

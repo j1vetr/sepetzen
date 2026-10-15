@@ -519,7 +519,7 @@ export default function Store() {
                         Filtrele
                       </SheetTitle>
                     </SheetHeader>
-                    <div className="mt-6 min-h-0 flex-1 overflow-y-auto overscroll-contain pr-1 pb-4">
+                    <div className="mt-6 min-h-0 flex-1 overflow-y-auto overscroll-contain no-scrollbar pb-4">
                       {sidebarContent}
                     </div>
                     <div className="shrink-0 pt-4 mt-2 border-t border-white/10 flex items-center gap-3 pb-[calc(var(--mobile-nav-total,58px)+0.5rem)]">
