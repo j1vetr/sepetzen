@@ -2,7 +2,7 @@ import type { Express, Request, Response, NextFunction } from "express";
 import { createServer, type Server } from "http";
 import { storage, db } from "./storage";
 import { sanitizeStoredHtml } from "./htmlSanitize";
-import { issueInvoiceForOrder, cancelArchiveInvoice } from "./isnetService";
+import { issueInvoiceForOrder, cancelArchiveInvoice } from "./birfaturaService";
 import { getOpenAiApiKey, mapOpenAiError, stripEmDashes, OPENAI_KEY_MISSING_MESSAGE } from "./openaiKey";
 import { DEFAULT_FREE_SHIPPING_THRESHOLD, DEFAULT_DOMESTIC_SHIPPING_COST, DEFAULT_INTERNATIONAL_SHIPPING_COST } from "@shared/shipping";
 import { z } from "zod";
@@ -8100,7 +8100,7 @@ window.addEventListener('load', function() {
     }
   });
 
-  // ── e-Fatura / e-Arşiv (İŞNET) Admin Route'ları ──────────────────────────
+  // ── e-Fatura / e-Arşiv (BirFatura) Admin Route'ları ──────────────────────────
 
   /** Siparişe manuel fatura kes (yeniden deneme veya ilk kez). */
   app.post("/api/admin/orders/:id/issue-invoice", requireAdmin, async (req, res) => {
@@ -8114,7 +8114,7 @@ window.addEventListener('load', function() {
       // Mevcut iptal edilmemiş faturayı önce iptal et
       if (order.ettn && order.eInvoiceStatus === 'sent') {
         await cancelArchiveInvoice(order.ettn, 'Yeniden düzenleme').catch(err =>
-          console.warn('[İŞNET] Eski fatura iptal edilemedi:', err?.message),
+          console.warn('[BirFatura] Eski fatura iptal edilemedi:', err?.message),
         );
       }
       await storage.updateOrder(order.id, { eInvoiceStatus: 'queued' } as any);

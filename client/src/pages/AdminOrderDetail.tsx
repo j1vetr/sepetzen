@@ -368,7 +368,7 @@ function EInvoiceCard({ order, onRefresh }: { order: Order | null; onRefresh: ()
 
   return (
     <Card className="p-5" data-testid="card-einvoice">
-      <SectionHeading title="e-Fatura / e-Arşiv" description="İŞNET entegrasyonu" />
+      <SectionHeading title="e-Fatura / e-Arşiv" description="BirFatura entegrasyonu" />
 
       <div className="space-y-3">
         {/* Durum */}

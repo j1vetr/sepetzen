@@ -334,7 +334,7 @@ export const orders = pgTable("orders", {
   shipmentId: text("shipment_id"),
   shipmentLabelUrl: text("shipment_label_url"),
   invoiceUrl: text("invoice_url"),
-  // e-Fatura / e-Arşiv (İŞNET)
+  // e-Fatura / e-Arşiv (BirFatura)
   ettn: text("ettn"),
   eInvoiceNumber: text("e_invoice_number"),
   eInvoiceStatus: text("e_invoice_status"), // 'queued' | 'sent' | 'failed' | 'cancelled'
