@@ -999,3 +999,18 @@ export const insertBrandSchema = createInsertSchema(brands).omit({
 });
 
 export type Brand = typeof brands.$inferSelect;
+
+// KVKK veri silme talepleri (müşteri panelinden oluşturulur, admin panelinden sonuçlandırılır)
+export const dataDeletionRequests = pgTable("data_deletion_requests", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  userId: varchar("user_id").references(() => users.id, { onDelete: "set null" }),
+  email: text("email").notNull(),
+  fullName: text("full_name").notNull(),
+  note: text("note"),
+  status: text("status").default("pending").notNull(), // 'pending' | 'completed' | 'rejected'
+  adminNote: text("admin_note"),
+  resolvedAt: timestamp("resolved_at"),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
+export type DataDeletionRequest = typeof dataDeletionRequests.$inferSelect;

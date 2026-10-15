@@ -18,6 +18,7 @@ import {
   Database,
   Ticket,
   Tag,
+  ShieldCheck,
   X,
 } from 'lucide-react';
 import { useQuery } from '@tanstack/react-query';
@@ -61,6 +62,7 @@ const TAB_ICONS: Record<TabType, React.ComponentType<{ className?: string }>> = 
   orders: ShoppingCart,
   users: Users,
   reviews: MessageSquare,
+  kvkk: ShieldCheck,
   coupons: Ticket,
   homepage: Home,
   menu: MenuIcon,

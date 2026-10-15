@@ -231,4 +231,5 @@ export type TabType =
   | 'blog'
   | 'coupons'
   | 'reviews'
+  | 'kvkk'
   | 'brands';

@@ -31,7 +31,9 @@ import {
   Trash2,
   Home,
   RotateCcw,
+  ShieldCheck,
 } from 'lucide-react';
+import KvkkPanel from '@/components/KvkkPanel';
 import { useToast } from '@/hooks/use-toast';
 import { SEO } from '@/components/SEO';
 import { formatTRDate, formatTRDateTime } from '@shared/dateFormat';
@@ -40,7 +42,7 @@ import { ProductCard } from '@/components/ProductCard';
 import { COUNTRIES } from '@/lib/countries';
 import { InvoiceFields, emptyInvoiceForm, invoiceFormFrom, invoicePayload, validateInvoiceForm, type InvoiceFormValue } from '@/components/InvoiceFields';
 
-type TabType = 'orders' | 'profile' | 'addresses' | 'favorites';
+type TabType = 'orders' | 'profile' | 'addresses' | 'favorites' | 'kvkk';
 
 interface Order {
   id: string;
@@ -442,6 +444,7 @@ export default function Profile() {
     { id: 'favorites' as TabType, label: 'Favorilerim', icon: Heart, count: favorites.length },
     { id: 'profile' as TabType, label: 'Profil Bilgileri', icon: User },
     { id: 'addresses' as TabType, label: 'Adreslerim', icon: MapPin, count: addresses.length },
+    { id: 'kvkk' as TabType, label: 'KVKK ve Gizlilik', icon: ShieldCheck },
   ];
 
   return (
@@ -823,6 +826,17 @@ export default function Profile() {
                         </div>
                       )}
                     </div>
+                  </motion.div>
+                )}
+
+                {activeTab === 'kvkk' && (
+                  <motion.div
+                    key="kvkk"
+                    initial={{ opacity: 0, y: 10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={{ opacity: 0, y: -10 }}
+                  >
+                    <KvkkPanel />
                   </motion.div>
                 )}
 

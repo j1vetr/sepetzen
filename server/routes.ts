@@ -2,6 +2,7 @@ import type { Express, Request, Response, NextFunction } from "express";
 import { createServer, type Server } from "http";
 import { storage, db } from "./storage";
 import { sanitizeStoredHtml } from "./htmlSanitize";
+import { collectUserData, getLatestDeletionRequest, createDeletionRequest, listDeletionRequests, resolveDeletionRequest } from "./kvkk";
 import { issueInvoiceForOrder, cancelInvoiceForOrder } from "./invoiceService";
 import { getOpenAiApiKey, mapOpenAiError, stripEmDashes, OPENAI_KEY_MISSING_MESSAGE } from "./openaiKey";
 import { DEFAULT_FREE_SHIPPING_THRESHOLD, DEFAULT_DOMESTIC_SHIPPING_COST, DEFAULT_INTERNATIONAL_SHIPPING_COST } from "@shared/shipping";
@@ -2339,6 +2340,90 @@ KURALLAR:
       res.json(orders);
     } catch (error) {
       res.status(500).json({ error: "Siparişler yüklenemedi" });
+    }
+  });
+
+  // ── KVKK: müşterinin verileri, veri indirme ve silme talebi ──────────────────
+  const requireCustomerId = async (req: Request, res: Response): Promise<string | null> => {
+    const payload = await getAuthPayload(req, res);
+    if (!payload || payload.type !== 'user' || !payload.userId) {
+      res.status(401).json({ error: "Giriş yapılmamış" });
+      return null;
+    }
+    return payload.userId;
+  };
+
+  app.get("/api/kvkk/data", async (req: Request, res) => {
+    const userId = await requireCustomerId(req, res);
+    if (!userId) return;
+    try {
+      const data = await collectUserData(userId);
+      if (!data) return res.status(404).json({ error: "Kullanıcı bulunamadı" });
+      res.json(data);
+    } catch {
+      res.status(500).json({ error: "Veriler yüklenemedi" });
+    }
+  });
+
+  app.get("/api/kvkk/export", async (req: Request, res) => {
+    const userId = await requireCustomerId(req, res);
+    if (!userId) return;
+    try {
+      const data = await collectUserData(userId);
+      if (!data) return res.status(404).json({ error: "Kullanıcı bulunamadı" });
+      res.setHeader('Content-Type', 'application/json; charset=utf-8');
+      res.setHeader('Content-Disposition', 'attachment; filename="kisisel-verilerim.json"');
+      res.send(JSON.stringify(data, null, 2));
+    } catch {
+      res.status(500).json({ error: "Veriler indirilemedi" });
+    }
+  });
+
+  app.get("/api/kvkk/deletion-request", async (req: Request, res) => {
+    const userId = await requireCustomerId(req, res);
+    if (!userId) return;
+    try {
+      res.json({ request: await getLatestDeletionRequest(userId) });
+    } catch {
+      res.status(500).json({ error: "Talep durumu alınamadı" });
+    }
+  });
+
+  app.post("/api/kvkk/deletion-request", async (req: Request, res) => {
+    const userId = await requireCustomerId(req, res);
+    if (!userId) return;
+    try {
+      const raw = typeof req.body?.note === 'string' ? req.body.note.trim().slice(0, 1000) : '';
+      const result = await createDeletionRequest(userId, raw || null);
+      if (!result.created) {
+        return res.status(409).json({ error: "Bekleyen bir silme talebiniz zaten var", request: result.request });
+      }
+      res.status(201).json({ request: result.request });
+    } catch {
+      res.status(500).json({ error: "Talep oluşturulamadı" });
+    }
+  });
+
+  app.get("/api/admin/kvkk/requests", requireAdmin, async (_req, res) => {
+    try {
+      res.json(await listDeletionRequests());
+    } catch {
+      res.status(500).json({ error: "Talepler yüklenemedi" });
+    }
+  });
+
+  app.patch("/api/admin/kvkk/requests/:id", requireAdmin, async (req, res) => {
+    try {
+      const status = req.body?.status;
+      if (!['pending', 'completed', 'rejected'].includes(status)) {
+        return res.status(400).json({ error: "Geçersiz durum" });
+      }
+      const note = typeof req.body?.adminNote === 'string' ? req.body.adminNote.trim().slice(0, 1000) : '';
+      const row = await resolveDeletionRequest(req.params.id, status, note || null);
+      if (!row) return res.status(404).json({ error: "Talep bulunamadı" });
+      res.json(row);
+    } catch {
+      res.status(500).json({ error: "Talep güncellenemedi" });
     }
   });
 

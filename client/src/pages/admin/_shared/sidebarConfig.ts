@@ -16,6 +16,7 @@ import {
 
   Newspaper,
   Tag,
+  ShieldCheck,
 } from 'lucide-react';
 import type { SidebarCategory } from '../_layout/AdminLayout';
 import type { TabType } from './types';
@@ -38,6 +39,7 @@ export const VALID_TABS: TabType[] = [
   'blog',
   'coupons',
   'reviews',
+  'kvkk',
 ];
 
 export const SIDEBAR_CATEGORIES: SidebarCategory[] = [
@@ -68,6 +70,7 @@ export const SIDEBAR_CATEGORIES: SidebarCategory[] = [
     items: [
       { id: 'users', icon: Users, label: 'Kullanıcılar' },
       { id: 'reviews', icon: MessageSquare, label: 'Yorumlar' },
+      { id: 'kvkk', icon: ShieldCheck, label: 'KVKK Talepleri' },
     ],
   },
   {
@@ -105,6 +108,7 @@ export const TAB_DESCRIPTIONS: Record<TabType, string> = {
   orders: 'Sitenizden gelen siparişleri görüntüleyin ve yönetin.',
   users: 'Kayıtlı müşterilerinizi görüntüleyin.',
   reviews: 'Müşteri yorumlarını onaylayın veya kaldırın.',
+  kvkk: 'Müşterilerin veri silme taleplerini görüntüleyin ve sonuçlandırın.',
   coupons: 'İndirim kuponları oluşturun ve takip edin.',
   homepage: 'Ana sayfanızın bölümlerini düzenleyin.',
   footer: 'Footer bağlantılarını, iletişim bilgilerini ve sosyal medya hesaplarını düzenleyin.',
