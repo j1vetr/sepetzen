@@ -157,6 +157,7 @@ interface Order {
   eInvoiceStatus?: string | null;
   eInvoiceSentAt?: string | null;
   eInvoiceType?: string | null;
+  eInvoiceProvider?: string | null;
   createdAt: string;
   items: OrderItem[];
   returnRequests?: ReturnRequest[];
@@ -368,7 +369,7 @@ function EInvoiceCard({ order, onRefresh }: { order: Order | null; onRefresh: ()
 
   return (
     <Card className="p-5" data-testid="card-einvoice">
-      <SectionHeading title="e-Fatura / e-Arşiv" description="BirFatura entegrasyonu" />
+      <SectionHeading title="e-Fatura / e-Arşiv" description={order.eInvoiceProvider === 'parasut' ? 'Paraşüt entegrasyonu' : 'BirFatura entegrasyonu'} />
 
       <div className="space-y-3">
         {/* Durum */}

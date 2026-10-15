@@ -24,3 +24,4 @@
 - [Admin 2FA (TOTP)](admin-2fa.md) — otplib pinned to v12 (v13 breaks API); TOTP verify must consume time-step (replay guard); backup codes CAS-consumed; in-memory rate limit caveat.
 
 - [Admin white-screen debugging](admin-white-screen-debugging.md) — verify stale-prod claims by asset hash; repro admin render crashes via unauthenticated screenshot; icon props take components, not JSX.
+- [Invoice providers](invoice-providers.md) — BirFatura and Parasut both selectable via `invoice_provider` setting; creds in site_settings (masked); orders remember provider for cancel.

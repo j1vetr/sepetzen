@@ -2,7 +2,7 @@ import type { Express, Request, Response, NextFunction } from "express";
 import { createServer, type Server } from "http";
 import { storage, db } from "./storage";
 import { sanitizeStoredHtml } from "./htmlSanitize";
-import { issueInvoiceForOrder, cancelArchiveInvoice } from "./birfaturaService";
+import { issueInvoiceForOrder, cancelInvoiceForOrder } from "./invoiceService";
 import { getOpenAiApiKey, mapOpenAiError, stripEmDashes, OPENAI_KEY_MISSING_MESSAGE } from "./openaiKey";
 import { DEFAULT_FREE_SHIPPING_THRESHOLD, DEFAULT_DOMESTIC_SHIPPING_COST, DEFAULT_INTERNATIONAL_SHIPPING_COST } from "@shared/shipping";
 import { z } from "zod";
@@ -8053,7 +8053,22 @@ window.addEventListener('load', function() {
     }
   });
 
-  // ── e-Fatura / e-Arşiv (BirFatura) Admin Route'ları ──────────────────────────
+  // ── e-Fatura / e-Arşiv (BirFatura / Paraşüt) Admin Route'ları ──────────────────────────
+
+  /** Kayıtlı fatura sağlayıcısı bilgilerini doğrular (kaydetmeden önce ayarlar kaydedilmiş olmalı). */
+  app.post("/api/admin/invoice/test-connection", requireAdmin, async (req, res) => {
+    try {
+      const provider = req.body?.provider;
+      if (provider === 'parasut') {
+        const { testParasutConnection } = await import('./parasutService');
+        await testParasutConnection();
+        return res.json({ ok: true, message: 'Paraşüt bağlantısı başarılı' });
+      }
+      return res.status(400).json({ ok: false, error: 'Bu sağlayıcı için bağlantı testi yok' });
+    } catch (error: any) {
+      res.status(200).json({ ok: false, error: error?.message || 'Bağlantı testi başarısız' });
+    }
+  });
 
   /** Siparişe manuel fatura kes (yeniden deneme veya ilk kez). */
   app.post("/api/admin/orders/:id/issue-invoice", requireAdmin, async (req, res) => {
@@ -8065,9 +8080,9 @@ window.addEventListener('load', function() {
       }
       const items = await storage.getOrderItems(order.id);
       // Mevcut iptal edilmemiş faturayı önce iptal et
-      if (order.ettn && order.eInvoiceStatus === 'sent') {
-        await cancelArchiveInvoice(order.ettn, 'Yeniden düzenleme').catch(err =>
-          console.warn('[BirFatura] Eski fatura iptal edilemedi:', err?.message),
+      if ((order.ettn || order.eInvoiceExternalId) && order.eInvoiceStatus === 'sent') {
+        await cancelInvoiceForOrder(order, 'Yeniden düzenleme').catch(err =>
+          console.warn('[Fatura] Eski fatura iptal edilemedi:', err?.message),
         );
       }
       await storage.updateOrder(order.id, { eInvoiceStatus: 'queued' } as any);
@@ -8088,9 +8103,9 @@ window.addEventListener('load', function() {
     try {
       const order = await storage.getOrder(req.params.id);
       if (!order) return res.status(404).json({ error: "Sipariş bulunamadı" });
-      if (!order.ettn) return res.status(400).json({ error: "Bu siparişe ait fatura yok" });
+      if (!order.ettn && !order.eInvoiceExternalId) return res.status(400).json({ error: "Bu siparişe ait fatura yok" });
       const reason = (req.body?.reason as string) || 'Admin iptali';
-      await cancelArchiveInvoice(order.ettn, reason);
+      await cancelInvoiceForOrder(order, reason);
       const updated = await storage.updateOrder(order.id, { eInvoiceStatus: 'cancelled' } as any);
       res.json(updated);
     } catch (error) {
@@ -8593,6 +8608,8 @@ window.addEventListener('load', function() {
     }
   });
 
+  const INVOICE_SECRET_KEYS = ['birfatura_api_key', 'birfatura_secret_key', 'birfatura_integration_key', 'parasut_client_secret', 'parasut_password'];
+
   // Site Settings Routes
   app.get("/api/admin/settings", requireAdmin, async (req, res) => {
     try {
@@ -8618,6 +8635,9 @@ window.addEventListener('load', function() {
       }
       if (settings.openai_api_key) {
         settings.openai_api_key = '••••••••';
+      }
+      for (const k of INVOICE_SECRET_KEYS) {
+        if (settings[k]) settings[k] = '••••••••';
       }
       res.json(settings);
     } catch (error) {
@@ -8714,6 +8734,10 @@ window.addEventListener('load', function() {
       }
       if (settings.openai_api_key === '••••••••') {
         delete settings.openai_api_key;
+      }
+      for (const k of INVOICE_SECRET_KEYS) {
+        if (settings[k] === '••••••••') delete settings[k];
+        else if (typeof settings[k] === 'string') settings[k] = settings[k].trim();
       }
       // Kopyala-yapıştır kaynaklı baş/son boşlukları temizle
       if (typeof settings.openai_api_key === 'string') {

@@ -1,6 +1,7 @@
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useState, useEffect, useRef, type ComponentType } from 'react';
-import { Settings, Mail, Loader2, CheckCircle2, XCircle, Send, Server, CreditCard, Copy, AlertTriangle, Wrench, MessageCircle, KeyRound, ShieldCheck, Truck, MapPin, Megaphone, Globe, Banknote, Upload, ShoppingBag, Plus, Trash2, Sparkles, Zap, Image, Bell, SlidersHorizontal, ChevronUp, ChevronDown as ChevronDownIcon, Snowflake, BarChart2, Code2 } from 'lucide-react';
+import { Settings, Mail, Loader2, CheckCircle2, XCircle, Send, Server, CreditCard, Copy, AlertTriangle, Wrench, MessageCircle, KeyRound, ShieldCheck, Truck, MapPin, Megaphone, Globe, Banknote, Upload, ShoppingBag, Plus, Trash2, Sparkles, Zap, Image, Bell, SlidersHorizontal, ChevronUp, ChevronDown as ChevronDownIcon, Snowflake, BarChart2, Code2, FileText } from 'lucide-react';
+import InvoiceSettingsSection from './InvoiceSettingsSection';
 import { BANK_TRANSFER_INFO } from '@shared/bankInfo';
 import type { SiteIdentity, SocialLink, MobileNavItem } from '@shared/siteIdentity';
 import { COUNTRIES } from '@/lib/countries';
@@ -1981,13 +1982,14 @@ function SiteIdentitySection() {
   );
 }
 
-type SettingsSection = 'genel' | 'odeme' | 'kargo' | 'bildirim' | 'guvenlik';
+type SettingsSection = 'genel' | 'odeme' | 'kargo' | 'fatura' | 'bildirim' | 'guvenlik';
 type GenelTab = 'marka' | 'vitrin' | 'iletisim' | 'site';
 
 const SETTINGS_SECTIONS: { key: SettingsSection; label: string; Icon: ComponentType<{ className?: string }> }[] = [
   { key: 'genel', label: 'Genel', Icon: Settings },
   { key: 'odeme', label: 'Ödeme', Icon: CreditCard },
   { key: 'kargo', label: 'Kargo', Icon: Truck },
+  { key: 'fatura', label: 'Fatura', Icon: FileText },
   { key: 'bildirim', label: 'Bildirimler', Icon: Mail },
   { key: 'guvenlik', label: 'Giriş & Güvenlik', Icon: ShieldCheck },
 ];
@@ -2018,6 +2020,17 @@ export default function SettingsPanel({ initialSection = 'genel', contentOnly = 
     turnstile_site_key: '',
     turnstile_secret_key: '',
     openai_api_key: '',
+    invoice_provider: 'birfatura',
+    birfatura_api_key: '',
+    birfatura_secret_key: '',
+    birfatura_integration_key: '',
+    birfatura_base_url: '',
+    parasut_company_id: '',
+    parasut_client_id: '',
+    parasut_client_secret: '',
+    parasut_username: '',
+    parasut_password: '',
+    parasut_payment_account_id: '',
     aras_kargo_enabled: 'false',
     aras_kargo_username: '',
     aras_kargo_password: '',
@@ -3713,6 +3726,8 @@ export default function SettingsPanel({ initialSection = 'genel', contentOnly = 
       </div>
       )}
 
+      {section === 'fatura' && <InvoiceSettingsSection settings={settings} setSettings={setSettings} />}
+
       {/* Google OAuth Section */}
       {section === 'guvenlik' && <GoogleOAuthSection />}
 
@@ -4713,7 +4728,7 @@ export default function SettingsPanel({ initialSection = 'genel', contentOnly = 
       </div>
       </>)}
 
-      {(section === 'bildirim' || section === 'kargo' || section === 'guvenlik') && (
+      {(section === 'bildirim' || section === 'kargo' || section === 'fatura' || section === 'guvenlik') && (
       <div className="flex justify-end">
         <button
           onClick={handleSave}

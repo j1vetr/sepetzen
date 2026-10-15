@@ -10,21 +10,27 @@
 import axios from 'axios';
 import { randomUUID } from 'crypto';
 import type { Order } from '@shared/schema';
+import { storage } from './storage';
 
 const DEFAULT_VAT_RATE = 20;
 /** Bireysel müşteride TCKN yoksa GİB'in kabul ettiği genel değer. */
 const ANONYMOUS_TAX_NO = '11111111111';
 
-function baseUrl(): string {
-  return (process.env.BIRFATURA_BASE_URL || 'https://uygulama.edonustur.com').replace(/\/+$/, '');
+/** Anahtarlar önce admin panelindeki ayarlardan, yoksa ortam secret'larından okunur. */
+async function setting(key: string, envName: string): Promise<string> {
+  return ((await storage.getSiteSetting(key)) || process.env[envName] || '').trim();
 }
 
-function authHeaders(): Record<string, string> {
-  const apiKey = process.env.BIRFATURA_API_KEY;
-  const secretKey = process.env.BIRFATURA_SECRET_KEY;
-  const integrationKey = process.env.BIRFATURA_INTEGRATION_KEY;
+async function baseUrl(): Promise<string> {
+  return (await setting('birfatura_base_url', 'BIRFATURA_BASE_URL') || 'https://uygulama.edonustur.com').replace(/\/+$/, '');
+}
+
+async function authHeaders(): Promise<Record<string, string>> {
+  const apiKey = await setting('birfatura_api_key', 'BIRFATURA_API_KEY');
+  const secretKey = await setting('birfatura_secret_key', 'BIRFATURA_SECRET_KEY');
+  const integrationKey = await setting('birfatura_integration_key', 'BIRFATURA_INTEGRATION_KEY');
   if (!apiKey || !secretKey || !integrationKey) {
-    throw new Error('BirFatura API anahtarları tanımlı değil (BIRFATURA_API_KEY, BIRFATURA_SECRET_KEY, BIRFATURA_INTEGRATION_KEY)');
+    throw new Error('BirFatura API anahtarları tanımlı değil. Ayarlar > Fatura bölümünden girin.');
   }
   return {
     'Content-Type': 'application/json',
@@ -35,8 +41,8 @@ function authHeaders(): Record<string, string> {
 }
 
 async function call(path: string, body: unknown): Promise<unknown> {
-  const resp = await axios.post(`${baseUrl()}/api/OutEBelgeV2/${path}`, body, {
-    headers: authHeaders(),
+  const resp = await axios.post(`${await baseUrl()}/api/OutEBelgeV2/${path}`, body, {
+    headers: await authHeaders(),
     timeout: 30_000,
     validateStatus: () => true,
   });
@@ -198,34 +204,4 @@ export async function cancelArchiveInvoice(ettn: string, reason = 'Sipariş ipta
     acceptOrRejectReason: reason,
     systemTypeCodes: 'EARSIV',
   });
-}
-
-type InvoiceUpdate = Partial<
-  Pick<Order, 'ettn' | 'eInvoiceNumber' | 'eInvoiceStatus' | 'eInvoiceSentAt' | 'eInvoiceType' | 'invoiceUrl'>
->;
-
-/**
- * Sipariş için fatura oluşturur. Hata sipariş akışını engellemez; sonuç
- * `updateFn` ile kaydedilir (başarısızsa eInvoiceStatus = 'failed').
- */
-export async function issueInvoiceForOrder(
-  order: Order,
-  items: Array<{ productName: string; sku?: string | null; price: string; quantity: number }>,
-  updateFn: (data: InvoiceUpdate) => Promise<void>,
-): Promise<void> {
-  try {
-    const result = await sendInvoice(order, buildInvoiceLines(items));
-    await updateFn({
-      ettn: result.ettn,
-      eInvoiceNumber: result.invoiceNumber,
-      eInvoiceStatus: 'sent',
-      eInvoiceSentAt: new Date(),
-      eInvoiceType: 'earchive',
-      ...(result.pdfUrl ? { invoiceUrl: result.pdfUrl } : {}),
-    });
-    console.log(`[BirFatura] Fatura gönderildi: ${order.orderNumber} → ETTN ${result.ettn}`);
-  } catch (err) {
-    console.error(`[BirFatura] Fatura gönderilemedi (${order.orderNumber}):`, err instanceof Error ? err.message : err);
-    await updateFn({ eInvoiceStatus: 'failed' }).catch(() => {});
-  }
 }
