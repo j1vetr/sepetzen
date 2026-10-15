@@ -65,14 +65,17 @@ export function PriceRangeFilter({
   };
 
   return (
-    <div className={className}>
+    <div className={`px-2.5 ${className}`}>
       <Slider
         value={value}
         min={min}
         max={max}
         step={step}
         onValueChange={(v) => onChange(v as [number, number])}
-        className="mb-4"
+        className="mb-5 h-6"
+        trackClassName="h-1 bg-white/15"
+        rangeClassName="bg-white"
+        thumbClassName="h-5 w-5 border-2 border-white bg-[#141414] shadow-[0_0_0_4px_rgba(255,255,255,0.08)] cursor-grab active:cursor-grabbing focus-visible:ring-2 focus-visible:ring-white/60"
         data-testid="slider-price-range"
       />
       <div className="flex items-center justify-between gap-2">

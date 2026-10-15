@@ -475,6 +475,21 @@ export default function Category() {
                   );
                 })}
               </div>
+
+              <div className="mt-8 pt-5 border-t border-white/10 flex items-center justify-between gap-3">
+                {hasActiveFilters ? (
+                  <button onClick={clearFilters} className="text-[11px] tracking-[0.12em] uppercase text-white/55 hover:text-white underline underline-offset-4 transition-colors" data-testid="button-panel-clear-filters">
+                    Filtreleri Temizle
+                  </button>
+                ) : <span />}
+                <button
+                  onClick={() => setFilterOpen(false)}
+                  className="h-11 px-6 bg-white text-black text-[11px] tracking-[0.16em] uppercase font-bold hover:bg-white/90 transition-colors"
+                  data-testid="button-panel-show-results"
+                >
+                  {filteredProducts.length} Ürünü Göster
+                </button>
+              </div>
             </div>
           </motion.div>
         )}
