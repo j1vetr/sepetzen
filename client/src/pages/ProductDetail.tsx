@@ -2518,7 +2518,7 @@ export default function ProductDetail() {
                       )}
                       {!user && (
                         <p className="text-[11px] text-white/38 leading-relaxed">
-                          E-postanız sadece yorum doğrulama için kullanılır, yayınlanmaz. Yorumlar yönetici onayından geçer.
+                          E-postanız sadece yorum doğrulama için kullanılır, yayınlanmaz. Yorumlar yönetici onayından geçer. Yorum göndererek <a href="/sayfa/kvkk-aydinlatma-metni" target="_blank" rel="noopener noreferrer" className="underline underline-offset-2 hover:text-white">KVKK Aydınlatma Metni</a> kapsamında verilerinizin işlenmesini kabul etmiş olursunuz.
                         </p>
                       )}
                       <button type="submit" disabled={createReviewMutation.isPending || uploadingReviewImages}

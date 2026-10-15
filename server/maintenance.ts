@@ -1,3 +1,4 @@
+import { getAdminPath } from "./adminPath";
 import type { Request, Response, NextFunction } from "express";
 import { storage } from "./storage";
 import { verifyAccessToken } from "./jwt";
@@ -79,7 +80,6 @@ export async function setMaintenanceContent(content: Partial<MaintenanceContent>
 
 const ALLOW_PREFIXES = [
   "/admin",
-  "/toov-admin",
   "/api/admin",
   "/api/auth/login",
   "/api/auth/logout",
@@ -96,7 +96,9 @@ const ALLOW_PREFIXES = [
   "/favicon",
 ];
 
-function isAllowed(path: string): boolean {
+async function isAllowed(path: string): Promise<boolean> {
+  const adminBase = `/${await getAdminPath()}`;
+  if (path === adminBase || path.startsWith(`${adminBase}/`)) return true;
   for (const p of ALLOW_PREFIXES) {
     if (path === p || path.startsWith(p)) return true;
   }
@@ -113,7 +115,7 @@ function hasValidAdminSession(req: Request): boolean {
 export function maintenanceMiddleware() {
   return async (req: Request, res: Response, next: NextFunction) => {
     if (req.method !== "GET" && req.method !== "HEAD") return next();
-    if (isAllowed(req.path)) return next();
+    if (await isAllowed(req.path)) return next();
     if (hasValidAdminSession(req)) return next();
 
     const enabled = await getMaintenanceMode();

@@ -6,6 +6,7 @@ import { Label } from '@/components/ui/label';
 import { useAuth } from '@/hooks/useAuth';
 import { useToast } from '@/hooks/use-toast';
 import { Eye, EyeOff } from 'lucide-react';
+import { LegalLink } from '@/components/LegalConsent';
 import { AuthLayout, GoogleAuthButton, authInputCls, authLabelCls, authButtonCls } from '@/components/AuthLayout';
 
 export default function Login() {
@@ -47,7 +48,7 @@ export default function Login() {
       footerLinkLabel="Kayıt Ol"
       footerLinkTestId="link-register"
     >
-      <GoogleAuthButton label="Google ile Giriş Yap" testId="button-google-login" />
+      <GoogleAuthButton label="Google ile Giriş Yap" testId="button-google-login" note={<>Hesabınız yoksa Google ile devam ederek <LegalLink to="membership" /> ve <LegalLink to="kvkk" /> kapsamını kabul etmiş olursunuz.</>} />
 
       <form onSubmit={handleSubmit} className="space-y-4">
         <div className="space-y-1.5">

@@ -1,3 +1,4 @@
+import { adminUrl } from '@/lib/adminPath';
 import { useMemo, useState, useRef, useEffect } from 'react';
 import { useLocation } from 'wouter';
 import { useQueryClient, useQuery, useMutation } from '@tanstack/react-query';
@@ -940,7 +941,7 @@ export default function ProductsTab({
 
   const handleDuplicate = (product: Product) => {
     // Kopya taslağı tam sayfa editörde hazırlanır
-    navigate(`/toov-admin/products/new?duplicate=${product.id}`);
+    navigate(adminUrl(`/products/new?duplicate=${product.id}`));
   };
 
   return (
@@ -983,7 +984,7 @@ export default function ProductsTab({
               <span className="sm:hidden">Varyant Kontrol</span>
             </SecondaryButton>
             <PrimaryButton
-              onClick={() => navigate('/toov-admin/products/new')}
+              onClick={() => navigate(adminUrl('/products/new'))}
               data-testid="button-add-product"
             >
               <Plus className="w-3.5 h-3.5" />
@@ -1198,7 +1199,7 @@ export default function ProductsTab({
               description="İlk ürünü ekleyerek mağazanızı kurmaya başlayın."
               action={
                 <PrimaryButton
-                  onClick={() => navigate('/toov-admin/products/new')}
+                  onClick={() => navigate(adminUrl('/products/new'))}
                 >
                   <Plus className="w-3.5 h-3.5" />
                   Yeni Ürün
@@ -1331,7 +1332,7 @@ export default function ProductsTab({
                         <td className="px-4 py-3 align-middle">
                           <RowActions
                             product={product}
-                            onEdit={() => { saveListState(); navigate(`/toov-admin/products/${product.id}`); }}
+                            onEdit={() => { saveListState(); navigate(adminUrl(`/products/${product.id}`)); }}
                             onCopy={() => handleDuplicate(product)}
                             onDelete={() => {
                               if (confirm('Bu ürünü silmek istediğinize emin misiniz?')) {
@@ -1389,7 +1390,7 @@ export default function ProductsTab({
                         </div>
                         <RowActions
                           product={product}
-                          onEdit={() => { saveListState(); navigate(`/toov-admin/products/${product.id}`); }}
+                          onEdit={() => { saveListState(); navigate(adminUrl(`/products/${product.id}`)); }}
                           onCopy={() => handleDuplicate(product)}
                           onDelete={() => {
                             if (confirm('Bu ürünü silmek istediğinize emin misiniz?')) {

@@ -1,3 +1,4 @@
+import { isAdminPath } from '@/lib/adminPath';
 import { useEffect, useRef, useState } from 'react';
 import { Link, useLocation } from 'wouter';
 import { X, Cookie } from 'lucide-react';
@@ -49,7 +50,7 @@ export function CookieConsent() {
     };
   }, [visible]);
 
-  if (location.startsWith('/toov-admin')) return null;
+  if (isAdminPath(location)) return null;
   if (!visible) return null;
 
   const remember = (value: 'accepted' | 'dismissed') => {

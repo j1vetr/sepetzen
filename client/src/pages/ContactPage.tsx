@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { LegalConsent, LegalLink } from '@/components/LegalConsent';
 import { Header } from '@/components/Header';
 import { Footer } from '@/components/Footer';
 import { SEO } from '@/components/SEO';
@@ -20,6 +21,7 @@ export default function ContactPage() {
   const [form, setForm] = useState({ name: '', email: '', subject: SUBJECTS[0], message: '' });
   const [status, setStatus] = useState<'idle' | 'sending' | 'success' | 'error'>('idle');
   const [errorMsg, setErrorMsg] = useState('');
+  const [accepted, setAccepted] = useState(false);
 
   const identity = useSiteIdentity();
 
@@ -35,6 +37,11 @@ export default function ContactPage() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!form.name.trim() || !form.email.trim() || !form.message.trim()) return;
+    if (!accepted) {
+      setStatus('error');
+      setErrorMsg('Devam etmek için KVKK Aydınlatma Metni onayı gereklidir.');
+      return;
+    }
     setStatus('sending');
     setErrorMsg('');
     try {
@@ -47,6 +54,7 @@ export default function ContactPage() {
       if (!res.ok) throw new Error(data.error || 'Gönderim başarısız');
       setStatus('success');
       setForm({ name: '', email: '', subject: SUBJECTS[0], message: '' });
+      setAccepted(false);
     } catch (err) {
       setStatus('error');
       setErrorMsg(err instanceof Error ? err.message : 'Bir hata oluştu');
@@ -249,6 +257,10 @@ export default function ContactPage() {
                       className={inputCls + ' resize-none'}
                     />
                   </div>
+
+                  <LegalConsent checked={accepted} onChange={setAccepted} testId="checkbox-contact-consent">
+                    Mesajımda paylaştığım kişisel verilerin <LegalLink to="kvkk" /> kapsamında işlenmesini kabul ediyorum.
+                  </LegalConsent>
 
                   {status === 'error' && (
                     <p className="text-[12px] text-red-400 bg-red-500/10 border border-red-500/20 px-3 py-2 rounded-sm">

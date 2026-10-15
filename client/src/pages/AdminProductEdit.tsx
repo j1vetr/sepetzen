@@ -1,3 +1,4 @@
+import { adminUrl } from '@/lib/adminPath';
 import { useEffect, useMemo, useState } from 'react';
 import { useLocation, useParams, useSearch } from 'wouter';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
@@ -239,7 +240,7 @@ function ProductEditor({
   });
 
   useEffect(() => {
-    if (userError) setLocation('/toov-admin/login');
+    if (userError) setLocation(adminUrl('/login'));
   }, [userError, setLocation]);
 
   const { data: products = [], isLoading: productsLoading } = useQuery<Product[]>({
@@ -546,7 +547,7 @@ function ProductEditor({
       queryClient.invalidateQueries({ queryKey: ['categories'] });
       // Yeni ürün oluşturulunca edit URL'ine geç (yönlendirme yok, kullanıcı sayfada kalır)
       if (!productId && saved?.id) {
-        setLocation(`/toov-admin/products/${saved.id}`, { replace: true });
+        setLocation(adminUrl(`/products/${saved.id}`), { replace: true });
       }
       setSavedFlash(true);
       setTimeout(() => setSavedFlash(false), 2500);
@@ -793,7 +794,7 @@ function ProductEditor({
     return missing;
   }, [formData.images.length, formData.description, formData.categoryIds.length, normalizedAvailableColors, pendingFiles.length, product?.availableSizes, variantRows.length, variantsLoaded]);
 
-  const goBack = () => setLocation('/toov-admin?tab=products');
+  const goBack = () => setLocation(adminUrl('?tab=products'));
 
   if (userLoading || (!!adminUser && productsLoading && (productId || duplicateId))) {
     return (
@@ -968,7 +969,7 @@ function ProductEditor({
                         ).length === 0 && (
                           <div className="px-3 py-2 text-[12px] text-neutral-500">
                             {brandSearch ? (
-                              <span>"{brandSearch}" serbest metin olarak kaydedilecek. <a href="/toov-admin?tab=brands" target="_blank" className="text-neutral-700 underline">Markalar sekmesinden ekleyin.</a></span>
+                              <span>"{brandSearch}" serbest metin olarak kaydedilecek. <a href={adminUrl('?tab=brands')} target="_blank" className="text-neutral-700 underline">Markalar sekmesinden ekleyin.</a></span>
                             ) : (
                               'Marka yok, listeden seçin veya serbest metin girin.'
                             )}

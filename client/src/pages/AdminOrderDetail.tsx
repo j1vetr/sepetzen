@@ -1,3 +1,4 @@
+import { adminUrl } from '@/lib/adminPath';
 import { useState, useEffect, useRef } from 'react';
 import { useParams, Link } from 'wouter';
 import {
@@ -989,7 +990,7 @@ export default function AdminOrderDetail() {
           <p className="text-[12px] text-neutral-500 mb-4">
             Sipariş silinmiş ya da erişim izniniz olmayabilir.
           </p>
-          <Link href="/toov-admin?tab=orders">
+          <Link href={adminUrl('?tab=orders')}>
             <SecondaryButton data-testid="button-back-to-orders">
               <ChevronLeft className="w-3.5 h-3.5" />
               Siparişlere Dön
@@ -1022,7 +1023,7 @@ export default function AdminOrderDetail() {
       <div className="max-w-6xl mx-auto px-4 sm:px-6 py-6 sm:py-8">
         {/* Back link */}
         <Link
-          href="/toov-admin?tab=orders"
+          href={adminUrl('?tab=orders')}
           className="inline-flex items-center gap-1.5 text-[12px] text-neutral-500 hover:text-neutral-900 mb-4 transition-colors"
           data-testid="link-back-to-orders"
         >

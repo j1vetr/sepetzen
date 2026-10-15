@@ -77,6 +77,8 @@ import { resolveBillingAddress, normalizeInvoiceInfo, validateInvoiceInfo } from
 import { HOMEPAGE_CONTENT_KEY, homepageContentSchema, resolveHomepageContent } from "@shared/homepage";
 import { SITE_IDENTITY_KEY, siteIdentitySchema, mergeSiteIdentity } from "@shared/siteIdentity";
 import { and, gte, lte } from "drizzle-orm";
+import { getAdminPath } from "./adminPath";
+import { ADMIN_PATH_SETTING_KEY, DEFAULT_ADMIN_PATH, ADMIN_PATH_ERROR, normalizeAdminPath } from "@shared/adminPath";
 import {
   generateAccessToken,
   generateRefreshToken,
@@ -8614,6 +8616,12 @@ window.addEventListener('load', function() {
   });
 
   // Public site identity (announcements, contact info, footer/nav content)
+  // Admin panel yolu (public): istemci rotaları bu yola göre kurulur
+  app.get("/api/admin-path", async (_req, res) => {
+    res.set('Cache-Control', 'no-store');
+    res.json({ path: await getAdminPath() });
+  });
+
   app.get("/api/site-identity", async (_req, res) => {
     try {
       const raw = await storage.getSiteSetting(SITE_IDENTITY_KEY);
@@ -8748,6 +8756,13 @@ window.addEventListener('load', function() {
   app.post("/api/admin/settings", requireAdmin, async (req, res) => {
     try {
       const settings = req.body;
+      if (settings[ADMIN_PATH_SETTING_KEY] !== undefined) {
+        const adminPath = settings[ADMIN_PATH_SETTING_KEY] === '' ? DEFAULT_ADMIN_PATH : normalizeAdminPath(settings[ADMIN_PATH_SETTING_KEY]);
+        if (!adminPath) {
+          return res.status(400).json({ error: ADMIN_PATH_ERROR });
+        }
+        settings[ADMIN_PATH_SETTING_KEY] = adminPath;
+      }
       if (settings.free_shipping_threshold !== undefined) {
         const threshold = Number.parseFloat(settings.free_shipping_threshold);
         if (!Number.isFinite(threshold) || threshold <= 0) {
@@ -9379,8 +9394,6 @@ Disallow: /giris
 Disallow: /kayit
 Disallow: /sifremi-unuttum
 Disallow: /sifre-sifirla
-Disallow: /toov-admin
-Disallow: /toov-admin/
 Disallow: /api/
 Disallow: /uploads/temp/
 

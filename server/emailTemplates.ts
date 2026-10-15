@@ -11,6 +11,7 @@ import type { BillingAddress } from '@shared/billing';
 import { BANK_TRANSFER_INFO } from '@shared/bankInfo';
 import { formatTRDateTime } from '@shared/dateFormat';
 import { storage } from './storage';
+import { getAdminPath } from './adminPath';
 
 // ─── Marka ve iletişim bilgileri ────────────────────────────────────────────
 
@@ -38,6 +39,7 @@ let SITE = {
   addressLine2: '',
   logoUrl: '',
   logoWidth: 190,
+  adminPath: 'toov-admin',
 };
 
 const trUpper = (s: string) => s.toLocaleUpperCase('tr-TR');
@@ -64,6 +66,7 @@ export async function refreshEmailBranding(): Promise<void> {
     addressLine2: s.email_address_line2 || '',
     logoUrl,
     logoWidth: Number.isFinite(width) && width > 0 && width <= 400 ? width : 190,
+    adminPath: await getAdminPath(),
   };
 }
 
@@ -699,7 +702,7 @@ export function adminOrderNotificationTemplate(order: Order, items: OrderItem[])
       ${rows}
     </table>
     ${totalsTable(order, 'Toplam')}
-    ${button(`${SITE.url}/toov-admin`, 'Siparişi Yönet')}
+    ${button(`${SITE.url}/${SITE.adminPath}`, 'Siparişi Yönet')}
   `,
     { preheader: `Yeni sipariş #${order.orderNumber}, ${order.total} ₺`, title: `Yeni Sipariş #${order.orderNumber}` },
   );
@@ -730,7 +733,7 @@ export function adminReviewNotificationTemplate(p: AdminReviewNotificationPayloa
       ])}
       ${p.content ? `<div style="margin:14px 0;">${divider()}</div><div style="font-size:13px;color:${BRAND.body};line-height:1.7;font-style:italic;">&ldquo;${escapeHtml(p.content)}&rdquo;</div>` : ''}
     `)}
-    ${button(`${SITE.url}/toov-admin?tab=reviews`, 'Admin Panelinde İncele')}
+    ${button(`${SITE.url}/${SITE.adminPath}?tab=reviews`, 'Admin Panelinde İncele')}
   `,
     { preheader: `Yeni yorum: ${p.authorName}, ${p.productName}`, title: 'Yeni yorum onay bekliyor' },
   );

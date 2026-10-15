@@ -1,3 +1,4 @@
+import { adminUrl } from '@/lib/adminPath';
 import { useState, useMemo, useEffect, useRef } from 'react';
 import { createPortal } from 'react-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
@@ -693,7 +694,7 @@ export default function OrdersPanel({ initialSearch = '', initialFilter = 'all' 
               {pendingReturns.slice(0, 5).map((request) => (
                 <Link
                   key={request.id}
-                  href={`/toov-admin/orders/${request.order?.id}`}
+                  href={adminUrl(`/orders/${request.order?.id}`)}
                   className="py-2.5 flex items-center justify-between gap-3 hover:bg-neutral-50 -mx-2 px-2 rounded-md"
                   data-testid={`link-pending-return-${request.id}`}
                 >
@@ -1089,7 +1090,7 @@ export default function OrdersPanel({ initialSearch = '', initialFilter = 'all' 
                       aria-label={`${order.orderNumber} – ${order.customerName} siparişini aç`}
                       className="hover:bg-neutral-50/60 transition-colors group cursor-pointer focus:outline-none focus-visible:bg-neutral-50 focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-neutral-900/15"
                       data-testid={`row-order-${order.id}`}
-                      onClick={() => navigate(`/toov-admin/orders/${order.id}`)}
+                      onClick={() => navigate(adminUrl(`/orders/${order.id}`))}
                       onKeyDown={(e) => {
                         if (e.key !== 'Enter' && e.key !== ' ') return;
                         const target = e.target as HTMLElement;
@@ -1101,7 +1102,7 @@ export default function OrdersPanel({ initialSearch = '', initialFilter = 'all' 
                         )
                           return;
                         e.preventDefault();
-                        navigate(`/toov-admin/orders/${order.id}`);
+                        navigate(adminUrl(`/orders/${order.id}`));
                       }}
                     >
                       <td
@@ -1212,7 +1213,7 @@ export default function OrdersPanel({ initialSearch = '', initialFilter = 'all' 
                       />
                   </div>
                   <Link
-                    href={`/toov-admin/orders/${order.id}`}
+                    href={adminUrl(`/orders/${order.id}`)}
                     className="min-w-0 flex-1"
                     data-testid={`card-order-${order.id}`}
                   >

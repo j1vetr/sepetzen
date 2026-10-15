@@ -1,8 +1,11 @@
+import { adminUrl } from '@/lib/adminPath';
 import { useState } from 'react';
+import { useSiteIdentity } from '@/hooks/useSiteIdentity';
 import { useLocation } from 'wouter';
 import { useMutation } from '@tanstack/react-query';
 
 export default function AdminLogin() {
+  const siteIdentity = useSiteIdentity();
   const [, setLocation] = useLocation();
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
@@ -29,7 +32,7 @@ export default function AdminLogin() {
         setTotpCode('');
         return;
       }
-      setLocation('/toov-admin');
+      setLocation(adminUrl());
     },
     onError: (err: Error & { requiresTotp?: boolean }) => {
       if (err.requiresTotp) {
@@ -63,14 +66,14 @@ export default function AdminLogin() {
 
       <div className="relative w-full max-w-[380px] flex flex-col items-center">
 
-        {/* Toov Logo */}
+        {/* Site logosu */}
         <div className="mb-10 flex flex-col items-center gap-3">
           <img
-            src="/images/toov-logo.png"
-            alt="Toov Internet Solutions"
+            src={siteIdentity.logoUrl}
+            alt="Sepetzen"
             className="h-24 sm:h-32 w-auto object-contain select-none"
             draggable={false}
-            data-testid="img-toov-logo"
+            data-testid="img-site-logo"
           />
           <div className="h-px w-16 bg-white/10" />
           <p className="text-[11px] tracking-[0.22em] uppercase text-white/30 font-mono">

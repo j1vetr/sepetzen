@@ -1,3 +1,4 @@
+import { LegalConsent, LegalLink } from '@/components/LegalConsent';
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { pickThumbUrl, isVideoUrl } from '@/lib/mediaUtils';
 import { useLocation, Link } from 'wouter';
@@ -76,6 +77,7 @@ export default function Checkout() {
   const [orderComplete, setOrderComplete] = useState(false);
   const [orderNumber, setOrderNumber] = useState('');
   const [createAccount, setCreateAccount] = useState(false);
+  const [legalAccepted, setLegalAccepted] = useState(false);
   const [accountPassword, setAccountPassword] = useState('');
   const [stepErrors, setStepErrors] = useState<Record<number, string[]>>({});
   const [savedOrderTotal, setSavedOrderTotal] = useState<number | null>(null);
@@ -453,6 +455,9 @@ export default function Checkout() {
       }
       if (createAccount && accountPassword.length < 6) {
         errors.push('Şifre en az 6 karakter olmalı');
+      }
+      if (!legalAccepted) {
+        errors.push('Devam etmek için Mesafeli Satış Sözleşmesi ve KVKK Aydınlatma Metni onayı gerekli');
       }
     }
 
@@ -1679,6 +1684,19 @@ export default function Checkout() {
                           </AnimatePresence>
                         </div>
                       )}
+
+                      <div className="mt-6" data-testid="checkout-legal-consent">
+                        <LegalConsent
+                          checked={legalAccepted}
+                          onChange={setLegalAccepted}
+                          invalid={!!stepErrors[2] && !legalAccepted}
+                          testId="checkbox-legal-consent"
+                        >
+                          <LegalLink to="distanceSales" /> ile ön bilgilendirme koşullarını okudum, kabul ediyorum.
+                          Kişisel verilerimin <LegalLink to="kvkk" /> kapsamında işlenmesine ilişkin bilgilendirildim.
+                          {createAccount && !user && <> Üyelik için <LegalLink to="membership" /> metnini de kabul ediyorum.</>}
+                        </LegalConsent>
+                      </div>
 
                       <div className="flex gap-3 mt-6">
                         {stepBack(1, 'flex-1')}

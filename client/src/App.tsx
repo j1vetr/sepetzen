@@ -1,3 +1,4 @@
+import { adminUrl, isAdminPath } from '@/lib/adminPath';
 import { Switch, Route, Redirect, useLocation } from "wouter";
 import { queryClient } from "./lib/queryClient";
 import { QueryClientProvider } from "@tanstack/react-query";
@@ -51,7 +52,7 @@ function PageLoader() {
   // Vitrin koyu temalı; rota geçişlerinde beyaz ekran görünmesin.
   // Admin tarafı açık temada kalır.
   const [location] = useLocation();
-  const isAdmin = location.startsWith('/toov-admin');
+  const isAdmin = isAdminPath(location);
   return (
     <div className={`${isAdmin ? 'admin-font bg-background' : 'bg-[#0A0A0A]'} min-h-screen flex items-center justify-center`}>
       <Loader2 className={`w-8 h-8 animate-spin ${isAdmin ? 'text-muted-foreground' : 'text-white/40'}`} />
@@ -65,7 +66,7 @@ function Router() {
   // Gövde arka planı vitrinde koyu kalsın (lazy chunk yüklenirken bile),
   // admin panel açık temasını korusun.
   useEffect(() => {
-    const isAdmin = location.startsWith('/toov-admin');
+    const isAdmin = isAdminPath(location);
     document.body.style.backgroundColor = isAdmin ? '' : '#0A0A0A';
   }, [location]);
 
@@ -103,11 +104,11 @@ function Router() {
         <Route path="/sayfa/:slug" component={StaticPage} />
         <Route path="/blog" component={Blog} />
         <Route path="/blog/:slug" component={BlogPost} />
-        <Route path="/toov-admin/login" component={AdminLogin} />
-        <Route path="/toov-admin/orders/:id" component={AdminOrderDetail} />
-        <Route path="/toov-admin/products/new" component={AdminProductEdit} />
-        <Route path="/toov-admin/products/:id" component={AdminProductEdit} />
-        <Route path="/toov-admin" component={AdminDashboard} />
+        <Route path={adminUrl('/login')} component={AdminLogin} />
+        <Route path={adminUrl('/orders/:id')} component={AdminOrderDetail} />
+        <Route path={adminUrl('/products/new')} component={AdminProductEdit} />
+        <Route path={adminUrl('/products/:id')} component={AdminProductEdit} />
+        <Route path={adminUrl('')} component={AdminDashboard} />
         <Route component={NotFound} />
         </Switch>
       </Suspense>
@@ -119,7 +120,7 @@ function AppShell() {
   // Admin rotalarında alt gezinme çubuğu yok; spacer eklenirse sabit
   // yükseklikli admin düzeninin altında belge kaydırması oluşur.
   const [location] = useLocation();
-  const isAdmin = location.startsWith('/toov-admin');
+  const isAdmin = isAdminPath(location);
   return (
     <div className={`relative w-full ${isAdmin ? '' : 'mobile-nav-spacer'}`}>
       <GoogleAuthNotice />

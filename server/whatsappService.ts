@@ -1,3 +1,4 @@
+import { getAdminPath } from './adminPath';
 import { storage } from './storage';
 import type { Order } from '@shared/schema';
 import { BANK_TRANSFER_INFO } from '@shared/bankInfo';
@@ -231,7 +232,7 @@ async function orderVars(order: Order, config: WhatsAppConfig): Promise<Record<s
 
   const siteUrl = await resolveSiteUrl();
   const siparisTakipLink = `${siteUrl}/siparis-takip?no=${encodeURIComponent(order.orderNumber)}`;
-  const adminPanelUrl = `${siteUrl}/toov-admin/orders/${order.id}`;
+  const adminPanelUrl = `${siteUrl}/${await getAdminPath()}/orders/${order.id}`;
 
   return {
     musteriAdi: order.customerName || 'Değerli müşterimiz',
@@ -362,7 +363,7 @@ export async function sendReviewPendingToAdmin(payload: ReviewPendingPayload): P
     baslikSatiri,
     icerikSatiri,
     siteAdi: config.siteName,
-    adminPanelUrl: `${siteUrl}/toov-admin?tab=reviews`,
+    adminPanelUrl: `${siteUrl}/${await getAdminPath()}?tab=reviews`,
   };
 
   const message = renderTemplate(config.templates.review_pending_admin, vars);

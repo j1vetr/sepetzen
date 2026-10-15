@@ -2,6 +2,7 @@ import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useState, useEffect, useRef, type ComponentType } from 'react';
 import { Settings, Mail, Loader2, CheckCircle2, XCircle, Send, Server, CreditCard, Copy, AlertTriangle, Wrench, MessageCircle, KeyRound, ShieldCheck, Truck, MapPin, Megaphone, Globe, Banknote, Upload, ShoppingBag, Plus, Trash2, Sparkles, Zap, Image, Bell, SlidersHorizontal, ChevronUp, ChevronDown as ChevronDownIcon, Snowflake, BarChart2, Code2, FileText } from 'lucide-react';
 import InvoiceSettingsSection from './InvoiceSettingsSection';
+import AdminPathSection from './AdminPathSection';
 import { BANK_TRANSFER_INFO } from '@shared/bankInfo';
 import type { SiteIdentity, SocialLink, MobileNavItem } from '@shared/siteIdentity';
 import { COUNTRIES } from '@/lib/countries';
@@ -4489,6 +4490,7 @@ export default function SettingsPanel({ initialSection = 'genel', contentOnly = 
       </>)}
 
       {section === 'guvenlik' && (<>
+      <AdminPathSection />
       <TwoFactorSection />
       <div className="bg-white border border-neutral-200 rounded-xl p-6" data-testid="card-turnstile">
         <div className="flex items-center gap-3 mb-6">

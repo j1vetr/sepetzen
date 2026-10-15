@@ -1,3 +1,4 @@
+import { isAdminPath } from '@/lib/adminPath';
 import { Link, useLocation } from 'wouter';
 import { Home, ShoppingBag, ShoppingCart, User, Heart, Search, Phone, LayoutGrid } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -41,7 +42,7 @@ export function MobileBottomNav() {
     testId: `bottom-nav-${item.href === '/' ? 'home' : item.href.replace(/^\//, '').split('/')[0]}`,
   }));
 
-  if (location.startsWith('/toov-admin')) return null;
+  if (isAdminPath(location)) return null;
 
   return (
     <nav

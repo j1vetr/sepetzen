@@ -1,3 +1,4 @@
+import { adminUrl } from '@/lib/adminPath';
 import { useEffect, useMemo, useState, type ReactNode, type ComponentType } from 'react';
 import {
   Bell,
@@ -105,7 +106,7 @@ export default function AdminLayout({
         `}
       >
         <div className="relative px-5 h-16 border-b border-neutral-200 flex items-center justify-center shrink-0">
-          <a href="/toov-admin" data-testid="link-admin-logo" className="block">
+          <a href={adminUrl()} data-testid="link-admin-logo" className="block">
             <img
               src="/uploads/branding/sepetzen-logo-dark.png"
               alt="Sepetzen"

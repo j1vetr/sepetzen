@@ -6,6 +6,7 @@ import { Label } from '@/components/ui/label';
 import { useAuth } from '@/hooks/useAuth';
 import { useToast } from '@/hooks/use-toast';
 import { Eye, EyeOff, Check } from 'lucide-react';
+import { LegalConsent, LegalLink } from '@/components/LegalConsent';
 import { AuthLayout, GoogleAuthButton, authInputCls, authLabelCls, authButtonCls } from '@/components/AuthLayout';
 
 export default function Register() {
@@ -22,6 +23,8 @@ export default function Register() {
     lastName: '',
     phone: '',
   });
+  const [accepted, setAccepted] = useState(false);
+  const [showConsentError, setShowConsentError] = useState(false);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
@@ -30,6 +33,11 @@ export default function Register() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
+    if (!accepted) {
+      setShowConsentError(true);
+      toast({ title: 'Hata', description: 'Devam etmek için sözleşme ve aydınlatma metnini onaylamanız gerekir', variant: 'destructive' });
+      return;
+    }
     if (formData.password !== formData.confirmPassword) {
       toast({ title: 'Hata', description: 'Şifreler eşleşmiyor', variant: 'destructive' });
       return;
@@ -75,7 +83,7 @@ export default function Register() {
       footerLinkTestId="link-login"
       maxWidth="max-w-[440px]"
     >
-      <GoogleAuthButton label="Google ile Kayıt Ol" testId="button-google-register" />
+      <GoogleAuthButton label="Google ile Kayıt Ol" testId="button-google-register" note={<>Google ile devam ederek <LegalLink to="membership" /> ve <LegalLink to="kvkk" /> kapsamını kabul etmiş olursunuz.</>} />
 
       <form onSubmit={handleSubmit} className="space-y-3.5">
         {/* Ad / Soyad */}
@@ -197,13 +205,15 @@ export default function Register() {
           </Button>
         </div>
 
-        <p className="text-[11px] text-white/55 text-center pt-1 leading-relaxed">
-          Kayıt olarak{' '}
-          <Link href="/sayfa/uyelik-sozlesmesi" className="underline underline-offset-2 hover:text-white transition-colors">Kullanım Koşulları</Link>
-          {' '}ve{' '}
-          <Link href="/sayfa/gizlilik-guvenlik" className="underline underline-offset-2 hover:text-white transition-colors">Gizlilik Politikası</Link>
-          'nı kabul etmiş olursunuz.
-        </p>
+        <LegalConsent
+          checked={accepted}
+          onChange={(v) => { setAccepted(v); if (v) setShowConsentError(false); }}
+          invalid={showConsentError && !accepted}
+          testId="checkbox-register-consent"
+        >
+          <LegalLink to="membership" /> ve <LegalLink to="privacy" /> metinlerini okudum, kabul ediyorum.
+          Kişisel verilerimin <LegalLink to="kvkk" /> kapsamında işlenmesine ilişkin bilgilendirildim.
+        </LegalConsent>
       </form>
     </AuthLayout>
   );

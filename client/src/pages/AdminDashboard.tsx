@@ -1,3 +1,4 @@
+import { adminUrl } from '@/lib/adminPath';
 import { useState, useEffect } from 'react';
 import { useLocation } from 'wouter';
 
@@ -65,7 +66,7 @@ export default function AdminDashboard() {
   const data = useAdminDashboardData({
     activeTab,
     searchQuery,
-    onLoggedOut: () => setLocation('/toov-admin/login'),
+    onLoggedOut: () => setLocation(adminUrl('/login')),
     // Ürün ekleme/düzenleme artık tam sayfa editörde (/toov-admin/products/...)
     onProductSaved: () => {},
     onCategorySaved: () => {
@@ -110,7 +111,7 @@ export default function AdminDashboard() {
   }, [activeTab, adminUser, refetchOrders]);
 
   useEffect(() => {
-    if (!userLoading && !adminUser) setLocation('/toov-admin/login');
+    if (!userLoading && !adminUser) setLocation(adminUrl('/login'));
   }, [adminUser, userLoading, setLocation]);
 
   const handleTabChange = (tabId: TabType) => {
