@@ -307,7 +307,7 @@ function FeaturedProducts({ products }: { products: Product[] }) {
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true, amount: 0.1 }}
             transition={{ duration: 0.55, ease: [0.16, 1, 0.3, 1] }}
-            className="relative overflow-hidden bg-zinc-900 min-h-[320px] lg:min-h-0"
+            className="keep-dark relative overflow-hidden bg-zinc-900 min-h-[320px] lg:min-h-0"
             data-testid="promo-banner"
           >
             {promoIsVideo ? (
