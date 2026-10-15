@@ -76,6 +76,13 @@ function RequestCard({ request }: { request: DeletionRequest }) {
         data-testid={`input-kvkk-admin-note-${request.id}`}
       />
 
+      {request.status !== 'completed' && (
+        <p className="text-[12px] text-amber-800 bg-amber-50 border border-amber-100 rounded-lg p-3 leading-relaxed" data-testid={`text-kvkk-hint-${request.id}`}>
+          "Tamamlandı olarak işaretle" hesabı silmez, yalnızca talebin sonuçlandığını müşteriye bildirir.
+          Önce Kullanıcılar sekmesinden bu müşterinin hesabını ve verilerini silin, ardından burada talebi tamamlandı olarak işaretleyin.
+        </p>
+      )}
+
       <div className="flex flex-wrap gap-2">
         {request.status !== 'completed' && (
           <button
