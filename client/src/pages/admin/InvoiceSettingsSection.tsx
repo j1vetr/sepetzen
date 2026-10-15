@@ -94,7 +94,6 @@ function ParasutTestButton() {
           {result.text}
         </span>
       )}
-      <span className="text-xs text-neutral-400">Test, en son kaydedilen bilgilerle çalışır.</span>
     </div>
   );
 }
@@ -112,9 +111,6 @@ export default function InvoiceSettingsSection({ settings, setSettings }: Props)
           </div>
           <div>
             <h3 className="text-lg font-semibold text-neutral-900">Aktif Fatura Sağlayıcısı</h3>
-            <p className="text-sm text-neutral-500">
-              Ödemesi alınan siparişlerin faturası seçtiğiniz sağlayıcı üzerinden kesilir.
-            </p>
           </div>
         </div>
         <div className="grid sm:grid-cols-2 gap-3">
@@ -141,42 +137,30 @@ export default function InvoiceSettingsSection({ settings, setSettings }: Props)
             </label>
           ))}
         </div>
-        <p className="text-xs text-neutral-400 mt-3">
-          Daha önce kesilmiş faturalar, kesildikleri sağlayıcı üzerinden iptal edilir.
-        </p>
       </div>
 
       <div className="bg-white border border-neutral-200 rounded-xl p-6" data-testid="card-birfatura-settings">
-        <h3 className="text-lg font-semibold text-neutral-900 mb-1">BirFatura</h3>
-        <p className="text-sm text-neutral-500 mb-5">BirFatura panelinden aldığınız entegrasyon anahtarları.</p>
+        <h3 className="text-lg font-semibold text-neutral-900 mb-5">BirFatura</h3>
         <div className="grid md:grid-cols-2 gap-4">
           <Field label="API Key" value={settings.birfatura_api_key ?? ''} onChange={set('birfatura_api_key')} type="password" placeholder="••••••••" testId="input-birfatura-api-key" />
           <Field label="Secret Key" value={settings.birfatura_secret_key ?? ''} onChange={set('birfatura_secret_key')} type="password" placeholder="••••••••" testId="input-birfatura-secret-key" />
           <Field label="Integration Key" value={settings.birfatura_integration_key ?? ''} onChange={set('birfatura_integration_key')} type="password" placeholder="••••••••" testId="input-birfatura-integration-key" />
-          <Field label="API Adresi (opsiyonel)" value={settings.birfatura_base_url ?? ''} onChange={set('birfatura_base_url')} placeholder="https://uygulama.edonustur.com" testId="input-birfatura-base-url" />
+          <Field label="API Adresi" value={settings.birfatura_base_url ?? ''} onChange={set('birfatura_base_url')} placeholder="https://uygulama.edonustur.com" testId="input-birfatura-base-url" />
         </div>
       </div>
 
       <div className="bg-white border border-neutral-200 rounded-xl p-6" data-testid="card-parasut-settings">
-        <h3 className="text-lg font-semibold text-neutral-900 mb-1">Paraşüt</h3>
-        <p className="text-sm text-neutral-500 mb-5">
-          Client ID ve Client Secret bilgilerini destek@parasut.com adresinden talep edebilirsiniz. Firma ID, Paraşüt
-          panelindeki adres çubuğunda görünen numaradır.
-        </p>
+        <h3 className="text-lg font-semibold text-neutral-900 mb-5">Paraşüt</h3>
         <div className="grid md:grid-cols-2 gap-4">
           <Field label="Firma ID" value={settings.parasut_company_id ?? ''} onChange={set('parasut_company_id')} placeholder="123456" testId="input-parasut-company-id" />
           <Field label="Client ID" value={settings.parasut_client_id ?? ''} onChange={set('parasut_client_id')} testId="input-parasut-client-id" />
           <Field label="Client Secret" value={settings.parasut_client_secret ?? ''} onChange={set('parasut_client_secret')} type="password" placeholder="••••••••" testId="input-parasut-client-secret" />
           <Field label="Kullanıcı Adı (e-posta)" value={settings.parasut_username ?? ''} onChange={set('parasut_username')} testId="input-parasut-username" />
           <Field label="Şifre" value={settings.parasut_password ?? ''} onChange={set('parasut_password')} type="password" placeholder="••••••••" testId="input-parasut-password" />
-          <Field label="Tahsilat Hesabı ID (opsiyonel)" value={settings.parasut_payment_account_id ?? ''} onChange={set('parasut_payment_account_id')} placeholder="Boşsa fatura tahsilatsız açılır" testId="input-parasut-payment-account" />
+          <Field label="Tahsilat Hesabı ID" value={settings.parasut_payment_account_id ?? ''} onChange={set('parasut_payment_account_id')} testId="input-parasut-payment-account" />
         </div>
         <ParasutTestButton />
       </div>
-
-      <p className="text-xs text-neutral-400">
-        Değişiklikler "Ayarları Kaydet" butonuyla uygulanır.
-      </p>
     </>
   );
 }
