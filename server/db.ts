@@ -11,4 +11,10 @@ const pool = new Pool({
   connectionString: process.env.DATABASE_URL,
 });
 
+// Boşta bekleyen bağlantı veritabanı tarafından kapatılırsa sunucu çökmesin,
+// havuz bir sonraki istekte yeni bağlantı açar.
+pool.on("error", (err) => {
+  console.error("[db] idle client error:", err.message);
+});
+
 export const db = drizzle(pool, { schema });
