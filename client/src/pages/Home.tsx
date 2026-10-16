@@ -1,3 +1,5 @@
+import { LiveStreamBanner } from '@/components/LiveStreamBanner';
+import { useLiveStream } from '@/hooks/useLiveStream';
 import { Header } from '@/components/Header';
 import { getDescendantIds } from '@/lib/categoryTree';
 import { Footer } from '@/components/Footer';
@@ -127,6 +129,7 @@ function HeroSlider({ products, slides, heroMarquee = EMPTY_HERO_MARQUEE }: { pr
   // Admin vitrini yapılandırdıysa yalnızca seçilen ürün/kategorilerden gösterilir.
   // Yüklenirken veya sonuç boşken tüm ürünlere düşmek seçilmeyen kategorileri gösteriyordu.
   const marqueeProducts = activeItems.length > 0 ? (configuredProducts ?? []) : products;
+  const isLive = !!useLiveStream().data?.isActive;
   const HERO_SLIDES = slides.length ? slides : DEFAULT_HOMEPAGE_CONTENT.heroSlides;
   const [active, setActive] = useState(0);
   const [dir, setDir] = useState(1);
@@ -157,7 +160,12 @@ function HeroSlider({ products, slides, heroMarquee = EMPTY_HERO_MARQUEE }: { pr
     <section
       className="relative w-full overflow-hidden bg-[#000000] hero-section flex flex-col"
       data-testid="scene-hero"
+      style={isLive ? { paddingTop: 'calc(var(--hero-overlap, 0px) + 52px)' } : undefined}
     >
+      {/* Canlı yayın açıkken hero'nun en üstünde, başlığın hemen altında görünür */}
+      <div className="absolute inset-x-0 z-30" style={{ top: 'var(--hero-overlap, 0px)' }}>
+        <LiveStreamBanner />
+      </div>
       {/* Full-bleed background */}
       <AnimatePresence initial={false} custom={dir}>
         <motion.div
