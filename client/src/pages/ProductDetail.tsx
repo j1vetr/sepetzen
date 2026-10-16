@@ -1613,19 +1613,32 @@ export default function ProductDetail() {
           </nav>
 
           {/* ── Product grid: Gallery + Info ── */}
-          <div className="grid xl:grid-cols-[minmax(0,1fr)_560px] gap-8 xl:gap-10 items-start">
+          <div className="grid xl:grid-cols-[minmax(0,1fr)_560px] gap-8 xl:gap-10 items-start xl:items-center">
 
             {/* LEFT — Sticky Gallery (only sticky when right column has enough content) */}
             <motion.div
               initial={reduceMotion ? false : { opacity: 0, y: 18 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.5, ease: [0.33, 1, 0.68, 1] }}
-              className={`flex flex-col sm:flex-row sm:gap-4 lg:gap-3 min-w-0 w-full max-w-[680px] mx-auto xl:max-w-none${product.description ? ' xl:sticky xl:top-24 xl:self-start' : ''}`}>
+              className={`flex flex-col sm:flex-row sm:gap-4 lg:gap-3 min-w-0 w-full max-w-[680px] mx-auto xl:max-w-none`}>
 
               {/* Thumbnail strip (desktop) — sliding-window, ref implementation */}
               {images.length > 1 && (
-                <div className="hidden sm:block relative w-[88px] shrink-0">
+                <div className="hidden sm:flex flex-col gap-1.5 w-[88px] shrink-0">
+                  {(thumbCanUp || thumbCanDown) && (
+                    <button
+                      type="button"
+                      onClick={() => scrollThumbs(-1)}
+                      disabled={!thumbCanUp}
+                      className="shrink-0 w-full h-8 flex items-center justify-center rounded-lg bg-neutral-900 text-white hover:bg-black disabled:opacity-30 disabled:cursor-default transition-colors"
+                      aria-label="Önceki görseller"
+                      data-testid="button-thumbs-up"
+                    >
+                      <ChevronDown className="w-4 h-4 rotate-180" />
+                    </button>
+                  )}
                   {/* Sütun ana görselin yüksekliğine eşitlenir, fazla küçük görseller içeride kayar */}
+                  <div className="relative flex-1 min-h-0">
                 <div ref={thumbStripRef} onScroll={updateThumbArrows} className="absolute inset-0 overflow-y-auto overscroll-contain no-scrollbar p-[3px]">
                   <div className="flex flex-col gap-2">
                     {(() => {
@@ -1674,22 +1687,13 @@ export default function ProductDetail() {
                   </div>
 
                 </div>
-                  {thumbCanUp && (
-                    <button
-                      type="button"
-                      onClick={() => scrollThumbs(-1)}
-                      className="absolute top-1 left-1/2 -translate-x-1/2 z-10 w-9 h-7 flex items-center justify-center rounded-md bg-black/75 text-white shadow-md hover:bg-black transition-colors"
-                      aria-label="Önceki görseller"
-                      data-testid="button-thumbs-up"
-                    >
-                      <ChevronDown className="w-4 h-4 rotate-180" />
-                    </button>
-                  )}
-                  {thumbCanDown && (
+                  </div>
+                  {(thumbCanUp || thumbCanDown) && (
                     <button
                       type="button"
                       onClick={() => scrollThumbs(1)}
-                      className="absolute bottom-1 left-1/2 -translate-x-1/2 z-10 w-9 h-7 flex items-center justify-center rounded-md bg-black/75 text-white shadow-md hover:bg-black transition-colors"
+                      disabled={!thumbCanDown}
+                      className="shrink-0 w-full h-8 flex items-center justify-center rounded-lg bg-neutral-900 text-white hover:bg-black disabled:opacity-30 disabled:cursor-default transition-colors"
                       aria-label="Sonraki görseller"
                       data-testid="button-thumbs-down"
                     >
