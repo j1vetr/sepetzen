@@ -1,4 +1,5 @@
 import { Header } from '@/components/Header';
+import { getDescendantIds } from '@/lib/categoryTree';
 import { Footer } from '@/components/Footer';
 import { SEO } from '@/components/SEO';
 import { ProductCard } from '@/components/ProductCard';
@@ -123,9 +124,9 @@ function HeroSlider({ products, slides, heroMarquee = EMPTY_HERO_MARQUEE }: { pr
     },
     staleTime: 5 * 60 * 1000,
   });
-  const marqueeProducts = activeItems.length > 0 && configuredProducts?.length
-    ? configuredProducts
-    : products;
+  // Admin vitrini yapılandırdıysa yalnızca seçilen ürün/kategorilerden gösterilir.
+  // Yüklenirken veya sonuç boşken tüm ürünlere düşmek seçilmeyen kategorileri gösteriyordu.
+  const marqueeProducts = activeItems.length > 0 ? (configuredProducts ?? []) : products;
   const HERO_SLIDES = slides.length ? slides : DEFAULT_HOMEPAGE_CONTENT.heroSlides;
   const [active, setActive] = useState(0);
   const [dir, setDir] = useState(1);
@@ -462,7 +463,7 @@ function PopularCategories({ products }: { products: Product[] }) {
     CATS.find(c => c.slug === slug)?.image ?? null;
 
   const countFor = (id: string) => {
-    const ids = [id, ...cats.filter(c => c.parentId === id).map(c => c.id)];
+    const ids = getDescendantIds(cats, id);
     return products.filter(p =>
       ids.some(cid => (p as any).categoryIds?.includes(cid) || p.categoryId === cid),
     ).length;
@@ -907,8 +908,8 @@ function DesktopHeroMarquee({ products }: { products: Product[] }) {
 
   if (!items.length) return null;
 
-  // 3× kopyala — 2× yetmeyebilir geniş ekranlarda, 3× her zaman yeterli
-  const tripled = [...items, ...items, ...items];
+  // Animasyon -%50 kayıyor, bu yüzden kopya sayısı çift olmalı ki döngü kesintisiz olsun
+  const tripled = [...items, ...items, ...items, ...items];
 
   return (
     <div
@@ -969,8 +970,7 @@ function DesktopHeroMarquee({ products }: { products: Product[] }) {
 
 function MobileMarquee({ products }: { products: Product[] }) {
   const items = useMemo(() => {
-    const shuffled = [...products].sort(() => Math.random() - 0.5);
-    return shuffled.slice(0, 12);
+    return products.filter(p => p.images?.length).slice(0, 12);
   }, [products]);
 
   if (!items.length) return null;
@@ -1049,8 +1049,8 @@ function ShowcaseMarquee({ items }: { items: ShowcaseItem[] }) {
 
   if (!allCards.length) return null;
 
-  // 3× kopyala — geniş ekranlarda sonsuz döngü için yeterli
-  const tripled = [...allCards, ...allCards, ...allCards];
+  // Animasyon -%50 kayıyor, kopya sayısı çift olmalı ki döngü kesintisiz olsun
+  const tripled = [...allCards, ...allCards, ...allCards, ...allCards];
 
   return (
     <section

@@ -1624,7 +1624,7 @@ export default function ProductDetail() {
               <div className="flex-1 min-w-0">
 
                 {/* ── Desktop: orbit animation + hover zoom ── */}
-                <div className="hidden sm:flex h-full">
+                <div className="hidden sm:flex h-full sm:aspect-[4/5] lg:aspect-[1/1]">
                   <div className="product-gallery-orbit rounded-xl w-full h-full">
                     <div
                       ref={heroImageRef}

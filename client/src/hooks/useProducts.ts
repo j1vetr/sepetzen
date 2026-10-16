@@ -103,7 +103,7 @@ export interface ProductFilters {
   search?: string;
   minPrice?: number;
   maxPrice?: number;
-  sort?: 'price_asc' | 'price_desc' | 'newest' | 'popular';
+  sort?: 'recommended' | 'price_asc' | 'price_desc' | 'newest' | 'popular';
 }
 
 export function useProducts(filters?: ProductFilters) {
@@ -117,7 +117,8 @@ export function useProducts(filters?: ProductFilters) {
       if (filters?.search) params.append('search', filters.search);
       if (filters?.minPrice !== undefined) params.append('minPrice', String(filters.minPrice));
       if (filters?.maxPrice !== undefined) params.append('maxPrice', String(filters.maxPrice));
-      if (filters?.sort) params.append('sort', filters.sort);
+      // 'recommended' istemcide karıştırılır, sunucu varsayılan sırayla döner
+      if (filters?.sort && filters.sort !== 'recommended') params.append('sort', filters.sort);
 
       const response = await fetch(`/api/products?${params.toString()}`);
       if (!response.ok) throw new Error('Failed to fetch products');

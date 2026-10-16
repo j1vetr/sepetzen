@@ -21,7 +21,7 @@ export async function getActiveInvoiceProvider(): Promise<InvoiceProvider> {
   return raw === 'parasut' ? 'parasut' : 'birfatura';
 }
 
-type InvoiceUpdate = Partial<
+export type InvoiceUpdate = Partial<
   Pick<
     Order,
     | 'ettn'
@@ -35,22 +35,24 @@ type InvoiceUpdate = Partial<
   >
 >;
 
-/**
- * Sipariş için fatura oluşturur. Hata sipariş akışını engellemez; sonuç
- * `updateFn` ile kaydedilir (başarısızsa eInvoiceStatus = 'failed').
- */
-export async function issueInvoiceForOrder(
-  order: Order,
-  items: Array<{ productName: string; sku?: string | null; price: string; quantity: number }>,
-  updateFn: (data: InvoiceUpdate) => Promise<void>,
-): Promise<void> {
-  let provider: InvoiceProvider = 'birfatura';
-  try {
-    provider = await getActiveInvoiceProvider();
-    const lines = buildInvoiceLines(items);
-    if (provider === 'parasut') {
-      const result = await sendParasutInvoice(order, lines);
-      await updateFn({
+type InvoiceOrderLike = Pick<
+  Order,
+  'orderNumber' | 'customerName' | 'customerEmail' | 'shippingAddress' | 'billingAddress' | 'paymentMethod'
+>;
+type InvoiceItemLike = { productName: string; sku?: string | null; price: string; quantity: number };
+
+/** Aktif sağlayıcıda faturayı keser ve sipariş(ler)e yazılacak alanları döner. Hata fırlatır. */
+export async function createInvoiceViaProvider(
+  order: InvoiceOrderLike,
+  items: InvoiceItemLike[],
+): Promise<{ provider: InvoiceProvider; update: InvoiceUpdate }> {
+  const provider = await getActiveInvoiceProvider();
+  const lines = buildInvoiceLines(items);
+  if (provider === 'parasut') {
+    const result = await sendParasutInvoice(order, lines);
+    return {
+      provider,
+      update: {
         ettn: result.ettn,
         eInvoiceNumber: result.invoiceNumber,
         eInvoiceStatus: 'sent',
@@ -58,22 +60,52 @@ export async function issueInvoiceForOrder(
         eInvoiceType: result.documentType,
         eInvoiceProvider: 'parasut',
         eInvoiceExternalId: result.salesInvoiceId,
-      });
-      console.log(`[Paraşüt] Fatura gönderildi: ${order.orderNumber} → fatura ${result.salesInvoiceId}`);
-    } else {
-      const result = await sendInvoice(order, lines);
-      await updateFn({
-        ettn: result.ettn,
-        eInvoiceNumber: result.invoiceNumber,
-        eInvoiceStatus: 'sent',
-        eInvoiceSentAt: new Date(),
-        eInvoiceType: 'earchive',
-        eInvoiceProvider: 'birfatura',
-        eInvoiceExternalId: null,
-        ...(result.pdfUrl ? { invoiceUrl: result.pdfUrl } : {}),
-      });
-      console.log(`[BirFatura] Fatura gönderildi: ${order.orderNumber} → ETTN ${result.ettn}`);
+      },
+    };
+  }
+  const result = await sendInvoice(order, lines);
+  return {
+    provider,
+    update: {
+      ettn: result.ettn,
+      eInvoiceNumber: result.invoiceNumber,
+      eInvoiceStatus: 'sent',
+      eInvoiceSentAt: new Date(),
+      eInvoiceType: 'earchive',
+      eInvoiceProvider: 'birfatura',
+      eInvoiceExternalId: null,
+      ...(result.pdfUrl ? { invoiceUrl: result.pdfUrl } : {}),
+    },
+  };
+}
+
+/** Toplu fatura modu açık mı? (site_settings: batch_invoice_enabled) */
+export async function isBatchInvoiceEnabled(): Promise<boolean> {
+  return (await storage.getSiteSetting('batch_invoice_enabled')) === '1';
+}
+
+/**
+ * Sipariş için fatura oluşturur. Hata sipariş akışını engellemez; sonuç
+ * `updateFn` ile kaydedilir (başarısızsa eInvoiceStatus = 'failed').
+ * Toplu fatura modu açıksa (ve `immediate` verilmediyse) fatura kesilmez,
+ * sipariş gün sonu toplu faturasına alınmak üzere 'batch_pending' olur.
+ */
+export async function issueInvoiceForOrder(
+  order: Order,
+  items: InvoiceItemLike[],
+  updateFn: (data: InvoiceUpdate) => Promise<void>,
+  opts: { immediate?: boolean } = {},
+): Promise<void> {
+  let provider: InvoiceProvider = 'birfatura';
+  try {
+    if (!opts.immediate && (await isBatchInvoiceEnabled())) {
+      await updateFn({ eInvoiceStatus: 'batch_pending' });
+      return;
     }
+    provider = await getActiveInvoiceProvider();
+    const result = await createInvoiceViaProvider(order, items);
+    await updateFn(result.update);
+    console.log(`[${PROVIDER_LABELS[provider]}] Fatura gönderildi: ${order.orderNumber}`);
   } catch (err) {
     console.error(
       `[${PROVIDER_LABELS[provider]}] Fatura gönderilemedi (${order.orderNumber}):`,

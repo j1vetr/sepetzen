@@ -19,6 +19,8 @@ import {
   Ticket,
   Tag,
   ShieldCheck,
+  Wallet,
+  FileStack,
   X,
 } from 'lucide-react';
 import { useQuery } from '@tanstack/react-query';
@@ -63,6 +65,8 @@ const TAB_ICONS: Record<TabType, React.ComponentType<{ className?: string }>> = 
   users: Users,
   reviews: MessageSquare,
   kvkk: ShieldCheck,
+  wallet: Wallet,
+  batchinvoice: FileStack,
   coupons: Ticket,
   homepage: Home,
   menu: MenuIcon,

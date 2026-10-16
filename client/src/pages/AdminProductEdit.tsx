@@ -911,14 +911,33 @@ function ProductEditor({
                 />
               </FormField>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                <FormField label="Stok Kodu (SKU)">
-                  <TextInput
-                    type="text"
-                    value={formData.sku}
-                    onChange={(e) => setFormData({ ...formData, sku: e.target.value })}
-                    placeholder="Örn: HNK-001"
-                    data-testid="input-product-sku"
-                  />
+                <FormField label="Stok Kodu (SKU)" hint="Boş bırakırsanız kaydederken otomatik verilir">
+                  <div className="flex gap-2">
+                    <TextInput
+                      type="text"
+                      value={formData.sku}
+                      onChange={(e) => setFormData({ ...formData, sku: e.target.value })}
+                      placeholder="Otomatik verilir"
+                      data-testid="input-product-sku"
+                    />
+                    <button
+                      type="button"
+                      onClick={async () => {
+                        try {
+                          const r = await fetch('/api/admin/products/next-sku');
+                          if (!r.ok) throw new Error();
+                          const { sku } = await r.json();
+                          setFormData((prev) => ({ ...prev, sku }));
+                        } catch {
+                          alert('Stok kodu oluşturulamadı, tekrar deneyin.');
+                        }
+                      }}
+                      className="shrink-0 px-3 rounded-md border border-neutral-200 bg-white text-[12px] font-medium text-neutral-700 hover:bg-neutral-50"
+                      data-testid="button-generate-sku"
+                    >
+                      Oluştur
+                    </button>
+                  </div>
                 </FormField>
                 <FormField label="Marka" hint="Listeden seçin veya serbest metin girin">
                   <div className="relative">

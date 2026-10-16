@@ -32,8 +32,10 @@ import {
   Home,
   RotateCcw,
   ShieldCheck,
+  Wallet,
 } from 'lucide-react';
 import KvkkPanel from '@/components/KvkkPanel';
+import WalletPanel, { formatTL } from '@/components/WalletPanel';
 import { useToast } from '@/hooks/use-toast';
 import { SEO } from '@/components/SEO';
 import { formatTRDate, formatTRDateTime } from '@shared/dateFormat';
@@ -42,7 +44,7 @@ import { ProductCard } from '@/components/ProductCard';
 import { COUNTRIES } from '@/lib/countries';
 import { InvoiceFields, emptyInvoiceForm, invoiceFormFrom, invoicePayload, validateInvoiceForm, type InvoiceFormValue } from '@/components/InvoiceFields';
 
-type TabType = 'orders' | 'profile' | 'addresses' | 'favorites' | 'kvkk';
+type TabType = 'orders' | 'profile' | 'addresses' | 'favorites' | 'kvkk' | 'wallet';
 
 interface Order {
   id: string;
@@ -146,6 +148,22 @@ export default function Profile() {
   const queryClient = useQueryClient();
 
   const [activeTab, setActiveTab] = useState<TabType>('orders');
+
+  // ?tab=bakiye ile doğrudan bakiye sekmesi, ?topup= ile ödeme dönüşü sonucu
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    if (params.get('tab') === 'bakiye') setActiveTab('wallet');
+    const topup = params.get('topup');
+    if (topup === 'success') {
+      toast({ title: 'Ödeme alındı', description: 'Bakiyeniz güncellendi.' });
+      queryClient.invalidateQueries({ queryKey: ['wallet'] });
+      queryClient.invalidateQueries({ queryKey: ['auth', 'me'] });
+    } else if (topup === 'failed') {
+      toast({ title: 'Ödeme tamamlanamadı', description: 'Bakiye yüklenmedi, tekrar deneyebilirsiniz.', variant: 'destructive' });
+    }
+    if (topup) window.history.replaceState({}, '', '/hesabim?tab=bakiye');
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   useEffect(() => {
     if (location === '/hesabim/siparislerim') {
@@ -442,6 +460,7 @@ export default function Profile() {
   const tabs = [
     { id: 'orders' as TabType, label: 'Siparişlerim', icon: Package, count: orders.length },
     { id: 'favorites' as TabType, label: 'Favorilerim', icon: Heart, count: favorites.length },
+    { id: 'wallet' as TabType, label: 'Bakiyem', icon: Wallet },
     { id: 'profile' as TabType, label: 'Profil Bilgileri', icon: User },
     { id: 'addresses' as TabType, label: 'Adreslerim', icon: MapPin, count: addresses.length },
     { id: 'kvkk' as TabType, label: 'KVKK ve Gizlilik', icon: ShieldCheck },
@@ -481,6 +500,26 @@ export default function Profile() {
               </button>
             </div>
           </motion.div>
+
+          <div className="mb-8 border border-white/20 bg-gradient-to-r from-[#161616] to-[#0E0E0E] rounded-xl p-5 sm:p-6 flex flex-col sm:flex-row sm:items-center justify-between gap-4" data-testid="card-wallet-banner">
+            <div className="flex items-center gap-4">
+              <span className="w-12 h-12 rounded-full border border-white/20 flex items-center justify-center shrink-0">
+                <Wallet className="w-5 h-5 text-white" strokeWidth={1.5} />
+              </span>
+              <div>
+                <p className="text-[11px] font-mono tracking-[0.28em] uppercase text-white/50">Bakiyem</p>
+                <p className="font-display text-3xl text-white tabular-nums leading-none mt-1" data-testid="text-profile-balance">{formatTL(user.walletBalance ?? 0)}</p>
+              </div>
+            </div>
+            <button
+              type="button"
+              onClick={() => { setActiveTab('wallet'); window.scrollTo({ top: 0, behavior: 'smooth' }); }}
+              className="h-11 px-6 bg-white text-black font-bold tracking-wide rounded-lg hover:bg-white/90 transition-colors"
+              data-testid="button-open-wallet-topup"
+            >
+              BAKİYE YÜKLE
+            </button>
+          </div>
 
           <div className="grid lg:grid-cols-4 gap-6">
             <motion.div
@@ -837,6 +876,17 @@ export default function Profile() {
                     exit={{ opacity: 0, y: -10 }}
                   >
                     <KvkkPanel />
+                  </motion.div>
+                )}
+
+                {activeTab === 'wallet' && (
+                  <motion.div
+                    key="wallet"
+                    initial={{ opacity: 0, y: 10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={{ opacity: 0, y: -10 }}
+                  >
+                    <WalletPanel />
                   </motion.div>
                 )}
 

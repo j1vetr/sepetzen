@@ -1,4 +1,7 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
+import { getSpecValues } from '@/lib/specFilter';
+import { sortRecommended } from '@/lib/productSort';
+import { flattenCategoryTree, getAncestors } from '@/lib/categoryTree';
 import { Header } from '@/components/Header';
 import { Footer } from '@/components/Footer';
 import { SEO } from '@/components/SEO';
@@ -7,6 +10,7 @@ import { Link, useSearch } from 'wouter';
 import { ChevronRight, X, SlidersHorizontal, LayoutGrid, Grid3X3, ArrowUpRight, ChevronDown } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useProducts, useCategories, useFilterAttributes, type ProductFilters } from '@/hooks/useProducts';
+import { useInfiniteList } from '@/hooks/useInfiniteList';
 import { PriceRangeFilter } from '@/components/PriceRangeFilter';
 import { useFreeShippingThreshold } from '@/hooks/useShippingSettings';
 import {
@@ -25,13 +29,13 @@ import {
 } from '@/components/ui/sheet';
 
 const sortOptions = [
+  { value: 'recommended', label: 'Önerilen' },
   { value: 'newest', label: 'En Yeni' },
   { value: 'price_asc', label: 'Fiyat: Artan' },
   { value: 'price_desc', label: 'Fiyat: Azalan' },
   { value: 'popular', label: 'En Popüler' },
 ];
 
-const COLLAPSE_THRESHOLD = 5;
 
 // ── Yardımcı bileşenler ──────────────────────────────────────────────────────
 
@@ -122,12 +126,9 @@ function MultiCheckList({
   counts?: Record<string, number>;
   testIdPrefix?: string;
 }) {
-  const [showAll, setShowAll] = useState(false);
-  const visible = showAll ? options : options.slice(0, COLLAPSE_THRESHOLD);
-  const hidden = options.length - COLLAPSE_THRESHOLD;
   return (
-    <div className="space-y-0.5">
-      {visible.map(opt => (
+    <div className="max-h-[232px] overflow-y-auto overscroll-contain no-scrollbar space-y-0.5">
+      {options.map(opt => (
         <CheckItem
           key={opt}
           label={opt}
@@ -137,18 +138,6 @@ function MultiCheckList({
           testId={testIdPrefix ? `${testIdPrefix}-${opt}` : undefined}
         />
       ))}
-      {options.length > COLLAPSE_THRESHOLD && (
-        <button
-          onClick={() => setShowAll(v => !v)}
-          className="flex items-center gap-1.5 w-full px-2 py-2 text-[12px] text-white/50 hover:text-white transition-colors rounded-sm"
-        >
-          <ChevronDown
-            className={`w-3.5 h-3.5 transition-transform duration-200 ${showAll ? 'rotate-180' : ''}`}
-            strokeWidth={2}
-          />
-          {showAll ? 'Daha Az Göster' : `Daha Fazla Göster (${hidden})`}
-        </button>
-      )}
     </div>
   );
 }
@@ -161,12 +150,11 @@ export default function Store() {
   const search = useSearch();
   const brandParam = new URLSearchParams(search).get('brand') ?? undefined;
 
-  const [sortBy, setSortBy] = useState<ProductFilters['sort']>('newest');
+  const [sortBy, setSortBy] = useState<ProductFilters['sort']>('recommended');
   const [selectedCategory, setSelectedCategory] = useState<string | undefined>(undefined);
   const [priceRange, setPriceRange] = useState<[number, number]>([0, 10000]);
   const [filterOpen, setFilterOpen] = useState(false);
   const [gridCols, setGridCols] = useState<3 | 4>(4);
-  const [showAllCategories, setShowAllCategories] = useState(false);
   const [statusFilters, setStatusFilters] = useState<string[]>([]);
   const [selectedBrands, setSelectedBrands] = useState<string[]>([]);
   // Dinamik filtre değerleri: { [key]: string[] }
@@ -202,8 +190,7 @@ export default function Store() {
     for (const attr of filterAttributes) {
       const vals = new Set<string>();
       fetchedProducts.forEach(p => {
-        const val = p.specs?.[attr.key as keyof NonNullable<typeof p.specs>];
-        if (val) vals.add(val);
+        getSpecValues(p, attr.key).forEach(v => vals.add(v));
       });
       result[attr.key] = Array.from(vals).sort((a, b) => a.localeCompare(b, 'tr'));
     }
@@ -229,10 +216,7 @@ export default function Store() {
     for (const attr of filterAttributes) {
       const sel = selectedSpecFilters[attr.key] ?? [];
       if (sel.length > 0) {
-        result = result.filter(p => {
-          const val = p.specs?.[attr.key as keyof NonNullable<typeof p.specs>];
-          return val && sel.includes(val);
-        });
+        result = result.filter(p => getSpecValues(p, attr.key).some(v => sel.includes(v)));
       }
     }
     if (statusFilters.includes('free-shipping')) {
@@ -240,8 +224,9 @@ export default function Store() {
     }
     if (statusFilters.includes('new')) result = result.filter(p => p.isNew);
     if (statusFilters.includes('discounted')) result = result.filter(p => !!p.discountBadge);
-    return result;
-  }, [fetchedProducts, brandParam, statusFilters, freeShippingThreshold, selectedBrands, selectedSpecFilters, filterAttributes]);
+    return sortBy === 'recommended' ? sortRecommended(result) : result;
+  }, [sortBy, fetchedProducts, brandParam, statusFilters, freeShippingThreshold, selectedBrands, selectedSpecFilters, filterAttributes]);
+  const { visible: visibleProducts, hasMore: hasMoreProducts, sentinelRef: productsSentinelRef } = useInfiniteList(filteredProducts, 24);
 
   const toggleStatusFilter = (value: string) => {
     setStatusFilters(prev => prev.includes(value) ? prev.filter(v => v !== value) : [...prev, value]);
@@ -255,7 +240,7 @@ export default function Store() {
 
   const clearFilters = () => {
     setSelectedCategory(undefined);
-    setSortBy('newest');
+    setSortBy('recommended');
     setPriceRange([0, 10000]);
     setStatusFilters([]);
     setSelectedBrands([]);
@@ -277,23 +262,37 @@ export default function Store() {
     selectedBrands.length +
     specFilterCount;
 
-  const VISIBLE_CATEGORY_COUNT = 5;
-  const orderedCategories = useMemo(() => {
-    const byOrder = (a: (typeof categories)[number], b: (typeof categories)[number]) =>
-      (a.displayOrder ?? 0) - (b.displayOrder ?? 0);
-    const tops = categories.filter(c => !c.parentId).sort(byOrder);
-    const topIds = tops.map(t => t.id);
-    const result: ((typeof categories)[number] & { isChild?: boolean })[] = [];
-    for (const top of tops) {
-      result.push(top);
-      categories.filter(c => c.parentId === top.id).sort(byOrder).forEach(child => result.push({ ...child, isChild: true }));
-    }
-    categories.filter(c => c.parentId && topIds.indexOf(c.parentId) === -1).sort(byOrder).forEach(c => result.push(c));
-    return result;
-  }, [categories]);
+  const orderedCategories = useMemo(() => flattenCategoryTree(categories), [categories]);
 
-  const visibleCategories = showAllCategories ? orderedCategories : orderedCategories.slice(0, VISIBLE_CATEGORY_COUNT);
-  const hiddenCategoryCount = orderedCategories.length - VISIBLE_CATEGORY_COUNT;
+  // Akordeon: alt kategorisi olan satırlar tıklanınca açılır, varsayılan kapalıdır.
+  const [expandedCats, setExpandedCats] = useState<Set<string>>(new Set());
+  const toggleExpanded = (id: string) =>
+    setExpandedCats(prev => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id); else next.add(id);
+      return next;
+    });
+  // Seçili kategorinin üstleri açık olsun (sayfa ilk açıldığında da görünür kalır)
+  useEffect(() => {
+    if (!selectedCategory) return;
+    const ancestors = getAncestors(categories, selectedCategory).map(a => a.id);
+    if (ancestors.length === 0) return;
+    setExpandedCats(prev => (ancestors.every(id => prev.has(id)) ? prev : new Set(Array.from(prev).concat(ancestors))));
+  }, [selectedCategory, categories]);
+  const visibleTreeCategories = useMemo(() => {
+    const parentOf = new Map(categories.map(c => [c.id, c.parentId]));
+    return orderedCategories.filter(cat => {
+      let pid = cat.parentId;
+      const seen = new Set<string>();
+      while (pid && parentOf.has(pid) && !seen.has(pid)) {
+        if (!expandedCats.has(pid)) return false;
+        seen.add(pid);
+        pid = parentOf.get(pid);
+      }
+      return true;
+    });
+  }, [orderedCategories, categories, expandedCats]);
+
 
   // Aktif chip listesi
   const activeChips: { key: string; label: string; onRemove: () => void; isLink?: boolean }[] = [
@@ -327,7 +326,7 @@ export default function Store() {
     <div>
       {/* Kategori */}
       <FilterSection title="Kategori">
-        <div className="space-y-0.5">
+        <div className="max-h-[232px] overflow-y-auto overscroll-contain no-scrollbar space-y-0.5">
           <button
             onClick={() => setSelectedCategory(undefined)}
             className={`group flex items-center justify-between w-full px-2.5 py-2 text-[13px] transition-all rounded-sm ${
@@ -338,29 +337,36 @@ export default function Store() {
             <span>Tüm Ürünler</span>
             {!selectedCategory && <span className="w-1.5 h-1.5 rounded-full bg-white" />}
           </button>
-          {visibleCategories.map(cat => (
-            <button
-              key={cat.id}
-              onClick={() => setSelectedCategory(cat.id)}
-              className={`group flex items-center justify-between w-full px-2.5 py-2 text-[13px] transition-all rounded-sm ${
-                selectedCategory === cat.id ? 'bg-white/10 text-white font-semibold' : 'text-white/60 hover:text-white hover:bg-white/5'
-              }`}
-              data-testid={`filter-category-${cat.slug}`}
-            >
-              <span className={cat.isChild ? 'pl-4' : ''}>{cat.isChild ? `└ ${cat.name}` : cat.name}</span>
-              {selectedCategory === cat.id && <span className="w-1.5 h-1.5 rounded-full bg-white" />}
-            </button>
-          ))}
-          {hiddenCategoryCount > 0 && (
-            <button
-              onClick={() => setShowAllCategories(v => !v)}
-              className="flex items-center gap-1.5 w-full px-2.5 py-2 text-[12px] text-white/50 hover:text-white transition-colors rounded-sm"
-              data-testid="button-toggle-categories"
-            >
-              <ChevronDown className={`w-3.5 h-3.5 transition-transform duration-200 ${showAllCategories ? 'rotate-180' : ''}`} strokeWidth={2} />
-              <span>{showAllCategories ? 'Daha Az Göster' : `Daha Fazla Göster (${hiddenCategoryCount})`}</span>
-            </button>
-          )}
+          {visibleTreeCategories.map(cat => {
+            const hasKids = categories.some(c => c.parentId === cat.id);
+            const isOpen = expandedCats.has(cat.id);
+            return (
+              <div key={cat.id} className="flex items-stretch" style={{ paddingLeft: cat.depth * 14 }}>
+                <button
+                  onClick={() => setSelectedCategory(cat.id)}
+                  className={`group flex items-center justify-between flex-1 min-w-0 px-2.5 py-2 text-[13px] text-left transition-all rounded-sm ${
+                    selectedCategory === cat.id ? 'bg-white/10 text-white font-semibold' : 'text-white/60 hover:text-white hover:bg-white/5'
+                  }`}
+                  data-testid={`filter-category-${cat.slug}`}
+                >
+                  <span className="truncate">{cat.name}</span>
+                  {selectedCategory === cat.id && <span className="w-1.5 h-1.5 rounded-full bg-white shrink-0" />}
+                </button>
+                {hasKids && (
+                  <button
+                    type="button"
+                    onClick={() => toggleExpanded(cat.id)}
+                    aria-label={isOpen ? 'Alt kategorileri gizle' : 'Alt kategorileri göster'}
+                    aria-expanded={isOpen}
+                    className="w-8 flex items-center justify-center text-white/45 hover:text-white rounded-sm hover:bg-white/5"
+                    data-testid={`toggle-category-${cat.slug}`}
+                  >
+                    <ChevronDown className={`w-4 h-4 transition-transform ${isOpen ? 'rotate-180' : ''}`} />
+                  </button>
+                )}
+              </div>
+            );
+          })}
         </div>
       </FilterSection>
 
@@ -631,7 +637,7 @@ export default function Store() {
                 transition={{ delay: 0.1 }}
                 className={`grid gap-x-4 gap-y-8 grid-cols-2 ${gridCols === 4 ? 'lg:grid-cols-4' : 'lg:grid-cols-3'}`}
               >
-                {filteredProducts.map((product, index) => (
+                {visibleProducts.map((product, index) => (
                   <motion.div
                     key={product.id}
                     initial={{ opacity: 0, y: 12 }}
@@ -642,6 +648,11 @@ export default function Store() {
                   </motion.div>
                 ))}
               </motion.div>
+            )}
+            {hasMoreProducts && (
+              <div ref={productsSentinelRef} className="flex justify-center py-10" data-testid="products-load-more">
+                <span className="w-5 h-5 rounded-full border-2 border-white/20 border-t-white animate-spin" />
+              </div>
             )}
           </div>
         </div>

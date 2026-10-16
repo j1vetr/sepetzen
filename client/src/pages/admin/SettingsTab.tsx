@@ -994,7 +994,8 @@ function FilterAttributesSection() {
       <div className="rounded-lg bg-blue-50 border border-blue-100 p-3 text-xs text-blue-700 mb-4">
         <strong>Alan adı:</strong> Ürün formundaki özellikler bölümündeki alan adıyla eşleşmeli.
         Mevcut alanlar: <code className="font-mono bg-blue-100 px-1 rounded">celikCinsi</code>, <code className="font-mono bg-blue-100 px-1 rounded">sapCinsi</code>, <code className="font-mono bg-blue-100 px-1 rounded">urunCinsi</code>, <code className="font-mono bg-blue-100 px-1 rounded">etKalinligi</code>, <code className="font-mono bg-blue-100 px-1 rounded">agirlik</code>.
-        Yeni alan eklemek için önce ürün formuna o alanı ekleyin.
+        Renk filtresi için alan adına <code className="font-mono bg-blue-100 px-1 rounded">renk</code> yazın, ürünlerdeki renk seçeneklerinden otomatik oluşur.
+        Başka yeni alan eklemek için önce ürün formuna o alanı ekleyin.
       </div>
 
       {result && (

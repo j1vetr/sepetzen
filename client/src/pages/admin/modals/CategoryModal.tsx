@@ -189,9 +189,38 @@ export default function CategoryModal({
 
   const isValid = !!formData.name.trim();
   const submitting = isSaving || isUploading;
-  // Alt kategorisi olan bir kategori kendisi alt kategori olamaz (tek seviye).
-  const hasChildren = !!category && categories.some((c) => c.parentId === category.id);
-  const parentOptions = categories.filter((c) => !c.parentId && c.id !== category?.id);
+  // Sınırsız derinlik: üst kategori olarak her kategori seçilebilir. Yalnızca
+  // kategorinin kendisi ve alt kategorileri hariç tutulur (döngü oluşmasın).
+  const parentOptions = (() => {
+    const byParent = new Map<string, typeof categories>();
+    for (const c of categories) {
+      const key = c.parentId ?? '';
+      byParent.set(key, [...(byParent.get(key) ?? []), c]);
+    }
+    const ids = new Set(categories.map((c) => c.id));
+    const sortFn = (a: (typeof categories)[number], b: (typeof categories)[number]) =>
+      (a.displayOrder ?? 0) - (b.displayOrder ?? 0);
+    const out: { id: string; label: string }[] = [];
+    const walk = (parentKey: string, depth: number, visited: Set<string>) => {
+      for (const c of [...(byParent.get(parentKey) ?? [])].sort(sortFn)) {
+        if (visited.has(c.id) || c.id === category?.id) continue; // kendisi ve altı hariç
+        visited.add(c.id);
+        out.push({ id: c.id, label: `${'\u00A0\u00A0'.repeat(depth)}${depth > 0 ? '└ ' : ''}${c.name}` });
+        walk(c.id, depth + 1, visited);
+      }
+    };
+    const visited = new Set<string>();
+    walk('', 0, visited);
+    // Üst kategorisi listede olmayan kayıtlar da seçilebilsin
+    for (const c of categories) {
+      if (c.parentId && !ids.has(c.parentId) && !visited.has(c.id) && c.id !== category?.id) {
+        visited.add(c.id);
+        out.push({ id: c.id, label: c.name });
+        walk(c.id, 1, visited);
+      }
+    }
+    return out;
+  })();
 
   return (
     <AdminModal
@@ -284,24 +313,19 @@ export default function CategoryModal({
           </div>
           <FormField
             label="Üst Kategori"
-            hint={
-              hasChildren
-                ? 'Bu kategorinin alt kategorileri olduğu için kendisi alt kategori yapılamaz.'
-                : 'Boş bırakılırsa ana kategori olur. Alt kategori olarak eklemek için bir ana kategori seçin.'
-            }
+            hint="Boş bırakılırsa ana kategori olur. Alt kategori için herhangi bir kategoriyi seçebilirsiniz, alt kategorinin altına da kategori eklenebilir."
           >
             <select
               id="category-parent"
               value={formData.parentId}
               onChange={(e) => setFormData((prev) => ({ ...prev, parentId: e.target.value }))}
-              disabled={hasChildren}
               className="w-full rounded-md border border-neutral-200 bg-white px-2.5 py-2 text-[13px] text-neutral-900 focus:outline-none focus:ring-2 focus:ring-neutral-900/10 focus:border-neutral-400 disabled:bg-neutral-50 disabled:text-neutral-400"
               data-testid="select-category-parent"
             >
               <option value="">Ana kategori (üst kategori yok)</option>
               {parentOptions.map((c) => (
                 <option key={c.id} value={c.id}>
-                  {c.name}
+                  {c.label}
                 </option>
               ))}
             </select>

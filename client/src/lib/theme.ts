@@ -5,13 +5,13 @@ const STORAGE_KEY = 'sepetzen_theme';
 
 function read(): Theme {
   try {
-    return localStorage.getItem(STORAGE_KEY) === 'light' ? 'light' : 'dark';
+    return localStorage.getItem(STORAGE_KEY) === 'dark' ? 'dark' : 'light';
   } catch {
-    return 'dark';
+    return 'light';
   }
 }
 
-let current: Theme = typeof window === 'undefined' ? 'dark' : read();
+let current: Theme = typeof window === 'undefined' ? 'light' : read();
 const listeners = new Set<() => void>();
 
 function apply(theme: Theme) {
@@ -40,6 +40,6 @@ export function useTheme(): Theme {
       return () => listeners.delete(cb);
     },
     () => current,
-    () => 'dark' as Theme,
+    () => 'light' as Theme,
   );
 }

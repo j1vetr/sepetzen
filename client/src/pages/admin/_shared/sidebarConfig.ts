@@ -17,6 +17,8 @@ import {
   Newspaper,
   Tag,
   ShieldCheck,
+  Wallet,
+  FileStack,
 } from 'lucide-react';
 import type { SidebarCategory } from '../_layout/AdminLayout';
 import type { TabType } from './types';
@@ -40,6 +42,8 @@ export const VALID_TABS: TabType[] = [
   'coupons',
   'reviews',
   'kvkk',
+  'wallet',
+  'batchinvoice',
 ];
 
 export const SIDEBAR_CATEGORIES: SidebarCategory[] = [
@@ -54,6 +58,7 @@ export const SIDEBAR_CATEGORIES: SidebarCategory[] = [
     title: 'Satış ve Operasyon',
     items: [
       { id: 'orders', icon: ShoppingCart, label: 'Site Siparişleri' },
+      { id: 'batchinvoice', icon: FileStack, label: 'Toplu Fatura' },
       { id: 'inventory', icon: Package, label: 'Stok' },
     ],
   },
@@ -69,6 +74,7 @@ export const SIDEBAR_CATEGORIES: SidebarCategory[] = [
     title: 'Müşteriler',
     items: [
       { id: 'users', icon: Users, label: 'Kullanıcılar' },
+      { id: 'wallet', icon: Wallet, label: 'Bakiye' },
       { id: 'reviews', icon: MessageSquare, label: 'Yorumlar' },
       { id: 'kvkk', icon: ShieldCheck, label: 'KVKK Talepleri' },
     ],
@@ -108,6 +114,8 @@ export const TAB_DESCRIPTIONS: Record<TabType, string> = {
   orders: 'Sitenizden gelen siparişleri görüntüleyin ve yönetin.',
   users: 'Kayıtlı müşterilerinizi görüntüleyin.',
   reviews: 'Müşteri yorumlarını onaylayın veya kaldırın.',
+  batchinvoice: 'Aynı müşterinin aynı gün siparişlerini gün sonunda tek faturada birleştirin.',
+  wallet: 'Müşteri bakiyeleri, bekleyen havale yüklemeleri ve bakiye ayarları.',
   kvkk: 'Müşterilerin veri silme taleplerini görüntüleyin ve sonuçlandırın.',
   coupons: 'İndirim kuponları oluşturun ve takip edin.',
   homepage: 'Ana sayfanızın bölümlerini düzenleyin.',

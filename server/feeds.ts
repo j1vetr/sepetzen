@@ -1,4 +1,4 @@
-import { storage, db } from "./storage";
+import { storage, db, backfillMissingProductSkus } from "./storage";
 import { productVariants } from "@shared/schema";
 
 const SITE_URL = "https://polenstone.com";
@@ -38,6 +38,7 @@ function formatPriceTRY(value: string | number | null | undefined): string {
 }
 
 export async function buildMetaCatalogXml(): Promise<string> {
+  await backfillMissingProductSkus();
   const [allProducts, allCategories, allVariants, siteSettings] = await Promise.all([
     storage.getAllProducts(),
     storage.getCategories(),

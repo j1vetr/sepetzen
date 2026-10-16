@@ -1,4 +1,7 @@
 import { useState, useMemo, useEffect, useCallback } from 'react';
+import { getSpecValues } from '@/lib/specFilter';
+import { sortRecommended } from '@/lib/productSort';
+import { getAncestors } from '@/lib/categoryTree';
 import { Header } from '@/components/Header';
 import { Footer } from '@/components/Footer';
 import { SEO } from '@/components/SEO';
@@ -8,6 +11,7 @@ import { ChevronRight, X, SlidersHorizontal, ChevronDown } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useProducts, useCategories, useFilterAttributes, type ProductFilters } from '@/hooks/useProducts';
 import { sanitizeAdminHtml } from '@/lib/sanitizeHtml';
+import { useInfiniteList } from '@/hooks/useInfiniteList';
 import { PriceRangeFilter } from '@/components/PriceRangeFilter';
 import {
   Select,
@@ -18,13 +22,13 @@ import {
 } from '@/components/ui/select';
 
 const sortOptions = [
+  { value: 'recommended', label: 'Önerilen' },
   { value: 'newest', label: 'En Yeni' },
   { value: 'price_asc', label: 'Fiyat: Düşük → Yüksek' },
   { value: 'price_desc', label: 'Fiyat: Yüksek → Düşük' },
   { value: 'popular', label: 'En Popüler' },
 ];
 
-const COLLAPSE_THRESHOLD = 5;
 
 // ── Ürün ızgarası animasyon varyantları ──────────────────────────────────────
 const gridVariants = {
@@ -95,20 +99,11 @@ function CheckItem({ label, checked, onChange, count }: {
 function MultiCheckList({ options, selected, onToggle, counts }: {
   options: string[]; selected: string[]; onToggle: (val: string) => void; counts?: Record<string, number>;
 }) {
-  const [showAll, setShowAll] = useState(false);
-  const visible = showAll ? options : options.slice(0, COLLAPSE_THRESHOLD);
-  const hidden = options.length - COLLAPSE_THRESHOLD;
   return (
-    <div className="space-y-0.5">
-      {visible.map(opt => (
+    <div className="max-h-[232px] overflow-y-auto overscroll-contain no-scrollbar space-y-0.5">
+      {options.map(opt => (
         <CheckItem key={opt} label={opt} checked={selected.includes(opt)} onChange={() => onToggle(opt)} count={counts?.[opt]} />
       ))}
-      {options.length > COLLAPSE_THRESHOLD && (
-        <button onClick={() => setShowAll(v => !v)} className="flex items-center gap-1.5 py-1.5 text-[12px] text-white/40 hover:text-white transition-colors">
-          <ChevronDown className={`w-3.5 h-3.5 transition-transform duration-200 ${showAll ? 'rotate-180' : ''}`} strokeWidth={2} />
-          {showAll ? 'Daha Az Göster' : `Daha Fazla Göster (${hidden})`}
-        </button>
-      )}
     </div>
   );
 }
@@ -117,7 +112,7 @@ function MultiCheckList({ options, selected, onToggle, counts }: {
 
 function parseSearchParams(search: string) {
   const params = new URLSearchParams(search);
-  const sort = (params.get('sort') || 'newest') as ProductFilters['sort'];
+  const sort = (params.get('sort') || 'recommended') as ProductFilters['sort'];
   const minPrice = parseInt(params.get('minPrice') || '0', 10);
   const maxPrice = parseInt(params.get('maxPrice') || '10000', 10);
   const isNew = params.get('isNew') === '1';
@@ -136,7 +131,7 @@ export default function Category() {
   const { data: filterAttributes = [] } = useFilterAttributes();
   const category = categories.find(c => c.slug === slug);
   const childCategories = categories.filter(c => c.parentId && c.parentId === category?.id);
-  const parentCategory = category?.parentId ? categories.find(c => c.id === category.parentId) : undefined;
+  const ancestorCategories = getAncestors(categories, category?.id);
 
   const parsed = useMemo(() => parseSearchParams(search), [search]);
 
@@ -156,7 +151,7 @@ export default function Category() {
       const maxP = overrides?.maxPrice ?? priceRange[1];
       const n = overrides?.isNew ?? showOnlyNew;
       const d = overrides?.discounted ?? showOnlyDiscounted;
-      if (s && s !== 'newest') p.set('sort', s);
+      if (s && s !== 'recommended') p.set('sort', s);
       if (minP > 0) p.set('minPrice', String(minP));
       if (maxP < 10000) p.set('maxPrice', String(maxP));
       if (n) p.set('isNew', '1');
@@ -194,7 +189,7 @@ export default function Category() {
   const clearFilters = useCallback(() => {
     setShowOnlyNew(false);
     setShowOnlyDiscounted(false);
-    setSortBy('newest');
+    setSortBy('recommended');
     setPriceRange([0, 10000]);
     setSelectedBrands([]);
     setSelectedSpecFilters({});
@@ -240,8 +235,7 @@ export default function Category() {
     for (const attr of filterAttributes) {
       const vals = new Set<string>();
       products.forEach(p => {
-        const val = p.specs?.[attr.key as keyof NonNullable<typeof p.specs>];
-        if (val) vals.add(val);
+        getSpecValues(p, attr.key).forEach(v => vals.add(v));
       });
       result[attr.key] = Array.from(vals).sort((a, b) => a.localeCompare(b, 'tr'));
     }
@@ -270,14 +264,12 @@ export default function Category() {
     for (const attr of filterAttributes) {
       const sel = selectedSpecFilters[attr.key] ?? [];
       if (sel.length > 0) {
-        result = result.filter(p => {
-          const val = p.specs?.[attr.key as keyof NonNullable<typeof p.specs>];
-          return val && sel.includes(val);
-        });
+        result = result.filter(p => getSpecValues(p, attr.key).some(v => sel.includes(v)));
       }
     }
-    return result;
-  }, [products, showOnlyNew, showOnlyDiscounted, selectedBrands, selectedSpecFilters, filterAttributes]);
+    return sortBy === 'recommended' ? sortRecommended(result) : result;
+  }, [sortBy, products, showOnlyNew, showOnlyDiscounted, selectedBrands, selectedSpecFilters, filterAttributes]);
+  const { visible: visibleProducts, hasMore: hasMoreProducts, sentinelRef: productsSentinelRef } = useInfiniteList(filteredProducts, 24);
 
   const categoryContentHtml = useMemo(
     () => (category?.contentHtml ? sanitizeAdminHtml(category.contentHtml) : ''),
@@ -330,7 +322,7 @@ export default function Category() {
         url={`/kategori/${slug}`}
         breadcrumbs={[
           { name: 'Ana Sayfa', url: '/' },
-          ...(parentCategory ? [{ name: parentCategory.name, url: `/kategori/${parentCategory.slug}` }] : []),
+          ...ancestorCategories.map(a => ({ name: a.name, url: `/kategori/${a.slug}` })),
           { name: category?.name || 'Kategori', url: `/kategori/${slug}` },
         ]}
       />
@@ -352,14 +344,14 @@ export default function Category() {
               className="flex items-center gap-2 text-[10px] text-white/45 tracking-wider uppercase mb-1.5" data-testid="breadcrumb">
               <Link href="/"><span className="hover:text-white transition-colors">Ana Sayfa</span></Link>
               <ChevronRight className="w-3 h-3" />
-              {parentCategory && (
-                <>
-                  <Link href={`/kategori/${parentCategory.slug}`}>
-                    <span className="hover:text-white transition-colors" data-testid="link-parent-category">{parentCategory.name}</span>
+              {ancestorCategories.map((a, i) => (
+                <span key={a.id} className="contents">
+                  <Link href={`/kategori/${a.slug}`}>
+                    <span className="hover:text-white transition-colors" data-testid={i === ancestorCategories.length - 1 ? 'link-parent-category' : `link-ancestor-category-${a.id}`}>{a.name}</span>
                   </Link>
                   <ChevronRight className="w-3 h-3" />
-                </>
-              )}
+                </span>
+              ))}
               <span className="text-white/75">{category?.name}</span>
             </motion.nav>
             <div className="flex items-baseline justify-between gap-4 flex-wrap">
@@ -559,7 +551,7 @@ export default function Category() {
                 initial="hidden"
                 animate="show"
               >
-                {filteredProducts.map((product) => (
+                {visibleProducts.map((product) => (
                   <motion.div key={product.id} variants={cardVariants}>
                     <ProductCard product={product} />
                   </motion.div>
@@ -567,6 +559,11 @@ export default function Category() {
               </motion.div>
             )}
           </AnimatePresence>
+          {hasMoreProducts && (
+            <div ref={productsSentinelRef} className="flex justify-center py-10" data-testid="products-load-more">
+              <span className="w-5 h-5 rounded-full border-2 border-white/20 border-t-white animate-spin" />
+            </div>
+          )}
         </div>
       </main>
 

@@ -1,4 +1,4 @@
-import { storage, db } from "./storage";
+import { storage, db, backfillMissingProductSkus } from "./storage";
 import { productVariants } from "@shared/schema";
 import { cache } from "./cache";
 
@@ -149,6 +149,8 @@ export interface GoogleMerchantFeedResult {
 export async function buildGoogleMerchantFeed(
   settings: GoogleMerchantSettings,
 ): Promise<GoogleMerchantFeedResult> {
+  // Stok kodu boş ürünler Merchant'ta hata verdiği için önce otomatik kod atanır
+  await backfillMissingProductSkus();
   const [allProducts, allCategories, allVariants] = await Promise.all([
     storage.getAllProducts(),
     storage.getCategories(),
@@ -201,7 +203,7 @@ export async function buildGoogleMerchantFeed(
         if (!price) continue;
         const availability: "in_stock" | "out_of_stock" = (v.stock ?? 0) > 0 ? "in_stock" : "out_of_stock";
         if (availability === "out_of_stock" && !settings.includeOutOfStock) continue;
-        const variantId = (v.sku && v.sku.trim()) || `${baseId}-${v.id}`;
+        const variantId = (v.sku && v.sku.trim()) || `${baseId}-${variants.indexOf(v) + 1}`;
         const variantTitleParts = [title, v.size, v.color].filter(Boolean) as string[];
         groupItems.push({
           id: variantId,

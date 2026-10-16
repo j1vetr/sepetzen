@@ -47,6 +47,7 @@ interface Coupon {
   perUserLimit: number | null;
   freeShipping: boolean;
   appliesToShipping: boolean;
+  firstOrderOnly: boolean;
   isActive: boolean;
   startsAt: string | null;
   expiresAt: string | null;
@@ -73,6 +74,7 @@ const emptyDraft: CouponDraft = {
   perUserLimit: 1,
   freeShipping: false,
   appliesToShipping: false,
+  firstOrderOnly: false,
   isActive: true,
   startsAt: null,
   expiresAt: null,
@@ -193,6 +195,7 @@ export default function CouponsTab() {
         perUserLimit: payload.perUserLimit ? Number(payload.perUserLimit) : null,
         freeShipping: !!payload.freeShipping,
         appliesToShipping: !!payload.appliesToShipping,
+        firstOrderOnly: !!payload.firstOrderOnly,
         isActive: !!payload.isActive,
         startsAt: payload.startsAt || null,
         expiresAt: payload.expiresAt || null,
@@ -276,6 +279,7 @@ export default function CouponsTab() {
       perUserLimit: c.perUserLimit ?? 1,
       freeShipping: c.freeShipping,
       appliesToShipping: c.appliesToShipping,
+      firstOrderOnly: c.firstOrderOnly,
       isActive: c.isActive,
       startsAt: c.startsAt ? toInputDate(c.startsAt) : '',
       expiresAt: c.expiresAt ? toInputDate(c.expiresAt) : '',
@@ -464,6 +468,9 @@ export default function CouponsTab() {
                         )}
                         {c.freeShipping && (
                           <span className="ml-1.5 text-[10px] text-neutral-600">+ Kargo</span>
+                        )}
+                        {c.firstOrderOnly && (
+                          <span className="ml-1.5 text-[10px] text-neutral-600">İlk sipariş</span>
                         )}
                       </td>
                       <td className="px-4 py-3 text-neutral-600">
@@ -768,6 +775,12 @@ export default function CouponsTab() {
                 onChange={(v) => setDraft({ ...draft, appliesToShipping: v })}
                 label="Kargoya da Uygula"
                 testId="check-applies-shipping"
+              />
+              <CheckPill
+                checked={!!draft.firstOrderOnly}
+                onChange={(v) => setDraft({ ...draft, firstOrderOnly: v })}
+                label="Sadece İlk Sipariş"
+                testId="check-first-order-only"
               />
             </div>
           </div>

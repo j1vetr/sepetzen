@@ -1,7 +1,8 @@
 import { ThemeToggle } from '@/components/ThemeToggle';
+import { flattenCategoryTree } from '@/lib/categoryTree';
 import { useState, useEffect, useRef, useMemo } from 'react';
 import { Link, useLocation } from 'wouter';
-import { ShoppingBag, Search, X, User, LogOut, ChevronDown, ChevronRight, ArrowUpRight, Scissors, PawPrint, Tent, Shovel, Wrench, FlameKindling, Backpack, LayoutGrid, Target, Drill, HardHat, Flashlight, Compass, Map as MapIcon, Mountain, Flower, Bird, Fish, Rabbit, TreeDeciduous, TreePine, UtensilsCrossed, Dog, Cat, Layers, Zap, Waves, PackageSearch, CircleHelp } from 'lucide-react';
+import { ShoppingBag, Search, X, User, LogOut, ChevronDown, ChevronRight, ArrowUpRight, Scissors, PawPrint, Tent, Shovel, Wrench, FlameKindling, Backpack, LayoutGrid, Target, Drill, HardHat, Flashlight, Compass, Map as MapIcon, Mountain, Flower, Bird, Fish, Rabbit, TreeDeciduous, TreePine, UtensilsCrossed, Dog, Cat, Layers, Zap, Waves, PackageSearch, CircleHelp, Wallet } from 'lucide-react';
 
 const PocketKnifeIcon = ({ className, strokeWidth = 1.75 }: { className?: string; strokeWidth?: number }) => (
   <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={strokeWidth} strokeLinecap="round" strokeLinejoin="round" className={className}>
@@ -219,26 +220,9 @@ export function Header() {
 
   // Hiyerarşik sıralama: ana kategoriler displayOrder'a göre, her birinin
   // hemen ardından kendi alt kategorileri (girintili gösterilir).
-  const visibleCategories = (() => {
-    const eligible = categoriesData.filter(c => (c.displayOrder ?? 0) < 100);
-    const byOrder = (a: CategoryData, b: CategoryData) => (a.displayOrder ?? 0) - (b.displayOrder ?? 0);
-    const tops = eligible.filter(c => !c.parentId).sort(byOrder);
-    const topIds = tops.map(t => t.id);
-    const result: (CategoryData & { isChild?: boolean })[] = [];
-    for (const top of tops) {
-      result.push(top);
-      eligible
-        .filter(c => c.parentId === top.id)
-        .sort(byOrder)
-        .forEach(child => result.push({ ...child, isChild: true }));
-    }
-    // Üst kategorisi görünür listede olmayan alt kategoriler kaybolmasın
-    eligible
-      .filter(c => c.parentId && topIds.indexOf(c.parentId) === -1)
-      .sort(byOrder)
-      .forEach(c => result.push(c));
-    return result;
-  })();
+  const visibleCategories = flattenCategoryTree(
+    categoriesData.filter(c => (c.displayOrder ?? 0) < 100),
+  ) as (CategoryData & { isChild?: boolean; depth?: number })[];
 
   // legacy compat (still used elsewhere)
   const ALL_CATS_PREVIEW = 8;
@@ -417,7 +401,7 @@ export function Header() {
                     </span>
                     <span className="flex flex-col leading-tight whitespace-nowrap">
                       <span className="text-[12px] font-semibold text-white">Hesabım</span>
-                      <span className="text-[10.5px] text-white/45 group-hover:text-white/70 transition-colors">{user.firstName || 'Profilim'}</span>
+                      <span className="text-[10.5px] text-white/45 group-hover:text-white/70 transition-colors" data-testid="text-header-balance">Bakiye: {(user.walletBalance ?? 0).toLocaleString('tr-TR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} ₺</span>
                     </span>
                   </button>
                 </DropdownMenuTrigger>
@@ -425,6 +409,9 @@ export function Header() {
                   <DropdownMenuItem disabled className="text-[10px] tracking-widest text-white/30 uppercase">{user.firstName || user.email}</DropdownMenuItem>
                   <DropdownMenuItem onClick={() => navigate('/hesabim')} className="text-[11px] tracking-wider uppercase text-white/75 hover:bg-white/5 hover:text-white cursor-pointer py-2.5">
                     <User className="w-4 h-4 mr-2" />Hesabım
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => navigate('/hesabim?tab=bakiye')} className="text-[11px] tracking-wider uppercase text-white/75 hover:bg-white/5 hover:text-white cursor-pointer py-2.5" data-testid="menu-wallet">
+                    <Wallet className="w-4 h-4 mr-2" />Bakiye Yükle
                   </DropdownMenuItem>
                   <DropdownMenuItem onClick={() => { logout(); navigate('/'); }} className="text-[11px] tracking-wider uppercase text-white/75 hover:bg-white/5 hover:text-white cursor-pointer py-2.5">
                     <LogOut className="w-4 h-4 mr-2" />Çıkış Yap
@@ -635,19 +622,38 @@ export function Header() {
                             <div className={`grid gap-x-8 gap-y-3 content-start ${
                               activeKids.length > 8 ? 'grid-cols-3' : activeKids.length > 4 ? 'grid-cols-2' : 'grid-cols-1'
                             }`}>
-                              {activeKids.map(kid => (
-                                <button
-                                  key={kid.id}
-                                  type="button"
-                                  className="flex items-center gap-1.5 text-left group"
-                                  onClick={() => { navigate(hrefForMenu(kid)); setAllCatsOpen(false); }}
-                                >
-                                  <span className="text-[13px] font-semibold text-white/80 group-hover:text-white transition-colors tracking-wide">
-                                    {kid.title}
-                                  </span>
-                                  <ChevronRight className="w-3 h-3 text-white/30 group-hover:text-white/60 transition-colors shrink-0" />
-                                </button>
-                              ))}
+                              {activeKids.map(kid => {
+                                const grand = (kid.children ?? []).filter(g => g.isActive && !!g.category);
+                                return (
+                                  <div key={kid.id} className="min-w-0">
+                                    <button
+                                      type="button"
+                                      className="flex items-center gap-1.5 text-left group"
+                                      onClick={() => { navigate(hrefForMenu(kid)); setAllCatsOpen(false); }}
+                                    >
+                                      <span className="text-[13px] font-semibold text-white/80 group-hover:text-white transition-colors tracking-wide">
+                                        {kid.title}
+                                      </span>
+                                      <ChevronRight className="w-3 h-3 text-white/30 group-hover:text-white/60 transition-colors shrink-0" />
+                                    </button>
+                                    {grand.length > 0 && (
+                                      <ul className="mt-1.5 ml-1 pl-2.5 border-l border-white/10 space-y-1">
+                                        {grand.map(g => (
+                                          <li key={g.id}>
+                                            <button
+                                              type="button"
+                                              className="text-left text-[12px] text-white/50 hover:text-white transition-colors"
+                                              onClick={() => { navigate(hrefForMenu(g)); setAllCatsOpen(false); }}
+                                            >
+                                              {g.title}
+                                            </button>
+                                          </li>
+                                        ))}
+                                      </ul>
+                                    )}
+                                  </div>
+                                );
+                              })}
                             </div>
                           ) : activeRoot?.category ? (
                             <div className="flex items-center justify-center h-full">
@@ -834,7 +840,7 @@ export function Header() {
                             data-testid={`link-cat-${c.slug}`}
                           >
                             {(c as any).isChild ? (
-                              <span className="pl-3 text-white/60">└ {c.name}</span>
+                              <span className="text-white/60" style={{ paddingLeft: 12 * ((c as any).depth ?? 1) }}>└ {c.name}</span>
                             ) : (
                               c.name
                             )}
@@ -1034,22 +1040,40 @@ export function Header() {
               {/* ── MIDDLE: Subcategory grid ── */}
               <div className="flex-1 px-8 xl:px-10 py-8 border-r border-white/8">
                 <div className="text-[9px] tracking-[0.30em] uppercase text-white/30 font-mono mb-5">Alt Kategoriler</div>
-                <div className={`grid gap-x-3 gap-y-0.5 ${activeMegaChildren.length <= 4 ? 'grid-cols-1' : activeMegaChildren.length <= 8 ? 'grid-cols-2' : 'grid-cols-2 xl:grid-cols-3'}`}>
+                <div className={`grid gap-x-3 gap-y-2 items-start ${activeMegaChildren.length <= 4 ? 'grid-cols-1' : activeMegaChildren.length <= 8 ? 'grid-cols-2' : 'grid-cols-2 xl:grid-cols-3'}`}>
                   {activeMegaChildren.map((child) => {
                     const childHref = hrefForMenu(child);
+                    const grandKids = (child.children || []).filter(g => g.isActive);
                     return (
-                      <Link
-                        key={child.id}
-                        href={childHref}
-                        onClick={() => setMegaMenuId(null)}
-                        className="group flex items-center gap-3 px-3 py-3.5 rounded-lg hover:bg-white/5 transition-all duration-150"
-                        data-testid={`link-mega-${child.id}`}
-                      >
-                        <span className="text-[13px] text-white/65 group-hover:text-white transition-colors font-medium leading-tight flex-1">
-                          {child.title}
-                        </span>
-                        <ArrowUpRight className="w-3.5 h-3.5 text-transparent group-hover:text-white/50 transition-colors shrink-0" />
-                      </Link>
+                      <div key={child.id} className="min-w-0" data-testid={`group-mega-${child.id}`}>
+                        <Link
+                          href={childHref}
+                          onClick={() => setMegaMenuId(null)}
+                          className="group flex items-center gap-3 px-3 py-2.5 rounded-lg hover:bg-white/5 transition-all duration-150"
+                          data-testid={`link-mega-${child.id}`}
+                        >
+                          <span className={`text-[13px] group-hover:text-white transition-colors leading-tight flex-1 ${grandKids.length > 0 ? 'text-white font-semibold' : 'text-white/65 font-medium'}`}>
+                            {child.title}
+                          </span>
+                          <ArrowUpRight className="w-3.5 h-3.5 text-transparent group-hover:text-white/50 transition-colors shrink-0" />
+                        </Link>
+                        {grandKids.length > 0 && (
+                          <ul className="mb-2 ml-3 pl-3 border-l border-white/10 space-y-0.5">
+                            {grandKids.map(g => (
+                              <li key={g.id}>
+                                <Link
+                                  href={hrefForMenu(g)}
+                                  onClick={() => setMegaMenuId(null)}
+                                  className="block px-2 py-1.5 rounded-md text-[12px] text-white/50 hover:text-white hover:bg-white/5 transition-colors leading-tight"
+                                  data-testid={`link-mega-${g.id}`}
+                                >
+                                  {g.title}
+                                </Link>
+                              </li>
+                            ))}
+                          </ul>
+                        )}
+                      </div>
                     );
                   })}
                 </div>
@@ -1263,12 +1287,13 @@ export function Header() {
                                     <li className="text-[10px] text-white/40 py-1.5">Henüz alt kategori yok</li>
                                   ) : children.map(child => {
                                     const href = hrefForMenu(child);
+                                    const grand = (child.children || []).filter(g => g.isActive);
                                     return (
                                       <li key={child.id}>
                                         <Link
                                           href={href}
                                           onClick={() => setMobileOpen(false)}
-                                          className="group flex items-center gap-2.5 py-2 text-white/60 hover:text-white transition-colors"
+                                          className={`group flex items-center gap-2.5 py-2 hover:text-white transition-colors ${grand.length > 0 ? 'text-white/85' : 'text-white/60'}`}
                                           data-testid={`link-mobile-mega-${child.id}`}
                                         >
                                           <span className="w-1 h-1 rounded-full bg-white/25 group-hover:bg-white transition-colors" />
@@ -1276,6 +1301,22 @@ export function Header() {
                                             {child.title}
                                           </span>
                                         </Link>
+                                        {grand.length > 0 && (
+                                          <ul className="ml-3 pl-3 border-l border-white/10">
+                                            {grand.map(g => (
+                                              <li key={g.id}>
+                                                <Link
+                                                  href={hrefForMenu(g)}
+                                                  onClick={() => setMobileOpen(false)}
+                                                  className="block py-1.5 text-[11px] tracking-[0.12em] uppercase text-white/45 hover:text-white transition-colors"
+                                                  data-testid={`link-mobile-mega-${g.id}`}
+                                                >
+                                                  {g.title}
+                                                </Link>
+                                              </li>
+                                            ))}
+                                          </ul>
+                                        )}
                                       </li>
                                     );
                                   })}

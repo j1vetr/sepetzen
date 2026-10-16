@@ -337,13 +337,14 @@ function EInvoiceCard({ order, onRefresh }: { order: Order | null; onRefresh: ()
     : status === 'failed' ? 'Hata'
     : status === 'cancelled' ? 'İptal edildi'
     : status === 'queued' ? 'Sıraya alındı'
+    : status === 'batch_pending' ? 'Gün sonu toplu faturasında'
     : 'Henüz kesilmedi';
 
   const statusColor =
     status === 'sent' ? 'text-emerald-700 bg-emerald-50'
     : status === 'failed' ? 'text-red-700 bg-red-50'
     : status === 'cancelled' ? 'text-neutral-500 bg-neutral-100'
-    : status === 'queued' ? 'text-amber-700 bg-amber-50'
+    : status === 'queued' || status === 'batch_pending' ? 'text-amber-700 bg-amber-50'
     : 'text-neutral-400 bg-neutral-100';
 
   async function handleIssue() {

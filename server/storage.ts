@@ -393,6 +393,37 @@ export interface IStorage {
   deleteBrand(id: string): Promise<void>;
 }
 
+// Stok kodu girilmeyen ürünlere otomatik "S535" biçiminde kısa kod verilir.
+// Mevcut S+rakam kodlarının en büyüğünün bir fazlası kullanılır (en az S101).
+type SkuExecutor = Pick<typeof db, "select">;
+async function nextAutoSkuNumber(executor: SkuExecutor): Promise<number> {
+  const [row] = await executor
+    .select({ max: sql<number>`COALESCE(MAX(SUBSTRING(${products.sku} FROM 2)::int), 100)` })
+    .from(products)
+    .where(sql`${products.sku} ~ '^S[0-9]{1,5}$'`);
+  return Number(row?.max ?? 100) + 1;
+}
+const isBlankSku = (v: unknown) => v === null || v === undefined || (typeof v === "string" && v.trim() === "");
+
+export async function getNextAutoProductSku(): Promise<string> {
+  return `S${await nextAutoSkuNumber(db)}`;
+}
+
+export async function backfillMissingProductSkus(): Promise<number> {
+  const missing = await db
+    .select({ id: products.id })
+    .from(products)
+    .where(sql`${products.sku} IS NULL OR btrim(${products.sku}) = ''`)
+    .orderBy(asc(products.createdAt));
+  if (missing.length === 0) return 0;
+  let n = await nextAutoSkuNumber(db);
+  for (const m of missing) {
+    await db.update(products).set({ sku: `S${n}` }).where(eq(products.id, m.id));
+    n += 1;
+  }
+  return missing.length;
+}
+
 export class DbStorage implements IStorage {
   async getAdminUser(id: string): Promise<AdminUser | undefined> {
     const [user] = await db.select().from(adminUsers).where(eq(adminUsers.id, id));
@@ -576,7 +607,7 @@ export class DbStorage implements IStorage {
 
   /**
    * Kategoriyi tek bir transaction içinde siler:
-   * - alt kategoriler ana seviyeye taşınır,
+   * - alt kategoriler silinen kategorinin bir üst seviyesine taşınır,
    * - kategoriye birincil bağlı ürünlerin categoryId'si null'lanır
    *   (junction satırları FK cascade ile temizlenir),
    * - kategori silinir.
@@ -584,7 +615,9 @@ export class DbStorage implements IStorage {
    */
   async deleteCategoryWithPromotion(id: string): Promise<void> {
     await db.transaction(async (tx) => {
-      await tx.update(categories).set({ parentId: null }).where(eq(categories.parentId, id));
+      // Alt kategoriler silinen kategorinin bir üst seviyesine taşınır
+      const [target] = await tx.select({ parentId: categories.parentId }).from(categories).where(eq(categories.id, id));
+      await tx.update(categories).set({ parentId: target?.parentId ?? null }).where(eq(categories.parentId, id));
       await tx.update(products).set({ categoryId: null }).where(eq(products.categoryId, id));
       await tx.delete(categories).where(eq(categories.id, id));
     });
@@ -611,10 +644,18 @@ export class DbStorage implements IStorage {
     let categoryIdSet: string[] = [];
     if (filters?.categoryId) {
       // Ana kategori seçildiğinde alt kategorilerin ürünleri de kapsanır
-      const childRows = await db.select({ id: categories.id })
-        .from(categories)
-        .where(eq(categories.parentId, filters.categoryId));
-      categoryIdSet = [filters.categoryId, ...childRows.map(r => r.id)];
+      // (sınırsız derinlik: tüm torunlar dahil)
+      const allCats = await db.select({ id: categories.id, parentId: categories.parentId }).from(categories);
+      const childrenOf = new Map<string, string[]>();
+      for (const c of allCats) {
+        if (c.parentId) childrenOf.set(c.parentId, [...(childrenOf.get(c.parentId) ?? []), c.id]);
+      }
+      categoryIdSet = [filters.categoryId];
+      for (let n = 0; n < categoryIdSet.length; n++) {
+        for (const childId of childrenOf.get(categoryIdSet[n]) ?? []) {
+          if (!categoryIdSet.includes(childId)) categoryIdSet.push(childId);
+        }
+      }
       // Get products that have any of these categories (via product_categories table)
       const productIdsResult = await db.selectDistinct({ productId: productCategories.productId })
         .from(productCategories)
@@ -716,6 +757,7 @@ export class DbStorage implements IStorage {
   }
 
   async createProduct(product: InsertProduct): Promise<Product> {
+    if (isBlankSku(product.sku)) product = { ...product, sku: `S${await nextAutoSkuNumber(db)}` };
     const [newProduct] = await db.insert(products).values(product).returning();
     return newProduct;
   }
@@ -723,6 +765,7 @@ export class DbStorage implements IStorage {
   async updateProduct(id: string, product: Partial<InsertProduct>): Promise<Product | undefined> {
     // Remove fields that shouldn't be updated (auto-managed or sent as strings from frontend)
     const { createdAt, updatedAt, id: productId, ...updateData } = product as any;
+    if ("sku" in updateData && isBlankSku(updateData.sku)) updateData.sku = `S${await nextAutoSkuNumber(db)}`;
     const [updated] = await db.update(products).set(updateData).where(eq(products.id, id)).returning();
     return updated;
   }
@@ -823,6 +866,7 @@ export class DbStorage implements IStorage {
   ): Promise<{ product: Product; retiredCount: number; deletedCount: number } | undefined> {
     const { createdAt, updatedAt, id: _pid, ...updateData } = product as any;
     const outcome = await db.transaction(async (tx) => {
+      if ("sku" in updateData && isBlankSku(updateData.sku)) updateData.sku = `S${await nextAutoSkuNumber(tx)}`;
       const [updated] = await tx.update(products).set(updateData).where(eq(products.id, id)).returning();
       if (!updated) return undefined;
       const reconcile = await this.reconcileVariantsInTx(tx, id, variantRows);
@@ -848,6 +892,7 @@ export class DbStorage implements IStorage {
     categoryIds: string[] | null,
   ): Promise<Product> {
     return db.transaction(async (tx) => {
+      if (isBlankSku(product.sku)) product = { ...product, sku: `S${await nextAutoSkuNumber(tx)}` };
       const [newProduct] = await tx.insert(products).values(product).returning();
       const effectiveCategoryIds = categoryIds && categoryIds.length > 0
         ? categoryIds
@@ -1937,6 +1982,20 @@ export class DbStorage implements IStorage {
       return { valid: false, error: `Minimum sipariş tutarı: ${coupon.minOrderAmount} TL` };
     }
 
+    if (coupon.firstOrderOnly) {
+      if (!userId) return { valid: false, error: 'Bu kupon yalnızca ilk siparişte geçerlidir. Kullanmak için giriş yapın' };
+      const [user] = await db.select({ email: users.email }).from(users).where(eq(users.id, userId));
+      if (!user?.email) return { valid: false, error: 'Bu kupon yalnızca ilk siparişte geçerlidir' };
+      const [prior] = await db.select({ id: orders.id }).from(orders).where(
+        and(
+          sql`lower(${orders.customerEmail}) = lower(${user.email})`,
+          sql`${orders.status} <> 'cancelled'`,
+          sql`${orders.paymentStatus} <> 'failed'`,
+        )
+      ).limit(1);
+      if (prior) return { valid: false, error: 'Bu kupon yalnızca ilk siparişte geçerlidir' };
+    }
+
     if (userId && coupon.perUserLimit) {
       const userRedemptions = await db.select().from(couponRedemptions).where(
         and(eq(couponRedemptions.couponId, coupon.id), eq(couponRedemptions.userId, userId))
@@ -2614,8 +2673,17 @@ export class DbStorage implements IStorage {
   }
 
   async deleteMenuItem(id: string): Promise<void> {
-    await db.delete(menuItems).where(eq(menuItems.parentId, id));
-    await db.delete(menuItems).where(eq(menuItems.id, id));
+    // Menü üç seviyeli olabilir: öğenin tüm alt dallarını da sil.
+    const all = await db.select({ id: menuItems.id, parentId: menuItems.parentId }).from(menuItems);
+    const toDelete = new Set<string>([id]);
+    let grew = true;
+    while (grew) {
+      grew = false;
+      for (const m of all) {
+        if (m.parentId && toDelete.has(m.parentId) && !toDelete.has(m.id)) { toDelete.add(m.id); grew = true; }
+      }
+    }
+    await db.delete(menuItems).where(inArray(menuItems.id, Array.from(toDelete)));
   }
 
   async reorderMenuItems(items: { id: string; displayOrder: number }[]): Promise<void> {

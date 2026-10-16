@@ -1,6 +1,6 @@
 import type { Express, Request, Response, NextFunction } from "express";
 import { createServer, type Server } from "http";
-import { storage, db } from "./storage";
+import { storage, db, getNextAutoProductSku } from "./storage";
 import { sanitizeStoredHtml } from "./htmlSanitize";
 import { collectUserData, getLatestDeletionRequest, createDeletionRequest, listDeletionRequests, resolveDeletionRequest } from "./kvkk";
 import { issueInvoiceForOrder, cancelInvoiceForOrder } from "./invoiceService";
@@ -52,6 +52,8 @@ import {
   sendReviewPendingToAdmin,
 } from "./whatsappService";
 import { getBankTransferConfig } from "./bankTransfer";
+import * as wallet from "./wallet";
+import * as batchInvoice from "./batchInvoice";
 import { defaultRange, getSalesOverview, overviewToCsv } from "./analytics";
 import {
   createCheckoutFormInitialize,
@@ -294,6 +296,7 @@ async function cleanupOrphanReviewImages(): Promise<void> {
 // Açılıştan kısa süre sonra bir kez, sonra 6 saatte bir
 setTimeout(() => { cleanupOrphanReviewImages().catch(() => {}); }, 5 * 60 * 1000);
 setInterval(() => { cleanupOrphanReviewImages().catch(() => {}); }, 6 * 60 * 60 * 1000);
+batchInvoice.startBatchInvoiceScheduler();
 
 // Kargo ücret ayarları: ilk açılışta varsayılan değerleri yaz (zaten varsa dokunma)
 (async () => {
@@ -1896,6 +1899,14 @@ KURALLAR:
   });
 
   // Admin Products (all products including inactive)
+  app.get("/api/admin/products/next-sku", requireAdmin, async (_req, res) => {
+    try {
+      res.json({ sku: await getNextAutoProductSku() });
+    } catch (error) {
+      res.status(500).json({ error: "Stok kodu oluşturulamadı" });
+    }
+  });
+
   app.get("/api/admin/products", requireAdmin, async (req, res) => {
     try {
       const products = await storage.getAllProducts();
@@ -2168,7 +2179,7 @@ KURALLAR:
       return res.status(404).json({ error: "Kullanıcı bulunamadı" });
     }
 
-    res.json({ id: user.id, email: user.email, firstName: user.firstName, lastName: user.lastName, phone: user.phone, address: user.address, city: user.city, district: user.district, postalCode: user.postalCode, country: user.country, whatsappOptIn: user.whatsappOptIn, createdAt: user.createdAt });
+    res.json({ id: user.id, email: user.email, firstName: user.firstName, lastName: user.lastName, phone: user.phone, address: user.address, city: user.city, district: user.district, postalCode: user.postalCode, country: user.country, whatsappOptIn: user.whatsappOptIn, walletBalance: parseFloat(user.walletBalance), createdAt: user.createdAt });
   });
 
   app.patch("/api/auth/profile", async (req: Request, res) => {
@@ -2593,7 +2604,8 @@ KURALLAR:
     }
   });
 
-  // Alt kategori kuralları: tek seviye derinlik (ana kategori + alt kategori).
+  // Alt kategori kuralları: sınırsız derinlik. Tek kısıt döngü oluşmamasıdır:
+  // bir kategori kendisinin ya da kendi alt kategorilerinden birinin altına taşınamaz.
   // Geçersizse Türkçe hata mesajı döner, geçerliyse null.
   async function validateCategoryParent(
     parentId: string | null | undefined,
@@ -2603,18 +2615,21 @@ KURALLAR:
     if (selfId && parentId === selfId) {
       return "Bir kategori kendisinin alt kategorisi olamaz.";
     }
-    const parent = await storage.getCategory(parentId);
-    if (!parent) {
+    const all = await storage.getCategories();
+    const byId = new Map(all.map((c) => [c.id, c]));
+    if (!byId.has(parentId)) {
       return "Seçilen üst kategori bulunamadı.";
     }
-    if (parent.parentId) {
-      return "Alt kategorinin altına kategori eklenemez. Yalnızca ana kategoriler üst kategori olarak seçilebilir.";
-    }
     if (selfId) {
-      const all = await storage.getCategories();
-      const hasChildren = all.some((c) => c.parentId === selfId);
-      if (hasChildren) {
-        return "Bu kategorinin alt kategorileri var, bu yüzden kendisi alt kategori yapılamaz. Önce alt kategorilerini taşıyın.";
+      // Seçilen üst kategoriden köke doğru çıkarken kendimize rastlarsak döngü olur
+      const seen = new Set<string>();
+      let cursor: string | null | undefined = parentId;
+      while (cursor && !seen.has(cursor)) {
+        if (cursor === selfId) {
+          return "Bir kategori kendi alt kategorisinin altına taşınamaz.";
+        }
+        seen.add(cursor);
+        cursor = byId.get(cursor)?.parentId;
       }
     }
     return null;
@@ -2740,7 +2755,7 @@ KURALLAR:
         // Sessiz veri kaybını önle: alt kategoriler varken silme, admin
         // arayüzü onay aldıktan sonra promoteChildren=true ile tekrar çağırır.
         return res.status(409).json({
-          error: `Bu kategorinin ${children.length} alt kategorisi var. Silerseniz alt kategoriler ana kategori seviyesine taşınır.`,
+          error: `Bu kategorinin ${children.length} alt kategorisi var. Silerseniz alt kategoriler bir üst seviyeye taşınır.`,
           childCount: children.length,
           childNames: children.map((c) => c.name),
         });
@@ -4324,6 +4339,58 @@ Bu ürün için 4 bölümlü HTML açıklama üret. Teknik Özellikler bölümü
         expiresAt,
       });
 
+      // ── Bakiye ile ödeme ────────────────────────────────────────────
+      // Tutar bakiyeden atomik düşer, ardından sipariş kart ödemesiyle aynı
+      // ortak sonlandırıcıyla oluşur. Sonlandırma başarısız olursa bakiye iade edilir.
+      if (provider === 'wallet') {
+        const walletCfg = await wallet.getWalletConfig();
+        if (!walletCfg.enabled || !userId) {
+          await storage.deletePendingPayment(merchantOid);
+          return res.status(walletCfg.enabled ? 401 : 400).json({
+            error: walletCfg.enabled ? "Bakiye ile ödemek için giriş yapmalısınız" : "Bakiye ile ödeme şu anda kapalı",
+          });
+        }
+        try {
+          await wallet.debitWalletForOrder(userId, serverTotal, merchantOid);
+        } catch (err) {
+          await storage.deletePendingPayment(merchantOid);
+          if (err instanceof wallet.InsufficientWalletBalanceError) {
+            return res.status(400).json({ error: err.message, code: 'INSUFFICIENT_BALANCE' });
+          }
+          throw err;
+        }
+        const claimed = await storage.claimPendingPaymentForProcessing(merchantOid);
+        if (!claimed) {
+          await wallet.refundWalletOrder(merchantOid, 'Sipariş oluşturulamadı, iade');
+          return res.status(500).json({ error: "Sipariş oluşturulamadı, bakiyeniz iade edildi" });
+        }
+        try {
+          const order = await finalizePaidPendingPayment(claimed, merchantOid, 'wallet');
+          await wallet.attachOrderToWalletPayment(merchantOid, order.id);
+          storage.getOrderItems(order.id).then(items =>
+            issueInvoiceForOrder(order, items, (data) => storage.updateOrder(order.id, data as any).then(() => {}))
+          ).catch(() => {});
+          return res.json({ success: true, provider: 'wallet', merchantOid, orderNumber: order.orderNumber });
+        } catch (finalizeErr) {
+          console.error('[wallet] order finalize failed:', finalizeErr);
+          // Sipariş kaydı oluşmuşsa para iade edilmez, admin incelemesi için not düşülür.
+          const existingOrder = await storage.getOrderByNumber(merchantOid).catch(() => undefined);
+          if (existingOrder) {
+            await storage.createOrderNote({
+              orderId: existingOrder.id,
+              authorType: 'system',
+              noteType: 'status_change',
+              content: 'Bakiye ile ödendi ancak sipariş sonlandırması yarım kaldı, lütfen kalemleri ve stoğu kontrol edin.',
+              isPrivate: true,
+            }).catch(() => {});
+            return res.json({ success: true, provider: 'wallet', merchantOid, orderNumber: existingOrder.orderNumber });
+          }
+          await storage.updatePendingPaymentStatus(merchantOid, 'failed').catch(() => {});
+          await wallet.refundWalletOrder(merchantOid, 'Sipariş oluşturulamadı, iade').catch(() => {});
+          return res.status(500).json({ error: "Sipariş oluşturulamadı, bakiyeniz iade edildi" });
+        }
+      }
+
       // ── PayTR iFrame akışı ──────────────────────────────────────────
       if (paymentProvider === 'paytr') {
         if (!(await isPaytrConfigured())) {
@@ -4726,7 +4793,7 @@ Bu ürün için 4 bölümlü HTML açıklama üret. Teknik Özellikler bölümü
   const finalizePaidPendingPayment = async (
     pendingPayment: Awaited<ReturnType<typeof storage.claimPendingPaymentForProcessing>> & object,
     merchantOid: string,
-    paymentMethod: 'iyzico' | 'paytr',
+    paymentMethod: 'iyzico' | 'paytr' | 'wallet',
   ) => {
     const orderNumber = merchantOid;
 
@@ -4930,6 +4997,39 @@ Bu ürün için 4 bölümlü HTML açıklama üret. Teknik Özellikler bölümü
     return order;
   };
 
+  // Kart ile bakiye yüklemesini sonuçlandırır. Tutar, kayıttaki tutarla uyuşmazsa
+  // bakiye eklenmez. Tekrarlanan callback'ler güvenlidir (idempotent).
+  const settleCardTopup = async (merchantOid: string, paid: boolean, paidAmount: number): Promise<boolean> => {
+    const tx = await wallet.getTransactionByReference(merchantOid);
+    if (!tx || tx.type !== 'topup_card') {
+      console.error('[wallet] topup record not found:', merchantOid);
+      return false;
+    }
+    if (tx.status === 'completed') return true;
+    if (!paid) {
+      await wallet.closePendingTopup(merchantOid, 'failed', 'Ödeme tamamlanamadı');
+      return false;
+    }
+    if (Math.abs(parseFloat(tx.amount) - paidAmount) > 0.01) {
+      console.error('[wallet] topup amount mismatch', { expected: tx.amount, paidAmount, merchantOid });
+      await wallet.closePendingTopup(merchantOid, 'failed', 'Ödenen tutar eşleşmedi, yöneticiyle iletişime geçin');
+      return false;
+    }
+    await wallet.completePendingTopup(merchantOid, 'topup_card');
+    return true;
+  };
+
+  // Bakiye ile ödenmiş sipariş iptal/iade edilirse tutar bakiyeye döner (tek seferlik).
+  const refundWalletIfPaidWithWallet = async (order: { orderNumber: string; paymentMethod?: string | null }) => {
+    if (order.paymentMethod !== 'wallet') return;
+    try {
+      const r = await wallet.refundWalletOrder(order.orderNumber);
+      if (r) console.log(`[wallet] ${order.orderNumber} iptal iadesi: ${r.amount} TL`);
+    } catch (err) {
+      console.error('[wallet] cancel refund failed:', order.orderNumber, err);
+    }
+  };
+
   // iyzico Callback - browser POSTs here after Checkout Form completes.
   // The legacy /api/payment/callback path is kept as an alias for older webhooks.
   const iyzicoCallbackHandler = async (req: Request, res: Response) => {
@@ -4966,6 +5066,16 @@ Bu ürün için 4 bölümlü HTML açıklama üret. Teknik Özellikler bölümü
       if (!merchantOid) {
         console.error('[iyzico Callback] No merchantOid in iyzico response');
         return sendRedirect('/odeme-basarisiz');
+      }
+
+      // Bakiye yüklemesi: sipariş akışından ayrı, defter kaydı üzerinden tamamlanır.
+      if (merchantOid.startsWith(wallet.WALLET_TOPUP_PREFIX)) {
+        const topupOk = await settleCardTopup(
+          merchantOid,
+          result.status === 'success' && result.paymentStatus === 'SUCCESS',
+          result.paidPrice ?? 0,
+        );
+        return sendRedirect(`/hesabim?tab=bakiye&topup=${topupOk ? 'success' : 'failed'}`);
       }
 
       // Atomically claim this payment for processing. Only one concurrent caller wins.
@@ -5076,6 +5186,16 @@ Bu ürün için 4 bölümlü HTML açıklama üret. Teknik Özellikler bölümü
         return res.status(400).send('PAYTR notification failed: bad hash');
       }
 
+      // Bakiye yüklemesi: sonuçlanınca (başarılı ya da başarısız) OK döner.
+      if (merchantOid.startsWith(wallet.WALLET_TOPUP_PREFIX)) {
+        await settleCardTopup(
+          merchantOid,
+          body.status === 'success',
+          parseInt(body.total_amount || '0', 10) / 100,
+        );
+        return res.send('OK');
+      }
+
       // Tekrarlanan bildirimler: zaten sonuçlanmışsa sadece OK dön.
       const existing = await storage.getPendingPaymentByMerchantOid(merchantOid);
       if (!existing) {
@@ -5125,6 +5245,307 @@ Bu ürün için 4 bölümlü HTML açıklama üret. Teknik Özellikler bölümü
     }
   });
 
+  // ── Bakiye (cüzdan) ────────────────────────────────────────────────────
+  // Kullanıcılar kart (anında) veya havale/EFT (admin onaylı) ile bakiye yükler,
+  // siparişlerini ödeme adımında "Bakiye ile öde" seçeneğiyle bakiyeden öder.
+  const walletBaseUrl = (req: Request) => process.env.NODE_ENV === 'production'
+    ? (process.env.PUBLIC_BASE_URL || 'https://sepetzen.com')
+    : `${req.headers['x-forwarded-proto'] || 'https'}://${req.headers.host || 'localhost:5000'}`;
+
+  const requireWalletUser = async (req: Request, res: Response) => {
+    const payload = await getAuthPayload(req, res);
+    const userId = payload?.type === 'user' ? payload.userId ?? null : null;
+    if (!userId) {
+      res.status(401).json({ error: "Bakiye işlemleri için giriş yapmalısınız" });
+      return null;
+    }
+    const user = await storage.getUser(userId);
+    if (!user) {
+      res.status(401).json({ error: "Kullanıcı bulunamadı" });
+      return null;
+    }
+    return user;
+  };
+
+  const parseTopupAmount = async (raw: unknown): Promise<{ ok: true; amount: number } | { ok: false; error: string }> => {
+    const cfg = await wallet.getWalletConfig();
+    if (!cfg.enabled) return { ok: false, error: "Bakiye yükleme şu anda kapalı" };
+    const amount = Math.round(Number(raw) * 100) / 100;
+    if (!Number.isFinite(amount) || amount <= 0) return { ok: false, error: "Geçerli bir tutar girin" };
+    if (amount < cfg.minTopup) return { ok: false, error: `En az ${cfg.minTopup.toLocaleString('tr-TR')} ₺ yükleyebilirsiniz` };
+    if (amount > cfg.maxTopup) return { ok: false, error: `En fazla ${cfg.maxTopup.toLocaleString('tr-TR')} ₺ yükleyebilirsiniz` };
+    return { ok: true, amount };
+  };
+
+  app.get("/api/wallet", async (req: Request, res) => {
+    try {
+      const user = await requireWalletUser(req, res);
+      if (!user) return;
+      const [cfg, bank, transactions] = await Promise.all([
+        wallet.getWalletConfig(),
+        getBankTransferConfig(),
+        wallet.getUserWalletTransactions(user.id, 50),
+      ]);
+      res.json({
+        enabled: cfg.enabled,
+        balance: parseFloat(user.walletBalance),
+        minTopup: cfg.minTopup,
+        maxTopup: cfg.maxTopup,
+        bank: { enabled: bank.enabled, bankName: bank.bankName, accountHolder: bank.accountHolder, iban: bank.iban },
+        transactions,
+      });
+    } catch (error) {
+      console.error('[wallet] get error:', error);
+      res.status(500).json({ error: "Bakiye bilgisi alınamadı" });
+    }
+  });
+
+  // Kart ile yükleme: iyzico veya PayTR ödeme sayfası açılır, başarılı ödeme
+  // callback'inde bakiye otomatik eklenir.
+  app.post("/api/wallet/topup/card", async (req: Request, res) => {
+    let merchantOid = '';
+    try {
+      const user = await requireWalletUser(req, res);
+      if (!user) return;
+      const parsed = await parseTopupAmount(req.body?.amount);
+      if (!parsed.ok) return res.status(400).json({ error: parsed.error });
+      const amount = parsed.amount;
+      const provider: 'iyzico' | 'paytr' = req.body?.provider === 'paytr' ? 'paytr' : 'iyzico';
+
+      merchantOid = `${wallet.WALLET_TOPUP_PREFIX}${Date.now()}${Math.random().toString(36).substr(2, 5).toUpperCase()}`;
+      const userIp = req.headers['x-forwarded-for']?.toString().split(',')[0].trim() || req.socket.remoteAddress || '127.0.0.1';
+      const baseUrl = walletBaseUrl(req);
+      const fullName = [user.firstName, user.lastName].filter(Boolean).join(' ') || user.email.split('@')[0];
+      const phone = (user.phone || '').trim();
+      const city = user.city || 'İstanbul';
+      const addressLine = [user.address, user.district, user.city].filter(Boolean).join(', ') || 'Bakiye yükleme';
+
+      if (provider === 'paytr') {
+        if (!(await isPaytrConfigured())) {
+          return res.status(500).json({ error: 'Kart ile ödeme henüz yapılandırılmadı' });
+        }
+        await wallet.createPendingTopup({ userId: user.id, type: 'topup_card', amount, reference: merchantOid, note: 'Kart ile bakiye yükleme (PayTR)' });
+        const result = await createPaytrIframeToken({
+          merchantOid,
+          userIp,
+          email: user.email,
+          amountTl: amount,
+          userName: fullName,
+          userAddress: addressLine,
+          userPhone: phone || '05000000000',
+          basket: [['Bakiye Yükleme', amount.toFixed(2), 1]],
+          okUrl: `${baseUrl}/hesabim?tab=bakiye&topup=success`,
+          failUrl: `${baseUrl}/hesabim?tab=bakiye&topup=failed`,
+        });
+        if (result.status !== 'success') {
+          await wallet.closePendingTopup(merchantOid, 'failed', 'Ödeme sayfası açılamadı');
+          console.error('[wallet] paytr token failed:', result.reason);
+          return res.status(400).json({ error: 'Ödeme sistemi bağlantısı kurulamadı. Lütfen daha sonra tekrar deneyin.' });
+        }
+        return res.json({ success: true, provider: 'paytr', iframeUrl: result.iframeUrl, merchantOid });
+      }
+
+      if (!(await isIyzicoConfigured())) {
+        return res.status(500).json({ error: 'Kart ile ödeme henüz yapılandırılmadı' });
+      }
+      await wallet.createPendingTopup({ userId: user.id, type: 'topup_card', amount, reference: merchantOid, note: 'Kart ile bakiye yükleme (iyzico)' });
+      let gsmNumber = phone;
+      if (!gsmNumber) gsmNumber = '+905000000000';
+      else if (!gsmNumber.startsWith('+')) gsmNumber = `+90${gsmNumber.replace(/^0/, '')}`;
+      const nameParts = fullName.trim().split(/\s+/);
+      const firstName = nameParts[0] || fullName;
+      const lastName = nameParts.length > 1 ? nameParts.slice(1).join(' ') : firstName;
+      const iyzicoResp = await createCheckoutFormInitialize({
+        conversationId: merchantOid,
+        price: amount.toFixed(2),
+        paidPrice: amount.toFixed(2),
+        currency: 'TRY',
+        basketId: merchantOid,
+        callbackUrl: `${baseUrl}/api/payment/iyzico/callback`,
+        enabledInstallments: [1],
+        buyer: {
+          id: user.id.substring(0, 64),
+          name: firstName,
+          surname: lastName,
+          gsmNumber,
+          email: user.email,
+          identityNumber: '11111111111',
+          registrationAddress: addressLine,
+          city,
+          country: user.country || 'Türkiye',
+          ip: userIp,
+          zipCode: user.postalCode || undefined,
+        },
+        shippingAddress: { contactName: fullName, city, country: user.country || 'Türkiye', address: addressLine, zipCode: user.postalCode || undefined },
+        billingAddress: { contactName: fullName, city, country: user.country || 'Türkiye', address: addressLine, zipCode: user.postalCode || undefined },
+        basketItems: [{ id: `topup-${merchantOid}`, name: 'Bakiye Yükleme', category1: 'Bakiye', itemType: 'VIRTUAL', price: amount.toFixed(2) }],
+      });
+      if (iyzicoResp.status === 'success' && iyzicoResp.token) {
+        return res.json({
+          success: true,
+          provider: 'iyzico',
+          merchantOid,
+          checkoutFormContent: iyzicoResp.checkoutFormContent,
+          paymentPageUrl: iyzicoResp.paymentPageUrl,
+        });
+      }
+      await wallet.closePendingTopup(merchantOid, 'failed', 'Ödeme sayfası açılamadı');
+      console.error('[wallet] iyzico init failed:', iyzicoResp.errorCode, iyzicoResp.errorMessage);
+      return res.status(400).json({ error: iyzicoResp.errorMessage || 'Ödeme sistemi bağlantısı kurulamadı. Lütfen daha sonra tekrar deneyin.' });
+    } catch (error) {
+      console.error('[wallet] card topup error:', error);
+      if (merchantOid) await wallet.closePendingTopup(merchantOid, 'failed', 'Beklenmeyen hata').catch(() => {});
+      res.status(500).json({ error: "Bakiye yükleme başlatılamadı" });
+    }
+  });
+
+  // Havale/EFT ile yükleme: açıklama kodu verilir, admin ödemeyi görünce onaylar.
+  app.post("/api/wallet/topup/bank", async (req: Request, res) => {
+    try {
+      const user = await requireWalletUser(req, res);
+      if (!user) return;
+      const bank = await getBankTransferConfig();
+      if (!bank.enabled) return res.status(400).json({ error: "Havale ile yükleme şu anda kapalı" });
+      const parsed = await parseTopupAmount(req.body?.amount);
+      if (!parsed.ok) return res.status(400).json({ error: parsed.error });
+
+      // Aynı anda çok sayıda onay bekleyen talep birikmesin.
+      const pending = (await wallet.getUserWalletTransactions(user.id, 100))
+        .filter((t) => t.type === 'topup_bank' && t.status === 'pending');
+      if (pending.length >= 5) {
+        return res.status(400).json({ error: "Onay bekleyen 5 havale talebiniz var. Önce bunların sonuçlanmasını bekleyin veya iptal edin." });
+      }
+
+      let created = null as Awaited<ReturnType<typeof wallet.createPendingTopup>> | null;
+      for (let attempt = 0; attempt < 5 && !created; attempt++) {
+        const code = `BKY${Math.random().toString(36).substring(2, 8).toUpperCase()}`;
+        try {
+          created = await wallet.createPendingTopup({
+            userId: user.id,
+            type: 'topup_bank',
+            amount: parsed.amount,
+            reference: code,
+            note: 'Havale/EFT ile bakiye yükleme',
+          });
+        } catch (err: any) {
+          if (err?.code !== '23505') throw err;
+        }
+      }
+      if (!created) return res.status(500).json({ error: "Talep oluşturulamadı, tekrar deneyin" });
+      res.status(201).json({
+        success: true,
+        reference: created.reference,
+        amount: parseFloat(created.amount),
+        bank: { bankName: bank.bankName, accountHolder: bank.accountHolder, iban: bank.iban },
+      });
+    } catch (error) {
+      console.error('[wallet] bank topup error:', error);
+      res.status(500).json({ error: "Havale talebi oluşturulamadı" });
+    }
+  });
+
+  // Kullanıcı kendi onay bekleyen havale talebini iptal edebilir.
+  app.post("/api/wallet/topup/:reference/cancel", async (req: Request, res) => {
+    try {
+      const user = await requireWalletUser(req, res);
+      if (!user) return;
+      const tx = await wallet.getTransactionByReference(req.params.reference);
+      if (!tx || tx.userId !== user.id || tx.type !== 'topup_bank') {
+        return res.status(404).json({ error: "Talep bulunamadı" });
+      }
+      const closed = await wallet.closePendingTopup(tx.reference!, 'rejected', 'Müşteri tarafından iptal edildi');
+      if (!closed) return res.status(400).json({ error: "Bu talep artık iptal edilemez" });
+      res.json({ success: true });
+    } catch (error) {
+      res.status(500).json({ error: "Talep iptal edilemedi" });
+    }
+  });
+
+  // ── Bakiye: admin ──
+  app.get("/api/admin/wallet", requireAdmin, async (req, res) => {
+    try {
+      const status = typeof req.query.status === 'string' && req.query.status ? req.query.status : undefined;
+      const type = typeof req.query.type === 'string' && req.query.type ? req.query.type : undefined;
+      const [transactions, totals, cfg] = await Promise.all([
+        wallet.listWalletTransactionsForAdmin({ status, type }),
+        wallet.getWalletTotals(),
+        wallet.getWalletConfig(),
+      ]);
+      res.json({ transactions, totals, settings: cfg });
+    } catch (error) {
+      console.error('[wallet admin] list error:', error);
+      res.status(500).json({ error: "Bakiye kayıtları alınamadı" });
+    }
+  });
+
+  app.put("/api/admin/wallet/settings", requireAdmin, async (req, res) => {
+    try {
+      const enabled = req.body?.enabled !== false;
+      const min = Number(req.body?.minTopup);
+      const max = Number(req.body?.maxTopup);
+      if (!Number.isFinite(min) || min <= 0) return res.status(400).json({ error: "En düşük yükleme tutarı geçersiz" });
+      if (!Number.isFinite(max) || max < min) return res.status(400).json({ error: "En yüksek tutar, en düşük tutardan küçük olamaz" });
+      await storage.setSiteSetting('wallet_enabled', enabled ? '1' : '0');
+      await storage.setSiteSetting('wallet_min_topup', String(min));
+      await storage.setSiteSetting('wallet_max_topup', String(max));
+      res.json(await wallet.getWalletConfig());
+    } catch (error) {
+      res.status(500).json({ error: "Ayarlar kaydedilemedi" });
+    }
+  });
+
+  app.post("/api/admin/wallet/transactions/:id/approve", requireAdmin, async (req, res) => {
+    try {
+      const tx = await wallet.getTransactionById(req.params.id);
+      if (!tx || tx.type !== 'topup_bank' || !tx.reference) return res.status(404).json({ error: "Havale talebi bulunamadı" });
+      const done = await wallet.completePendingTopup(tx.reference, 'topup_bank');
+      if (!done) return res.status(400).json({ error: "Talep zaten işlenmiş" });
+      res.json({ success: true, balance: done.balance });
+    } catch (error) {
+      console.error('[wallet admin] approve error:', error);
+      res.status(500).json({ error: "Talep onaylanamadı" });
+    }
+  });
+
+  app.post("/api/admin/wallet/transactions/:id/reject", requireAdmin, async (req, res) => {
+    try {
+      const tx = await wallet.getTransactionById(req.params.id);
+      if (!tx || tx.type !== 'topup_bank' || !tx.reference) return res.status(404).json({ error: "Havale talebi bulunamadı" });
+      const reason = typeof req.body?.reason === 'string' && req.body.reason.trim() ? req.body.reason.trim() : 'Ödeme alınamadı';
+      const closed = await wallet.closePendingTopup(tx.reference, 'rejected', `Reddedildi: ${reason}`);
+      if (!closed) return res.status(400).json({ error: "Talep zaten işlenmiş" });
+      res.json({ success: true });
+    } catch (error) {
+      res.status(500).json({ error: "Talep reddedilemedi" });
+    }
+  });
+
+  app.get("/api/admin/wallet/users", requireAdmin, async (req, res) => {
+    try {
+      const q = typeof req.query.q === 'string' ? req.query.q : '';
+      if (q.trim().length < 2) return res.json([]);
+      res.json(await wallet.searchUsersWithBalance(q));
+    } catch (error) {
+      res.status(500).json({ error: "Kullanıcılar aranamadı" });
+    }
+  });
+
+  app.post("/api/admin/wallet/adjust", requireAdmin, async (req, res) => {
+    try {
+      const amount = Math.round(Number(req.body?.amount) * 100) / 100;
+      const userId = typeof req.body?.userId === 'string' ? req.body.userId : '';
+      const note = typeof req.body?.note === 'string' ? req.body.note.trim() : '';
+      if (!userId) return res.status(400).json({ error: "Kullanıcı seçin" });
+      if (!Number.isFinite(amount) || amount === 0) return res.status(400).json({ error: "Geçerli bir tutar girin" });
+      if (Math.abs(amount) > 1_000_000) return res.status(400).json({ error: "Tutar çok yüksek" });
+      if (!note) return res.status(400).json({ error: "Bir açıklama yazın" });
+      const result = await wallet.adminAdjustWallet(userId, amount, `Admin düzeltmesi: ${note}`);
+      res.json({ success: true, balance: result.balance });
+    } catch (error: any) {
+      res.status(400).json({ error: error?.message || "Düzeltme yapılamadı" });
+    }
+  });
+
   // ── Aktif ödeme yöntemleri (storefront için public) ────────────────────
   app.get("/api/payment/methods", async (_req, res) => {
     try {
@@ -5139,6 +5560,7 @@ Bu ürün için 4 bölümlü HTML açıklama üret. Teknik Özellikler bölümü
         iyzico: iyzicoConfigured && iyzicoToggle !== '0',
         paytr: paytrConfigured && paytrToggle !== '0',
         bankTransfer: bankConfig.enabled,
+        wallet: (await wallet.getWalletConfig()).enabled,
       });
     } catch (error) {
       console.error('[payment methods] error:', error);
@@ -5986,6 +6408,9 @@ Bu ürün için 4 bölümlü HTML açıklama üret. Teknik Özellikler bölümü
       const order = await storage.updateOrder(req.params.id, updateData);
       if (!order) {
         return res.status(404).json({ error: "Order not found" });
+      }
+      if (status === 'cancelled' || status === 'refunded') {
+        await refundWalletIfPaidWithWallet(order);
       }
 
       // Send status change emails
@@ -7567,6 +7992,8 @@ window.addEventListener('load', function() {
         cancelledAt: order.cancelledAt || new Date(),
       });
 
+      await refundWalletIfPaidWithWallet(order);
+
       // Add cancellation note
       await storage.createOrderNote({
         orderId: req.params.id,
@@ -8172,6 +8599,59 @@ window.addEventListener('load', function() {
     }
   });
 
+  // ── Gün sonu toplu fatura (admin) ──────────────────────────────────────
+  app.get("/api/admin/batch-invoice", requireAdmin, async (_req, res) => {
+    try {
+      const settings = await batchInvoice.getBatchInvoiceSettings();
+      const [pending, batches, lastRun] = await Promise.all([
+        batchInvoice.listPendingGroups(settings.includeToday),
+        batchInvoice.listBatches(100),
+        batchInvoice.getLastRunSummary(),
+      ]);
+      res.json({ settings, pending, batches, lastRun, running: batchInvoice.isBatchRunning() });
+    } catch (error) {
+      console.error('[batch-invoice] get error:', error);
+      res.status(500).json({ error: "Toplu fatura bilgileri alınamadı" });
+    }
+  });
+
+  app.put("/api/admin/batch-invoice/settings", requireAdmin, async (req, res) => {
+    try {
+      const { enabled, time, includeToday } = req.body ?? {};
+      await batchInvoice.saveBatchInvoiceSettings({
+        enabled: enabled === true,
+        time: String(time ?? ''),
+        includeToday: includeToday === true,
+      });
+      res.json(await batchInvoice.getBatchInvoiceSettings());
+    } catch (error: any) {
+      res.status(400).json({ error: error?.message || "Ayarlar kaydedilemedi" });
+    }
+  });
+
+  app.post("/api/admin/batch-invoice/run", requireAdmin, async (req, res) => {
+    try {
+      const email = typeof req.body?.email === 'string' && req.body.email.trim() ? req.body.email.trim() : undefined;
+      const summary = await batchInvoice.runBatchInvoices({
+        trigger: 'manual',
+        includeToday: req.body?.includeToday === true,
+        email,
+      });
+      res.json(summary);
+    } catch (error: any) {
+      res.status(400).json({ error: error?.message || "Çalıştırılamadı" });
+    }
+  });
+
+  app.post("/api/admin/batch-invoice/batches/:id/retry", requireAdmin, async (req, res) => {
+    try {
+      const ok = await batchInvoice.retryBatch(req.params.id);
+      res.json({ success: ok });
+    } catch (error: any) {
+      res.status(400).json({ error: error?.message || "Yeniden denenemedi" });
+    }
+  });
+
   /** Siparişe manuel fatura kes (yeniden deneme veya ilk kez). */
   app.post("/api/admin/orders/:id/issue-invoice", requireAdmin, async (req, res) => {
     try {
@@ -8179,6 +8659,9 @@ window.addEventListener('load', function() {
       if (!order) return res.status(404).json({ error: "Sipariş bulunamadı" });
       if (!['paid', 'completed', 'success'].includes(order.paymentStatus)) {
         return res.status(400).json({ error: "Ödeme alınmamış sipariş için fatura kesilemez" });
+      }
+      if (order.invoiceBatchId) {
+        return res.status(400).json({ error: "Bu sipariş bir toplu faturaya dahil. Toplu Fatura bölümünden yönetin." });
       }
       const items = await storage.getOrderItems(order.id);
       // Mevcut iptal edilmemiş faturayı önce iptal et
@@ -8191,6 +8674,7 @@ window.addEventListener('load', function() {
       // Senkron çalıştır ki admin anlık sonucu görsün
       await issueInvoiceForOrder(order, items, (data) =>
         storage.updateOrder(order.id, data as any).then(() => {}),
+        { immediate: true },
       );
       const updated = await storage.getOrder(order.id);
       res.json(updated);
@@ -8205,6 +8689,7 @@ window.addEventListener('load', function() {
     try {
       const order = await storage.getOrder(req.params.id);
       if (!order) return res.status(404).json({ error: "Sipariş bulunamadı" });
+      if (order.invoiceBatchId) return res.status(400).json({ error: "Bu sipariş toplu faturaya dahil, tek başına iptal edilemez" });
       if (!order.ettn && !order.eInvoiceExternalId) return res.status(400).json({ error: "Bu siparişe ait fatura yok" });
       const reason = (req.body?.reason as string) || 'Admin iptali';
       await cancelInvoiceForOrder(order, reason);
@@ -10228,11 +10713,13 @@ Sitemap: ${baseUrl}/sitemap.xml
       });
 
       // Build tree structure (parent items with children)
-      const rootItems = menuItemsWithDetails.filter(item => !item.parentId);
-      const result = rootItems.map(item => ({
-        ...item,
-        children: menuItemsWithDetails.filter(child => child.parentId === item.id),
-      }));
+      type MenuNode = (typeof menuItemsWithDetails)[number] & { children: MenuNode[] };
+      const build = (parentId: string | null, seen: Set<string>): MenuNode[] =>
+        menuItemsWithDetails
+          .filter(i => (parentId === null ? !i.parentId : i.parentId === parentId))
+          .filter(i => !seen.has(i.id))
+          .map(i => ({ ...i, children: build(i.id, new Set(Array.from(seen).concat(i.id))) }));
+      const result = build(null, new Set());
 
       res.json(result);
     } catch (error) {
@@ -10424,32 +10911,45 @@ Sitemap: ${baseUrl}/sitemap.xml
           .filter((c) => !c.parentId)
           .sort((a, b) => (a.displayOrder ?? 0) - (b.displayOrder ?? 0));
         for (const cat of topLevel) {
-          const children = categories
-            .filter((c) => c.parentId === cat.id)
-            .sort((a, b) => (a.displayOrder ?? 0) - (b.displayOrder ?? 0));
-          const parent = await storage.createMenuItem({
-            title: cat.name,
-            type: "category",
-            categoryId: cat.id,
-            url: null,
-            parentId: null,
-            displayOrder: parentOrder++,
-            isActive: true,
-            openInNewTab: false,
-          });
-          createdParents++;
-          for (const child of children) {
-            await storage.createMenuItem({
-              title: child.name,
+          // Menü üç seviyelidir: ana kategori > alt kategori > alt kategorinin alt kategorileri.
+          // Daha derin kategoriler (4. seviye ve sonrası) üçüncü seviyede düz liste olarak yer alır.
+          const created = new Set<string>();
+          const addCategory = async (c: (typeof categories)[number], menuParentId: string | null, order: number) => {
+            created.add(c.id);
+            return storage.createMenuItem({
+              title: c.name,
               type: "category",
-              categoryId: child.id,
+              categoryId: c.id,
               url: null,
-              parentId: parent.id,
-              displayOrder: childOrder++,
+              parentId: menuParentId,
+              displayOrder: order,
               isActive: true,
               openInNewTab: false,
             });
+          };
+          const kidsOf = (id: string) =>
+            categories
+              .filter((c) => c.parentId === id)
+              .sort((a, b) => (a.displayOrder ?? 0) - (b.displayOrder ?? 0));
+          const descendantsOf = (id: string): typeof categories => {
+            const out: typeof categories = [];
+            for (const k of kidsOf(id)) {
+              if (created.has(k.id) || out.some((x) => x.id === k.id)) continue;
+              out.push(k, ...descendantsOf(k.id));
+            }
+            return out;
+          };
+          const parent = await addCategory(cat, null, parentOrder++);
+          createdParents++;
+          for (const child of kidsOf(cat.id)) {
+            if (created.has(child.id)) continue;
+            const childItem = await addCategory(child, parent.id, childOrder++);
             createdChildren++;
+            for (const deep of descendantsOf(child.id)) {
+              if (created.has(deep.id)) continue;
+              await addCategory(deep, childItem.id, childOrder++);
+              createdChildren++;
+            }
           }
         }
         return res.json({

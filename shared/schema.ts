@@ -53,16 +53,43 @@ export const users = pgTable("users", {
   postalCode: text("postal_code"),
   country: text("country").default("Türkiye"),
   whatsappOptIn: boolean("whatsapp_opt_in").default(true).notNull(),
+  // Mağaza bakiyesi. Yalnızca wallet_transactions defteri üzerinden değiştirilir.
+  walletBalance: decimal("wallet_balance", { precision: 12, scale: 2 }).default("0").notNull(),
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
 
 export const insertUserSchema = createInsertSchema(users).omit({
   id: true,
   createdAt: true,
+  walletBalance: true,
 });
 
 export type InsertUser = z.infer<typeof insertUserSchema>;
 export type User = typeof users.$inferSelect;
+
+// Bakiye defteri. Her bakiye hareketi bir satırdır; `amount` işaretlidir
+// (yükleme/iade pozitif, harcama negatif). `reference` benzersizdir ve
+// aynı ödeme/iade olayının iki kez işlenmesini engeller.
+// type: topup_card | topup_bank | order_payment | order_refund | admin_adjust
+// status: pending (onay bekliyor) | completed | rejected | failed
+export const walletTransactions = pgTable("wallet_transactions", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  userId: varchar("user_id").references(() => users.id, { onDelete: "cascade" }).notNull(),
+  type: text("type").notNull(),
+  status: text("status").default("completed").notNull(),
+  amount: decimal("amount", { precision: 12, scale: 2 }).notNull(),
+  balanceAfter: decimal("balance_after", { precision: 12, scale: 2 }),
+  reference: text("reference").unique(),
+  orderId: varchar("order_id"),
+  note: text("note"),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  completedAt: timestamp("completed_at"),
+}, (table) => ({
+  userIdx: index("wallet_tx_user_idx").on(table.userId, table.createdAt),
+  statusIdx: index("wallet_tx_status_idx").on(table.status, table.type),
+}));
+
+export type WalletTransaction = typeof walletTransactions.$inferSelect;
 
 export const adminUpdateUserSchema = z.object({
   email: z.string().trim().email("Geçerli bir e-posta adresi girin").max(255),
@@ -343,6 +370,7 @@ export const orders = pgTable("orders", {
   eInvoiceType: text("e_invoice_type"),      // 'earchive' | 'einvoice'
   eInvoiceProvider: text("e_invoice_provider"), // 'birfatura' | 'parasut'
   eInvoiceExternalId: text("e_invoice_external_id"), // sağlayıcıdaki fatura kimliği (Paraşüt satış faturası ID)
+  invoiceBatchId: varchar("invoice_batch_id"), // gün sonu toplu faturası (invoice_batches.id)
   processingAt: timestamp("processing_at"),
   shippedAt: timestamp("shipped_at"),
   deliveredAt: timestamp("delivered_at"),
@@ -350,6 +378,31 @@ export const orders = pgTable("orders", {
   createdAt: timestamp("created_at").defaultNow().notNull(),
   updatedAt: timestamp("updated_at").defaultNow().notNull(),
 });
+
+// Gün sonu toplu faturalar: aynı müşterinin aynı güne ait siparişleri tek faturada.
+// status: processing | sent | failed | cancelled
+export const invoiceBatches = pgTable("invoice_batches", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  customerEmail: text("customer_email").notNull(),
+  customerName: text("customer_name").notNull(),
+  businessDate: text("business_date").notNull(), // YYYY-MM-DD (Europe/Istanbul)
+  status: text("status").default("processing").notNull(),
+  trigger: text("trigger").default("cron").notNull(), // cron | manual
+  orderCount: integer("order_count").notNull(),
+  total: decimal("total", { precision: 12, scale: 2 }).notNull(),
+  provider: text("provider"),
+  ettn: text("ettn"),
+  invoiceNumber: text("invoice_number"),
+  invoiceUrl: text("invoice_url"),
+  externalId: text("external_id"),
+  errorMessage: text("error_message"),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  sentAt: timestamp("sent_at"),
+}, (table) => ({
+  statusIdx: index("invoice_batches_status_idx").on(table.status, table.createdAt),
+}));
+
+export type InvoiceBatch = typeof invoiceBatches.$inferSelect;
 
 export const insertOrderSchema = createInsertSchema(orders).omit({
   id: true,
@@ -559,6 +612,7 @@ export const coupons = pgTable("coupons", {
   perUserLimit: integer("per_user_limit").default(1),
   freeShipping: boolean("free_shipping").default(false).notNull(),
   appliesToShipping: boolean("applies_to_shipping").default(false).notNull(),
+  firstOrderOnly: boolean("first_order_only").default(false).notNull(), // yalnızca ilk siparişte geçerli
   isActive: boolean("is_active").default(true).notNull(),
   startsAt: timestamp("starts_at"),
   expiresAt: timestamp("expires_at"),

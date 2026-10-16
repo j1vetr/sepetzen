@@ -21,6 +21,8 @@ import BlogTab from './admin/BlogTab';
 import CouponsTab from './admin/CouponsTab';
 import ReviewsTab from './admin/ReviewsTab';
 import KvkkTab from './admin/KvkkTab';
+import WalletTab from './admin/WalletTab';
+import BatchInvoiceTab from './admin/BatchInvoiceTab';
 import BrandsTab from './admin/BrandsTab';
 
 import CategoryModal from './admin/modals/CategoryModal';
@@ -290,6 +292,8 @@ export default function AdminDashboard() {
         {activeTab === 'coupons' && <CouponsTab />}
         {activeTab === 'reviews' && <ReviewsTab />}
         {activeTab === 'kvkk' && <KvkkTab />}
+        {activeTab === 'wallet' && <WalletTab />}
+        {activeTab === 'batchinvoice' && <BatchInvoiceTab />}
       </AdminLayout>
 
       {showCategoryModal && (

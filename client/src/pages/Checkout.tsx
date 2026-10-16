@@ -16,7 +16,7 @@ import {
   User, Mail, Phone, MapPin, CreditCard, Truck, Shield, 
   RotateCcw, Check, ArrowRight, ShoppingBag, ChevronRight,
   Package, Lock, ClipboardCheck, Edit3, AlertCircle, Loader2,
-  CheckCircle2, UserPlus, Tag, X, Instagram
+  CheckCircle2, UserPlus, Tag, X, Instagram, Wallet
 } from 'lucide-react';
 import { COUNTRIES } from '@/lib/countries';
 import CityDistrictSelect from '@/components/CityDistrictSelect';
@@ -83,7 +83,7 @@ export default function Checkout() {
   const [savedOrderTotal, setSavedOrderTotal] = useState<number | null>(null);
   
   // Payment method tab (card = iyzico | card_paytr = PayTR | bank_transfer)
-  const [paymentMethod, setPaymentMethod] = useState<'card' | 'card_paytr' | 'bank_transfer'>('card');
+  const [paymentMethod, setPaymentMethod] = useState<'card' | 'card_paytr' | 'bank_transfer' | 'wallet'>('card');
   const [mobileSummaryOpen, setMobileSummaryOpen] = useState(false);
   const [copiedField, setCopiedField] = useState<string | null>(null);
 
@@ -125,10 +125,11 @@ export default function Checkout() {
   const [couponError, setCouponError] = useState('');
 
   // Aktif ödeme yöntemleri (admin panelden yönetilir)
-  const { data: payMethods = { iyzico: true, paytr: false, bankTransfer: true } } = useQuery<{
+  const { data: payMethods = { iyzico: true, paytr: false, bankTransfer: true, wallet: false } } = useQuery<{
     iyzico: boolean;
     paytr: boolean;
     bankTransfer: boolean;
+    wallet?: boolean;
   }>({
     queryKey: ['payment-methods'],
     queryFn: async () => {
@@ -137,6 +138,20 @@ export default function Checkout() {
     },
     refetchOnMount: 'always',
   });
+
+  // Bakiye: yalnızca giriş yapmış kullanıcılar için
+  const walletAvailable = !!payMethods.wallet && !!user;
+  const { data: walletInfo } = useQuery<{ balance: number }>({
+    queryKey: ['wallet', 'balance', user?.id],
+    queryFn: async () => {
+      const res = await fetch('/api/wallet', { credentials: 'include' });
+      if (!res.ok) throw new Error('Bakiye alınamadı');
+      return res.json();
+    },
+    enabled: walletAvailable,
+    refetchOnMount: 'always',
+  });
+  const [walletPayLoading, setWalletPayLoading] = useState(false);
 
   // Havale bilgileri ve indirim oranı (admin panelden yönetilir)
   const { data: bankInfo = {
@@ -169,9 +184,11 @@ export default function Checkout() {
       setPaymentMethod(payMethods.iyzico ? 'card' : 'bank_transfer');
     } else if (paymentMethod === 'bank_transfer' && !payMethods.bankTransfer) {
       setPaymentMethod(firstAvailable);
+    } else if (paymentMethod === 'wallet' && !walletAvailable) {
+      setPaymentMethod(firstAvailable);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [payMethods.iyzico, payMethods.paytr, payMethods.bankTransfer]);
+  }, [payMethods.iyzico, payMethods.paytr, payMethods.bankTransfer, walletAvailable]);
 
   const { data: products = [] } = useQuery<Product[]>({
     queryKey: ['products'],
@@ -527,6 +544,52 @@ export default function Checkout() {
       } else {
         setCurrentStep(prev => Math.min(prev + 1, 4));
       }
+    }
+  };
+
+  // Bakiye ile öde: sunucu bakiyeyi düşer ve siparişi aynı istekte oluşturur.
+  const handleWalletPay = async () => {
+    if (items.length === 0) {
+      toast({ title: 'Hata', description: 'Sepetiniz boş', variant: 'destructive' });
+      return;
+    }
+    setWalletPayLoading(true);
+    setPaymentError(null);
+    try {
+      const res = await fetch('/api/payment/create', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          customerName: formData.customerName,
+          customerEmail: formData.customerEmail,
+          customerPhone: formData.customerPhone,
+          address: formData.address,
+          city: formData.city,
+          district: formData.district,
+          postalCode: formData.postalCode,
+          country: formData.country,
+          billingAddress: {
+            sameAsShipping: !useSeparateBillingAddress,
+            ...(useSeparateBillingAddress ? billingAddress : {}),
+            ...invoicePayload(invoiceInfo),
+          },
+          couponCode: appliedCoupon?.code || null,
+          shippingPayment: receiverPays ? 'receiver' : 'sender',
+          provider: 'wallet',
+        }),
+        credentials: 'include',
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'Ödeme tamamlanamadı');
+      queryClient.invalidateQueries({ queryKey: ['auth', 'me'] });
+      queryClient.invalidateQueries({ queryKey: ['wallet'] });
+      clearCart();
+      navigate(`/odeme-basarili?oid=${encodeURIComponent(data.orderNumber || data.merchantOid)}`);
+    } catch (error: any) {
+      setPaymentError(error.message || 'Ödeme tamamlanamadı');
+      toast({ title: 'Hata', description: error.message || 'Ödeme tamamlanamadı', variant: 'destructive' });
+    } finally {
+      setWalletPayLoading(false);
     }
   };
 
@@ -1729,11 +1792,9 @@ export default function Checkout() {
 
                       <div
                         className={`grid mb-6 border border-white/15 rounded-lg overflow-hidden ${
-                          [payMethods.iyzico, payMethods.paytr, payMethods.bankTransfer].filter(Boolean).length === 3
-                            ? 'grid-cols-3'
-                            : [payMethods.iyzico, payMethods.paytr, payMethods.bankTransfer].filter(Boolean).length === 2
-                              ? 'grid-cols-2'
-                              : 'grid-cols-1'
+                          ({ 1: 'grid-cols-1', 2: 'grid-cols-2', 3: 'grid-cols-3', 4: 'grid-cols-2 sm:grid-cols-4' } as Record<number, string>)[
+                            Math.max(1, [payMethods.iyzico, payMethods.paytr, payMethods.bankTransfer, walletAvailable].filter(Boolean).length)
+                          ]
                         }`}
                       >
                         {payMethods.iyzico && (
@@ -1783,6 +1844,19 @@ export default function Checkout() {
                           )}
                         </button>
                         )}
+                        {walletAvailable && (
+                        <button
+                          type="button"
+                          onClick={() => setPaymentMethod('wallet')}
+                          className={`h-12 px-2 text-[11.5px] sm:text-[13px] font-bold tracking-wide transition-colors flex items-center justify-center gap-1.5 sm:gap-2 min-w-0 ${
+                            paymentMethod === 'wallet' ? 'bg-white text-black' : 'bg-[#141414] text-white/60 hover:bg-[#1A1A1A]'
+                          }`}
+                          data-testid="tab-payment-wallet"
+                        >
+                          <Wallet className="w-4 h-4 shrink-0" />
+                          <span className="truncate">BAKİYE</span>
+                        </button>
+                        )}
                       </div>
 
                       {paymentError && (
@@ -1794,7 +1868,43 @@ export default function Checkout() {
                         </div>
                       )}
 
-                      {paymentMethod === 'bank_transfer' ? (
+                      {paymentMethod === 'wallet' ? (
+                        <div className="space-y-4" data-testid="wallet-pay-panel">
+                          <div className="bg-white/5 border border-white/15 rounded-lg p-4 space-y-2.5">
+                            <div className="flex items-center justify-between text-[13px]">
+                              <span className="text-white/60">Mevcut bakiyeniz</span>
+                              <span className="text-white font-bold tabular-nums" data-testid="text-wallet-balance">
+                                {(walletInfo?.balance ?? 0).toLocaleString('tr-TR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} ₺
+                              </span>
+                            </div>
+                            <div className="flex items-center justify-between text-[13px]">
+                              <span className="text-white/60">Sipariş tutarı</span>
+                              <span className="text-white font-bold tabular-nums">{total.toLocaleString('tr-TR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} ₺</span>
+                            </div>
+                            <div className="h-px bg-white/10" />
+                            {(walletInfo?.balance ?? 0) >= total ? (
+                              <div className="flex items-center justify-between text-[13px]">
+                                <span className="text-white/60">Ödeme sonrası kalan</span>
+                                <span className="text-white font-bold tabular-nums">{((walletInfo?.balance ?? 0) - total).toLocaleString('tr-TR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} ₺</span>
+                              </div>
+                            ) : (
+                              <div className="flex items-center justify-between gap-3 text-[13px]">
+                                <span className="text-red-400">Bakiyeniz yetersiz. Eksik: {(total - (walletInfo?.balance ?? 0)).toLocaleString('tr-TR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} ₺</span>
+                                <Link href="/hesabim?tab=bakiye" className="text-white underline underline-offset-2 shrink-0" data-testid="link-wallet-topup">Bakiye yükle</Link>
+                              </div>
+                            )}
+                          </div>
+                          <Button
+                            type="button"
+                            onClick={handleWalletPay}
+                            disabled={walletPayLoading || (walletInfo?.balance ?? 0) < total}
+                            className="w-full h-12 bg-white text-black hover:bg-white/90 font-bold tracking-wide"
+                            data-testid="button-wallet-pay"
+                          >
+                            {walletPayLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : `BAKİYE İLE ÖDE (${total.toLocaleString('tr-TR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} ₺)`}
+                          </Button>
+                        </div>
+                      ) : paymentMethod === 'bank_transfer' ? (
                         <div className="space-y-4" data-testid="bank-transfer-panel">
                           <div className="bg-white/5 border border-white/15 rounded-lg p-4">
                             <p className="text-[13.5px] font-bold text-white">Havale ile %{bankInfo.discountPercent} indirim kazandınız</p>

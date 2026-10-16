@@ -247,7 +247,22 @@ export default function MenuManagementPanel({ categories }: MenuManagementPanelP
     .filter(i => !i.parentId)
     .sort((a, b) => a.displayOrder - b.displayOrder);
 
-  const submenuParents = menuItems.filter(i => i.type === 'submenu' && !i.parentId);
+  // Üst menü adayları: kök öğeler ve ikinci seviye öğeler (en fazla üç seviye).
+  const submenuParents = menuItems.filter(i => {
+    if (i.type === 'link') return false;
+    if (!i.parentId) return i.type === 'submenu' || menuItems.some(c => c.parentId === i.id) || i.type === 'category';
+    const par = menuItems.find(p => p.id === i.parentId);
+    return !!par && !par.parentId;
+  });
+  const isDescendantOf = (id: string, ancestorId: string): boolean => {
+    let cur = menuItems.find(m => m.id === id);
+    let guard = 0;
+    while (cur?.parentId && guard++ < 5) {
+      if (cur.parentId === ancestorId) return true;
+      cur = menuItems.find(m => m.id === cur!.parentId);
+    }
+    return false;
+  };
 
   const qualityIssues = menuItems.filter(i => {
     if (!i.isActive) return false;
@@ -266,12 +281,13 @@ export default function MenuManagementPanel({ categories }: MenuManagementPanelP
     });
 
   /* ── item row renderers ── */
-  const renderChild = (child: MenuItemData) => {
+  const renderChild = (child: MenuItemData, depth = 1): React.ReactElement => {
     const meta = TYPE_META[child.type];
+    const grandChildren = menuItems.filter(c => c.parentId === child.id).sort((a, b) => a.displayOrder - b.displayOrder);
     const isOver = dragOverId === child.id;
     return (
+      <div key={child.id}>
       <div
-        key={child.id}
         draggable
         onDragStart={e => onDragStart(e, child.id, child.parentId)}
         onDragOver={e => onDragOver(e, child.id)}
@@ -306,6 +322,16 @@ export default function MenuManagementPanel({ categories }: MenuManagementPanelP
 
         {/* actions */}
         <div className="flex items-center gap-1 opacity-0 group-hover/row:opacity-100 transition-opacity shrink-0">
+          {depth === 1 && child.type !== 'link' && (
+            <button
+              onClick={() => openAddChild(child.id)}
+              className="flex items-center gap-1 px-2 py-1 rounded text-[11px] text-neutral-500 hover:bg-neutral-100 border border-transparent hover:border-neutral-200"
+              title="Alt öğe ekle"
+            >
+              <Plus className="w-3 h-3" />
+              <span className="hidden sm:inline">Alt ekle</span>
+            </button>
+          )}
           <button
             onClick={() => openEdit(child)}
             className="p-1.5 rounded hover:bg-neutral-100 text-neutral-400 hover:text-neutral-700"
@@ -322,6 +348,12 @@ export default function MenuManagementPanel({ categories }: MenuManagementPanelP
             <Trash2 className="w-3.5 h-3.5" />
           </button>
         </div>
+      </div>
+      {grandChildren.length > 0 && (
+        <div className="ml-8 border-l-2 border-neutral-200">
+          {grandChildren.map(g => renderChild(g, depth + 1))}
+        </div>
+      )}
       </div>
     );
   };
@@ -438,7 +470,7 @@ export default function MenuManagementPanel({ categories }: MenuManagementPanelP
         {/* children */}
         {hasChildren && isExpanded && (
           <div className="ml-10 border-l-2 border-neutral-200 mb-1">
-            {children.map(renderChild)}
+            {children.map(c => renderChild(c))}
             {item.type === 'submenu' && (
               <button
                 onClick={() => openAddChild(item.id)}
@@ -708,8 +740,8 @@ export default function MenuManagementPanel({ categories }: MenuManagementPanelP
                     className="w-full px-3 py-2.5 border border-neutral-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-neutral-900/20"
                   >
                     <option value="">Ana menüde göster</option>
-                    {submenuParents.filter(p => p.id !== editingItem?.id).map(parent => (
-                      <option key={parent.id} value={parent.id}>{parent.title}</option>
+                    {submenuParents.filter(p => p.id !== editingItem?.id && !(editingItem && isDescendantOf(p.id, editingItem.id))).map(parent => (
+                      <option key={parent.id} value={parent.id}>{parent.parentId ? `${menuItems.find(m => m.id === parent.parentId)?.title ?? ''} / ${parent.title}` : parent.title}</option>
                     ))}
                   </select>
                 </div>

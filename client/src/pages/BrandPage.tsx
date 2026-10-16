@@ -1,4 +1,4 @@
-import { useEffect } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { Link, useParams } from 'wouter';
 import { ChevronRight } from 'lucide-react';
 import { motion } from 'framer-motion';
@@ -7,6 +7,8 @@ import { Footer } from '@/components/Footer';
 import { SEO } from '@/components/SEO';
 import { ProductCard } from '@/components/ProductCard';
 import { useBrand } from '@/hooks/useProducts';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { productSortOptions, sortProductsClient, type ProductSortValue } from '@/lib/productSort';
 import NotFound from './not-found';
 
 function BrandLoading() {
@@ -33,6 +35,11 @@ function BrandLoading() {
 export default function BrandPage() {
   const { slug = '' } = useParams<{ slug: string }>();
   const { data, isLoading, error } = useBrand(slug);
+  const [sortBy, setSortBy] = useState<ProductSortValue>('recommended');
+  const sortedProducts = useMemo(
+    () => sortProductsClient(data?.products ?? [], sortBy),
+    [data?.products, sortBy],
+  );
 
   useEffect(() => {
     if (error && (error as Error & { status?: number }).status === 404) {
@@ -152,8 +159,23 @@ export default function BrandPage() {
               </Link>
             </div>
           ) : (
+            <>
+            <div className="flex justify-end mb-5">
+              <Select value={sortBy} onValueChange={(v) => setSortBy(v as ProductSortValue)}>
+                <SelectTrigger className="w-[180px] border-white/12 text-white bg-white/5 rounded-sm h-9 text-[12px] tracking-wide focus:ring-white/35" data-testid="select-sort">
+                  <SelectValue placeholder="Sırala" />
+                </SelectTrigger>
+                <SelectContent className="bg-[#141414] border-white/12">
+                  {productSortOptions.map(opt => (
+                    <SelectItem key={opt.value} value={opt.value} className="text-xs text-white focus:bg-white/10 focus:text-white cursor-pointer">
+                      {opt.label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
             <div className="grid grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 lg:gap-6">
-              {products.map((product, index) => (
+              {sortedProducts.map((product, index) => (
                 <motion.div
                   key={product.id}
                   initial={{ opacity: 0, y: 20 }}
@@ -165,6 +187,7 @@ export default function BrandPage() {
                 </motion.div>
               ))}
             </div>
+            </>
           )}
         </div>
       </main>

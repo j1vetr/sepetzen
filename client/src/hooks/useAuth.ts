@@ -13,6 +13,7 @@ interface User {
   postalCode: string | null;
   country: string | null;
   whatsappOptIn?: boolean;
+  walletBalance?: number;
 }
 
 interface AuthContextType {
