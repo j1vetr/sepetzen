@@ -573,6 +573,75 @@ function InstallmentTab({ price, tabInstallmentNote }: { price: number; tabInsta
   );
 }
 
+const DESCRIPTION_COLLAPSED_HEIGHT = 260;
+
+/** Açıklama içeriği: boşsa bilgi mesajı, kısaysa tam gösterim, uzunsa daraltılmış alan ve düğme. */
+function DescriptionBlock({ html, expanded, onToggle, reduceMotion }: {
+  html: string;
+  expanded: boolean;
+  onToggle: () => void;
+  reduceMotion: boolean;
+}) {
+  const contentRef = useRef<HTMLDivElement>(null);
+  const [contentHeight, setContentHeight] = useState(0);
+  const normalized = useMemo(() => normalizeDescriptionHtml(html), [html]);
+  const isEmpty = useMemo(() => {
+    if (!normalized.trim()) return true;
+    if (typeof window === 'undefined') return false;
+    const doc = new DOMParser().parseFromString(normalized, 'text/html');
+    const hasMedia = !!doc.querySelector('img, video, iframe, table');
+    return !hasMedia && !(doc.body.textContent || '').replace(/\u00a0/g, ' ').trim();
+  }, [normalized]);
+
+  useEffect(() => {
+    const el = contentRef.current;
+    if (!el) return;
+    const update = () => setContentHeight(el.scrollHeight);
+    update();
+    const observer = new ResizeObserver(update);
+    observer.observe(el);
+    return () => observer.disconnect();
+  }, [normalized, isEmpty]);
+
+  if (isEmpty) {
+    return (
+      <p className="text-[13px] text-white/45" data-testid="text-no-description">
+        Bu ürün için henüz açıklama eklenmemiş.
+      </p>
+    );
+  }
+
+  // Ölçüm gelmeden (0) daraltmayı uygulama: içerik kısaysa boşluk oluşmasın.
+  const needsToggle = contentHeight > DESCRIPTION_COLLAPSED_HEIGHT + 40;
+  const collapsed = needsToggle && !expanded;
+
+  return (
+    <div>
+      <motion.div
+        initial={false}
+        animate={{ height: collapsed ? DESCRIPTION_COLLAPSED_HEIGHT : (contentHeight || 'auto') }}
+        transition={{ duration: reduceMotion ? 0 : 0.28, ease: [0.33, 1, 0.68, 1] }}
+        className={`relative overflow-hidden ${collapsed ? 'description-fade' : ''}`}
+      >
+        <div ref={contentRef} className="product-rich-copy" dangerouslySetInnerHTML={{ __html: normalized }} />
+      </motion.div>
+      {needsToggle && (
+        <button
+          type="button"
+          onClick={onToggle}
+          className="mt-3 inline-flex items-center gap-2 text-[11px] font-semibold uppercase tracking-[0.16em] text-white/60 transition-colors hover:text-white"
+          aria-expanded={expanded}
+          data-testid="button-toggle-description"
+        >
+          {expanded ? 'Daha Az Göster' : 'Tüm Açıklamayı Göster'}
+          <ChevronDown className={`h-4 w-4 transition-transform duration-200 ${expanded ? 'rotate-180' : ''}`} />
+        </button>
+      )}
+    </div>
+  );
+}
+
+
 function ProductTabs({
   html,
   specs,
@@ -664,29 +733,12 @@ function ProductTabs({
                  </dl>
                </div>
              )}
-              <div>
-                <motion.div
-                  initial={false}
-                  animate={{ height: descriptionExpanded ? 'auto' : 260 }}
-                  transition={{ duration: reduceMotion ? 0 : 0.28, ease: [0.33, 1, 0.68, 1] }}
-                  className={`relative overflow-hidden ${descriptionExpanded ? '' : 'after:absolute after:inset-x-0 after:bottom-0 after:h-20 after:bg-gradient-to-t after:from-[#0A0A0A] after:to-transparent'}`}
-                >
-                  <div
-                    className="product-rich-copy"
-                    dangerouslySetInnerHTML={{ __html: normalizeDescriptionHtml(html) }}
-                  />
-                </motion.div>
-                <button
-                  type="button"
-                  onClick={() => setDescriptionExpanded((value) => !value)}
-                  className="mt-3 inline-flex items-center gap-2 text-[11px] font-semibold uppercase tracking-[0.16em] text-white/60 transition-colors hover:text-white"
-                  aria-expanded={descriptionExpanded}
-                  data-testid="button-toggle-description"
-                >
-                  {descriptionExpanded ? 'Daha Az Göster' : 'Tüm Açıklamayı Göster'}
-                  <ChevronDown className={`h-4 w-4 transition-transform duration-200 ${descriptionExpanded ? 'rotate-180' : ''}`} />
-                </button>
-              </div>
+              <DescriptionBlock
+                html={html}
+                expanded={descriptionExpanded}
+                onToggle={() => setDescriptionExpanded((value) => !value)}
+                reduceMotion={!!reduceMotion}
+              />
            </div>
          )}
 

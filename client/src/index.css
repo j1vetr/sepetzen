@@ -817,3 +817,18 @@ html[data-theme="light"] .theme-light-zone .keep-dark.bg-\[\#141414\] { backgrou
 /* Az stok uyarısı: koyu temada sarı, açık temada beyaz zeminde okunur koyu amber */
 .stock-low { color: #fefb00; }
 html[data-theme="light"] .stock-low { color: #b45309; }
+
+/* Açıklama daraltıldığında alttaki solma efekti, sayfa zemin rengine uyar */
+.description-fade::after {
+  content: '';
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  height: 5rem;
+  pointer-events: none;
+  background: linear-gradient(to top, #0A0A0A, transparent);
+}
+html[data-theme="light"] .description-fade::after {
+  background: linear-gradient(to top, #ffffff, transparent);
+}
