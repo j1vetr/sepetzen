@@ -1630,7 +1630,7 @@ export default function ProductDetail() {
                       type="button"
                       onClick={() => scrollThumbs(-1)}
                       disabled={!thumbCanUp}
-                      className="shrink-0 w-full h-8 flex items-center justify-center rounded-lg bg-neutral-900 text-white hover:bg-black disabled:opacity-30 disabled:cursor-default transition-colors"
+                      className="shrink-0 w-full h-8 flex items-center justify-center rounded-lg border border-white/20 text-white/80 hover:text-white hover:border-white/50 hover:bg-white/[0.06] disabled:opacity-25 disabled:hover:bg-transparent disabled:hover:border-white/20 disabled:cursor-default transition-colors"
                       aria-label="Önceki görseller"
                       data-testid="button-thumbs-up"
                     >
@@ -1693,7 +1693,7 @@ export default function ProductDetail() {
                       type="button"
                       onClick={() => scrollThumbs(1)}
                       disabled={!thumbCanDown}
-                      className="shrink-0 w-full h-8 flex items-center justify-center rounded-lg bg-neutral-900 text-white hover:bg-black disabled:opacity-30 disabled:cursor-default transition-colors"
+                      className="shrink-0 w-full h-8 flex items-center justify-center rounded-lg border border-white/20 text-white/80 hover:text-white hover:border-white/50 hover:bg-white/[0.06] disabled:opacity-25 disabled:hover:bg-transparent disabled:hover:border-white/20 disabled:cursor-default transition-colors"
                       aria-label="Sonraki görseller"
                       data-testid="button-thumbs-down"
                     >
