@@ -9,6 +9,7 @@ import { ProductCard } from '@/components/ProductCard';
 import { useBrand } from '@/hooks/useProducts';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { productSortOptions, sortProductsClient, type ProductSortValue } from '@/lib/productSort';
+import { useInfiniteList } from '@/hooks/useInfiniteList';
 import NotFound from './not-found';
 
 function BrandLoading() {
@@ -40,6 +41,7 @@ export default function BrandPage() {
     () => sortProductsClient(data?.products ?? [], sortBy),
     [data?.products, sortBy],
   );
+  const { visible: visibleProducts, hasMore: hasMoreProducts, sentinelRef: productsSentinelRef } = useInfiniteList(sortedProducts, 24);
 
   useEffect(() => {
     if (error && (error as Error & { status?: number }).status === 404) {
@@ -175,7 +177,7 @@ export default function BrandPage() {
               </Select>
             </div>
             <div className="grid grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 lg:gap-6">
-              {sortedProducts.map((product, index) => (
+              {visibleProducts.map((product, index) => (
                 <motion.div
                   key={product.id}
                   initial={{ opacity: 0, y: 20 }}
@@ -187,6 +189,11 @@ export default function BrandPage() {
                 </motion.div>
               ))}
             </div>
+            {hasMoreProducts && (
+              <div ref={productsSentinelRef} className="flex justify-center py-10" data-testid="products-load-more">
+                <span className="w-5 h-5 rounded-full border-2 border-white/20 border-t-white animate-spin" />
+              </div>
+            )}
             </>
           )}
         </div>
