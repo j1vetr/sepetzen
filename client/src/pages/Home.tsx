@@ -1152,7 +1152,7 @@ export default function Home() {
         description="Sepetzen, av bıçakları, kamp çakıları, outdoor ekipmanları ve bağ & bahçe ürünleri sunan Türk outdoor markasıdır. Dalaman'dan Türkiye geneline hızlı teslimat."
         url="/"
       />
-      <Header />
+      <Header overlayHero />
       <main>
         <HeroSlider products={products} slides={activeSlides} heroMarquee={content.heroMarquee} />
         {content.sectionOrder

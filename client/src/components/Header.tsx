@@ -134,7 +134,7 @@ function getCategoryDesc(title: string): string {
 }
 
 
-export function Header() {
+export function Header({ overlayHero = false }: { overlayHero?: boolean } = {}) {
   const [location, navigate] = useLocation();
   const [mobileOpen, setMobileOpen] = useState(false);
   const [searchOpen, setSearchOpen] = useState(false);
@@ -296,6 +296,26 @@ export function Header() {
     return () => ro.disconnect();
   }, []);
 
+  // Ana sayfada hero, üst şerit + marka çubuğu + menü çubuğunun altına uzanır.
+  // Bu üç çubuğun toplam yüksekliği --hero-overlap olarak yazılır.
+  useEffect(() => {
+    if (!overlayHero) return;
+    const ids = ['hdr-ticker', 'hdr-brand', 'hdr-nav'];
+    const measure = () => {
+      const total = ids.reduce((sum, id) => sum + (document.getElementById(id)?.offsetHeight ?? 0), 0);
+      document.documentElement.style.setProperty('--hero-overlap', `${total}px`);
+    };
+    measure();
+    const ro = new ResizeObserver(measure);
+    ids.forEach((id) => { const el = document.getElementById(id); if (el) ro.observe(el); });
+    window.addEventListener('resize', measure);
+    return () => {
+      ro.disconnect();
+      window.removeEventListener('resize', measure);
+      document.documentElement.style.removeProperty('--hero-overlap');
+    };
+  }, [overlayHero, siteIdentity.tickerEnabled]);
+
   const sidebarProduct = megaFeaturedProducts[sidebarProductIdx] ?? null;
   const rightProducts = megaFeaturedProducts.slice(0, 2);
 
@@ -310,7 +330,7 @@ export function Header() {
 
       {/* ── Top utility strip (desktop) ── */}
       {tickerEnabled && (
-      <div className="hidden lg:block bg-black text-white border-b border-white/8" data-testid="utility-strip">
+      <div id="hdr-ticker" className={`hidden lg:block text-white border-b border-white/8 ${overlayHero ? 'bar-glass relative z-[100]' : 'bg-black'}`} data-testid="utility-strip">
         <div className="max-w-[1400px] mx-auto px-8 h-10 flex items-center justify-between">
           <div
             className="flex-1 min-w-0 overflow-hidden mr-8"
@@ -364,7 +384,7 @@ export function Header() {
       )}
 
       {/* ── Brand bar (desktop): Logo · Arama · Hesap/Sepet ── */}
-      <div className="hidden lg:block bg-[#0A0A0A] border-b border-white/8">
+      <div id="hdr-brand" className={`hidden lg:block border-b border-white/8 ${overlayHero ? 'bar-glass relative z-[100]' : 'bg-[#0A0A0A]'}`}>
         <div className="max-w-[1400px] mx-auto px-8 py-4 grid grid-cols-[auto_1fr_auto] items-center gap-8">
           {/* Sol: Logo */}
           <a href="/" data-testid="link-logo" className="justify-self-start block">
@@ -460,6 +480,7 @@ export function Header() {
 
       {/* ── Main header (nav bar) — desktop'ta sticky, mobile'da fixed ── */}
       <header
+        id="hdr-nav"
         className={`sticky top-0 left-0 right-0 z-[100] flex items-center h-16 lg:h-auto overflow-visible transition-all duration-300 ${
           scrolled
             ? megaMenuId

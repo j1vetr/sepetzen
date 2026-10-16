@@ -7,7 +7,7 @@ import { Footer } from '@/components/Footer';
 import { SEO } from '@/components/SEO';
 import { ProductCard } from '@/components/ProductCard';
 import { Link, useSearch } from 'wouter';
-import { ChevronRight, X, SlidersHorizontal, LayoutGrid, Grid3X3, ArrowUpRight, ChevronDown } from 'lucide-react';
+import { ChevronRight, X, SlidersHorizontal, LayoutGrid, Grid3X3, ArrowUpRight, ChevronDown, Search } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useProducts, useCategories, useFilterAttributes, type ProductFilters } from '@/hooks/useProducts';
 import { useInfiniteList } from '@/hooks/useInfiniteList';
@@ -113,6 +113,8 @@ function CheckItem({
   );
 }
 
+const COLLAPSED_LIMIT = 8;
+
 function MultiCheckList({
   options,
   selected,
@@ -126,21 +128,77 @@ function MultiCheckList({
   counts?: Record<string, number>;
   testIdPrefix?: string;
 }) {
+  const [query, setQuery] = useState('');
+  const [expanded, setExpanded] = useState(false);
+
+  // Seçilenler üstte, sonra ürün sayısı çok olandan aza (sayı yoksa alfabetik)
+  const sorted = useMemo(() => {
+    return [...options].sort((a, b) => {
+      const sa = selected.includes(a) ? 0 : 1;
+      const sb = selected.includes(b) ? 0 : 1;
+      if (sa !== sb) return sa - sb;
+      if (counts) {
+        const diff = (counts[b] ?? 0) - (counts[a] ?? 0);
+        if (diff !== 0) return diff;
+      }
+      return a.localeCompare(b, 'tr');
+    });
+  }, [options, selected, counts]);
+
+  const q = query.trim().toLocaleLowerCase('tr');
+  const matches = q ? sorted.filter(o => o.toLocaleLowerCase('tr').includes(q)) : sorted;
+  const searchable = options.length > COLLAPSED_LIMIT;
+  const shown = expanded || q ? matches : matches.slice(0, COLLAPSED_LIMIT);
+  const hiddenCount = matches.length - shown.length;
+
   return (
-    <div className="max-h-[232px] overflow-y-auto overscroll-contain no-scrollbar space-y-0.5">
-      {options.map(opt => (
-        <CheckItem
-          key={opt}
-          label={opt}
-          checked={selected.includes(opt)}
-          onChange={() => onToggle(opt)}
-          count={counts?.[opt]}
-          testId={testIdPrefix ? `${testIdPrefix}-${opt}` : undefined}
-        />
-      ))}
+    <div>
+      {searchable && (
+        <div className="relative mb-2">
+          <Search className="w-3.5 h-3.5 text-white/40 absolute left-2.5 top-1/2 -translate-y-1/2 pointer-events-none" />
+          <input
+            type="text"
+            value={query}
+            onChange={e => setQuery(e.target.value)}
+            placeholder="Ara..."
+            className="w-full h-9 pl-8 pr-2 bg-white/5 border border-white/12 focus:border-white/40 rounded-sm text-[12px] text-white placeholder:text-white/35 outline-none transition-colors"
+            data-testid={testIdPrefix ? `${testIdPrefix}-search` : undefined}
+          />
+        </div>
+      )}
+      <div className={`space-y-0.5 ${expanded ? 'max-h-[320px] overflow-y-auto overscroll-contain no-scrollbar' : ''}`}>
+        {shown.map(opt => (
+          <CheckItem
+            key={opt}
+            label={opt}
+            checked={selected.includes(opt)}
+            onChange={() => onToggle(opt)}
+            count={counts?.[opt]}
+            testId={testIdPrefix ? `${testIdPrefix}-${opt}` : undefined}
+          />
+        ))}
+        {shown.length === 0 && <p className="px-2 py-2 text-[12px] text-white/40">Sonuç bulunamadı</p>}
+      </div>
+      {!q && matches.length > COLLAPSED_LIMIT && (
+        <button
+          type="button"
+          onClick={() => setExpanded(e => !e)}
+          className="mt-2 px-2 text-[12px] font-semibold text-white/70 hover:text-white underline underline-offset-4 transition-colors"
+          data-testid={testIdPrefix ? `${testIdPrefix}-toggle-more` : undefined}
+        >
+          {expanded ? 'Daha az göster' : `Tümünü göster (+${hiddenCount})`}
+        </button>
+      )}
     </div>
   );
 }
+
+const PRICE_PRESETS: { label: string; range: [number, number] }[] = [
+  { label: '0 - 500 ₺', range: [0, 500] },
+  { label: '500 - 1.000 ₺', range: [500, 1000] },
+  { label: '1.000 - 2.500 ₺', range: [1000, 2500] },
+  { label: '2.500 ₺ ve üzeri', range: [2500, 10000] },
+];
 
 // ── Ana bileşen ──────────────────────────────────────────────────────────────
 
@@ -324,6 +382,50 @@ export default function Store() {
 
   const sidebarContent = (
     <div>
+      {/* Hızlı filtreler */}
+      <div className="flex flex-wrap gap-1.5 mb-5">
+        {[
+          { label: 'Ücretsiz Kargo', value: 'free-shipping' },
+          { label: 'İndirimli', value: 'discounted' },
+          { label: 'Yeni', value: 'new' },
+        ].map(opt => {
+          const on = statusFilters.includes(opt.value);
+          return (
+            <button
+              key={opt.value}
+              type="button"
+              onClick={() => toggleStatusFilter(opt.value)}
+              aria-pressed={on}
+              className={`px-3 py-1.5 rounded-full text-[11.5px] font-semibold border transition-colors ${
+                on ? 'bg-white text-black border-white' : 'border-white/20 text-white/70 hover:border-white/50 hover:text-white'
+              }`}
+              data-testid={`quick-status-${opt.value}`}
+            >
+              {opt.label}
+            </button>
+          );
+        })}
+      </div>
+
+      {/* Seçilen filtreler */}
+      {activeChips.filter(c => !c.isLink && !c.key.startsWith('status-')).length > 0 && (
+        <div className="mb-5 pb-5 border-b border-white/8">
+          <div className="flex flex-wrap gap-1.5">
+            {activeChips.filter(c => !c.isLink && !c.key.startsWith('status-')).map(chip => (
+              <button
+                key={chip.key}
+                type="button"
+                onClick={chip.onRemove}
+                className="inline-flex items-center gap-1.5 bg-white/10 hover:bg-white/15 text-white text-[11.5px] font-medium pl-2.5 pr-2 py-1 rounded-full transition-colors"
+                aria-label={`${chip.label} filtresini kaldır`}
+              >
+                {chip.label}<X className="w-3 h-3" />
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
+
       {/* Kategori */}
       <FilterSection title="Kategori">
         <div className="max-h-[232px] overflow-y-auto overscroll-contain no-scrollbar space-y-0.5">
@@ -373,11 +475,27 @@ export default function Store() {
       {/* Fiyat Aralığı */}
       <FilterSection title="Fiyat Aralığı">
         <PriceRangeFilter value={priceRange} onChange={setPriceRange} className="px-1" />
+        <div className="mt-4 space-y-0.5">
+          {PRICE_PRESETS.map(p => {
+            const on = priceRange[0] === p.range[0] && priceRange[1] === p.range[1];
+            return (
+              <button
+                key={p.label}
+                type="button"
+                onClick={() => setPriceRange(on ? [0, 10000] : p.range)}
+                className={`w-full text-left px-2.5 py-1.5 text-[12.5px] rounded-sm transition-colors ${on ? 'bg-white/10 text-white font-semibold' : 'text-white/60 hover:text-white hover:bg-white/5'}`}
+                data-testid={`price-preset-${p.range[0]}-${p.range[1]}`}
+              >
+                {p.label}
+              </button>
+            );
+          })}
+        </div>
       </FilterSection>
 
       {/* Marka */}
       {brandOptions.length >= 2 && (
-        <FilterSection title="Marka" defaultOpen={selectedBrands.length > 0}>
+        <FilterSection title="Marka">
           <MultiCheckList
             options={brandOptions}
             selected={selectedBrands}
@@ -404,25 +522,6 @@ export default function Store() {
           </FilterSection>
         );
       })}
-
-      {/* Durum */}
-      <FilterSection title="Durum">
-        <div className="space-y-0.5">
-          {[
-            { label: 'Ücretsiz Kargo', value: 'free-shipping' },
-            { label: 'Yeni Ürünler', value: 'new' },
-            { label: 'İndirimli', value: 'discounted' },
-          ].map(opt => (
-            <CheckItem
-              key={opt.value}
-              label={opt.label}
-              checked={statusFilters.includes(opt.value)}
-              onChange={() => toggleStatusFilter(opt.value)}
-              testId={`filter-status-${opt.value}`}
-            />
-          ))}
-        </div>
-      </FilterSection>
 
       {hasActiveFilters && (
         <button
@@ -476,7 +575,7 @@ export default function Store() {
 
           {/* Sol Sidebar — masaüstü */}
           <aside className="hidden lg:block w-[220px] xl:w-[240px] shrink-0">
-            <div className="keep-dark sticky top-24 bg-[#141414] border border-white/8 rounded-sm p-4">
+            <div className="keep-dark sticky top-24 max-h-[calc(100vh-7rem)] overflow-y-auto overscroll-contain no-scrollbar bg-[#141414] border border-white/8 rounded-sm p-4">
               <div className="flex items-center justify-between mb-5">
                 <h3 className="text-[11px] font-bold tracking-[0.20em] uppercase text-white flex items-center gap-2">
                   <SlidersHorizontal className="w-3.5 h-3.5 text-white" strokeWidth={2} />

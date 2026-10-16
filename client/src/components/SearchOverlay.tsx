@@ -339,7 +339,7 @@ export function SearchOverlay({ isOpen, onClose }: SearchOverlayProps) {
                                     <span className="text-[10px] text-white/40 line-through">{origPr.toLocaleString('tr-TR', { maximumFractionDigits: 0 })} ₺</span>
                                   )}
                                   <p
-                                    className={`text-[13px] font-bold ${origPr ? 'text-amber-400' : 'text-white'}`}
+                                    className={`text-[13px] font-bold text-white`}
                                     data-testid={`text-search-price-${product.id}`}
                                   >
                                     {formatPrice(product.basePrice)} ₺

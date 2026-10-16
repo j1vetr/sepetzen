@@ -664,6 +664,19 @@
   }
 }
 
+/* Ana sayfa: hero üstteki çubukların altına girer (cam efekti için) */
+html[style*="--hero-overlap"] .hero-section {
+  margin-top: calc(var(--hero-overlap) * -1);
+  padding-top: var(--hero-overlap);
+  height: calc(100svh - 100px + var(--hero-overlap));
+}
+@media (min-width: 1024px) {
+  html[style*="--hero-overlap"] .hero-section {
+    height: calc(100svh - 182px + var(--hero-overlap));
+    max-height: calc(860px + var(--hero-overlap));
+  }
+}
+
 /* Skeleton shimmer */
 @keyframes shimmer {
   100% { transform: translateX(200%); }
@@ -839,6 +852,3 @@ html[data-theme="light"] .stock-low { color: #000; background: #fefb00; padding:
 html[data-theme="light"] .description-fade::after {
   background: linear-gradient(to top, #ffffff, transparent);
 }
-
-/* İndirim rozeti: açık temada da yazı beyaz kalır */
-.discount-badge { color: #ffffff; }
