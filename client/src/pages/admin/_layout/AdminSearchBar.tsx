@@ -22,6 +22,7 @@ import {
   Wallet,
   FileStack,
   X,
+  Radio,
 } from 'lucide-react';
 import { useQuery } from '@tanstack/react-query';
 import type { TabType } from '../_shared/types';
@@ -67,6 +68,7 @@ const TAB_ICONS: Record<TabType, React.ComponentType<{ className?: string }>> = 
   kvkk: ShieldCheck,
   wallet: Wallet,
   batchinvoice: FileStack,
+  livestream: Radio,
   coupons: Ticket,
   homepage: Home,
   menu: MenuIcon,

@@ -216,6 +216,7 @@ export type ProductDraft = Omit<Product, 'id' | 'createdAt'> & {
 
 export type TabType =
   | 'batchinvoice'
+  | 'livestream'
   | 'wallet'
   | 'dashboard'
   | 'products'

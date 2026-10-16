@@ -23,6 +23,7 @@ import ReviewsTab from './admin/ReviewsTab';
 import KvkkTab from './admin/KvkkTab';
 import WalletTab from './admin/WalletTab';
 import BatchInvoiceTab from './admin/BatchInvoiceTab';
+import LiveStreamTab from './admin/LiveStreamTab';
 import BrandsTab from './admin/BrandsTab';
 
 import CategoryModal from './admin/modals/CategoryModal';
@@ -294,6 +295,7 @@ export default function AdminDashboard() {
         {activeTab === 'kvkk' && <KvkkTab />}
         {activeTab === 'wallet' && <WalletTab />}
         {activeTab === 'batchinvoice' && <BatchInvoiceTab />}
+        {activeTab === 'livestream' && <LiveStreamTab />}
       </AdminLayout>
 
       {showCategoryModal && (

@@ -40,6 +40,7 @@ const DistanceSalesAgreement = lazy(() => import("@/pages/DistanceSalesAgreement
 const CancellationPolicy = lazy(() => import("@/pages/CancellationPolicy"));
 const KVKK = lazy(() => import("@/pages/KVKK"));
 const Store = lazy(() => import("@/pages/Store"));
+const LiveStreamPage = lazy(() => import("@/pages/LiveStream"));
 const StaticPage = lazy(() => import("@/pages/StaticPage"));
 const ContactPage = lazy(() => import("@/pages/ContactPage"));
 const Blog = lazy(() => import("@/pages/Blog"));
@@ -77,6 +78,7 @@ function Router() {
         <Switch>
         <Route path="/" component={Home} />
         <Route path="/magaza" component={Store} />
+        <Route path="/canli" component={LiveStreamPage} />
         <Route path="/tum-urunler"><Redirect to="/magaza" /></Route>
         <Route path="/kategori/tum-urunler"><Redirect to="/magaza" /></Route>
         <Route path="/kategori/:slug" component={Category} />

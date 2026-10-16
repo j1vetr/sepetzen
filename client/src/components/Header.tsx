@@ -1,4 +1,5 @@
 import { ThemeToggle } from '@/components/ThemeToggle';
+import { LiveStreamButton } from '@/components/LiveStreamButton';
 import { flattenCategoryTree } from '@/lib/categoryTree';
 import { useState, useEffect, useRef, useMemo } from 'react';
 import { Link, useLocation } from 'wouter';
@@ -411,6 +412,7 @@ export function Header({ overlayHero = false }: { overlayHero?: boolean } = {}) 
 
           {/* Sağ: Hesabım + Sepetim */}
           <div className="justify-self-end flex items-center gap-5">
+            <LiveStreamButton testId="link-live-stream-desktop" />
             <ThemeToggle className="w-10 h-10 rounded-full border border-white/12 hover:border-white/35" testId="button-theme-toggle-desktop" />
             {user ? (
               <DropdownMenu modal={false}>
@@ -515,6 +517,7 @@ export function Header({ overlayHero = false }: { overlayHero?: boolean } = {}) 
             </a>
 
             <div className="justify-self-end flex items-center gap-0.5">
+              <LiveStreamButton compact testId="link-live-stream-mobile" />
               <ThemeToggle className="p-2.5" testId="button-theme-toggle-mobile" />
               <Link href="/sepet" data-testid="link-cart-mobile">
                 <motion.button
@@ -895,6 +898,7 @@ export function Header({ overlayHero = false }: { overlayHero?: boolean } = {}) 
                     >
                       <Search className="w-[18px] h-[18px]" strokeWidth={1.75} />
                     </button>
+                    <LiveStreamButton compact testId="link-live-stream-compact" />
                     <ThemeToggle className="p-2.5" testId="button-theme-toggle-compact" />
                     <Link
                       href={user ? '/hesabim' : '/giris'}

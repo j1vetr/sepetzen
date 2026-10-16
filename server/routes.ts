@@ -76,6 +76,7 @@ import {
 } from "./menu-grouping";
 import { menuItems as menuItemsTable } from "@shared/schema";
 import { resolveBillingAddress, normalizeInvoiceInfo, validateInvoiceInfo } from "@shared/billing";
+import { LIVE_STREAM_KEY, liveStreamSchema, resolveLiveStream } from "@shared/liveStream";
 import { HOMEPAGE_CONTENT_KEY, homepageContentSchema, resolveHomepageContent } from "@shared/homepage";
 import { SITE_IDENTITY_KEY, siteIdentitySchema, mergeSiteIdentity } from "@shared/siteIdentity";
 import { and, gte, lte } from "drizzle-orm";
@@ -9062,6 +9063,67 @@ window.addEventListener('load', function() {
     } catch (error) {
       console.error('[homepage-content PUT] Error:', error);
       res.status(500).json({ error: "Failed to save homepage content" });
+    }
+  });
+
+  // ─── Canlı yayın ───────────────────────────────────────────────────────────
+  async function readLiveStream() {
+    const raw = await storage.getSiteSetting(LIVE_STREAM_KEY);
+    let parsed: unknown = null;
+    if (raw) { try { parsed = JSON.parse(raw); } catch { parsed = null; } }
+    return resolveLiveStream(parsed);
+  }
+
+  // Public: yayın durumu ve yayında gösterilen ürünler (yalnızca aktif ürünler, seçilme sırasıyla)
+  app.get("/api/live-stream", async (_req, res) => {
+    try {
+      const live = await readLiveStream();
+      if (!live.isActive) return res.json({ isActive: false });
+      const products: any[] = [];
+      for (const id of live.productIds) {
+        const p = await storage.getProduct(id);
+        if (p && p.isActive !== false) products.push(p);
+      }
+      res.json({
+        isActive: true,
+        title: live.title,
+        description: live.description,
+        streamUrl: live.streamUrl,
+        startedAt: live.startedAt,
+        products,
+      });
+    } catch (error) {
+      console.error('[live-stream GET]', error);
+      res.status(500).json({ error: "Canlı yayın bilgisi alınamadı" });
+    }
+  });
+
+  app.get("/api/admin/live-stream", requireAdmin, async (_req, res) => {
+    try {
+      res.json(await readLiveStream());
+    } catch (error) {
+      res.status(500).json({ error: "Canlı yayın ayarları alınamadı" });
+    }
+  });
+
+  app.put("/api/admin/live-stream", requireAdmin, async (req, res) => {
+    try {
+      const parsed = liveStreamSchema.safeParse(req.body);
+      if (!parsed.success) {
+        return res.status(400).json({ error: "Geçersiz içerik", details: parsed.error.flatten() });
+      }
+      const data = parsed.data;
+      if (data.streamUrl && !/^https?:\/\//i.test(data.streamUrl)) {
+        return res.status(400).json({ error: "Yayın bağlantısı http veya https ile başlamalı" });
+      }
+      const previous = await readLiveStream();
+      // Yayın ilk kez açılırken başlangıç zamanını yaz, kapanınca temizle
+      data.startedAt = data.isActive ? (previous.isActive && previous.startedAt ? previous.startedAt : new Date().toISOString()) : null;
+      await storage.setSiteSetting(LIVE_STREAM_KEY, JSON.stringify(data));
+      res.json(data);
+    } catch (error) {
+      console.error('[live-stream PUT]', error);
+      res.status(500).json({ error: "Canlı yayın ayarları kaydedilemedi" });
     }
   });
 

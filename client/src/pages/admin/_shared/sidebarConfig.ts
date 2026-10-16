@@ -19,6 +19,7 @@ import {
   ShieldCheck,
   Wallet,
   FileStack,
+  Radio,
 } from 'lucide-react';
 import type { SidebarCategory } from '../_layout/AdminLayout';
 import type { TabType } from './types';
@@ -44,6 +45,7 @@ export const VALID_TABS: TabType[] = [
   'kvkk',
   'wallet',
   'batchinvoice',
+  'livestream',
 ];
 
 export const SIDEBAR_CATEGORIES: SidebarCategory[] = [
@@ -57,6 +59,7 @@ export const SIDEBAR_CATEGORIES: SidebarCategory[] = [
   {
     title: 'Satış ve Operasyon',
     items: [
+      { id: 'livestream', icon: Radio, label: 'Canlı Yayın' },
       { id: 'orders', icon: ShoppingCart, label: 'Site Siparişleri' },
       { id: 'batchinvoice', icon: FileStack, label: 'Toplu Fatura' },
       { id: 'inventory', icon: Package, label: 'Stok' },
@@ -114,6 +117,7 @@ export const TAB_DESCRIPTIONS: Record<TabType, string> = {
   orders: 'Sitenizden gelen siparişleri görüntüleyin ve yönetin.',
   users: 'Kayıtlı müşterilerinizi görüntüleyin.',
   reviews: 'Müşteri yorumlarını onaylayın veya kaldırın.',
+  livestream: 'Canlı yayını açın, yayında gösterdiğiniz ürünleri seçin. Sitede CANLI YAYIN düğmesi çıkar.',
   batchinvoice: 'Aynı müşterinin aynı gün siparişlerini gün sonunda tek faturada birleştirin.',
   wallet: 'Müşteri bakiyeleri, bekleyen havale yüklemeleri ve bakiye ayarları.',
   kvkk: 'Müşterilerin veri silme taleplerini görüntüleyin ve sonuçlandırın.',

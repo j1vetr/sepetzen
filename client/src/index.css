@@ -869,3 +869,12 @@ html[data-theme="light"] .stock-low { color: #000; background: #fefb00; padding:
 html[data-theme="light"] .description-fade::after {
   background: linear-gradient(to top, #ffffff, transparent);
 }
+
+/* Canlı yayın düğmesi nabzı */
+@keyframes live-pulse {
+  0% { box-shadow: 0 0 0 0 rgba(220, 38, 38, 0.55); }
+  70% { box-shadow: 0 0 0 10px rgba(220, 38, 38, 0); }
+  100% { box-shadow: 0 0 0 0 rgba(220, 38, 38, 0); }
+}
+.animate-live-pulse { animation: live-pulse 1.8s ease-out infinite; }
+@media (prefers-reduced-motion: reduce) { .animate-live-pulse { animation: none; } }
