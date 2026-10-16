@@ -12,6 +12,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { useProducts, useCategories, useFilterAttributes, type ProductFilters } from '@/hooks/useProducts';
 import { sanitizeAdminHtml } from '@/lib/sanitizeHtml';
 import { useInfiniteList } from '@/hooks/useInfiniteList';
+import { SubcategoryStrip } from '@/components/SubcategoryStrip';
 import { PriceRangeFilter } from '@/components/PriceRangeFilter';
 import {
   Select,
@@ -493,15 +494,7 @@ export default function Category() {
         <section className="pt-8 px-5 lg:px-8" data-testid="section-subcategories">
           <div className="max-w-[1400px] mx-auto">
             <h2 className="text-[10px] tracking-[0.3em] uppercase text-white/40 font-medium mb-4">Alt Kategoriler</h2>
-            <div className="flex flex-wrap gap-2">
-              {childCategories.map(child => (
-                <Link key={child.id} href={`/kategori/${child.slug}`}>
-                  <span className="inline-block border border-white/20 text-white text-[11px] tracking-[0.12em] uppercase px-4 py-2.5 cursor-pointer transition-colors hover:border-white hover:bg-white hover:text-black" data-testid={`link-subcategory-${child.slug}`}>
-                    {child.name}
-                  </span>
-                </Link>
-              ))}
-            </div>
+            <SubcategoryStrip items={childCategories} />
           </div>
         </section>
       )}
