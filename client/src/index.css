@@ -813,3 +813,7 @@ html[data-theme="light"] .theme-light-zone .keep-dark.bg-\[\#141414\] { backgrou
 .no-scrollbar::-webkit-scrollbar {
   display: none;
 }
+
+/* Az stok uyarısı: koyu temada sarı, açık temada beyaz zeminde okunur koyu amber */
+.stock-low { color: #fefb00; }
+html[data-theme="light"] .stock-low { color: #b45309; }

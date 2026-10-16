@@ -2136,7 +2136,7 @@ export default function ProductDetail() {
                   {isOutOfStock ? (
                     <span className="text-[12px] text-red-500 font-medium">Tükendi</span>
                   ) : totalStock <= 5 ? (
-                    <span className="flex items-center gap-1.5 text-[12px] font-semibold" style={{ color: '#fefb00' }}>
+                    <span className="stock-low flex items-center gap-1.5 text-[12px] font-semibold">
                       <Check className="w-3.5 h-3.5" strokeWidth={2.5} />
                       Son {totalStock} ürün!
                     </span>
