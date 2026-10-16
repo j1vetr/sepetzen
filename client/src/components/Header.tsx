@@ -1188,20 +1188,6 @@ export function Header() {
                     </div>
                   </motion.li>
 
-                  {/* Arama */}
-                  <motion.li variants={stagger.item} className="pb-2">
-                    <button
-                      type="button"
-                      onClick={() => { setMobileOpen(false); setSearchOpen(true); }}
-                      className="w-full h-12 flex items-center gap-3 px-4 rounded-xl bg-white/[0.06] border border-white/12 text-left text-[13px] text-white/50 hover:border-white/30 transition-colors"
-                      data-testid="button-search-mobile-drawer"
-                      aria-label="Ara"
-                    >
-                      <Search className="w-4 h-4 shrink-0" strokeWidth={1.75} />
-                      Ürün, kategori veya marka ara...
-                    </button>
-                  </motion.li>
-
                   {/* Ana Sayfa */}
                   <motion.li variants={stagger.item}>
                     <Link

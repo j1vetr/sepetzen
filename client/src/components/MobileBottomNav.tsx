@@ -1,5 +1,7 @@
 import { isAdminPath } from '@/lib/adminPath';
+import { useState } from 'react';
 import { Link, useLocation } from 'wouter';
+import { SearchOverlay } from '@/components/SearchOverlay';
 import { Home, ShoppingBag, ShoppingCart, User, Heart, Search, Phone, LayoutGrid } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useCart } from '@/hooks/useCart';
@@ -37,14 +39,23 @@ export function MobileBottomNav() {
   const { totalItems } = useCart();
   const { mobileNavItems } = useSiteIdentity();
 
-  const tabs = mobileNavItems.map((item) => ({
-    ...item,
-    testId: `bottom-nav-${item.href === '/' ? 'home' : item.href.replace(/^\//, '').split('/')[0]}`,
-  }));
+  const [searchOpen, setSearchOpen] = useState(false);
+
+  // Favori sekmesi yerine arama gösterilir. Arama sekmesi sayfa değiştirmez, arama panelini açar.
+  const tabs = mobileNavItems.map((item) => {
+    const isFavorite = item.icon === 'heart' || item.href.startsWith('/favori');
+    const normalized: MobileNavItem = isFavorite ? { href: '#ara', label: 'Ara', icon: 'search' } : item;
+    return {
+      ...normalized,
+      isSearch: normalized.icon === 'search',
+      testId: normalized.icon === 'search' ? 'bottom-nav-search' : `bottom-nav-${normalized.href === '/' ? 'home' : normalized.href.replace(/^\//, '').split('/')[0]}`,
+    };
+  });
 
   if (isAdminPath(location)) return null;
 
   return (
+    <>
     <nav
       className="lg:hidden fixed bottom-0 inset-x-0 z-40 surface-glass-dark border-t border-white/10"
       style={{
@@ -62,15 +73,20 @@ export function MobileBottomNav() {
         }}
       >
         {tabs.map((tab) => {
-          const isActive = matchLocation(tab.href, location);
+          const isActive = tab.isSearch ? searchOpen : matchLocation(tab.href, location);
           const Icon = ICONS[tab.icon] ?? Home;
+          const tabClass = 'flex flex-col items-center justify-center gap-[4px] relative select-none tap-highlight-transparent';
+          const Wrapper: React.ElementType = tab.isSearch ? 'button' : Link;
+          const wrapperProps: Record<string, unknown> = tab.isSearch
+            ? { type: 'button', onClick: () => setSearchOpen(true), 'aria-label': 'Ara' }
+            : { href: tab.href };
 
           return (
-            <Link
+            <Wrapper
               key={tab.href}
-              href={tab.href}
+              {...wrapperProps}
               data-testid={tab.testId}
-              className="flex flex-col items-center justify-center gap-[4px] relative select-none tap-highlight-transparent"
+              className={tabClass}
             >
               <motion.div
                 whileTap={{ scale: 0.82 }}
@@ -122,10 +138,12 @@ export function MobileBottomNav() {
                   />
                 )}
               </motion.div>
-            </Link>
+            </Wrapper>
           );
         })}
       </div>
     </nav>
+    <SearchOverlay isOpen={searchOpen} onClose={() => setSearchOpen(false)} />
+    </>
   );
 }

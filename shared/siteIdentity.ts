@@ -121,6 +121,7 @@ export const DEFAULT_SITE_IDENTITY: SiteIdentity = {
     { href: "/magaza", label: "Mağaza", icon: "store" },
     { href: "/sepet", label: "Sepet", icon: "cart" },
     { href: "/hesabim", label: "Hesabım", icon: "user" },
+    { href: "#ara", label: "Ara", icon: "search" },
   ],
 };
 
