@@ -303,7 +303,7 @@ export const ProductCard = memo(function ProductCard({ product }: ProductCardPro
               <div className={`absolute left-3 z-10 flex flex-col items-start gap-1.5 ${(isYouTubeUrl(mainImage) || isVideoUrl(mainImage)) ? 'top-12' : 'top-3'}`}>
                 {visibleDiscountBadge && (
                   <span
-                    className="backdrop-blur-md bg-red-600/55 border border-red-400/20 text-white text-[10px] font-bold tracking-wider px-2.5 py-1 uppercase rounded-md shadow-[0_2px_8px_rgba(220,38,38,0.35)]"
+                    className="backdrop-blur-md discount-badge bg-red-600/55 border border-red-400/20 text-white text-[10px] font-bold tracking-wider px-2.5 py-1 uppercase rounded-md shadow-[0_2px_8px_rgba(220,38,38,0.35)]"
                     data-testid={`badge-discount-${product.id}`}
                   >
                     {visibleDiscountBadge}

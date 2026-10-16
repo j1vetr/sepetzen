@@ -832,3 +832,6 @@ html[data-theme="light"] .stock-low { color: #000; background: #fefb00; padding:
 html[data-theme="light"] .description-fade::after {
   background: linear-gradient(to top, #ffffff, transparent);
 }
+
+/* İndirim rozeti: açık temada da yazı beyaz kalır */
+.discount-badge { color: #ffffff; }
