@@ -574,19 +574,7 @@ export default function Category() {
         <section className="py-12 px-5 lg:px-8 border-t border-white/8">
           <div className="max-w-[1400px] mx-auto">
             <h3 className="text-[10px] tracking-[0.3em] uppercase text-white/40 font-medium mb-6">Diğer Kategoriler</h3>
-            <div className="flex flex-wrap gap-1.5">
-              {categories.filter(c => c.slug !== slug && !c.parentId).map(cat => (
-                <Link key={cat.id} href={`/kategori/${cat.slug}`}>
-                  <motion.span
-                    whileHover={{ backgroundColor: 'rgba(255,255,255,0.12)', borderColor: 'rgba(255,255,255,0.45)' }}
-                    transition={{ duration: 0.18 }}
-                    className="inline-block border border-white/12 bg-white/5 backdrop-blur-sm rounded-md text-white/70 text-[10px] tracking-[0.1em] uppercase px-3 py-1.5 cursor-pointer"
-                    data-testid={`button-other-category-${cat.slug}`}>
-                    {cat.name}
-                  </motion.span>
-                </Link>
-              ))}
-            </div>
+            <SubcategoryStrip items={categories.filter(c => c.slug !== slug && !c.parentId)} testIdPrefix="button-other-category" />
           </div>
         </section>
       )}

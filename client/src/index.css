@@ -240,6 +240,23 @@
   border-color: rgba(231, 177, 73, 0.58);
 }
 
+.add-to-cart-solid { position: relative; }
+/* Sepete ekle: açık temada siyaha yakın zemin, beyaz yazı */
+html[data-theme="light"] .add-to-cart-solid,
+html[data-theme="light"] .add-to-cart-solid:focus,
+html[data-theme="light"] .add-to-cart-solid:focus-visible {
+  background: #0A0A0A;
+  border-color: #0A0A0A;
+  color: #ffffff;
+  text-shadow: none;
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.22);
+}
+html[data-theme="light"] .add-to-cart-solid:hover {
+  background: #1c1c1c;
+  border-color: #1c1c1c;
+  color: #ffffff;
+}
+
 .storefront-new-badge {
   display: inline-flex;
   align-items: center;
@@ -277,9 +294,9 @@
 
 /* Üst ve alt çubuklar: arkadan kayan içerik bulanık görünür (cam efekti). Açık temada da aynı. */
 .bar-glass {
-  background: rgba(10, 10, 10, 0.5);
-  -webkit-backdrop-filter: blur(22px) saturate(1.6);
-  backdrop-filter: blur(22px) saturate(1.6);
+  background: rgba(10, 10, 10, 0.78);
+  -webkit-backdrop-filter: blur(22px) saturate(1.25);
+  backdrop-filter: blur(22px) saturate(1.25);
 }
 
 /* Mobile navigation is intentionally translucent: the page underneath should

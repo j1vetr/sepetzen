@@ -10,7 +10,7 @@ const RESUME_DELAY_MS = 2200;
  * Alt kategoriler: tek satır, küçük etiketler. Kendiliğinden yavaşça kayar, dokununca veya
  * üzerine gelince durur, kullanıcı da elle kaydırabilir. Sığmıyorsa sonsuz döngü olur.
  */
-export function SubcategoryStrip({ items }: { items: Item[] }) {
+export function SubcategoryStrip({ items, testIdPrefix = 'link-subcategory' }: { items: Item[]; testIdPrefix?: string }) {
   const scrollerRef = useRef<HTMLDivElement>(null);
   const [loop, setLoop] = useState(false);
   const pausedRef = useRef(false);
@@ -75,7 +75,7 @@ export function SubcategoryStrip({ items }: { items: Item[] }) {
       <Link key={`${copy}-${child.id}`} href={`/kategori/${child.slug}`}>
         <span
           className="inline-block shrink-0 whitespace-nowrap border border-white/20 text-white text-[10.5px] tracking-[0.1em] uppercase px-3.5 py-2 cursor-pointer transition-colors hover:border-white hover:bg-white hover:text-black"
-          data-testid={copy === 0 ? `link-subcategory-${child.slug}` : undefined}
+          data-testid={copy === 0 ? `${testIdPrefix}-${child.slug}` : undefined}
           tabIndex={copy === 0 ? undefined : -1}
         >
           {child.name}

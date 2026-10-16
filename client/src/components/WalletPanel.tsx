@@ -190,7 +190,7 @@ export default function WalletPanel() {
       {!data.enabled ? (
         <div className="border border-white/10 rounded-xl p-5 text-sm text-white/60">Bakiye yükleme şu anda kapalı.</div>
       ) : (
-        <div className="border border-white/10 bg-[#0F0F0F] rounded-xl p-5 space-y-5">
+        <div id="wallet-topup" className="scroll-mt-28 border border-white/10 bg-[#0F0F0F] rounded-xl p-5 space-y-5">
           <h3 className="font-display text-xl tracking-wide text-white">BAKİYE YÜKLE</h3>
 
           <div>

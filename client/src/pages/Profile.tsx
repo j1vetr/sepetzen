@@ -513,7 +513,21 @@ export default function Profile() {
             </div>
             <button
               type="button"
-              onClick={() => { setActiveTab('wallet'); window.scrollTo({ top: 0, behavior: 'smooth' }); }}
+              onClick={() => {
+                setActiveTab('wallet');
+                // Bakiye yükleme alanı yüklenene kadar bekleyip oraya kaydır
+                let tries = 0;
+                const timer = window.setInterval(() => {
+                  const target = document.getElementById('wallet-topup');
+                  tries += 1;
+                  if (target) {
+                    window.clearInterval(timer);
+                    target.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                  } else if (tries > 30) {
+                    window.clearInterval(timer);
+                  }
+                }, 100);
+              }}
               className="h-11 px-6 bg-white text-black font-bold tracking-wide rounded-lg hover:bg-white/90 transition-colors"
               data-testid="button-open-wallet-topup"
             >

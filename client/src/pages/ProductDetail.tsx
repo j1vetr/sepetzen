@@ -884,6 +884,17 @@ export default function ProductDetail() {
 
   // UI state
   const [selectedImage, setSelectedImage] = useState(0);
+  const thumbStripRef = useRef<HTMLDivElement>(null);
+
+  // Seçili küçük görsel şeritte görünür kalsın (sayfayı kaydırmadan)
+  useEffect(() => {
+    const strip = thumbStripRef.current;
+    const el = strip?.querySelector<HTMLElement>(`[data-thumb-index="${selectedImage}"]`);
+    if (!strip || !el) return;
+    const top = el.offsetTop - strip.clientHeight / 2 + el.offsetHeight / 2;
+    strip.scrollTo({ top, behavior: 'smooth' });
+  }, [selectedImage]);
+
   const [quantity, setQuantity] = useState(1);
   const [isAdding, setIsAdding] = useState(false);
   // Kişiselleştirme (isim yazdırma) yazısı — ürün ayarı açıksa görünür.
@@ -1595,29 +1606,14 @@ export default function ProductDetail() {
 
               {/* Thumbnail strip (desktop) — sliding-window, ref implementation */}
               {images.length > 1 && (
-                <div className="hidden sm:flex flex-col gap-2 w-[88px] shrink-0">
-                  {/* Up arrow — only when >5 images and not at first */}
-                  {images.length > 5 && selectedImage > 0 && (
-                    <button
-                      type="button"
-                      onClick={() => setSelectedImage(prev => Math.max(0, prev - 1))}
-                      className="w-full h-8 flex items-center justify-center backdrop-blur-md bg-white/15 hover:bg-white/25 border border-white/20 text-white rounded-lg transition-colors"
-                      aria-label="Önceki görsel"
-                    >
-                      <ChevronDown className="w-4 h-4 rotate-180" />
-                    </button>
-                  )}
-
+                <div className="hidden sm:block relative w-[88px] shrink-0">
+                  {/* Sütun ana görselin yüksekliğine eşitlenir, fazla küçük görseller içeride kayar */}
+                <div ref={thumbStripRef} className="absolute inset-0 overflow-y-auto overscroll-contain no-scrollbar p-[3px]">
                   <div className="flex flex-col gap-2">
                     {(() => {
-                      const windowStart = images.length <= 5
-                        ? 0
-                        : Math.max(0, Math.min(selectedImage - 2, images.length - 5));
-                      const slice = images.length <= 5
-                        ? images
-                        : images.slice(windowStart, windowStart + 5);
+                      const slice = images;
                       return slice.map((img, idx) => {
-                        const actualIndex = images.length <= 5 ? idx : windowStart + idx;
+                        const actualIndex = idx;
                         return (
                           <motion.button
                             key={actualIndex}
@@ -1626,6 +1622,7 @@ export default function ProductDetail() {
                             whileHover={reduceMotion ? undefined : { scale: 1.05 }}
                             whileTap={reduceMotion ? undefined : { scale: 0.95 }}
                             data-testid={`button-thumbnail-${actualIndex}`}
+                            data-thumb-index={actualIndex}
                             aria-label={`Görsel ${actualIndex + 1}`}
                             className={`relative aspect-[3/4] rounded-lg overflow-hidden transition-all flex-shrink-0 ${
                               actualIndex === selectedImage
@@ -1658,17 +1655,7 @@ export default function ProductDetail() {
                     })()}
                   </div>
 
-                  {/* Down arrow — only when >5 images and not at last */}
-                  {images.length > 5 && selectedImage < images.length - 1 && (
-                    <button
-                      type="button"
-                      onClick={() => setSelectedImage(prev => Math.min(images.length - 1, prev + 1))}
-                      className="w-full h-8 flex items-center justify-center backdrop-blur-md bg-white/15 hover:bg-white/25 border border-white/20 text-white rounded-lg transition-colors"
-                      aria-label="Sonraki görsel"
-                    >
-                      <ChevronDown className="w-4 h-4" />
-                    </button>
-                  )}
+                </div>
                 </div>
               )}
 
@@ -2269,7 +2256,7 @@ export default function ProductDetail() {
                     disabled={isAdding || isOutOfStock || selectedUnavailable || maxAdditional === 0}
                     whileTap={reduceMotion || isOutOfStock || selectedUnavailable ? undefined : { scale: 0.97 }}
                       className={`flex-1 h-12 lg:h-12 font-semibold text-[14px] uppercase tracking-[0.2em] flex items-center justify-center gap-2 rounded-lg ${
-                       isOutOfStock || selectedUnavailable || maxAdditional === 0 ? 'bg-[#141414]/10 text-white/30 cursor-not-allowed border border-white/10' : 'all-cats-gold cursor-pointer'
+                       isOutOfStock || selectedUnavailable || maxAdditional === 0 ? 'bg-[#141414]/10 text-white/30 cursor-not-allowed border border-white/10' : 'all-cats-gold add-to-cart-solid cursor-pointer'
                     }`}
                     data-testid="button-add-to-cart"
                   >
@@ -2751,7 +2738,7 @@ export default function ProductDetail() {
                 disabled={isAdding || isOutOfStock || selectedUnavailable}
                 whileTap={reduceMotion || isOutOfStock || selectedUnavailable ? undefined : { scale: 0.96 }}
                 className={`h-11 px-6 lg:px-8 font-semibold text-[13px] uppercase tracking-[0.18em] flex items-center justify-center gap-2 rounded-lg shrink-0 ${
-                  isOutOfStock || selectedUnavailable ? 'bg-[#141414]/10 text-white/35 cursor-not-allowed border border-white/10' : 'all-cats-gold cursor-pointer'
+                  isOutOfStock || selectedUnavailable ? 'bg-[#141414]/10 text-white/35 cursor-not-allowed border border-white/10' : 'all-cats-gold add-to-cart-solid cursor-pointer'
                 }`}
                 data-testid="button-add-to-cart-sticky"
               >
