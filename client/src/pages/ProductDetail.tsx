@@ -886,6 +886,24 @@ export default function ProductDetail() {
   const [selectedImage, setSelectedImage] = useState(0);
   const thumbStripRef = useRef<HTMLDivElement>(null);
 
+  const [thumbCanUp, setThumbCanUp] = useState(false);
+  const [thumbCanDown, setThumbCanDown] = useState(false);
+  const updateThumbArrows = useCallback(() => {
+    const strip = thumbStripRef.current;
+    if (!strip) return;
+    setThumbCanUp(strip.scrollTop > 4);
+    setThumbCanDown(strip.scrollTop + strip.clientHeight < strip.scrollHeight - 4);
+  }, []);
+  useEffect(() => {
+    updateThumbArrows();
+    window.addEventListener('resize', updateThumbArrows);
+    return () => window.removeEventListener('resize', updateThumbArrows);
+  }, [updateThumbArrows, product?.id]);
+  const scrollThumbs = (dir: 1 | -1) => {
+    const strip = thumbStripRef.current;
+    if (strip) strip.scrollBy({ top: dir * strip.clientHeight * 0.6, behavior: 'smooth' });
+  };
+
   // Seçili küçük görsel şeritte görünür kalsın (sayfayı kaydırmadan)
   useEffect(() => {
     const strip = thumbStripRef.current;
@@ -1608,7 +1626,7 @@ export default function ProductDetail() {
               {images.length > 1 && (
                 <div className="hidden sm:block relative w-[88px] shrink-0">
                   {/* Sütun ana görselin yüksekliğine eşitlenir, fazla küçük görseller içeride kayar */}
-                <div ref={thumbStripRef} className="absolute inset-0 overflow-y-auto overscroll-contain no-scrollbar p-[3px]">
+                <div ref={thumbStripRef} onScroll={updateThumbArrows} className="absolute inset-0 overflow-y-auto overscroll-contain no-scrollbar p-[3px]">
                   <div className="flex flex-col gap-2">
                     {(() => {
                       const slice = images;
@@ -1656,6 +1674,28 @@ export default function ProductDetail() {
                   </div>
 
                 </div>
+                  {thumbCanUp && (
+                    <button
+                      type="button"
+                      onClick={() => scrollThumbs(-1)}
+                      className="absolute top-1 left-1/2 -translate-x-1/2 z-10 w-9 h-7 flex items-center justify-center rounded-md bg-black/75 text-white shadow-md hover:bg-black transition-colors"
+                      aria-label="Önceki görseller"
+                      data-testid="button-thumbs-up"
+                    >
+                      <ChevronDown className="w-4 h-4 rotate-180" />
+                    </button>
+                  )}
+                  {thumbCanDown && (
+                    <button
+                      type="button"
+                      onClick={() => scrollThumbs(1)}
+                      className="absolute bottom-1 left-1/2 -translate-x-1/2 z-10 w-9 h-7 flex items-center justify-center rounded-md bg-black/75 text-white shadow-md hover:bg-black transition-colors"
+                      aria-label="Sonraki görseller"
+                      data-testid="button-thumbs-down"
+                    >
+                      <ChevronDown className="w-4 h-4" />
+                    </button>
+                  )}
                 </div>
               )}
 
