@@ -814,9 +814,9 @@ html[data-theme="light"] .theme-light-zone .keep-dark.bg-\[\#141414\] { backgrou
   display: none;
 }
 
-/* Az stok uyarısı: koyu temada sarı, açık temada beyaz zeminde okunur koyu amber */
+/* Az stok uyarısı: koyu temada sarı yazı, açık temada sarı zemin üzerinde siyah yazı ve tik */
 .stock-low { color: #fefb00; }
-html[data-theme="light"] .stock-low { color: #b45309; }
+html[data-theme="light"] .stock-low { color: #000; background: #fefb00; padding: 2px 8px; border-radius: 4px; }
 
 /* Açıklama daraltıldığında alttaki solma efekti, sayfa zemin rengine uyar */
 .description-fade::after {
