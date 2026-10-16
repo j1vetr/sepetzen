@@ -1532,14 +1532,14 @@ export default function ProductDetail() {
           </nav>
 
           {/* ── Product grid: Gallery + Info ── */}
-          <div className="grid lg:grid-cols-[minmax(0,1fr)_520px] xl:grid-cols-[minmax(0,1fr)_560px] gap-8 lg:gap-8 xl:gap-10 items-start">
+          <div className="grid xl:grid-cols-[minmax(0,1fr)_560px] gap-8 xl:gap-10 items-start">
 
             {/* LEFT — Sticky Gallery (only sticky when right column has enough content) */}
             <motion.div
               initial={reduceMotion ? false : { opacity: 0, y: 18 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.5, ease: [0.33, 1, 0.68, 1] }}
-              className={`flex flex-col sm:flex-row sm:gap-4 lg:gap-3${product.description ? ' lg:sticky lg:top-24 lg:self-start' : ''}`}>
+              className={`flex flex-col sm:flex-row sm:gap-4 lg:gap-3 min-w-0 w-full max-w-[680px] mx-auto xl:max-w-none${product.description ? ' xl:sticky xl:top-24 xl:self-start' : ''}`}>
 
               {/* Thumbnail strip (desktop) — sliding-window, ref implementation */}
               {images.length > 1 && (
@@ -1624,7 +1624,7 @@ export default function ProductDetail() {
               <div className="flex-1 min-w-0">
 
                 {/* ── Desktop: orbit animation + hover zoom ── */}
-                <div className="hidden sm:flex h-full sm:aspect-[4/5] lg:aspect-[1/1]">
+                <div className="hidden sm:flex w-full sm:aspect-[4/5] lg:aspect-[1/1]">
                   <div className="product-gallery-orbit rounded-xl w-full h-full">
                     <div
                       ref={heroImageRef}
