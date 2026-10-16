@@ -245,15 +245,15 @@
 html[data-theme="light"] .add-to-cart-solid,
 html[data-theme="light"] .add-to-cart-solid:focus,
 html[data-theme="light"] .add-to-cart-solid:focus-visible {
-  background: #0A0A0A;
+  background: #2e2e2e;
   border-color: #0A0A0A;
   color: #ffffff;
   text-shadow: none;
   box-shadow: 0 4px 14px rgba(0, 0, 0, 0.22);
 }
 html[data-theme="light"] .add-to-cart-solid:hover {
-  background: #1c1c1c;
-  border-color: #1c1c1c;
+  background: #3d3d3d;
+  border-color: #0A0A0A;
   color: #ffffff;
 }
 
