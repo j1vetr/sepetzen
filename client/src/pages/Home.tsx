@@ -842,9 +842,9 @@ function PartnersStrip({ strip }: { strip: PartnerStrip }) {
       {/* Kayan şerit */}
       <div className="relative overflow-hidden pb-10">
         {/* Sol fade */}
-        <div className="pointer-events-none absolute left-0 top-0 bottom-0 w-24 z-10 bg-gradient-to-r from-[#080808] to-transparent" />
+        <div className="pointer-events-none absolute left-0 top-0 bottom-0 w-24 z-10 strip-fade-l" />
         {/* Sağ fade */}
-        <div className="pointer-events-none absolute right-0 top-0 bottom-0 w-24 z-10 bg-gradient-to-l from-[#080808] to-transparent" />
+        <div className="pointer-events-none absolute right-0 top-0 bottom-0 w-24 z-10 strip-fade-r" />
 
         <div
           className="flex items-center gap-12 w-max"

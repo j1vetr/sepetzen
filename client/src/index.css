@@ -887,3 +887,9 @@ html[data-theme="light"] .showcase-marquee {
 }
 html[data-theme="light"] .showcase-marquee .bg-zinc-900 { background-color: #ffffff; }
 html[data-theme="light"] .showcase-marquee .border-white\/\[0\.08\] { border-color: transparent; }
+
+/* Kayan şeritlerin kenar solması: koyu temada siyaha, açık temada beyaza */
+.strip-fade-l { background: linear-gradient(to right, #080808, rgba(8, 8, 8, 0)); }
+.strip-fade-r { background: linear-gradient(to left, #080808, rgba(8, 8, 8, 0)); }
+html[data-theme="light"] .strip-fade-l { background: linear-gradient(to right, #ffffff, rgba(255, 255, 255, 0)); }
+html[data-theme="light"] .strip-fade-r { background: linear-gradient(to left, #ffffff, rgba(255, 255, 255, 0)); }
