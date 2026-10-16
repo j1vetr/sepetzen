@@ -466,8 +466,8 @@ export function Header() {
               // Mega panel açıkken header'dan backdrop-filter kaldırılır: ata elemandaki
               // backdrop-filter, altındaki panelin kendi blur'unu bozar (backdrop root).
               ? 'bg-[#050505]/95 border-b border-transparent shadow-[0_4px_24px_-8px_rgba(0,0,0,0.45)]'
-              : 'surface-glass-dark border-b border-transparent shadow-[0_4px_24px_-8px_rgba(0,0,0,0.45)]'
-            : 'bg-[#0A0A0A] border-b border-white/8'
+              : 'bar-glass border-b border-white/10 shadow-[0_4px_24px_-8px_rgba(0,0,0,0.45)]'
+            : 'bar-glass border-b border-white/10'
         }`}
       >
         <div className="w-full max-w-[1400px] mx-auto px-4 lg:px-8 lg:py-3">

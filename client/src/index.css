@@ -275,6 +275,13 @@
   border-color: rgba(255, 255, 255, 0.12);
 }
 
+/* Üst ve alt çubuklar: arkadan kayan içerik bulanık görünür (cam efekti). Açık temada da aynı. */
+.bar-glass {
+  background: rgba(10, 10, 10, 0.5);
+  -webkit-backdrop-filter: blur(22px) saturate(1.6);
+  backdrop-filter: blur(22px) saturate(1.6);
+}
+
 /* Mobile navigation is intentionally translucent: the page underneath should
    remain softly visible instead of turning into an opaque black sheet. */
 .mobile-drawer-glass {
