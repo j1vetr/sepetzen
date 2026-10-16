@@ -878,3 +878,12 @@ html[data-theme="light"] .description-fade::after {
 }
 .animate-live-pulse { animation: live-pulse 1.8s ease-out infinite; }
 @media (prefers-reduced-motion: reduce) { .animate-live-pulse { animation: none; } }
+
+/* Vitrin şeridi: koyu temada yarı saydam siyah, açık temada beyaz zemin ve ince gri çizgiler */
+.showcase-marquee { background: rgba(0, 0, 0, 0.6); }
+html[data-theme="light"] .showcase-marquee {
+  background: #ffffff;
+  border-color: #e4e4e7;
+}
+html[data-theme="light"] .showcase-marquee .bg-zinc-900 { background-color: #ffffff; }
+html[data-theme="light"] .showcase-marquee .border-white\/\[0\.08\] { border-color: transparent; }

@@ -1062,9 +1062,8 @@ function ShowcaseMarquee({ items }: { items: ShowcaseItem[] }) {
 
   return (
     <section
-      className="overflow-hidden py-5 border-y border-white/[0.06]"
+      className="showcase-marquee overflow-hidden py-5 border-y border-white/[0.06]"
       style={{
-        background: 'rgba(0,0,0,0.6)',
         maskImage: 'linear-gradient(to right, transparent, black 80px, black calc(100% - 80px), transparent)',
         WebkitMaskImage: 'linear-gradient(to right, transparent, black 80px, black calc(100% - 80px), transparent)',
       }}
