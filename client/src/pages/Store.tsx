@@ -324,7 +324,7 @@ export default function Store() {
   ];
 
   const sidebarContent = (
-    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-x-10 gap-y-8 items-start [&>div]:border-0 [&>div]:pb-0 [&>div]:mb-0">
+    <div>
       {/* Kategori */}
       <FilterSection title="Kategori">
         <div className="space-y-0.5">
@@ -421,7 +421,7 @@ export default function Store() {
       {hasActiveFilters && (
         <button
           onClick={clearFilters}
-          className="hidden"
+          className="w-full flex items-center justify-center gap-2 py-2.5 border border-white/25 text-white text-[11px] tracking-[0.14em] uppercase font-semibold hover:bg-white hover:text-black transition-colors rounded-sm mt-2"
           data-testid="button-clear-filters"
         >
           <X className="w-3.5 h-3.5" />
@@ -464,33 +464,81 @@ export default function Store() {
         </div>
       </div>
 
-      {/* Filtre çubuğu */}
-      <div className="border-b border-white/8 sticky top-16 lg:top-0 bg-[#0F0F0F] z-30">
-        <div className="max-w-[1400px] mx-auto px-4 lg:px-6">
-          <div className="flex items-center justify-between h-14 gap-4">
-            <div className="flex items-center gap-3 min-w-0">
-              <button
-                onClick={() => setFilterOpen(v => !v)}
-                className="flex items-center gap-2 text-[11px] tracking-[0.15em] uppercase font-medium text-white shrink-0 hover:text-white/60 transition-colors"
-                data-testid="button-open-filters"
-                aria-expanded={filterOpen}
-              >
-                <SlidersHorizontal className="w-3.5 h-3.5" />
-                Filtrele
-                {activeFilterCount > 0 && (
-                  <span className="w-4 h-4 bg-white text-black text-[9px] font-bold rounded-full flex items-center justify-center">
-                    {activeFilterCount}
-                  </span>
+      <div className="theme-light-zone">
+      <div className="max-w-[1400px] mx-auto px-4 lg:px-6 py-5 lg:py-6">
+        <div className="flex gap-6 lg:gap-8">
+
+          {/* Sol Sidebar — masaüstü */}
+          <aside className="hidden lg:block w-[220px] xl:w-[240px] shrink-0">
+            <div className="keep-dark sticky top-24 bg-[#141414] border border-white/8 rounded-sm p-4">
+              <div className="flex items-center justify-between mb-5">
+                <h3 className="text-[11px] font-bold tracking-[0.20em] uppercase text-white flex items-center gap-2">
+                  <SlidersHorizontal className="w-3.5 h-3.5 text-white" strokeWidth={2} />
+                  Filtrele
+                  {activeFilterCount > 0 && (
+                    <span className="w-4 h-4 bg-white text-black text-[9px] font-bold rounded-full flex items-center justify-center">
+                      {activeFilterCount}
+                    </span>
+                  )}
+                </h3>
+                {hasActiveFilters && (
+                  <button onClick={clearFilters} className="text-[10px] text-white/50 hover:text-white hover:underline font-medium transition-colors">
+                    Temizle
+                  </button>
                 )}
-                <ChevronDown className={`w-3.5 h-3.5 transition-transform duration-200 ${filterOpen ? 'rotate-180' : ''}`} />
-              </button>
-              {hasActiveFilters && (
-                <button onClick={clearFilters} className="text-[10px] tracking-[0.1em] uppercase text-white/40 hover:text-white transition-colors shrink-0 underline underline-offset-2" data-testid="button-bar-clear-filters">
-                  Temizle
-                </button>
-              )}
+              </div>
+              {sidebarContent}
             </div>
-            <div className="flex items-center gap-3 shrink-0">
+          </aside>
+
+          {/* Sağ: araç çubuğu + ızgara */}
+          <div className="flex-1 min-w-0">
+            {/* Araç çubuğu */}
+            <div className="flex items-center justify-between gap-3 mb-5 pb-4 border-b border-white/8">
+              <div className="flex items-center gap-2">
+                {/* Mobil filtre */}
+                <Sheet open={filterOpen} onOpenChange={setFilterOpen}>
+                  <SheetTrigger asChild>
+                    <button
+                      className="lg:hidden inline-flex items-center gap-2 px-3.5 py-2 border border-white/12 text-[11px] tracking-[0.14em] uppercase font-semibold text-white hover:border-white hover:text-white transition-colors rounded-sm"
+                      data-testid="button-mobile-filter"
+                    >
+                      <SlidersHorizontal className="w-3.5 h-3.5" />
+                      Filtrele
+                      {activeFilterCount > 0 && (
+                        <span className="w-4 h-4 bg-white text-black text-[9px] font-bold rounded-full flex items-center justify-center">
+                          {activeFilterCount}
+                        </span>
+                      )}
+                    </button>
+                  </SheetTrigger>
+                  <SheetContent side="left" className="flex h-full w-[300px] flex-col overflow-hidden bg-[#141414] border-r border-white/12 p-5">
+                    <SheetHeader>
+                      <SheetTitle className="text-[13px] font-bold tracking-[0.18em] uppercase text-left text-white flex items-center gap-2">
+                        <SlidersHorizontal className="w-3.5 h-3.5 text-white" strokeWidth={2} />
+                        Filtrele
+                      </SheetTitle>
+                    </SheetHeader>
+                    <div className="mt-6 min-h-0 flex-1 overflow-y-auto overscroll-contain no-scrollbar pb-4">
+                      {sidebarContent}
+                    </div>
+                    <div className="shrink-0 pt-4 mt-2 border-t border-white/10 flex items-center gap-3 pb-[calc(var(--mobile-nav-total,58px)+0.5rem)]">
+                      {hasActiveFilters && (
+                        <button onClick={clearFilters} className="text-[11px] tracking-[0.12em] uppercase text-white/55 hover:text-white underline underline-offset-4 transition-colors" data-testid="button-sheet-clear-filters">
+                          Temizle
+                        </button>
+                      )}
+                      <button
+                        onClick={() => setFilterOpen(false)}
+                        className="flex-1 h-11 bg-white text-black text-[11px] tracking-[0.16em] uppercase font-bold hover:bg-white/90 transition-colors"
+                        data-testid="button-sheet-show-results"
+                      >
+                        {filteredProducts.length} Ürünü Göster
+                      </button>
+                    </div>
+                  </SheetContent>
+                </Sheet>
+
                 {/* Izgara sütun */}
                 <div className="hidden sm:flex items-center gap-0.5 border border-white/12 rounded-sm p-0.5">
                   <button
@@ -510,6 +558,8 @@ export default function Store() {
                     <LayoutGrid className="w-3.5 h-3.5" />
                   </button>
                 </div>
+              </div>
+
               <Select value={sortBy} onValueChange={(v) => setSortBy(v as ProductFilters['sort'])}>
                 <SelectTrigger className="w-[180px] border-white/12 text-white bg-white/5 rounded-sm h-9 text-[12px] tracking-wide focus:ring-white/35" data-testid="select-sort">
                   <SelectValue placeholder="Sırala" />
@@ -523,46 +573,6 @@ export default function Store() {
                 </SelectContent>
               </Select>
             </div>
-          </div>
-        </div>
-      </div>
-
-      {/* Filtre paneli (yukarıdan açılır) */}
-      <AnimatePresence>
-        {filterOpen && (
-          <motion.div
-            initial={{ height: 0, opacity: 0 }}
-            animate={{ height: 'auto', opacity: 1 }}
-            exit={{ height: 0, opacity: 0 }}
-            transition={{ duration: 0.3, ease: [0.33, 1, 0.68, 1] }}
-            className="overflow-hidden border-b border-white/8 bg-[#0F0F0F]"
-            data-testid="store-filter-panel"
-          >
-            <div className="max-h-[calc(100dvh-7rem)] overflow-y-auto overscroll-contain no-scrollbar max-w-[1400px] mx-auto px-4 lg:px-6 py-8 pb-[calc(var(--mobile-nav-total,58px)+2rem)] lg:max-h-none lg:overflow-visible lg:pb-8">
-              {sidebarContent}
-              <div className="mt-8 pt-5 border-t border-white/10 flex items-center justify-between gap-3">
-                {hasActiveFilters ? (
-                  <button onClick={clearFilters} className="text-[11px] tracking-[0.12em] uppercase text-white/55 hover:text-white underline underline-offset-4 transition-colors" data-testid="button-clear-filters">
-                    Filtreleri Temizle
-                  </button>
-                ) : <span />}
-                <button
-                  onClick={() => setFilterOpen(false)}
-                  className="h-11 px-6 bg-white text-black text-[11px] tracking-[0.16em] uppercase font-bold hover:bg-white/90 transition-colors"
-                  data-testid="button-panel-show-results"
-                >
-                  {filteredProducts.length} Ürünü Göster
-                </button>
-              </div>
-            </div>
-          </motion.div>
-        )}
-      </AnimatePresence>
-
-      <div className="theme-light-zone">
-      <div className="max-w-[1400px] mx-auto px-4 lg:px-6 py-5 lg:py-6">
-        <div className="flex gap-6 lg:gap-8">
-          <div className="flex-1 min-w-0">
 
             {/* Aktif filtre chip'leri */}
             {activeChips.length > 0 && (
