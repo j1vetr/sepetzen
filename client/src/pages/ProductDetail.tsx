@@ -660,6 +660,7 @@ function ProductTabs({
 }) {
   const reduceMotion = useReducedMotion();
   const [open, setOpen] = useState<'desc' | 'installments' | 'delivery' | 'faq' | null>(null);
+  const [deskTab, setDeskTab] = useState<'desc' | 'installments' | 'delivery' | 'faq'>('desc');
   const [descriptionExpanded, setDescriptionExpanded] = useState(false);
   const freeShippingThreshold = useFreeShippingThreshold();
   const thresholdText = formatShippingThreshold(freeShippingThreshold);
@@ -681,34 +682,9 @@ function ProductTabs({
     { id: 'faq', label: 'Sık Sorulan Sorular' },
   ] as const;
 
-  return (
-    <div className="mt-8 border-t border-white/8" data-testid="product-info-accordion">
-      {TABS.map((tab) => {
-        const active = tab.id;
-        const isOpen = open === tab.id;
-        return (
-          <div key={tab.id} className="border-b border-white/8">
-            <button
-              type="button"
-              onClick={() => setOpen(isOpen ? null : tab.id)}
-              aria-expanded={isOpen}
-              data-testid={`button-accordion-${tab.id}`}
-              className="w-full flex items-center justify-between gap-4 py-4 text-left text-[12px] font-semibold tracking-[0.16em] uppercase text-white/80 hover:text-white transition-colors"
-            >
-              {tab.label}
-              <ChevronDown className={`w-4 h-4 shrink-0 text-white/50 transition-transform duration-200 ${isOpen ? 'rotate-180' : ''}`} />
-            </button>
-            <AnimatePresence initial={false}>
-              {isOpen && (
-                <motion.div
-                  key="panel"
-                  initial={reduceMotion ? false : { height: 0, opacity: 0 }}
-                  animate={{ height: 'auto', opacity: 1 }}
-                  exit={reduceMotion ? undefined : { height: 0, opacity: 0 }}
-                  transition={{ duration: 0.25, ease: [0.33, 1, 0.68, 1] }}
-                  className="overflow-hidden"
-                >
-                  <div className="pb-6 pt-1">
+  type TabId = (typeof TABS)[number]['id'];
+  const renderPanel = (active: TabId) => (
+    <>
         {/* ── Ürün Açıklaması ── */}
          {active === 'desc' && (
            <div className="max-w-3xl space-y-8">
@@ -799,6 +775,67 @@ function ProductTabs({
             ))}
           </div>
         )}
+    </>
+  );
+
+  return (
+    <div className="mt-8">
+      {/* Geniş ekran: sekmeli görünüm */}
+      <div className="hidden lg:block" data-testid="product-info-tabs">
+        <div role="tablist" className="flex gap-8 border-b border-white/10">
+          {TABS.map((tab) => {
+            const on = deskTab === tab.id;
+            return (
+              <button
+                key={tab.id}
+                type="button"
+                role="tab"
+                aria-selected={on}
+                onClick={() => setDeskTab(tab.id)}
+                data-testid={`button-tab-${tab.id}`}
+                className={`relative -mb-px py-3.5 text-[12px] font-semibold tracking-[0.16em] uppercase transition-colors border-b-2 ${
+                  on ? 'text-white border-white' : 'text-white/50 border-transparent hover:text-white'
+                }`}
+              >
+                {tab.label}
+              </button>
+            );
+          })}
+        </div>
+        <div role="tabpanel" className="pt-6 pb-2">
+          {renderPanel(deskTab)}
+        </div>
+      </div>
+
+    {/* Mobil ve tablet: akordeon */}
+    <div className="lg:hidden border-t border-white/8" data-testid="product-info-accordion">
+      {TABS.map((tab) => {
+        const active = tab.id;
+        const isOpen = open === tab.id;
+        return (
+          <div key={tab.id} className="border-b border-white/8">
+            <button
+              type="button"
+              onClick={() => setOpen(isOpen ? null : tab.id)}
+              aria-expanded={isOpen}
+              data-testid={`button-accordion-${tab.id}`}
+              className="w-full flex items-center justify-between gap-4 py-4 text-left text-[12px] font-semibold tracking-[0.16em] uppercase text-white/80 hover:text-white transition-colors"
+            >
+              {tab.label}
+              <ChevronDown className={`w-4 h-4 shrink-0 text-white/50 transition-transform duration-200 ${isOpen ? 'rotate-180' : ''}`} />
+            </button>
+            <AnimatePresence initial={false}>
+              {isOpen && (
+                <motion.div
+                  key="panel"
+                  initial={reduceMotion ? false : { height: 0, opacity: 0 }}
+                  animate={{ height: 'auto', opacity: 1 }}
+                  exit={reduceMotion ? undefined : { height: 0, opacity: 0 }}
+                  transition={{ duration: 0.25, ease: [0.33, 1, 0.68, 1] }}
+                  className="overflow-hidden"
+                >
+                  <div className="pb-6 pt-1">
+                    {renderPanel(tab.id)}
                   </div>
                 </motion.div>
               )}
@@ -806,6 +843,7 @@ function ProductTabs({
           </div>
         );
       })}
+    </div>
     </div>
   );
 }
