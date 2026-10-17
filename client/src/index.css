@@ -898,3 +898,13 @@ html[data-theme="light"] .strip-fade-r { background: linear-gradient(to left, #f
 html[data-theme="light"] .card-fav-btn { border-color: #000; }
 html[data-theme="light"] .card-fav-btn svg { color: #fff; stroke: #fff; }
 html[data-theme="light"] .card-fav-btn svg.fill-white { fill: #fff; }
+
+/* Hızlı bakış çubuğu: açık temada koyu zemin ve beyaz yazı */
+html[data-theme="light"] .card-quick-view { background: rgba(10, 10, 10, 0.6); color: #fff; }
+html[data-theme="light"] .card-quick-view:hover { background: rgba(10, 10, 10, 0.8); }
+
+/* Açık temada vitrin şeridinin kenarları saydamlaşıp koyu zemini göstermesin */
+html[data-theme="light"] .showcase-marquee {
+  -webkit-mask-image: none !important;
+  mask-image: none !important;
+}
