@@ -573,7 +573,7 @@ function NewArrivals({ products }: { products: Product[] }) {
           </div>
           <Link
             href="/magaza?isNew=1"
-            className="hidden sm:inline-flex items-center gap-2 text-[11px] tracking-[0.22em] uppercase font-semibold text-white/35 hover:text-[#FAFAFA] transition-colors"
+            className="hidden sm:inline-flex items-center gap-2 text-[11px] tracking-[0.22em] uppercase font-semibold text-white/35 hover:text-white transition-colors"
           >
             Hepsini Gör <ArrowUpRight className="w-3.5 h-3.5" />
           </Link>
@@ -630,7 +630,7 @@ function NewArrivals({ products }: { products: Product[] }) {
                   {/* Info */}
                   <div>
                     <p className="text-[11px] tracking-[0.06em] text-white/50 font-mono mb-0.5">Sepetzen</p>
-                    <p className="text-[13px] lg:text-[14px] font-semibold text-white leading-snug line-clamp-2 mb-1.5 group-hover:text-[#FAFAFA] transition-colors">
+                    <p className="text-[13px] lg:text-[14px] font-semibold text-white leading-snug line-clamp-2 mb-1.5 group-hover:text-white transition-colors">
                       {p.name}
                     </p>
                     <p className="text-[15px] font-bold text-[#FAFAFA]">
@@ -716,7 +716,7 @@ function VideoSection({ content }: { content: HomepageContent }) {
           </div>
           <Link
             href="/magaza"
-            className="inline-flex items-center gap-2 shrink-0 text-[11px] tracking-[0.22em] uppercase font-semibold text-white border border-white/20 hover:border-[#FAFAFA] hover:text-[#FAFAFA] transition-colors px-5 py-3"
+            className="inline-flex items-center gap-2 shrink-0 text-[11px] tracking-[0.22em] uppercase font-semibold text-white border border-white/20 hover:border-white hover:text-white transition-colors px-5 py-3"
           >
             Ürünleri İncele <ArrowUpRight className="w-3.5 h-3.5" />
           </Link>
@@ -997,7 +997,7 @@ function MobileMarquee({ products }: { products: Product[] }) {
             <Link
               key={`${p.id}-${i}`}
               href={`/urun/${p.slug}`}
-              className="group shrink-0 w-32 flex flex-col bg-white/[0.06] border border-white/[0.08] overflow-hidden hover:border-[#FAFAFA]/50 transition-colors"
+              className="group shrink-0 w-32 flex flex-col bg-white/[0.06] border border-white/[0.08] overflow-hidden hover:border-white/50 transition-colors"
               data-testid={`link-marquee-product-${p.id}`}
             >
               <div className="relative w-32 h-40 bg-black/20 shrink-0">

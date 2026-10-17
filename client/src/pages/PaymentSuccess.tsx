@@ -351,7 +351,7 @@ export default function PaymentSuccess() {
             <div className="flex flex-col sm:flex-row gap-2.5">
               <a
                 href="tel:+905366301138"
-                className="flex-1 inline-flex items-center justify-center gap-2 h-11 border border-white/20 hover:border-[#FAFAFA] hover:text-[#FAFAFA] transition-colors text-sm font-semibold rounded-md"
+                className="flex-1 inline-flex items-center justify-center gap-2 h-11 border border-white/20 hover:border-white hover:text-white transition-colors text-sm font-semibold rounded-md"
                 data-testid="link-help-phone"
               >
                 <Phone className="w-3.5 h-3.5" strokeWidth={2} />
