@@ -112,6 +112,7 @@ import { ProductCard } from '@/components/ProductCard';
 import { FreeShippingBadge } from '@/components/FreeShippingBadge';
 import { isFreeShippingPromotion } from '@/lib/promotionBadge';
 import { isDiscountBadgeActive } from '@/lib/discountBadgeActive';
+import { DiscountCountdown } from '@/components/DiscountCountdown';
 import { useFreeShippingThreshold } from '@/hooks/useShippingSettings';
 import { formatShippingThreshold } from '@shared/shipping';
 
@@ -658,7 +659,7 @@ function ProductTabs({
   tabInstallmentNote?: string | null;
 }) {
   const reduceMotion = useReducedMotion();
-  const [active, setActive] = useState<'desc' | 'installments' | 'delivery' | 'faq'>('desc');
+  const [open, setOpen] = useState<'desc' | 'installments' | 'delivery' | 'faq' | null>(null);
   const [descriptionExpanded, setDescriptionExpanded] = useState(false);
   const freeShippingThreshold = useFreeShippingThreshold();
   const thresholdText = formatShippingThreshold(freeShippingThreshold);
@@ -681,40 +682,33 @@ function ProductTabs({
   ] as const;
 
   return (
-    <div className="mt-8 border-t border-white/8">
-      {/* Tab bar */}
-      <div className="flex border-b border-white/8 overflow-x-auto [&::-webkit-scrollbar]:hidden" style={{ scrollbarWidth: 'none' }}>
-        {TABS.map((tab) => (
-          <button
-            key={tab.id}
-            type="button"
-            onClick={() => setActive(tab.id)}
-            className={`relative px-4 lg:px-6 py-3.5 text-[11px] font-semibold tracking-[0.16em] uppercase whitespace-nowrap -mb-px transition-colors ${
-              active === tab.id ? 'text-white' : 'text-white/50 hover:text-white/80'
-            }`}
-          >
-            {tab.label}
-            {active === tab.id && (
-                 <motion.span
-                layoutId="product-tab-underline"
-                transition={reduceMotion ? { duration: 0 } : { type: 'spring', stiffness: 420, damping: 38 }}
-                 className="absolute left-0 right-0 bottom-0 h-[2px] bg-white"
-              />
-            )}
-          </button>
-        ))}
-      </div>
-
-      {/* Tab content */}
-      <div className="py-8">
-        <AnimatePresence mode="wait" initial={false}>
-        <motion.div
-          key={active}
-          initial={reduceMotion ? false : { opacity: 0, y: 10 }}
-          animate={{ opacity: 1, y: 0 }}
-          exit={reduceMotion ? undefined : { opacity: 0, y: -6 }}
-          transition={{ duration: 0.22, ease: [0.33, 1, 0.68, 1] }}
-        >
+    <div className="mt-8 border-t border-white/8" data-testid="product-info-accordion">
+      {TABS.map((tab) => {
+        const active = tab.id;
+        const isOpen = open === tab.id;
+        return (
+          <div key={tab.id} className="border-b border-white/8">
+            <button
+              type="button"
+              onClick={() => setOpen(isOpen ? null : tab.id)}
+              aria-expanded={isOpen}
+              data-testid={`button-accordion-${tab.id}`}
+              className="w-full flex items-center justify-between gap-4 py-4 text-left text-[12px] font-semibold tracking-[0.16em] uppercase text-white/80 hover:text-white transition-colors"
+            >
+              {tab.label}
+              <ChevronDown className={`w-4 h-4 shrink-0 text-white/50 transition-transform duration-200 ${isOpen ? 'rotate-180' : ''}`} />
+            </button>
+            <AnimatePresence initial={false}>
+              {isOpen && (
+                <motion.div
+                  key="panel"
+                  initial={reduceMotion ? false : { height: 0, opacity: 0 }}
+                  animate={{ height: 'auto', opacity: 1 }}
+                  exit={reduceMotion ? undefined : { height: 0, opacity: 0 }}
+                  transition={{ duration: 0.25, ease: [0.33, 1, 0.68, 1] }}
+                  className="overflow-hidden"
+                >
+                  <div className="pb-6 pt-1">
         {/* ── Ürün Açıklaması ── */}
          {active === 'desc' && (
            <div className="max-w-3xl space-y-8">
@@ -805,9 +799,13 @@ function ProductTabs({
             ))}
           </div>
         )}
-        </motion.div>
-        </AnimatePresence>
-      </div>
+                  </div>
+                </motion.div>
+              )}
+            </AnimatePresence>
+          </div>
+        );
+      })}
     </div>
   );
 }
@@ -1799,6 +1797,9 @@ export default function ProductDetail() {
                         {visibleDiscountBadge && (
                           <span className="storefront-new-badge">{visibleDiscountBadge}</span>
                         )}
+                        {visibleDiscountBadge && (
+                          <DiscountCountdown endDate={(product as any).discountBadgeEndDate} testId="countdown-discount-desktop" />
+                        )}
                         {product.isNew && (
                           <span className="storefront-new-badge">Yeni</span>
                         )}
@@ -1877,6 +1878,9 @@ export default function ProductDetail() {
                           <span className="storefront-new-badge">
                             {visibleDiscountBadge}
                           </span>
+                        )}
+                        {visibleDiscountBadge && (
+                          <DiscountCountdown endDate={(product as any).discountBadgeEndDate} testId="countdown-discount-mobile" />
                         )}
                         {product.isNew && (
                           <span className="storefront-new-badge">Yeni</span>
@@ -2015,11 +2019,11 @@ export default function ProductDetail() {
 
                {/* Sepetzen maker mark — the product has a maker, not a generic marketplace */}
                 <div className="mb-7 flex items-center gap-4 border-b border-white/8 pb-5 lg:mb-3 lg:gap-3 lg:pb-3">
-                  <div className="flex h-12 w-12 lg:h-9 lg:w-9 shrink-0 items-center justify-center bg-[#1A1A1A] border border-white/10 p-1">
+                  <div className="flex h-12 w-12 lg:h-9 lg:w-9 shrink-0 items-center justify-center bg-transparent border border-white/10 rounded-[30px] overflow-hidden p-1">
                    <img
                      src="/favicon.png"
                      alt="Sepetzen"
-                     className="w-full h-full object-cover"
+                     className="w-full h-full object-cover rounded-[30px]"
                    />
                  </div>
                  <div>
@@ -2037,10 +2041,12 @@ export default function ProductDetail() {
                {/* Category + Brand */}
                <div className="flex items-center justify-between gap-4 pb-3 mb-4 lg:pb-2 lg:mb-2 border-b border-white/8">
                 {category ? (
-                  <Link href={`/kategori/${category.slug}`}>
-                    <span className="inline-block text-[10px] text-white uppercase tracking-[0.3em] hover:underline font-mono">
-                      {category.name}
-                    </span>
+                  <Link
+                    href={`/kategori/${category.slug}`}
+                    className="text-[11px] text-white/45 shrink-0 hover:text-white/70 transition-colors"
+                    data-testid="text-product-category"
+                  >
+                    Kategori: <span className="text-white font-semibold hover:underline">{category.name}</span>
                   </Link>
                 ) : <span />}
                 <Link
@@ -2782,7 +2788,7 @@ export default function ProductDetail() {
                 disabled={isAdding || isOutOfStock || selectedUnavailable}
                 whileTap={reduceMotion || isOutOfStock || selectedUnavailable ? undefined : { scale: 0.96 }}
                 className={`h-11 px-6 lg:px-8 font-semibold text-[13px] uppercase tracking-[0.18em] flex items-center justify-center gap-2 rounded-lg shrink-0 ${
-                  isOutOfStock || selectedUnavailable ? 'bg-[#141414]/10 text-white/35 cursor-not-allowed border border-white/10' : 'all-cats-gold add-to-cart-solid cursor-pointer'
+                  isOutOfStock || selectedUnavailable ? 'bg-[#141414]/10 text-white/35 cursor-not-allowed border border-white/10' : 'all-cats-gold cursor-pointer'
                 }`}
                 data-testid="button-add-to-cart-sticky"
               >

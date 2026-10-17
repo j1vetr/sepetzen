@@ -18,6 +18,7 @@ import { getOriginalPrice, normalizeBadge } from '@/lib/discountPrice';
 import { useFreeShippingThreshold } from '@/hooks/useShippingSettings';
 import { isFreeShippingPromotion } from '@/lib/promotionBadge';
 import { isDiscountBadgeActive } from '@/lib/discountBadgeActive';
+import { DiscountCountdown } from '@/components/DiscountCountdown';
 
 interface ProductVariant {
   id: string;
@@ -308,6 +309,9 @@ export const ProductCard = memo(function ProductCard({ product }: ProductCardPro
                   >
                     {visibleDiscountBadge}
                   </span>
+                )}
+                {visibleDiscountBadge && (
+                  <DiscountCountdown endDate={product.discountBadgeEndDate} className="storefront-new-badge--compact" testId={`countdown-discount-${product.id}`} />
                 )}
                 {product.isNew && (
                   <span className="storefront-new-badge" data-testid={`badge-new-${product.id}`}>

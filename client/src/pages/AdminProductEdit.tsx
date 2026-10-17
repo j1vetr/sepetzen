@@ -207,6 +207,9 @@ const HARDCODED_SPEC_KEYS = new Set([
   'etKalinligi', 'agirlik', 'celikCinsi', 'sapCinsi',
 ]);
 
+// Eski kayıtlar sadece tarih içerir, datetime-local alanı için saat ekle
+const toLocalInput = (v: string | null | undefined, time: string) => (!v ? '' : v.includes('T') ? v : `${v}T${time}`);
+
 export default function AdminProductEdit() {
   const params = useParams<{ id?: string }>();
   const search = useSearch();
@@ -438,8 +441,8 @@ function ProductEditor({
         ? String((product as any).personalization.maxChars)
         : '',
       discountBadge: (product as any)?.discountBadge || '',
-      discountBadgeStartDate: (product as any)?.discountBadgeStartDate || '',
-      discountBadgeEndDate: (product as any)?.discountBadgeEndDate || '',
+      discountBadgeStartDate: toLocalInput((product as any)?.discountBadgeStartDate, '00:00'),
+      discountBadgeEndDate: toLocalInput((product as any)?.discountBadgeEndDate, '23:59'),
     });
     setColorRows(
       (product?.availableColors || []).map((c, i) => ({
@@ -1808,17 +1811,17 @@ function ProductEditor({
               </FormField>
               {formData.discountBadge && (
                 <div className="grid grid-cols-2 gap-3">
-                  <FormField label="Başlangıç Tarihi" hint="Boş = hemen başlar">
+                  <FormField label="Başlangıç Zamanı" hint="Boş = hemen başlar">
                     <TextInput
-                      type="date"
+                      type="datetime-local"
                       value={formData.discountBadgeStartDate}
                       onChange={(e) => setFormData({ ...formData, discountBadgeStartDate: e.target.value })}
                       data-testid="input-discount-badge-start"
                     />
                   </FormField>
-                  <FormField label="Bitiş Tarihi" hint="Boş = süresiz">
+                  <FormField label="Bitiş Zamanı" hint="Boş = süresiz. Doluysa tüm listelerde geri sayım görünür.">
                     <TextInput
-                      type="date"
+                      type="datetime-local"
                       value={formData.discountBadgeEndDate}
                       onChange={(e) => setFormData({ ...formData, discountBadgeEndDate: e.target.value })}
                       data-testid="input-discount-badge-end"

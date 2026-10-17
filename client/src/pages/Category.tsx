@@ -14,6 +14,7 @@ import { sanitizeAdminHtml } from '@/lib/sanitizeHtml';
 import { useInfiniteList } from '@/hooks/useInfiniteList';
 import { SubcategoryStrip } from '@/components/SubcategoryStrip';
 import { PriceRangeFilter } from '@/components/PriceRangeFilter';
+import { FilterDrawer } from '@/components/FilterDrawer';
 import {
   Select,
   SelectContent,
@@ -101,7 +102,7 @@ function MultiCheckList({ options, selected, onToggle, counts }: {
   options: string[]; selected: string[]; onToggle: (val: string) => void; counts?: Record<string, number>;
 }) {
   return (
-    <div className="max-h-[232px] overflow-y-auto overscroll-contain no-scrollbar space-y-0.5">
+    <div className="space-y-0.5">
       {options.map(opt => (
         <CheckItem key={opt} label={opt} checked={selected.includes(opt)} onChange={() => onToggle(opt)} count={counts?.[opt]} />
       ))}
@@ -331,18 +332,10 @@ export default function Category() {
       <div className="overflow-x-hidden">
 
       {/* ─── CATEGORY HERO ─── */}
-      <section className="relative overflow-hidden bg-black" style={{ height: '18vh', minHeight: 140, maxHeight: 200 }}>
-        <motion.div initial={{ scale: 1.06 }} animate={{ scale: 1 }} transition={{ duration: 1.2, ease: [0.16, 1, 0.3, 1] }} className="absolute inset-0">
-          {category?.image && (
-            <img src={category.image} alt={category.name || 'Kategori'} className="w-full h-full object-cover opacity-45"
-              loading="eager" fetchPriority="high" decoding="async" data-testid="img-category-hero" />
-          )}
-        </motion.div>
-        <div className="absolute inset-0 bg-gradient-to-t from-black via-black/45 to-transparent" />
-        <div className="absolute inset-0 flex flex-col justify-end">
-          <div className="max-w-[1400px] mx-auto px-5 lg:px-8 pb-4 lg:pb-5 w-full">
+      <section className="bg-[#0F0F0F] border-b border-white/8 pt-4 pb-3">
+        <div className="max-w-[1400px] mx-auto px-5 lg:px-8 w-full">
             <motion.nav initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.15 }}
-              className="flex items-center gap-2 text-[10px] text-white/45 tracking-wider uppercase mb-1.5" data-testid="breadcrumb">
+              className="flex items-center gap-2 text-[10px] text-white/45 tracking-wider uppercase mb-2" data-testid="breadcrumb">
               <Link href="/"><span className="hover:text-white transition-colors">Ana Sayfa</span></Link>
               <ChevronRight className="w-3 h-3" />
               {ancestorCategories.map((a, i) => (
@@ -365,7 +358,6 @@ export default function Category() {
                 {filteredProducts.length} ürün
               </motion.p>
             </div>
-          </div>
         </div>
       </section>
 
@@ -422,71 +414,66 @@ export default function Category() {
         </div>
       </div>
 
-      {/* ─── FILTER PANEL (slide down) ─── */}
-      <AnimatePresence>
-        {filterOpen && (
-          <motion.div
-            initial={{ height: 0, opacity: 0 }}
-            animate={{ height: 'auto', opacity: 1 }}
-            exit={{ height: 0, opacity: 0 }}
-            transition={{ duration: 0.3, ease: [0.33, 1, 0.68, 1] }}
-            className="category-filter-panel overflow-hidden border-b border-white/8 bg-[#0F0F0F]"
-            data-testid="category-filter-panel"
-          >
-            <div className="max-h-[calc(100dvh-7rem)] overflow-y-auto overscroll-contain no-scrollbar touch-pan-y max-w-[1400px] mx-auto px-5 lg:px-8 py-8 pb-[calc(var(--mobile-nav-total,58px)+2rem)] lg:max-h-none lg:overflow-visible lg:pb-8">
-              <div className={`grid grid-cols-1 ${panelCols} gap-x-10 gap-y-8`}>
-
-                {/* Fiyat Aralığı */}
-                <FilterGroup title="Fiyat Aralığı">
-                  <PriceRangeFilter value={priceRange} onChange={(range: [number, number]) => handlePriceChange(range)} />
-                </FilterGroup>
-
-                {/* Durum */}
-                <FilterGroup title="Durum">
-                  <div className="space-y-0.5">
-                    <CheckItem label="Yeni Gelenler" checked={showOnlyNew} onChange={handleToggleNew} />
-                    <CheckItem label="İndirimli" checked={showOnlyDiscounted} onChange={handleToggleDiscounted} />
-                  </div>
-                </FilterGroup>
-
-                {/* Marka */}
-                {brandOptions.length >= 2 && (
-                  <FilterGroup title="Marka" defaultOpen={selectedBrands.length > 0}>
-                    <MultiCheckList options={brandOptions} selected={selectedBrands} onToggle={toggleBrand} counts={brandCounts} />
-                  </FilterGroup>
-                )}
-
-                {/* Dinamik spec filtreleri */}
-                {filterAttributes.map(attr => {
-                  const options = specFilterOptions[attr.key] ?? [];
-                  const selected = selectedSpecFilters[attr.key] ?? [];
-                  if (options.length < 2) return null;
-                  return (
-                    <FilterGroup key={attr.key} title={attr.label} defaultOpen={selected.length > 0}>
-                      <MultiCheckList options={options} selected={selected} onToggle={(val) => toggleSpec(attr.key, val)} />
-                    </FilterGroup>
-                  );
-                })}
+      {/* ─── FILTRE PANELİ (sağdan açılır) ─── */}
+      <FilterDrawer
+        open={filterOpen}
+        onOpenChange={setFilterOpen}
+        hasActive={hasActiveFilters}
+        onClear={clearFilters}
+        resultCount={filteredProducts.length}
+        groups={[
+          {
+            id: 'sort',
+            label: 'Sıralama',
+            content: (
+              <div className="space-y-0.5">
+                {sortOptions.map(o => (
+                  <CheckItem key={o.value} label={o.label} checked={sortBy === o.value} onChange={() => handleSortChange(o.value)} />
+                ))}
               </div>
-
-              <div className="mt-8 pt-5 border-t border-white/10 flex items-center justify-between gap-3">
-                {hasActiveFilters ? (
-                  <button onClick={clearFilters} className="text-[11px] tracking-[0.12em] uppercase text-white/55 hover:text-white underline underline-offset-4 transition-colors" data-testid="button-panel-clear-filters">
-                    Filtreleri Temizle
-                  </button>
-                ) : <span />}
-                <button
-                  onClick={() => setFilterOpen(false)}
-                  className="h-11 px-6 bg-white text-black text-[11px] tracking-[0.16em] uppercase font-bold hover:bg-white/90 transition-colors"
-                  data-testid="button-panel-show-results"
-                >
-                  {filteredProducts.length} Ürünü Göster
-                </button>
+            ),
+          },
+          {
+            id: 'status',
+            label: 'Durum',
+            badge: (showOnlyNew ? 1 : 0) + (showOnlyDiscounted ? 1 : 0),
+            content: (
+              <div className="space-y-0.5">
+                <CheckItem label="Yeni Gelenler" checked={showOnlyNew} onChange={handleToggleNew} />
+                <CheckItem label="İndirimli" checked={showOnlyDiscounted} onChange={handleToggleDiscounted} />
               </div>
-            </div>
-          </motion.div>
-        )}
-      </AnimatePresence>
+            ),
+          },
+          {
+            id: 'price',
+            label: 'Fiyat',
+            badge: priceActive ? 1 : 0,
+            content: <PriceRangeFilter value={priceRange} onChange={(range: [number, number]) => handlePriceChange(range)} />,
+          },
+          ...(brandOptions.length >= 2
+            ? [{
+                id: 'brand',
+                label: 'Marka',
+                badge: selectedBrands.length,
+                content: <MultiCheckList options={brandOptions} selected={selectedBrands} onToggle={toggleBrand} counts={brandCounts} />,
+              }]
+            : []),
+          ...filterAttributes
+            .filter(attr => (specFilterOptions[attr.key] ?? []).length >= 2)
+            .map(attr => ({
+              id: `spec-${attr.key}`,
+              label: attr.label,
+              badge: (selectedSpecFilters[attr.key] ?? []).length,
+              content: (
+                <MultiCheckList
+                  options={specFilterOptions[attr.key] ?? []}
+                  selected={selectedSpecFilters[attr.key] ?? []}
+                  onToggle={(val) => toggleSpec(attr.key, val)}
+                />
+              ),
+            })),
+        ]}
+      />
 
       <div className="theme-light-zone">
       {/* ─── ALT KATEGORİLER ─── */}

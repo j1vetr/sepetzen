@@ -9,7 +9,7 @@ export function LiveStreamBanner() {
   return (
     <Link
       href="/canli"
-      className="block bg-red-600 hover:bg-red-500 transition-colors text-white"
+      className="block bg-red-950/55 hover:bg-red-950/70 backdrop-blur-xl border-b border-red-500/25 transition-colors text-white"
       data-testid="banner-live-stream"
     >
       <div className="max-w-[1400px] mx-auto px-4 lg:px-8 py-3.5 flex items-center justify-between gap-4">

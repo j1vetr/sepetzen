@@ -12,6 +12,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { useProducts, useCategories, useFilterAttributes, type ProductFilters } from '@/hooks/useProducts';
 import { useInfiniteList } from '@/hooks/useInfiniteList';
 import { PriceRangeFilter } from '@/components/PriceRangeFilter';
+import { FilterDrawer, type FilterDrawerGroup } from '@/components/FilterDrawer';
 import { useFreeShippingThreshold } from '@/hooks/useShippingSettings';
 import {
   Select,
@@ -380,55 +381,31 @@ export default function Store() {
     ),
   ];
 
-  const sidebarContent = (
-    <div>
-      {/* Hızlı filtreler */}
-      <div className="flex flex-wrap gap-1.5 mb-5">
-        {[
-          { label: 'Ücretsiz Kargo', value: 'free-shipping' },
-          { label: 'İndirimli', value: 'discounted' },
-          { label: 'Yeni', value: 'new' },
-        ].map(opt => {
-          const on = statusFilters.includes(opt.value);
-          return (
-            <button
-              key={opt.value}
-              type="button"
-              onClick={() => toggleStatusFilter(opt.value)}
-              aria-pressed={on}
-              className={`px-3 py-1.5 rounded-full text-[11.5px] font-semibold border transition-colors ${
-                on ? 'bg-white text-black border-white' : 'border-white/20 text-white/70 hover:border-white/50 hover:text-white'
-              }`}
-              data-testid={`quick-status-${opt.value}`}
-            >
-              {opt.label}
-            </button>
-          );
-        })}
-      </div>
-
-      {/* Seçilen filtreler */}
-      {activeChips.filter(c => !c.isLink && !c.key.startsWith('status-')).length > 0 && (
-        <div className="mb-5 pb-5 border-b border-white/8">
-          <div className="flex flex-wrap gap-1.5">
-            {activeChips.filter(c => !c.isLink && !c.key.startsWith('status-')).map(chip => (
-              <button
-                key={chip.key}
-                type="button"
-                onClick={chip.onRemove}
-                className="inline-flex items-center gap-1.5 bg-white/10 hover:bg-white/15 text-white text-[11.5px] font-medium pl-2.5 pr-2 py-1 rounded-full transition-colors"
-                aria-label={`${chip.label} filtresini kaldır`}
-              >
-                {chip.label}<X className="w-3 h-3" />
-              </button>
-            ))}
-          </div>
+  const drawerGroups: FilterDrawerGroup[] = [
+    {
+      id: 'sort',
+      label: 'Sıralama',
+      content: (
+        <div className="space-y-0.5">
+          {sortOptions.map(o => (
+            <CheckItem
+              key={o.value}
+              label={o.label}
+              checked={sortBy === o.value}
+              onChange={() => setSortBy(o.value as ProductFilters['sort'])}
+              testId={`drawer-sort-${o.value}`}
+            />
+          ))}
         </div>
-      )}
-
-      {/* Kategori */}
-      <FilterSection title="Kategori">
-        <div className="max-h-[232px] overflow-y-auto overscroll-contain no-scrollbar space-y-0.5">
+      ),
+    },
+    {
+      id: 'category',
+      label: 'Kategori',
+      badge: selectedCategory ? 1 : 0,
+      content: (
+        <div>
+        <div className="space-y-0.5">
           <button
             onClick={() => setSelectedCategory(undefined)}
             className={`group flex items-center justify-between w-full px-2.5 py-2 text-[13px] transition-all rounded-sm ${
@@ -470,10 +447,37 @@ export default function Store() {
             );
           })}
         </div>
-      </FilterSection>
-
-      {/* Fiyat Aralığı */}
-      <FilterSection title="Fiyat Aralığı">
+      </div>
+      ),
+    },
+    {
+      id: 'status',
+      label: 'Durum',
+      badge: statusFilters.length,
+      content: (
+        <div className="space-y-0.5">
+          {[
+            { label: 'Ücretsiz Kargo', value: 'free-shipping' },
+            { label: 'İndirimli', value: 'discounted' },
+            { label: 'Yeni', value: 'new' },
+          ].map(opt => (
+            <CheckItem
+              key={opt.value}
+              label={opt.label}
+              checked={statusFilters.includes(opt.value)}
+              onChange={() => toggleStatusFilter(opt.value)}
+              testId={`quick-status-${opt.value}`}
+            />
+          ))}
+        </div>
+      ),
+    },
+    {
+      id: 'price',
+      label: 'Fiyat',
+      badge: priceRange[0] > 0 || priceRange[1] < 10000 ? 1 : 0,
+      content: (
+        <div>
         <PriceRangeFilter value={priceRange} onChange={setPriceRange} className="px-1" />
         <div className="mt-4 space-y-0.5">
           {PRICE_PRESETS.map(p => {
@@ -491,50 +495,41 @@ export default function Store() {
             );
           })}
         </div>
-      </FilterSection>
-
-      {/* Marka */}
-      {brandOptions.length >= 2 && (
-        <FilterSection title="Marka">
-          <MultiCheckList
-            options={brandOptions}
-            selected={selectedBrands}
-            onToggle={toggleBrand}
-            counts={brandCounts}
-            testIdPrefix="filter-brand"
-          />
-        </FilterSection>
-      )}
-
-      {/* Dinamik spec filtreleri — admin panelinden yapılandırılır */}
-      {filterAttributes.map(attr => {
-        const options = specFilterOptions[attr.key] ?? [];
-        const selected = selectedSpecFilters[attr.key] ?? [];
-        if (options.length < 2) return null;
-        return (
-          <FilterSection key={attr.key} title={attr.label} defaultOpen={selected.length > 0}>
+      </div>
+      ),
+    },
+    ...(brandOptions.length >= 2
+      ? [{
+          id: 'brand',
+          label: 'Marka',
+          badge: selectedBrands.length,
+          content: (
             <MultiCheckList
-              options={options}
-              selected={selected}
-              onToggle={(val) => toggleSpec(attr.key, val)}
-              testIdPrefix={`filter-spec-${attr.key}`}
+              options={brandOptions}
+              selected={selectedBrands}
+              onToggle={toggleBrand}
+              counts={brandCounts}
+              testIdPrefix="filter-brand"
             />
-          </FilterSection>
-        );
-      })}
-
-      {hasActiveFilters && (
-        <button
-          onClick={clearFilters}
-          className="w-full flex items-center justify-center gap-2 py-2.5 border border-white/25 text-white text-[11px] tracking-[0.14em] uppercase font-semibold hover:bg-white hover:text-black transition-colors rounded-sm mt-2"
-          data-testid="button-clear-filters"
-        >
-          <X className="w-3.5 h-3.5" />
-          Filtreleri Temizle
-        </button>
-      )}
-    </div>
-  );
+          ),
+        }]
+      : []),
+    ...filterAttributes
+      .filter(attr => (specFilterOptions[attr.key] ?? []).length >= 2)
+      .map(attr => ({
+        id: `spec-${attr.key}`,
+        label: attr.label,
+        badge: (selectedSpecFilters[attr.key] ?? []).length,
+        content: (
+          <MultiCheckList
+            options={specFilterOptions[attr.key] ?? []}
+            selected={selectedSpecFilters[attr.key] ?? []}
+            onToggle={(val) => toggleSpec(attr.key, val)}
+            testIdPrefix={`filter-spec-${attr.key}`}
+          />
+        ),
+      })),
+  ];
 
   return (
     <div className="min-h-screen bg-[#0A0A0A]">
@@ -573,76 +568,33 @@ export default function Store() {
       <div className="max-w-[1400px] mx-auto px-4 lg:px-6 py-5 lg:py-6">
         <div className="flex gap-6 lg:gap-8">
 
-          {/* Sol Sidebar — masaüstü */}
-          <aside className="hidden lg:block w-[220px] xl:w-[240px] shrink-0">
-            <div className="keep-dark sticky top-24 max-h-[calc(100vh-7rem)] overflow-y-auto overscroll-contain no-scrollbar bg-[#141414] border border-white/8 rounded-sm p-4">
-              <div className="flex items-center justify-between mb-5">
-                <h3 className="text-[11px] font-bold tracking-[0.20em] uppercase text-white flex items-center gap-2">
-                  <SlidersHorizontal className="w-3.5 h-3.5 text-white" strokeWidth={2} />
+          {/* Sağ: araç çubuğu + ızgara */}
+          <div className="flex-1 min-w-0">
+            {/* Araç çubuğu */}
+            <div className="flex items-center justify-between gap-3 mb-5 pb-4 border-b border-white/8">
+              <div className="flex items-center gap-2">
+                {/* Filtre paneli */}
+                <button
+                  onClick={() => setFilterOpen(true)}
+                  className="inline-flex items-center gap-2 px-3.5 py-2 border border-white/12 text-[11px] tracking-[0.14em] uppercase font-semibold text-white hover:border-white hover:text-white transition-colors rounded-sm"
+                  data-testid="button-mobile-filter"
+                >
+                  <SlidersHorizontal className="w-3.5 h-3.5" />
                   Filtrele
                   {activeFilterCount > 0 && (
                     <span className="w-4 h-4 bg-white text-black text-[9px] font-bold rounded-full flex items-center justify-center">
                       {activeFilterCount}
                     </span>
                   )}
-                </h3>
-                {hasActiveFilters && (
-                  <button onClick={clearFilters} className="text-[10px] text-white/50 hover:text-white hover:underline font-medium transition-colors">
-                    Temizle
-                  </button>
-                )}
-              </div>
-              {sidebarContent}
-            </div>
-          </aside>
-
-          {/* Sağ: araç çubuğu + ızgara */}
-          <div className="flex-1 min-w-0">
-            {/* Araç çubuğu */}
-            <div className="flex items-center justify-between gap-3 mb-5 pb-4 border-b border-white/8">
-              <div className="flex items-center gap-2">
-                {/* Mobil filtre */}
-                <Sheet open={filterOpen} onOpenChange={setFilterOpen}>
-                  <SheetTrigger asChild>
-                    <button
-                      className="lg:hidden inline-flex items-center gap-2 px-3.5 py-2 border border-white/12 text-[11px] tracking-[0.14em] uppercase font-semibold text-white hover:border-white hover:text-white transition-colors rounded-sm"
-                      data-testid="button-mobile-filter"
-                    >
-                      <SlidersHorizontal className="w-3.5 h-3.5" />
-                      Filtrele
-                      {activeFilterCount > 0 && (
-                        <span className="w-4 h-4 bg-white text-black text-[9px] font-bold rounded-full flex items-center justify-center">
-                          {activeFilterCount}
-                        </span>
-                      )}
-                    </button>
-                  </SheetTrigger>
-                  <SheetContent side="left" className="flex h-full w-[300px] flex-col overflow-hidden bg-[#141414] border-r border-white/12 p-5">
-                    <SheetHeader>
-                      <SheetTitle className="text-[13px] font-bold tracking-[0.18em] uppercase text-left text-white flex items-center gap-2">
-                        <SlidersHorizontal className="w-3.5 h-3.5 text-white" strokeWidth={2} />
-                        Filtrele
-                      </SheetTitle>
-                    </SheetHeader>
-                    <div className="mt-6 min-h-0 flex-1 overflow-y-auto overscroll-contain no-scrollbar pb-4">
-                      {sidebarContent}
-                    </div>
-                    <div className="shrink-0 pt-4 mt-2 border-t border-white/10 flex items-center gap-3 pb-[calc(var(--mobile-nav-total,58px)+0.5rem)]">
-                      {hasActiveFilters && (
-                        <button onClick={clearFilters} className="text-[11px] tracking-[0.12em] uppercase text-white/55 hover:text-white underline underline-offset-4 transition-colors" data-testid="button-sheet-clear-filters">
-                          Temizle
-                        </button>
-                      )}
-                      <button
-                        onClick={() => setFilterOpen(false)}
-                        className="flex-1 h-11 bg-white text-black text-[11px] tracking-[0.16em] uppercase font-bold hover:bg-white/90 transition-colors"
-                        data-testid="button-sheet-show-results"
-                      >
-                        {filteredProducts.length} Ürünü Göster
-                      </button>
-                    </div>
-                  </SheetContent>
-                </Sheet>
+                </button>
+                <FilterDrawer
+                  open={filterOpen}
+                  onOpenChange={setFilterOpen}
+                  groups={drawerGroups}
+                  hasActive={hasActiveFilters}
+                  onClear={clearFilters}
+                  resultCount={filteredProducts.length}
+                />
 
                 {/* Izgara sütun */}
                 <div className="hidden sm:flex items-center gap-0.5 border border-white/12 rounded-sm p-0.5">

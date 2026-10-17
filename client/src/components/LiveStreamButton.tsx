@@ -10,7 +10,7 @@ export function LiveStreamButton({ compact = false, testId = 'link-live-stream' 
       href="/canli"
       data-testid={testId}
       aria-label="Canlı yayın"
-      className={`inline-flex items-center gap-2 rounded-full bg-red-600 text-white font-bold uppercase tracking-[0.12em] shadow-[0_0_0_0_rgba(220,38,38,0.6)] animate-live-pulse hover:bg-red-500 transition-colors ${
+      className={`inline-flex items-center gap-2 rounded-full bg-red-600/25 backdrop-blur-md border border-red-500/45 text-white font-bold uppercase tracking-[0.12em] shadow-[0_0_0_0_rgba(220,38,38,0.6)] animate-live-pulse hover:bg-red-600/40 transition-colors ${
         compact ? 'h-8 px-3 text-[10px]' : 'h-10 px-4 text-[11px]'
       }`}
     >

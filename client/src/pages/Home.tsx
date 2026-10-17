@@ -563,7 +563,7 @@ function NewArrivals({ products }: { products: Product[] }) {
       <div className="max-w-[1320px] mx-auto">
         <div className="flex items-end justify-between mb-10 lg:mb-14">
           <div>
-            <p className="text-[10px] font-mono tracking-[0.30em] uppercase text-[#FAFAFA] mb-2">Yeni</p>
+            <p className="text-[10px] font-mono tracking-[0.30em] uppercase text-white mb-2">Yeni</p>
             <h2
               className="font-black text-white leading-none"
               style={{ fontSize: 'clamp(28px, 4vw, 52px)', letterSpacing: '-0.03em' }}
@@ -633,7 +633,7 @@ function NewArrivals({ products }: { products: Product[] }) {
                     <p className="text-[13px] lg:text-[14px] font-semibold text-white leading-snug line-clamp-2 mb-1.5 group-hover:text-white transition-colors">
                       {p.name}
                     </p>
-                    <p className="text-[15px] font-bold text-[#FAFAFA]">
+                    <p className="text-[15px] font-bold text-white">
                       {price.toLocaleString('tr-TR', { maximumFractionDigits: 0 })} ₺
                     </p>
                   </div>
@@ -701,7 +701,7 @@ function VideoSection({ content }: { content: HomepageContent }) {
           transition={{ duration: 0.5, ease: [0.33, 1, 0.68, 1] }}
           className="mb-10 lg:mb-14 flex flex-col sm:flex-row sm:items-end sm:justify-between gap-6">
           <div>
-            <p className="text-[10px] font-mono tracking-[0.30em] uppercase text-[#FAFAFA] mb-2">
+            <p className="text-[10px] font-mono tracking-[0.30em] uppercase text-white mb-2">
               {header.eyebrow}
             </p>
             <h2
@@ -800,7 +800,7 @@ function TrustStrip({ items: rawItems }: { items: TrustItem[] }) {
                   i < items.length - 1 ? 'sm:pr-8 lg:pr-12' : '',
                 ].join(' ')}
               >
-                <div className="w-11 h-11 rounded-sm bg-[#141414]/20 border border-[#141414]/30 flex items-center justify-center shrink-0">
+                <div className="w-11 h-11 rounded-sm bg-[#141414]/20 flex items-center justify-center shrink-0">
                   <Icon className="w-[19px] h-[19px] text-[#FAFAFA]" strokeWidth={1.75} />
                 </div>
                 <div>
