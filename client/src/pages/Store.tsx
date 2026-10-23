@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import { getSpecValues } from '@/lib/specFilter';
+import { ProductGridSkeleton, useMinimumSkeleton } from '@/components/ProductGridSkeleton';
 import { sortRecommended, sortDiscountedFirst } from '@/lib/productSort';
 import { flattenCategoryTree, getAncestors } from '@/lib/categoryTree';
 import { Header } from '@/components/Header';
@@ -289,7 +290,8 @@ export default function Store() {
     if (statusFilters.includes('discounted')) result = result.filter(p => !!p.discountBadge);
     return sortBy === 'recommended' ? sortRecommended(result) : sortBy === 'discounted' ? sortDiscountedFirst(result) : result;
   }, [sortBy, fetchedProducts, brandParam, statusFilters, freeShippingThreshold, selectedBrands, selectedSpecFilters, filterAttributes]);
-  const { visible: visibleProducts, hasMore: hasMoreProducts, sentinelRef: productsSentinelRef } = useInfiniteList(filteredProducts, 24);
+  const { visible: visibleProducts, hasMore: hasMoreProducts, sentinelRef: productsSentinelRef } = useInfiniteList(filteredProducts, 12);
+  const showSkeleton = useMinimumSkeleton(isLoading);
 
   const toggleStatusFilter = (value: string) => {
     setStatusFilters(prev => prev.includes(value) ? prev.filter(v => v !== value) : [...prev, value]);
@@ -675,16 +677,11 @@ export default function Store() {
             )}
 
             {/* Ürünler */}
-            {isLoading ? (
-              <div className={`grid gap-4 grid-cols-2 ${gridCols === 4 ? 'lg:grid-cols-4' : 'lg:grid-cols-3'}`}>
-                {[...Array(8)].map((_, i) => (
-                  <div key={i} className="animate-pulse">
-                    <div className="aspect-[3/4] bg-[#151515] rounded-sm" />
-                    <div className="mt-3 h-3 bg-white/10 rounded w-3/4" />
-                    <div className="mt-2 h-3 bg-white/10 rounded w-1/2" />
-                  </div>
-                ))}
-              </div>
+            {showSkeleton ? (
+              <ProductGridSkeleton
+                count={gridCols === 4 ? 8 : 6}
+                className={`grid gap-x-4 gap-y-8 grid-cols-2 ${gridCols === 4 ? 'lg:grid-cols-4' : 'lg:grid-cols-3'}`}
+              />
             ) : filteredProducts.length === 0 ? (
               <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="text-center py-24 border border-white/8 bg-[#141414] rounded-sm">
                 <p className="text-white/50 text-[14px] mb-5">Bu kriterlere uygun ürün bulunamadı.</p>
@@ -716,8 +713,11 @@ export default function Store() {
               </motion.div>
             )}
             {hasMoreProducts && (
-              <div ref={productsSentinelRef} className="flex justify-center py-10" data-testid="products-load-more">
-                <span className="w-5 h-5 rounded-full border-2 border-white/20 border-t-white animate-spin" />
+              <div ref={productsSentinelRef} className="mt-8" data-testid="products-load-more">
+                <ProductGridSkeleton
+                  count={gridCols === 4 ? 4 : 3}
+                  className={`grid gap-x-4 gap-y-8 grid-cols-2 ${gridCols === 4 ? 'lg:grid-cols-4' : 'lg:grid-cols-3'}`}
+                />
               </div>
             )}
           </div>

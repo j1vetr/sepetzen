@@ -1,5 +1,6 @@
 import { useState, useMemo, useEffect, useCallback } from 'react';
 import { getSpecValues } from '@/lib/specFilter';
+import { ProductGridSkeleton, ProductCardSkeleton, useMinimumSkeleton } from '@/components/ProductGridSkeleton';
 import { sortRecommended, sortDiscountedFirst } from '@/lib/productSort';
 import { getAncestors } from '@/lib/categoryTree';
 import { Header } from '@/components/Header';
@@ -273,7 +274,8 @@ export default function Category() {
     }
     return sortBy === 'recommended' ? sortRecommended(result) : sortBy === 'discounted' ? sortDiscountedFirst(result) : result;
   }, [sortBy, products, showOnlyNew, showOnlyDiscounted, selectedBrands, selectedSpecFilters, filterAttributes]);
-  const { visible: visibleProducts, hasMore: hasMoreProducts, sentinelRef: productsSentinelRef } = useInfiniteList(filteredProducts, 24);
+  const { visible: visibleProducts, hasMore: hasMoreProducts, sentinelRef: productsSentinelRef } = useInfiniteList(filteredProducts, 12);
+  const showSkeleton = useMinimumSkeleton(isLoading);
 
   const categoryContentHtml = useMemo(
     () => (category?.contentHtml ? sanitizeAdminHtml(category.contentHtml) : ''),
@@ -507,23 +509,15 @@ export default function Category() {
       <main className="pt-2 pb-10 lg:pb-14 px-4 lg:px-6">
         <div className="max-w-[1400px] mx-auto">
           <AnimatePresence mode="wait">
-            {isLoading ? (
+            {showSkeleton ? (
               <motion.div
                 key="skeleton"
                 initial={{ opacity: 1 }}
                 exit={{ opacity: 0, transition: { duration: 0.18 } }}
-                className="grid grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 lg:gap-6"
+                className={`grid grid-cols-2 gap-4 lg:gap-6 ${gridCols === 4 ? 'lg:grid-cols-4' : 'lg:grid-cols-3'}`}
               >
-                {Array.from({ length: 8 }).map((_, i) => (
-                  <div key={i} className="animate-pulse">
-                    <div className="aspect-[3/4] bg-white/[0.06] overflow-hidden relative">
-                      <div className="absolute inset-0 -translate-x-full animate-[shimmer_1.6s_infinite] bg-gradient-to-r from-transparent via-white/[0.05] to-transparent" />
-                    </div>
-                    <div className="mt-3 space-y-2">
-                      <div className="h-3 bg-white/[0.07] w-3/4" />
-                      <div className="h-3 bg-white/[0.05] w-1/3" />
-                    </div>
-                  </div>
+                {Array.from({ length: gridCols === 4 ? 8 : 6 }).map((_, i) => (
+                  <ProductCardSkeleton key={i} />
                 ))}
               </motion.div>
             ) : filteredProducts.length === 0 ? (
@@ -557,8 +551,11 @@ export default function Category() {
             )}
           </AnimatePresence>
           {hasMoreProducts && (
-            <div ref={productsSentinelRef} className="flex justify-center py-10" data-testid="products-load-more">
-              <span className="w-5 h-5 rounded-full border-2 border-white/20 border-t-white animate-spin" />
+            <div ref={productsSentinelRef} className="mt-8" data-testid="products-load-more">
+              <ProductGridSkeleton
+                count={gridCols === 4 ? 4 : 3}
+                className={`grid grid-cols-2 gap-4 lg:gap-6 ${gridCols === 4 ? 'lg:grid-cols-4' : 'lg:grid-cols-3'}`}
+              />
             </div>
           )}
         </div>
