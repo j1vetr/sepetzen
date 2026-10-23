@@ -703,10 +703,8 @@ export class DbStorage implements IStorage {
         query = query.orderBy(desc(products.createdAt));
     }
 
-    if (filters?.limit !== undefined) {
-      query = query.limit(Math.max(1, Math.min(100, filters.limit)));
-    }
-
+    // limit, kategori ve stok süzgeçlerinden SONRA uygulanır; aksi halde en yeni N ürün
+    // arasında o kategoriden ürün yoksa sonuç boş kalırdı.
     let result = await query;
 
     // Filter by category (includes products from both primary categoryId and product_categories table).
@@ -731,6 +729,10 @@ export class DbStorage implements IStorage {
         .groupBy(productVariants.productId);
       const inStockSet = new Set(inStockRows.map(r => r.productId));
       result = result.filter(p => inStockSet.has(p.id));
+    }
+
+    if (filters?.limit !== undefined) {
+      result = result.slice(0, Math.max(1, Math.min(100, filters.limit)));
     }
 
     return result;
