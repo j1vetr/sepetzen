@@ -9,6 +9,7 @@ import { ProductCard } from '@/components/ProductCard';
 import { useBrand } from '@/hooks/useProducts';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { productSortOptions, sortProductsClient, type ProductSortValue } from '@/lib/productSort';
+import { ProductGridSkeleton, ProductCardSkeleton, useMinimumSkeleton } from '@/components/ProductGridSkeleton';
 import { useInfiniteList } from '@/hooks/useInfiniteList';
 import NotFound from './not-found';
 
@@ -19,13 +20,7 @@ function BrandLoading() {
       <main className="py-10 lg:py-14 px-5 lg:px-8">
         <div className="max-w-[1400px] mx-auto grid grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 lg:gap-6">
           {Array.from({ length: 8 }).map((_, index) => (
-            <div key={index} className="animate-pulse">
-              <div className="aspect-[3/4] bg-[#151515]" />
-              <div className="mt-3 space-y-2">
-                <div className="h-3.5 bg-white/10 w-4/5" />
-                <div className="h-3.5 bg-white/10 w-1/3" />
-              </div>
-            </div>
+            <ProductCardSkeleton key={index} />
           ))}
         </div>
       </main>
@@ -41,7 +36,8 @@ export default function BrandPage() {
     () => sortProductsClient(data?.products ?? [], sortBy),
     [data?.products, sortBy],
   );
-  const { visible: visibleProducts, hasMore: hasMoreProducts, sentinelRef: productsSentinelRef } = useInfiniteList(sortedProducts, 24);
+  const { visible: visibleProducts, hasMore: hasMoreProducts, sentinelRef: productsSentinelRef } = useInfiniteList(sortedProducts, 12);
+  const showSkeleton = useMinimumSkeleton(isLoading);
 
   useEffect(() => {
     if (error && (error as Error & { status?: number }).status === 404) {
@@ -49,7 +45,7 @@ export default function BrandPage() {
     }
   }, [error]);
 
-  if (isLoading) return <BrandLoading />;
+  if (showSkeleton) return <BrandLoading />;
 
   if (error || !data?.brand || !data.brand.isActive) {
     return <NotFound />;
@@ -190,8 +186,11 @@ export default function BrandPage() {
               ))}
             </div>
             {hasMoreProducts && (
-              <div ref={productsSentinelRef} className="flex justify-center py-10" data-testid="products-load-more">
-                <span className="w-5 h-5 rounded-full border-2 border-white/20 border-t-white animate-spin" />
+              <div ref={productsSentinelRef} className="mt-8" data-testid="products-load-more">
+                <ProductGridSkeleton
+                  count={4}
+                  className="grid grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 lg:gap-6"
+                />
               </div>
             )}
             </>
