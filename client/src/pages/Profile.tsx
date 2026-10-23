@@ -1377,7 +1377,7 @@ export default function Profile() {
                         <div className="space-y-2">
                           {(orderDetail.items || []).map((item) => (
                             <label key={item.id} className="flex items-center justify-between gap-3 text-sm text-white/70">
-                              <span className="truncate">{item.productName}</span>
+                              <span className="break-words">{item.productName}</span>
                               <span className="flex items-center gap-2 shrink-0">
                                 <span className="text-xs text-white/45">Adet</span>
                                 <input

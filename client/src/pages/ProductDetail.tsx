@@ -453,7 +453,7 @@ function ProductFeatureHighlights({ html }: { html: string }) {
             </span>
             <div className="min-w-0">
               <p className="text-[12px] font-semibold text-white leading-tight mb-1">{sec.title}</p>
-              <p className="text-[11.5px] text-white/50 leading-snug line-clamp-2">
+              <p className="text-[11.5px] text-white/50 leading-snug">
                 {sec.items[0] || (sec.prose ? sec.prose.split(/[.!]/)[0] : '') || ''}
               </p>
             </div>
@@ -650,6 +650,8 @@ function ProductTabs({
   tabDelivery,
   tabFaq,
   tabInstallmentNote,
+  reviewCount,
+  reviewsNode,
 }: {
   html: string;
   specs?: Record<string, string | undefined> | null;
@@ -657,10 +659,16 @@ function ProductTabs({
   tabDelivery?: Array<{title: string; rows: Array<{key: string; value: string}>}> | null;
   tabFaq?: Array<{q: string; a: string}> | null;
   tabInstallmentNote?: string | null;
+  reviewCount: number;
+  reviewsNode: React.ReactNode;
 }) {
   const reduceMotion = useReducedMotion();
-  const [open, setOpen] = useState<'desc' | 'installments' | 'delivery' | 'faq' | null>(null);
-  const [deskTab, setDeskTab] = useState<'desc' | 'installments' | 'delivery' | 'faq'>('desc');
+  const [tab, setTab] = useState<'desc' | 'installments' | 'delivery' | 'faq' | 'reviews' | null>('desc');
+  useEffect(() => {
+    const open = () => setTab('reviews');
+    window.addEventListener('open-reviews-tab', open);
+    return () => window.removeEventListener('open-reviews-tab', open);
+  }, []);
   const [descriptionExpanded, setDescriptionExpanded] = useState(false);
   const freeShippingThreshold = useFreeShippingThreshold();
   const thresholdText = formatShippingThreshold(freeShippingThreshold);
@@ -680,11 +688,13 @@ function ProductTabs({
     { id: 'installments', label: 'Taksit Seçenekleri' },
     { id: 'delivery', label: 'Teslimat ve İade' },
     { id: 'faq', label: 'Sık Sorulan Sorular' },
+    { id: 'reviews', label: reviewCount > 0 ? `Yorumlar (${reviewCount})` : 'Yorumlar' },
   ] as const;
 
   type TabId = (typeof TABS)[number]['id'];
   const renderPanel = (active: TabId) => (
     <>
+        {active === 'reviews' && reviewsNode}
         {/* ── Ürün Açıklaması ── */}
          {active === 'desc' && (
            <div className="max-w-3xl space-y-8">
@@ -779,71 +789,50 @@ function ProductTabs({
   );
 
   return (
-    <div className="mt-8">
-      {/* Geniş ekran: sekmeli görünüm */}
-      <div className="hidden lg:block" data-testid="product-info-tabs">
-        <div role="tablist" className="flex gap-8 border-b border-white/10">
-          {TABS.map((tab) => {
-            const on = deskTab === tab.id;
-            return (
-              <button
-                key={tab.id}
-                type="button"
-                role="tab"
-                aria-selected={on}
-                onClick={() => setDeskTab(tab.id)}
-                data-testid={`button-tab-${tab.id}`}
-                className={`relative -mb-px py-3.5 text-[12px] font-semibold tracking-[0.16em] uppercase transition-colors border-b-2 ${
-                  on ? 'text-white border-white' : 'text-white/50 border-transparent hover:text-white'
-                }`}
-              >
-                {tab.label}
-              </button>
-            );
-          })}
-        </div>
-        <div role="tabpanel" className="pt-6 pb-2">
-          {renderPanel(deskTab)}
-        </div>
+    <div className="mt-8" id="product-info-tabs" data-testid="product-info-tabs">
+      <div role="tablist" className="flex gap-6 lg:gap-8 border-b border-white/10 overflow-x-auto no-scrollbar">
+        {TABS.map((t) => {
+          const on = tab === t.id;
+          return (
+            <button
+              key={t.id}
+              type="button"
+              role="tab"
+              aria-selected={on}
+              aria-expanded={on}
+              onClick={() => setTab(on ? null : t.id)}
+              data-testid={`button-tab-${t.id}`}
+              className={`relative -mb-px shrink-0 whitespace-nowrap py-3.5 text-[12px] font-semibold tracking-[0.16em] uppercase transition-colors border-b-2 ${
+                on ? 'text-white border-white' : 'text-white/50 border-transparent hover:text-white'
+              }`}
+            >
+              {t.label}
+            </button>
+          );
+        })}
       </div>
-
-    {/* Mobil ve tablet: akordeon */}
-    <div className="lg:hidden border-t border-white/8" data-testid="product-info-accordion">
-      {TABS.map((tab) => {
-        const active = tab.id;
-        const isOpen = open === tab.id;
-        return (
-          <div key={tab.id} className="border-b border-white/8">
+      <AnimatePresence initial={false}>
+        {tab && (
+          <motion.div
+            key={tab}
+            role="tabpanel"
+            initial={reduceMotion ? false : { opacity: 0, y: 6 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.2 }}
+            className="pt-6 pb-2"
+          >
+            {renderPanel(tab)}
             <button
               type="button"
-              onClick={() => setOpen(isOpen ? null : tab.id)}
-              aria-expanded={isOpen}
-              data-testid={`button-accordion-${tab.id}`}
-              className="w-full flex items-center justify-between gap-4 py-4 text-left text-[12px] font-semibold tracking-[0.16em] uppercase text-white/80 hover:text-white transition-colors"
+              onClick={() => setTab(null)}
+              className="mt-6 inline-flex items-center gap-1.5 text-[11px] font-semibold uppercase tracking-[0.16em] text-white/50 hover:text-white transition-colors"
+              data-testid="button-tab-close"
             >
-              {tab.label}
-              <ChevronDown className={`w-4 h-4 shrink-0 text-white/50 transition-transform duration-200 ${isOpen ? 'rotate-180' : ''}`} />
+              Kapat <ChevronDown className="w-3.5 h-3.5 rotate-180" />
             </button>
-            <AnimatePresence initial={false}>
-              {isOpen && (
-                <motion.div
-                  key="panel"
-                  initial={reduceMotion ? false : { height: 0, opacity: 0 }}
-                  animate={{ height: 'auto', opacity: 1 }}
-                  exit={reduceMotion ? undefined : { height: 0, opacity: 0 }}
-                  transition={{ duration: 0.25, ease: [0.33, 1, 0.68, 1] }}
-                  className="overflow-hidden"
-                >
-                  <div className="pb-6 pt-1">
-                    {renderPanel(tab.id)}
-                  </div>
-                </motion.div>
-              )}
-            </AnimatePresence>
-          </div>
-        );
-      })}
-    </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   );
 }
@@ -2067,7 +2056,7 @@ export default function ProductDetail() {
                  <div>
                     <p className="font-sans text-[17px] lg:text-[15px] tracking-[0.12em] text-white flex items-center gap-0.5">
                        SEPETZEN
-                       <svg viewBox="0 0 20 20" fill="none" className="w-[18px] h-[18px] lg:w-4 lg:h-4 shrink-0" aria-label="Doğrulanmış satıcı">
+                       <svg viewBox="0 0 20 20" fill="none" className="w-[18px] h-[18px] lg:w-4 lg:h-4 lg:-translate-y-[3px] shrink-0" aria-label="Doğrulanmış satıcı">
                          <circle cx="10" cy="10" r="10" fill="#fefb00"/>
                          <path d="M5.5 10.5l3 3 6-6" stroke="#1A1A1A" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round"/>
                        </svg>
@@ -2110,7 +2099,10 @@ export default function ProductDetail() {
                   <StarRating rating={Math.round(ratingData.average)} size={13} />
                   <button
                     type="button"
-                    onClick={() => reviewsSectionRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' })}
+                    onClick={() => {
+                      window.dispatchEvent(new CustomEvent('open-reviews-tab'));
+                      setTimeout(() => document.getElementById('product-info-tabs')?.scrollIntoView({ behavior: 'smooth', block: 'start' }), 60);
+                    }}
                     className="text-[12px] text-white/45 hover:text-white/70 transition-colors cursor-pointer"
                   >
                     {ratingData.average.toFixed(1)} <span className="text-white/25">·</span> {ratingData.count} Değerlendirme
@@ -2491,17 +2483,9 @@ export default function ProductDetail() {
             tabDelivery={(product as any).tabDelivery}
             tabFaq={(product as any).tabFaq}
             tabInstallmentNote={(product as any).tabInstallmentNote}
-          />
-
-          {/* ── Reviews ── */}
-          <motion.section
-            ref={reviewsSectionRef}
-            initial={reduceMotion ? false : { opacity: 0, y: 24 }}
-            whileInView={reduceMotion ? undefined : { opacity: 1, y: 0 }}
-            viewport={{ once: true, margin: '-80px' }}
-            transition={{ duration: 0.45 }}
-            className="mt-16 lg:mt-20 pt-12 border-t border-white/6"
-          >
+            reviewCount={ratingData?.count ?? 0}
+            reviewsNode={
+          <section ref={reviewsSectionRef} data-testid="section-reviews">
             <div className="flex items-center justify-between mb-8 flex-wrap gap-4">
               <h2 className="text-lg font-bold text-white tracking-[-0.01em]">
                 Müşteri Değerlendirmeleri
@@ -2744,7 +2728,11 @@ export default function ProductDetail() {
                 </div>
               )
             )}
-          </motion.section>
+          </section>
+            }
+          />
+
+
 
           {/* ── Related products ── */}
           {moreProducts.length > 0 && (

@@ -129,7 +129,7 @@ export function ComplementaryProducts({ baseProductIds, title = 'Tamamlayıcı �
                       )}
                     </div>
                     <div className="flex-1 min-w-0">
-                      <p className="text-[12.5px] font-medium text-white leading-snug line-clamp-2">{row.name}</p>
+                      <p className="text-[12.5px] font-medium text-white leading-snug">{row.name}</p>
                       <p className="text-[12px] mt-0.5 tabular-nums">
                         <span className="text-white font-semibold">
                           {price.toLocaleString('tr-TR', { minimumFractionDigits: 2 })} ₺

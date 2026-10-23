@@ -978,7 +978,7 @@ export default function Checkout() {
             })()}
           </div>
           <div className="flex-1 min-w-0">
-            <p className="text-[12.5px] font-medium text-white truncate">{item.product?.name || 'Ürün'}</p>
+            <p className="text-[12.5px] font-medium text-white">{item.product?.name || 'Ürün'}</p>
             {item.personalizationText && (
               <p className="text-[11px] text-white/45 mt-0.5 truncate">Kişiselleştirme: “{item.personalizationText}”</p>
             )}

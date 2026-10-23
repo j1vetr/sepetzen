@@ -352,7 +352,7 @@ export function SearchOverlay({ isOpen, onClose }: SearchOverlayProps) {
                           {/* İsim + Rating */}
                           <div className="px-2.5 py-2 space-y-1">
                             <h4
-                              className="line-clamp-2 text-[11.5px] font-medium leading-snug text-white/75 transition-colors group-hover:text-white"
+                              className="text-[11.5px] font-medium leading-snug text-white/75 transition-colors group-hover:text-white"
                               data-testid={`text-search-name-${product.id}`}
                             >
                               {product.name}

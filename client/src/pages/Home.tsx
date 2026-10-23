@@ -630,10 +630,10 @@ function NewArrivals({ products }: { products: Product[] }) {
                   {/* Info */}
                   <div>
                     <p className="text-[11px] tracking-[0.06em] text-white/50 font-mono mb-0.5">Sepetzen</p>
-                    <p className="text-[13px] lg:text-[14px] font-semibold text-white leading-snug line-clamp-2 mb-1.5 group-hover:text-white transition-colors">
+                    <p className="text-[13px] lg:text-[14px] font-semibold text-white leading-snug mb-1.5 group-hover:text-white transition-colors">
                       {p.name}
                     </p>
-                    <p className="text-[15px] font-bold text-white">
+                    <p className="text-[15px] font-thin text-white">
                       {price.toLocaleString('tr-TR', { maximumFractionDigits: 0 })} ₺
                     </p>
                   </div>
@@ -957,7 +957,7 @@ function DesktopHeroMarquee({ products }: { products: Product[] }) {
               {/* Bilgi */}
               <div className="px-2.5 py-2 flex-1 bg-black/40">
                 <p
-                  className="text-[10.5px] font-medium text-white/75 group-hover:text-white transition-colors leading-snug truncate mb-1"
+                  className="text-[10.5px] font-medium text-white/75 group-hover:text-white transition-colors leading-snug mb-1"
                   title={p.name}
                 >
                   {p.name}
@@ -1008,10 +1008,10 @@ function MobileMarquee({ products }: { products: Product[] }) {
                 />
               </div>
               <div className="p-2.5 flex-1">
-                <p className="text-[10.5px] font-medium text-white/75 leading-snug line-clamp-2 mb-1.5">
+                <p className="text-[10.5px] font-medium text-white/75 leading-snug mb-1.5">
                   {p.name}
                 </p>
-                <p className="text-[12px] font-bold text-[#FAFAFA]">
+                <p className="text-[12px] font-thin text-[#FAFAFA]">
                   {price.toLocaleString('tr-TR', { maximumFractionDigits: 0 })} ₺
                 </p>
               </div>

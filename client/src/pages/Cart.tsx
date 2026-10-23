@@ -169,7 +169,7 @@ export default function Cart() {
                           <div className="pr-8">
                             <Link href={`/urun/${product?.slug}`}>
                               <h3
-                                className="font-medium text-white text-sm leading-snug line-clamp-2 hover:underline cursor-pointer"
+                                className="font-medium text-white text-sm leading-snug hover:underline cursor-pointer"
                                 data-testid={`text-product-name-${item.id}`}
                               >
                                 {product?.name || 'Ürün'}

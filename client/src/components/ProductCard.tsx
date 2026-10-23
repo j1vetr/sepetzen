@@ -368,7 +368,7 @@ export const ProductCard = memo(function ProductCard({ product }: ProductCardPro
           {/* Info */}
           <div className="mt-3 space-y-1.5">
             <h3
-              className="text-sm font-medium text-white line-clamp-1 leading-snug"
+              className="text-sm font-medium text-white leading-snug"
               data-testid={`text-product-name-${product.id}`}
             >
               {product.name}
@@ -417,7 +417,7 @@ export const ProductCard = memo(function ProductCard({ product }: ProductCardPro
                 </span>
               )}
               <span
-                className="text-sm font-semibold leading-none text-white"
+                className="text-sm font-thin leading-none text-white"
                 data-testid={`text-price-${product.id}`}
               >
                 {price.toLocaleString('tr-TR')} ₺

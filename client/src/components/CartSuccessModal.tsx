@@ -126,7 +126,7 @@ export function CartSuccessModal({ isOpen, onClose, product, cartTotal, cartItem
                   </div>
                   <div className="flex-1 min-w-0 flex flex-col">
                     <h4
-                      className="font-medium text-[13px] sm:text-sm leading-snug line-clamp-2 mb-2 text-white"
+                      className="font-medium text-[13px] sm:text-sm leading-snug mb-2 text-white"
                       data-testid="text-modal-product-name"
                     >
                       {product.name}

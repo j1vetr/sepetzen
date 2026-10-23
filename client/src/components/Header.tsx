@@ -385,7 +385,7 @@ export function Header({ overlayHero = false }: { overlayHero?: boolean } = {}) 
       )}
 
       {/* ── Brand bar (desktop): Logo · Arama · Hesap/Sepet ── */}
-      <div id="hdr-brand" className={`hidden lg:block border-b border-white/8 ${overlayHero ? 'bar-glass relative z-[100]' : 'bg-[#0A0A0A]'}`}>
+      <div id="hdr-brand" className={`hidden lg:block border-b border-transparent ${overlayHero ? 'bar-glass relative z-[100]' : 'bg-[#0A0A0A]'}`}>
         <div className="max-w-[1400px] mx-auto px-8 py-4 grid grid-cols-[auto_1fr_auto] items-center gap-8">
           {/* Sol: Logo */}
           <a href="/" data-testid="link-logo" className="justify-self-start block">
@@ -489,8 +489,8 @@ export function Header({ overlayHero = false }: { overlayHero?: boolean } = {}) 
               // Mega panel açıkken header'dan backdrop-filter kaldırılır: ata elemandaki
               // backdrop-filter, altındaki panelin kendi blur'unu bozar (backdrop root).
               ? 'bg-[#050505]/95 border-b border-transparent shadow-[0_4px_24px_-8px_rgba(0,0,0,0.45)]'
-              : 'bar-glass border-b border-white/10 shadow-[0_4px_24px_-8px_rgba(0,0,0,0.45)]'
-            : 'bar-glass border-b border-white/10'
+              : 'bar-glass border-b border-transparent shadow-[0_4px_24px_-8px_rgba(0,0,0,0.45)]'
+            : 'bar-glass border-b border-transparent'
         }`}
       >
         <div className="w-full max-w-[1400px] mx-auto px-4 lg:px-8 lg:py-3">
@@ -1020,7 +1020,7 @@ export function Header({ overlayHero = false }: { overlayHero?: boolean } = {}) 
                                 </div>
                               )}
                               <div className="absolute bottom-0 left-0 right-0 p-3">
-                                <p className="text-[11.5px] font-semibold text-white leading-snug line-clamp-2">{sidebarProduct.name}</p>
+                                <p className="text-[11.5px] font-semibold text-white leading-snug">{sidebarProduct.name}</p>
                                 <p className="text-[13px] font-bold text-[#FAFAFA] mt-1">{Number(sidebarProduct.price || sidebarProduct.basePrice).toLocaleString('tr-TR')} ₺</p>
                               </div>
                             </div>
@@ -1127,7 +1127,7 @@ export function Header({ overlayHero = false }: { overlayHero?: boolean } = {}) 
                           )}
                         </div>
                         <div className="min-w-0 flex-1">
-                          <p className="text-[12px] font-medium text-white/75 leading-snug line-clamp-2 group-hover:text-white transition-colors">{product.name}</p>
+                          <p className="text-[12px] font-medium text-white/75 leading-snug group-hover:text-white transition-colors">{product.name}</p>
                           <p className="text-[13.5px] font-bold text-white mt-1">{Number(product.price || product.basePrice).toLocaleString('tr-TR')} ₺</p>
                         </div>
                       </Link>
