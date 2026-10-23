@@ -41,7 +41,7 @@ export function FilterDrawer({
     <Sheet open={open} onOpenChange={onOpenChange}>
       <SheetContent
         side="right"
-        className="flex h-full w-full sm:max-w-[560px] flex-col gap-0 overflow-hidden bg-[#141414] border-l border-white/12 p-0 text-white [&>button]:text-white"
+        className="flex h-full w-full sm:max-w-[560px] flex-col gap-0 overflow-hidden bg-[#141414]/55 backdrop-blur-2xl backdrop-saturate-150 border-l border-white/12 p-0 text-white [&>button]:text-white"
         data-testid="filter-drawer"
       >
         <SheetHeader className="shrink-0 flex-row items-center justify-between space-y-0 border-b border-white/10 py-4 pl-5 pr-14">

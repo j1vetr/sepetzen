@@ -290,9 +290,9 @@ export const ProductCard = memo(function ProductCard({ product }: ProductCardPro
               <>
                 {/* Hafif karartma katmanı */}
                 <div className="absolute inset-0 z-10 bg-black/30 pointer-events-none" />
-                {/* Pill badge — alt orta, diğer badge'lerle çakışmaz */}
-                <div className="absolute bottom-3 left-1/2 -translate-x-1/2 z-20 pointer-events-none">
-                  <span className="backdrop-blur-md bg-black/55 border border-white/15 text-white/60 text-[9px] font-semibold tracking-[0.22em] uppercase px-3 py-1 rounded-full whitespace-nowrap">
+                {/* Tükendi rozeti — sağ üst */}
+                <div className="absolute top-3 right-3 z-20 pointer-events-none">
+                  <span className="storefront-new-badge" data-testid={`badge-sold-out-${product.id}`}>
                     Tükendi
                   </span>
                 </div>
@@ -302,7 +302,7 @@ export const ProductCard = memo(function ProductCard({ product }: ProductCardPro
             {/* Badges — sol üstte dikey yığın; video/YT kartlarda play butonunun altından başlar */}
             {(
               <div className={`absolute left-3 z-10 flex flex-col items-start gap-1.5 ${(isYouTubeUrl(mainImage) || isVideoUrl(mainImage)) ? 'top-12' : 'top-3'}`}>
-                {visibleDiscountBadge && (
+                {!isOutOfStock && visibleDiscountBadge && (
                   <span
                     className="storefront-new-badge"
                     data-testid={`badge-discount-${product.id}`}
@@ -310,7 +310,7 @@ export const ProductCard = memo(function ProductCard({ product }: ProductCardPro
                     {visibleDiscountBadge}
                   </span>
                 )}
-                {visibleDiscountBadge && (
+                {!isOutOfStock && visibleDiscountBadge && (
                   <DiscountCountdown endDate={product.discountBadgeEndDate} className="storefront-new-badge--compact" testId={`countdown-discount-${product.id}`} />
                 )}
                 {product.isNew && (
@@ -318,11 +318,13 @@ export const ProductCard = memo(function ProductCard({ product }: ProductCardPro
                     Yeni
                   </span>
                 )}
-                <FreeShippingBadge
-                  size="compact"
-                  productPrice={price}
-                  threshold={freeShippingThreshold}
-                />
+                {!isOutOfStock && (
+                  <FreeShippingBadge
+                    size="compact"
+                    productPrice={price}
+                    threshold={freeShippingThreshold}
+                  />
+                )}
               </div>
             )}
 
@@ -338,7 +340,7 @@ export const ProductCard = memo(function ProductCard({ product }: ProductCardPro
               animate={{ opacity: isHovered || isLiked ? 1 : 0 }}
               transition={{ duration: 0.2 }}
               disabled={isFavoriteLoading}
-              className="absolute top-3 right-3 z-10 w-8 h-8 rounded-full bg-white/10 backdrop-blur-md border border-white/12 flex items-center justify-center shadow-sm card-fav-btn"
+              className={`absolute right-3 z-10 w-8 h-8 rounded-full bg-white/10 backdrop-blur-md border border-white/12 flex items-center justify-center shadow-sm card-fav-btn ${isOutOfStock ? 'top-12' : 'top-3'}`}
             >
               {isFavoriteLoading ? (
                 <Loader2 className="w-3.5 h-3.5 animate-spin text-white" />
@@ -406,7 +408,15 @@ export const ProductCard = memo(function ProductCard({ product }: ProductCardPro
               </div>
             )}
 
-            {/* Fiyat */}
+            {/* Fiyat (tükendiyse yalnızca Tükendi yazar) */}
+            {isOutOfStock ? (
+              <span
+                className="text-sm font-thin leading-none text-white/60"
+                data-testid={`text-sold-out-${product.id}`}
+              >
+                Tükendi
+              </span>
+            ) : (
             <div className="flex flex-col gap-0.5">
               {originalPrice && visibleDiscountBadge && (
                 <span
@@ -423,6 +433,7 @@ export const ProductCard = memo(function ProductCard({ product }: ProductCardPro
                 {price.toLocaleString('tr-TR')} ₺
               </span>
             </div>
+            )}
           </div>
         </div>
       </Link>

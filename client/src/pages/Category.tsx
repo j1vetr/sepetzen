@@ -1,13 +1,13 @@
 import { useState, useMemo, useEffect, useCallback } from 'react';
 import { getSpecValues } from '@/lib/specFilter';
-import { sortRecommended } from '@/lib/productSort';
+import { sortRecommended, sortDiscountedFirst } from '@/lib/productSort';
 import { getAncestors } from '@/lib/categoryTree';
 import { Header } from '@/components/Header';
 import { Footer } from '@/components/Footer';
 import { SEO } from '@/components/SEO';
 import { ProductCard } from '@/components/ProductCard';
 import { Link, useParams, useSearch } from 'wouter';
-import { ChevronRight, X, SlidersHorizontal, ChevronDown } from 'lucide-react';
+import { ChevronRight, X, SlidersHorizontal, ChevronDown, Grid3X3, LayoutGrid } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useProducts, useCategories, useFilterAttributes, type ProductFilters } from '@/hooks/useProducts';
 import { sanitizeAdminHtml } from '@/lib/sanitizeHtml';
@@ -29,6 +29,7 @@ const sortOptions = [
   { value: 'price_asc', label: 'Fiyat: Düşük → Yüksek' },
   { value: 'price_desc', label: 'Fiyat: Yüksek → Düşük' },
   { value: 'popular', label: 'En Popüler' },
+  { value: 'discounted', label: 'İndirimdekiler' },
 ];
 
 
@@ -142,6 +143,7 @@ export default function Category() {
   const [showOnlyNew, setShowOnlyNew] = useState(parsed.isNew);
   const [showOnlyDiscounted, setShowOnlyDiscounted] = useState(parsed.discounted);
   const [filterOpen, setFilterOpen] = useState(false);
+  const [gridCols, setGridCols] = useState<3 | 4>(4);
   const [selectedBrands, setSelectedBrands] = useState<string[]>([]);
   const [selectedSpecFilters, setSelectedSpecFilters] = useState<Record<string, string[]>>({});
 
@@ -269,7 +271,7 @@ export default function Category() {
         result = result.filter(p => getSpecValues(p, attr.key).some(v => sel.includes(v)));
       }
     }
-    return sortBy === 'recommended' ? sortRecommended(result) : result;
+    return sortBy === 'recommended' ? sortRecommended(result) : sortBy === 'discounted' ? sortDiscountedFirst(result) : result;
   }, [sortBy, products, showOnlyNew, showOnlyDiscounted, selectedBrands, selectedSpecFilters, filterAttributes]);
   const { visible: visibleProducts, hasMore: hasMoreProducts, sentinelRef: productsSentinelRef } = useInfiniteList(filteredProducts, 24);
 
@@ -331,85 +333,29 @@ export default function Category() {
       <Header />
       <div className="overflow-x-hidden">
 
-      {/* ─── CATEGORY HERO ─── */}
-      <section className="bg-[#0F0F0F] border-b border-white/8 pt-4 pb-3">
-        <div className="max-w-[1400px] mx-auto px-5 lg:px-8 w-full">
-            <motion.nav initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.15 }}
-              className="flex items-center gap-2 text-[10px] text-white/45 tracking-wider uppercase mb-2" data-testid="breadcrumb">
-              <Link href="/"><span className="hover:text-white transition-colors">Ana Sayfa</span></Link>
-              <ChevronRight className="w-3 h-3" />
-              {ancestorCategories.map((a, i) => (
-                <span key={a.id} className="contents">
-                  <Link href={`/kategori/${a.slug}`}>
-                    <span className="hover:text-white transition-colors" data-testid={i === ancestorCategories.length - 1 ? 'link-parent-category' : `link-ancestor-category-${a.id}`}>{a.name}</span>
-                  </Link>
-                  <ChevronRight className="w-3 h-3" />
-                </span>
-              ))}
-              <span className="text-white/75">{category?.name}</span>
-            </motion.nav>
-            <div className="flex items-baseline justify-between gap-4 flex-wrap">
-              <motion.h1 initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.2 }}
-                className="font-display text-2xl sm:text-3xl lg:text-4xl text-white tracking-wide leading-[1.1]" data-testid="text-category-title">
-                {category?.name?.toUpperCase()}
-              </motion.h1>
-              <motion.p initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.3 }}
-                className="text-white/45 text-[10px] tracking-[0.2em] uppercase">
-                {filteredProducts.length} ürün
-              </motion.p>
-            </div>
-        </div>
-      </section>
-
-      {/* ─── FILTER BAR ─── */}
-      <div className="border-b border-white/8 sticky top-16 lg:top-0 bg-[#0F0F0F] z-30">
-        <div className="max-w-[1400px] mx-auto px-5 lg:px-8">
-          <div className="flex items-center justify-between h-14 gap-4">
-            <div className="flex items-center gap-3 overflow-x-auto scrollbar-hide min-w-0">
-              <button
-                onClick={() => setFilterOpen(!filterOpen)}
-                className="flex items-center gap-2 text-[11px] tracking-[0.15em] uppercase font-medium text-white shrink-0 hover:text-white/60 transition-colors"
-                data-testid="button-open-filters"
-              >
-                <SlidersHorizontal className="w-3.5 h-3.5" />
-                Filtrele
-                {activeFilterCount > 0 && (
-                  <span className="w-4 h-4 bg-white text-black text-[9px] font-bold rounded-full flex items-center justify-center">
-                    {activeFilterCount}
-                  </span>
-                )}
-              </button>
-
-              {activeChips.map(chip => (
-                <button key={chip.key} onClick={chip.onRemove}
-                  className="flex items-center gap-1 text-[10px] tracking-[0.1em] uppercase border border-white/25 text-white px-2.5 py-1 shrink-0 hover:bg-white hover:text-black transition-colors">
-                  {chip.label}<X className="w-2.5 h-2.5" />
-                </button>
-              ))}
-
-              {hasActiveFilters && (
-                <button onClick={clearFilters}
-                  className="text-[10px] tracking-[0.1em] uppercase text-white/40 hover:text-white transition-colors shrink-0 underline underline-offset-2"
-                  data-testid="button-clear-filters">
-                  Temizle
-                </button>
-              )}
-            </div>
-
-            <div className="shrink-0">
-              <Select value={sortBy} onValueChange={handleSortChange}>
-                <SelectTrigger className="h-8 border-0 bg-transparent text-[11px] tracking-[0.12em] uppercase font-medium text-white/55 hover:text-white focus:ring-0 focus:ring-offset-0 gap-1 pr-0 shadow-none" data-testid="select-sort">
-                  <SelectValue placeholder="Sırala" />
-                </SelectTrigger>
-                <SelectContent className="bg-[#141414] border-white/12 shadow-[0_8px_30px_rgba(0,0,0,0.4)]">
-                  {sortOptions.map(opt => (
-                    <SelectItem key={opt.value} value={opt.value} className="text-xs text-white focus:bg-white/10 focus:text-white cursor-pointer">
-                      {opt.label}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
+      {/* ─── SAYFA BAŞLIĞI (Mağaza ile aynı) ─── */}
+      <div className="bg-[#0F0F0F] border-b border-white/8 pt-4 pb-3 px-6">
+        <div className="max-w-[1400px] mx-auto">
+          <nav className="flex items-center gap-1.5 text-[11px] tracking-wide text-white/50 mb-2" data-testid="breadcrumb">
+            <Link href="/"><span className="hover:text-white transition-colors cursor-pointer">Ana Sayfa</span></Link>
+            <ChevronRight className="w-3 h-3" />
+            {ancestorCategories.map((a, i) => (
+              <span key={a.id} className="contents">
+                <Link href={`/kategori/${a.slug}`}>
+                  <span className="hover:text-white transition-colors cursor-pointer" data-testid={i === ancestorCategories.length - 1 ? 'link-parent-category' : `link-ancestor-category-${a.id}`}>{a.name}</span>
+                </Link>
+                <ChevronRight className="w-3 h-3" />
+              </span>
+            ))}
+            <span className="text-white font-semibold">{category?.name}</span>
+          </nav>
+          <div className="flex items-center gap-3">
+            <h1 className="font-black text-[22px] lg:text-[28px] text-white tracking-tight leading-none" data-testid="text-category-title">
+              {category?.name}
+            </h1>
+            {!isLoading && (
+              <span className="text-[12px] text-white/50 font-mono tabular-nums">({filteredProducts.length} ürün)</span>
+            )}
           </div>
         </div>
       </div>
@@ -476,6 +422,77 @@ export default function Category() {
       />
 
       <div className="theme-light-zone">
+      {/* ─── ARAÇ ÇUBUĞU (Mağaza ile aynı) ─── */}
+      <div className="max-w-[1400px] mx-auto px-4 lg:px-6 pt-5 lg:pt-6">
+        <div className="flex items-center justify-between gap-3 mb-5 pb-4 border-b border-white/8">
+          <div className="flex items-center gap-2">
+            <button
+              onClick={() => setFilterOpen(true)}
+              className="inline-flex items-center gap-2 px-3.5 py-2 border border-white/12 text-[11px] tracking-[0.14em] uppercase font-semibold text-white hover:border-white hover:text-white transition-colors rounded-sm"
+              data-testid="button-open-filters"
+            >
+              <SlidersHorizontal className="w-3.5 h-3.5" />
+              Filtrele
+              {activeFilterCount > 0 && (
+                <span className="w-4 h-4 bg-white text-black text-[9px] font-bold rounded-full flex items-center justify-center">
+                  {activeFilterCount}
+                </span>
+              )}
+            </button>
+            <div className="hidden sm:flex items-center gap-0.5 border border-white/12 rounded-sm p-0.5">
+              <button
+                onClick={() => setGridCols(3)}
+                className={`p-1.5 rounded-[2px] transition-colors ${gridCols === 3 ? 'bg-white text-black' : 'text-white/45 hover:text-white'}`}
+                aria-label="3 sütun"
+                data-testid="button-grid-3"
+              >
+                <Grid3X3 className="w-3.5 h-3.5" />
+              </button>
+              <button
+                onClick={() => setGridCols(4)}
+                className={`p-1.5 rounded-[2px] transition-colors ${gridCols === 4 ? 'bg-white text-black' : 'text-white/45 hover:text-white'}`}
+                aria-label="4 sütun"
+                data-testid="button-grid-4"
+              >
+                <LayoutGrid className="w-3.5 h-3.5" />
+              </button>
+            </div>
+          </div>
+
+          <Select value={sortBy} onValueChange={handleSortChange}>
+            <SelectTrigger className="w-[180px] border-white/12 text-white bg-white/5 rounded-sm h-9 text-[12px] tracking-wide focus:ring-white/35" data-testid="select-sort">
+              <SelectValue placeholder="Sırala" />
+            </SelectTrigger>
+            <SelectContent className="rounded-sm border-white/12 bg-[#141414]">
+              {sortOptions.map(opt => (
+                <SelectItem key={opt.value} value={opt.value} className="text-[12px] text-white focus:bg-white/10 focus:text-white cursor-pointer">
+                  {opt.label}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+
+        {activeChips.length > 0 && (
+          <div className="flex flex-wrap items-center gap-2 mb-2">
+            {activeChips.map(chip => (
+              <button
+                key={chip.key}
+                onClick={chip.onRemove}
+                className="inline-flex items-center gap-1.5 bg-white/8 text-white/70 text-[11px] font-medium px-2.5 py-1 rounded-full hover:bg-white/12 transition-colors"
+              >
+                {chip.label}<X className="w-3 h-3" />
+              </button>
+            ))}
+            {activeChips.length > 1 && (
+              <button onClick={clearFilters} className="text-[11px] text-white/40 hover:text-white transition-colors underline underline-offset-2" data-testid="button-clear-filters">
+                Tümünü Temizle
+              </button>
+            )}
+          </div>
+        )}
+      </div>
+
       {/* ─── ALT KATEGORİLER ─── */}
       {childCategories.length > 0 && (
         <section className="pt-8 px-5 lg:px-8" data-testid="section-subcategories">
@@ -487,7 +504,7 @@ export default function Category() {
       )}
 
       {/* ─── ÜRÜN IZGARASI ─── */}
-      <main className="py-10 lg:py-14 px-5 lg:px-8">
+      <main className="pt-2 pb-10 lg:pb-14 px-4 lg:px-6">
         <div className="max-w-[1400px] mx-auto">
           <AnimatePresence mode="wait">
             {isLoading ? (
@@ -526,7 +543,7 @@ export default function Category() {
             ) : (
               <motion.div
                 key={`grid-${slug}`}
-                className="grid grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 lg:gap-6"
+                className={`grid grid-cols-2 gap-4 lg:gap-6 ${gridCols === 4 ? 'lg:grid-cols-4' : 'lg:grid-cols-3'}`}
                 variants={gridVariants}
                 initial="hidden"
                 animate="show"

@@ -766,6 +766,12 @@ export class DbStorage implements IStorage {
     // Remove fields that shouldn't be updated (auto-managed or sent as strings from frontend)
     const { createdAt, updatedAt, id: productId, ...updateData } = product as any;
     if ("sku" in updateData && isBlankSku(updateData.sku)) updateData.sku = `S${await nextAutoSkuNumber(db)}`;
+    // Yalnızca kategori gibi ilişkili alanlar gönderildiğinde güncellenecek ürün alanı kalmaz;
+    // boş SET ifadesi hata verir, bu yüzden mevcut kayıt olduğu gibi döndürülür.
+    if (Object.keys(updateData).length === 0) {
+      const [existing] = await db.select().from(products).where(eq(products.id, id));
+      return existing;
+    }
     const [updated] = await db.update(products).set(updateData).where(eq(products.id, id)).returning();
     return updated;
   }

@@ -12,6 +12,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { SEO } from '@/components/SEO';
 import { BANK_TRANSFER_DISCOUNT_RATE } from '@shared/bankInfo';
 import { useShippingSettings } from '@/hooks/useShippingSettings';
+import { useHasLiveStreamItems } from '@/hooks/useLiveStream';
 import { ComplementaryProducts } from '@/components/ComplementaryProducts';
 
 export default function Cart() {
@@ -24,7 +25,8 @@ export default function Cart() {
   const editInputRef = useRef<HTMLInputElement>(null);
   const { freeShippingThreshold, domesticShippingCost } = useShippingSettings();
 
-  const shippingCost = subtotal >= freeShippingThreshold ? 0 : domesticShippingCost;
+  const hasLiveItems = useHasLiveStreamItems(items);
+  const shippingCost = hasLiveItems || subtotal >= freeShippingThreshold ? 0 : domesticShippingCost;
   const total = subtotal + shippingCost;
   const remainingForFreeShipping = Math.max(0, freeShippingThreshold - subtotal);
   const shippingProgress = Math.min((subtotal / freeShippingThreshold) * 100, 100);
@@ -381,7 +383,7 @@ export default function Cart() {
                       }
                       data-testid="text-shipping"
                     >
-                      {shippingCost === 0 ? 'Bedava' : `${shippingCost.toLocaleString('tr-TR')} ₺`}
+                      {hasLiveItems ? 'Alıcı Ödemeli' : shippingCost === 0 ? 'Bedava' : `${shippingCost.toLocaleString('tr-TR')} ₺`}
                     </span>
                   </div>
                 </div>
@@ -476,7 +478,7 @@ export default function Cart() {
                      <div className="flex justify-between text-white/55">
                       <span>Kargo</span>
                        <span className={shippingCost === 0 ? 'text-white' : ''}>
-                        {shippingCost === 0 ? 'Bedava' : `${shippingCost.toLocaleString('tr-TR')} ₺`}
+                        {hasLiveItems ? 'Alıcı Ödemeli' : shippingCost === 0 ? 'Bedava' : `${shippingCost.toLocaleString('tr-TR')} ₺`}
                       </span>
                     </div>
                      <div className="flex justify-between font-bold pt-2 border-t border-white/8 text-white">

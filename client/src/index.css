@@ -328,9 +328,9 @@ html[data-theme="light"] .add-to-cart-solid:hover {
    generation for custom @utility classes. */
 .mega-menu-panel {
   isolation: isolate;
-  background-color: rgba(9, 9, 9, 0.92);
-  -webkit-backdrop-filter: blur(22px) saturate(1.35);
-  backdrop-filter: blur(22px) saturate(1.35);
+  background-color: rgba(9, 9, 9, 0.45);
+  -webkit-backdrop-filter: blur(28px) saturate(1.5);
+  backdrop-filter: blur(28px) saturate(1.5);
 }
 
 .font-display {
@@ -939,4 +939,24 @@ html[data-theme="light"] .mobile-drawer-glass > div:first-child {
   --color-white: #ffffff;
   --color-black: #000000;
   background: #0a0a0a;
+}
+
+/* İndirim sayacı: rakamlar basık görünmesin diye satır yüksekliği ve harf aralığı açılır */
+.storefront-new-badge.discount-countdown {
+  font-family: var(--font-body);
+  font-size: 0.6875rem;
+  font-weight: 600;
+  line-height: 1.35;
+  letter-spacing: 0.04em;
+  padding: 0.4rem 0.625rem;
+  font-variant-numeric: tabular-nums;
+}
+.storefront-new-badge--compact.discount-countdown {
+  font-size: 0.625rem;
+  padding: 0.3rem 0.45rem;
+}
+
+/* Ürün başlığı: açık temada #2a2a2a */
+html[data-theme="light"] .product-title {
+  color: #2a2a2a;
 }

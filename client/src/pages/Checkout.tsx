@@ -24,6 +24,7 @@ import { GoogleAuthButton } from '@/components/AuthLayout';
 import { BANK_TRANSFER_INFO } from '@shared/bankInfo';
 import { InvoiceFields, emptyInvoiceForm, invoiceFormFrom, invoicePayload, validateInvoiceForm, type InvoiceFormValue } from '@/components/InvoiceFields';
 import { useShippingSettings } from '@/hooks/useShippingSettings';
+import { useHasLiveStreamItems } from '@/hooks/useLiveStream';
 import { ComplementaryProducts } from '@/components/ComplementaryProducts';
 
 interface Product {
@@ -238,6 +239,15 @@ export default function Checkout() {
   });
   const [useSeparateBillingAddress, setUseSeparateBillingAddress] = useState(false);
   const [receiverPaysShipping, setReceiverPaysShipping] = useState(false);
+  // Canlı yayın ürünü varsa Alıcı Ödemeli kendiliğinden seçilir (müşteri isterse kaldırabilir)
+  const hasLiveItems = useHasLiveStreamItems(items);
+  const liveAutoAppliedRef = useRef(false);
+  useEffect(() => {
+    if (hasLiveItems && !liveAutoAppliedRef.current) {
+      liveAutoAppliedRef.current = true;
+      setReceiverPaysShipping(true);
+    }
+  }, [hasLiveItems]);
   const [billingAddress, setBillingAddress] = useState({
     address: '',
     city: '',

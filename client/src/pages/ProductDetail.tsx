@@ -497,11 +497,24 @@ function fmt(v: number) {
 }
 
 function InstallmentTab({ price, tabInstallmentNote }: { price: number; tabInstallmentNote?: string | null }) {
-  const rows = INSTALLMENT_RATES.map(({ n, rate }) => {
+  // Admin ayarındaki en yüksek taksit sayısı (0 = sınırsız, en çok 12)
+  const { data: installmentInfo } = useQuery<{ maxInstallment: number }>({
+    queryKey: ['/api/payment/installment-info'],
+  });
+  const maxInstallment = installmentInfo?.maxInstallment ? installmentInfo.maxInstallment : 12;
+  const rows = INSTALLMENT_RATES.filter(({ n }) => n <= maxInstallment).map(({ n, rate }) => {
     const total   = price * (1 + rate / 100);
     const monthly = total / n;
     return { n, total, monthly };
   });
+
+  if (rows.length === 0) {
+    return (
+      <p className="text-[13px] text-white/55" data-testid="table-installments">
+        Bu ürün için taksit seçeneği bulunmuyor. Tek çekim ödeme geçerlidir.
+      </p>
+    );
+  }
 
   return (
     <div data-testid="table-installments">
@@ -879,6 +892,11 @@ export default function ProductDetail() {
   const reduceMotion = useReducedMotion();
 
   const { data: product, isLoading } = useProduct(params.slug || '');
+  // Bayiliği onaylı markaların ürünlerinde "Yetkili Satıcı" rozeti gösterilir
+  const { data: authorizedBrands = [] } = useQuery<string[]>({
+    queryKey: ['/api/authorized-brands'],
+    staleTime: 5 * 60_000,
+  });
   const { data: allProducts = [] } = useProducts({});
   const { data: categories = [] } = useCategories();
 
@@ -964,6 +982,7 @@ export default function ProductDetail() {
     });
     return list;
   }, [activeVariants]);
+  const isAuthorizedDealer = !!product?.brand && authorizedBrands.some((n) => n.toLowerCase() === product.brand!.toLowerCase());
   const [selectedSize, setSelectedSize] = useState<string | null>(null);
   const [selectedColor, setSelectedColor] = useState<string | null>(null);
 
@@ -1625,7 +1644,7 @@ export default function ProductDetail() {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
 
           {/* Breadcrumb */}
-          <nav className="flex items-center gap-1.5 text-[11px] text-white/38 mb-8 lg:mb-5 font-mono tracking-[0.15em] uppercase flex-wrap">
+          <nav className="flex items-center gap-1.5 text-[10px] text-white/38 mb-8 lg:mb-5 font-sans tracking-[0.15em] uppercase flex-wrap">
             <Link href="/" className="hover:text-white transition-colors">Ana Sayfa</Link>
             {category && (
               <>
@@ -1634,7 +1653,7 @@ export default function ProductDetail() {
               </>
             )}
             <ChevronRight className="w-3 h-3 text-white/20" />
-            <span className="text-white/60 normal-case font-body tracking-normal text-[12px] truncate max-w-[200px]">{product.name}</span>
+            <span className="text-white/60 normal-case font-sans tracking-normal text-[10px]">{product.name}</span>
           </nav>
 
           {/* ── Product grid: Gallery + Info ── */}
@@ -2054,7 +2073,7 @@ export default function ProductDetail() {
                    />
                  </div>
                  <div>
-                    <p className="font-sans text-[17px] lg:text-[15px] tracking-[0.12em] text-white flex items-center gap-0.5">
+                    <p className="font-sans font-extrabold text-[17px] lg:text-[15px] tracking-[0.12em] text-white flex items-center gap-0.5">
                        SEPETZEN
                        <svg viewBox="0 0 20 20" fill="none" className="w-[18px] h-[18px] lg:w-4 lg:h-4 lg:-translate-y-[3px] shrink-0" aria-label="Doğrulanmış satıcı">
                          <circle cx="10" cy="10" r="10" fill="#fefb00"/>
@@ -2062,6 +2081,30 @@ export default function ProductDetail() {
                        </svg>
                     </p>
                     <p className="mt-0.5 text-[10px] lg:text-[9px] uppercase tracking-[0.14em] text-white/45">Outdoor Gear · Dalaman / Muğla</p>
+                 </div>
+                 <div className="ml-auto flex items-center gap-2 shrink-0">
+                   {isAuthorizedDealer && (
+                     <img
+                       src="/images/yetkili-satici.png"
+                       alt="Yetkili Satıcı"
+                       width={2172}
+                       height={724}
+                       loading="lazy"
+                       decoding="async"
+                       className="h-9 lg:h-8 w-auto select-none"
+                       data-testid="badge-authorized-dealer"
+                     />
+                   )}
+                   <img
+                     src="/images/hizli-satici.png"
+                     alt="Hızlı Satıcı"
+                     width={2126}
+                     height={740}
+                     loading="lazy"
+                     decoding="async"
+                     className="h-9 lg:h-8 w-auto select-none"
+                     data-testid="badge-fast-seller"
+                   />
                  </div>
                </div>
 
@@ -2087,7 +2130,7 @@ export default function ProductDetail() {
 
               {/* Product name */}
                <h1
-                  className="font-display text-3xl sm:text-4xl lg:text-[32px] xl:text-4xl font-bold text-white leading-[1.05] tracking-[0.015em]"
+                  className="product-title font-sans text-[20px] font-medium text-white leading-[1.25] tracking-[0.015em]"
                 data-testid="text-product-name"
               >
                 {product.name}

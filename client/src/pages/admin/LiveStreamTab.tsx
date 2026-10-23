@@ -60,8 +60,19 @@ export default function LiveStreamTab() {
     ? products.filter(p => !form.productIds.includes(p.id) && p.name.toLocaleLowerCase('tr').includes(q)).slice(0, 8)
     : [];
 
-  const add = (id: string) => patch({ productIds: [...form.productIds, id] });
-  const remove = (id: string) => patch({ productIds: form.productIds.filter(x => x !== id) });
+  const liveIdList = form.liveProductIds ?? form.productIds;
+  const liveSet = new Set(liveIdList);
+  const liveCount = form.productIds.filter(id => liveSet.has(id)).length;
+  const draftCount = form.productIds.length - liveCount;
+  // Yeni eklenen ürün taslak olarak başlar, sitede görünmez
+  const add = (id: string) => patch({ productIds: [...form.productIds, id], liveProductIds: liveIdList });
+  const remove = (id: string) => patch({
+    productIds: form.productIds.filter(x => x !== id),
+    liveProductIds: liveIdList.filter(x => x !== id),
+  });
+  // Yayına alma / taslağa çekme anında kaydedilir
+  const setLive = (ids: string[]) => save.mutate({ ...form, liveProductIds: ids });
+  const toggleProduct = (id: string) => setLive(liveSet.has(id) ? liveIdList.filter(x => x !== id) : [...liveIdList, id]);
   const move = (i: number, dir: -1 | 1) => {
     const j = i + dir;
     if (j < 0 || j >= form.productIds.length) return;
@@ -119,9 +130,22 @@ export default function LiveStreamTab() {
       {/* Ürün seçimi */}
       <div className="rounded-xl border border-neutral-200 bg-white p-5">
         <div className="flex items-center justify-between mb-3">
-          <h3 className="font-semibold text-neutral-900">Yayındaki ürünler <span className="text-neutral-400 font-normal">({form.productIds.length})</span></h3>
+          <div>
+            <h3 className="font-semibold text-neutral-900">Ürünler <span className="text-neutral-400 font-normal">({form.productIds.length})</span></h3>
+            {form.productIds.length > 0 && (
+              <p className="text-xs text-neutral-500 mt-0.5" data-testid="text-live-counts">
+                <span className="text-green-700 font-medium">{liveCount} yayında</span> · {draftCount} taslakta
+              </p>
+            )}
+          </div>
           {form.productIds.length > 0 && (
-            <button type="button" onClick={() => patch({ productIds: [] })} className="text-xs text-neutral-500 hover:text-red-600">Listeyi temizle</button>
+            <div className="flex items-center gap-3 text-xs">
+              <button type="button" onClick={() => setLive([...form.productIds])} disabled={save.isPending || draftCount === 0}
+                className="font-medium text-green-700 hover:text-green-900 disabled:opacity-40" data-testid="button-live-all-on">Hepsini yayına al</button>
+              <button type="button" onClick={() => setLive([])} disabled={save.isPending || liveCount === 0}
+                className="font-medium text-neutral-600 hover:text-neutral-900 disabled:opacity-40" data-testid="button-live-all-off">Hepsini taslağa al</button>
+              <button type="button" onClick={() => patch({ productIds: [], liveProductIds: [] })} className="text-neutral-500 hover:text-red-600">Listeyi temizle</button>
+            </div>
           )}
         </div>
 
@@ -151,17 +175,32 @@ export default function LiveStreamTab() {
         </div>
 
         {form.productIds.length === 0 ? (
-          <p className="text-sm text-neutral-400 text-center py-8 border border-dashed border-neutral-200 rounded-lg">Henüz ürün eklenmedi. Yayında gösterdiğiniz ürünleri yukarıdan arayıp ekleyin.</p>
+          <p className="text-sm text-neutral-400 text-center py-8 border border-dashed border-neutral-200 rounded-lg">Henüz ürün eklenmedi. Ürünleri yukarıdan arayıp ekleyin, eklenenler taslak olarak bekler ve siz yayına alana kadar sitede görünmez.</p>
         ) : (
           <div className="space-y-1.5">
             {form.productIds.map((id, i) => {
               const p = byId.get(id);
               const img = firstImage(p);
+              const isLive = liveSet.has(id);
               return (
-                <div key={id} className="flex items-center gap-3 border border-neutral-200 rounded-lg px-3 py-2">
+                <div key={id} className={`flex items-center gap-3 border rounded-lg px-3 py-2 ${isLive ? 'border-green-200 bg-green-50/40' : 'border-neutral-200'}`} data-testid={`live-row-${id}`}>
                   <span className="w-5 text-xs text-neutral-400 tabular-nums">{i + 1}</span>
                   {img ? <img src={img} alt="" className="w-9 h-9 rounded object-cover bg-neutral-100" /> : <span className="w-9 h-9 rounded bg-neutral-100 flex items-center justify-center"><Package className="w-4 h-4 text-neutral-400" /></span>}
-                  <span className="flex-1 text-sm text-neutral-800 truncate">{p?.name ?? 'Silinmiş ürün'}</span>
+                  <span className={`flex-1 text-sm truncate ${isLive ? 'text-neutral-900' : 'text-neutral-500'}`}>{p?.name ?? 'Silinmiş ürün'}</span>
+                  <button
+                    type="button"
+                    role="switch"
+                    aria-checked={isLive}
+                    onClick={() => toggleProduct(id)}
+                    disabled={save.isPending}
+                    className="flex items-center gap-2 text-[11px] font-semibold disabled:opacity-60"
+                    data-testid={`switch-live-${id}`}
+                  >
+                    <span className={isLive ? 'text-green-700' : 'text-neutral-400'}>{isLive ? 'Yayında' : 'Taslak'}</span>
+                    <span className={`relative w-9 h-5 rounded-full transition-colors ${isLive ? 'bg-green-600' : 'bg-neutral-300'}`}>
+                      <span className={`absolute top-0.5 w-4 h-4 rounded-full bg-white shadow transition-all ${isLive ? 'left-[18px]' : 'left-0.5'}`} />
+                    </span>
+                  </button>
                   <button onClick={() => move(i, -1)} disabled={i === 0} className="p-1.5 text-neutral-400 hover:text-neutral-800 disabled:opacity-30" aria-label="Yukarı"><ArrowUp className="w-4 h-4" /></button>
                   <button onClick={() => move(i, 1)} disabled={i === form.productIds.length - 1} className="p-1.5 text-neutral-400 hover:text-neutral-800 disabled:opacity-30" aria-label="Aşağı"><ArrowDown className="w-4 h-4" /></button>
                   <button onClick={() => remove(id)} className="p-1.5 text-neutral-400 hover:text-red-500" aria-label="Kaldır"><Trash2 className="w-4 h-4" /></button>

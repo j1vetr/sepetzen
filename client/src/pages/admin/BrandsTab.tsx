@@ -34,9 +34,10 @@ interface BrandDraft {
   slug: string;
   logoUrl: string;
   isActive: boolean;
+  isAuthorizedDealer: boolean;
 }
 
-const EMPTY_DRAFT: BrandDraft = { name: '', slug: '', logoUrl: '', isActive: true };
+const EMPTY_DRAFT: BrandDraft = { name: '', slug: '', logoUrl: '', isActive: true, isAuthorizedDealer: false };
 
 // ─── API yardımcıları ────────────────────────────────────────────────────────
 async function fetchBrands(): Promise<Brand[]> {
@@ -52,6 +53,7 @@ async function saveBrand(data: { id?: string; draft: BrandDraft }) {
     slug: draft.slug.trim(),
     logoUrl: draft.logoUrl.trim() || null,
     isActive: draft.isActive,
+    isAuthorizedDealer: draft.isAuthorizedDealer,
   };
   const res = await fetch(id ? `/api/admin/brands/${id}` : '/api/admin/brands', {
     method: id ? 'PUT' : 'POST',
@@ -180,6 +182,7 @@ export default function BrandsTab() {
       slug: brand.slug,
       logoUrl: brand.logoUrl ?? '',
       isActive: brand.isActive,
+      isAuthorizedDealer: !!brand.isAuthorizedDealer,
     });
     setFormError(null);
     setModalOpen(true);
@@ -332,9 +335,12 @@ export default function BrandsTab() {
                     </td>
                     <td className="px-4 py-3 text-neutral-600 tabular-nums">{brand.productCount ?? 0}</td>
                     <td className="px-4 py-3">
-                      <StatusBadge tone={brand.isActive ? 'emerald' : 'neutral'}>
-                        {brand.isActive ? 'Aktif' : 'Pasif'}
-                      </StatusBadge>
+                      <div className="flex items-center gap-1.5 flex-wrap">
+                        <StatusBadge tone={brand.isActive ? 'emerald' : 'neutral'}>
+                          {brand.isActive ? 'Aktif' : 'Pasif'}
+                        </StatusBadge>
+                        {brand.isAuthorizedDealer && <StatusBadge tone="blue">Yetkili Satıcı</StatusBadge>}
+                      </div>
                     </td>
                     <td className="px-4 py-3">
                       <div className="flex items-center gap-1 justify-end">
@@ -448,6 +454,21 @@ export default function BrandsTab() {
             />
             <label htmlFor="brand-active" className="text-[13px] text-neutral-700 cursor-pointer">
               Aktif (ürün formunda listelensin)
+            </label>
+          </div>
+
+          <div className="flex items-start gap-2 rounded-lg border border-blue-100 bg-blue-50/60 p-3">
+            <input
+              id="brand-dealer"
+              type="checkbox"
+              checked={draft.isAuthorizedDealer}
+              onChange={(e) => setDraft((d) => ({ ...d, isAuthorizedDealer: e.target.checked }))}
+              className="mt-0.5 w-4 h-4 rounded border-neutral-300 accent-blue-600"
+              data-testid="checkbox-brand-dealer"
+            />
+            <label htmlFor="brand-dealer" className="text-[13px] text-neutral-700 cursor-pointer">
+              <span className="font-medium">Yetkili Satıcı rozeti</span>
+              <span className="block text-[11px] text-neutral-500">Bu markanın ürün sayfalarında "Yetkili Satıcı" rozeti görünür. Yalnızca bayiliği onaylanmış markalar için açın.</span>
             </label>
           </div>
         </div>

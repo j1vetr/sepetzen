@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import { getSpecValues } from '@/lib/specFilter';
-import { sortRecommended } from '@/lib/productSort';
+import { sortRecommended, sortDiscountedFirst } from '@/lib/productSort';
 import { flattenCategoryTree, getAncestors } from '@/lib/categoryTree';
 import { Header } from '@/components/Header';
 import { Footer } from '@/components/Footer';
@@ -35,6 +35,7 @@ const sortOptions = [
   { value: 'price_asc', label: 'Fiyat: Artan' },
   { value: 'price_desc', label: 'Fiyat: Azalan' },
   { value: 'popular', label: 'En Popüler' },
+  { value: 'discounted', label: 'İndirimdekiler' },
 ];
 
 
@@ -214,7 +215,10 @@ export default function Store() {
   const [priceRange, setPriceRange] = useState<[number, number]>([0, 10000]);
   const [filterOpen, setFilterOpen] = useState(false);
   const [gridCols, setGridCols] = useState<3 | 4>(4);
-  const [statusFilters, setStatusFilters] = useState<string[]>([]);
+  const [statusFilters, setStatusFilters] = useState<string[]>(() => {
+    const q = new URLSearchParams(typeof window !== 'undefined' ? window.location.search : '');
+    return [...(q.get('isNew') === '1' ? ['new'] : []), ...(q.get('discounted') === '1' ? ['discounted'] : [])];
+  });
   const [selectedBrands, setSelectedBrands] = useState<string[]>([]);
   // Dinamik filtre değerleri: { [key]: string[] }
   const [selectedSpecFilters, setSelectedSpecFilters] = useState<Record<string, string[]>>({});
@@ -283,7 +287,7 @@ export default function Store() {
     }
     if (statusFilters.includes('new')) result = result.filter(p => p.isNew);
     if (statusFilters.includes('discounted')) result = result.filter(p => !!p.discountBadge);
-    return sortBy === 'recommended' ? sortRecommended(result) : result;
+    return sortBy === 'recommended' ? sortRecommended(result) : sortBy === 'discounted' ? sortDiscountedFirst(result) : result;
   }, [sortBy, fetchedProducts, brandParam, statusFilters, freeShippingThreshold, selectedBrands, selectedSpecFilters, filterAttributes]);
   const { visible: visibleProducts, hasMore: hasMoreProducts, sentinelRef: productsSentinelRef } = useInfiniteList(filteredProducts, 24);
 
@@ -381,6 +385,46 @@ export default function Store() {
     ),
   ];
 
+  // Alt kategorisi 5'ten fazla olan bir grup, açılınca kendi içinde kayar.
+  const renderCategoryNode = (cat: (typeof orderedCategories)[number]): React.ReactNode => {
+    const kids = orderedCategories.filter(c => c.parentId === cat.id);
+    const hasKids = kids.length > 0;
+    const isOpen = expandedCats.has(cat.id);
+    return (
+      <div key={cat.id}>
+              <div key={cat.id} className="flex items-stretch" style={{ paddingLeft: cat.depth * 14 }}>
+            <button
+              onClick={() => setSelectedCategory(cat.id)}
+              className={`group flex items-center justify-between flex-1 min-w-0 px-2.5 py-2 text-[13px] text-left transition-all rounded-sm ${
+                selectedCategory === cat.id ? 'bg-white/10 text-white font-semibold' : 'text-white/60 hover:text-white hover:bg-white/5'
+              }`}
+              data-testid={`filter-category-${cat.slug}`}
+            >
+              <span className="truncate">{cat.name}</span>
+              {selectedCategory === cat.id && <span className="w-1.5 h-1.5 rounded-full bg-white shrink-0" />}
+            </button>
+            {hasKids && (
+              <button
+                type="button"
+                onClick={() => toggleExpanded(cat.id)}
+                aria-label={isOpen ? 'Alt kategorileri gizle' : 'Alt kategorileri göster'}
+                aria-expanded={isOpen}
+                className="w-8 flex items-center justify-center text-white/45 hover:text-white rounded-sm hover:bg-white/5"
+                data-testid={`toggle-category-${cat.slug}`}
+              >
+                <ChevronDown className={`w-4 h-4 transition-transform ${isOpen ? 'rotate-180' : ''}`} />
+              </button>
+            )}
+          </div>
+        {hasKids && isOpen && (
+          <div className={kids.length > 5 ? 'max-h-[184px] overflow-y-auto overscroll-contain pr-1' : ''} data-testid={`category-children-${cat.slug}`}>
+            {kids.map(k => renderCategoryNode(k))}
+          </div>
+        )}
+      </div>
+    );
+  };
+
   const drawerGroups: FilterDrawerGroup[] = [
     {
       id: 'sort',
@@ -416,36 +460,7 @@ export default function Store() {
             <span>Tüm Ürünler</span>
             {!selectedCategory && <span className="w-1.5 h-1.5 rounded-full bg-white" />}
           </button>
-          {visibleTreeCategories.map(cat => {
-            const hasKids = categories.some(c => c.parentId === cat.id);
-            const isOpen = expandedCats.has(cat.id);
-            return (
-              <div key={cat.id} className="flex items-stretch" style={{ paddingLeft: cat.depth * 14 }}>
-                <button
-                  onClick={() => setSelectedCategory(cat.id)}
-                  className={`group flex items-center justify-between flex-1 min-w-0 px-2.5 py-2 text-[13px] text-left transition-all rounded-sm ${
-                    selectedCategory === cat.id ? 'bg-white/10 text-white font-semibold' : 'text-white/60 hover:text-white hover:bg-white/5'
-                  }`}
-                  data-testid={`filter-category-${cat.slug}`}
-                >
-                  <span className="truncate">{cat.name}</span>
-                  {selectedCategory === cat.id && <span className="w-1.5 h-1.5 rounded-full bg-white shrink-0" />}
-                </button>
-                {hasKids && (
-                  <button
-                    type="button"
-                    onClick={() => toggleExpanded(cat.id)}
-                    aria-label={isOpen ? 'Alt kategorileri gizle' : 'Alt kategorileri göster'}
-                    aria-expanded={isOpen}
-                    className="w-8 flex items-center justify-center text-white/45 hover:text-white rounded-sm hover:bg-white/5"
-                    data-testid={`toggle-category-${cat.slug}`}
-                  >
-                    <ChevronDown className={`w-4 h-4 transition-transform ${isOpen ? 'rotate-180' : ''}`} />
-                  </button>
-                )}
-              </div>
-            );
-          })}
+          {orderedCategories.filter(c => !c.parentId || !categories.some(x => x.id === c.parentId)).map(cat => renderCategoryNode(cat))}
         </div>
       </div>
       ),

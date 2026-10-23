@@ -15,6 +15,8 @@ import { FreeShippingBadge } from '@/components/FreeShippingBadge';
 import { useFreeShippingThreshold } from '@/hooks/useShippingSettings';
 import { bindShippingThresholdText } from '@shared/shipping';
 import { isFreeShippingPromotion } from '@/lib/promotionBadge';
+import { isDiscountBadgeActive } from '@/lib/discountBadgeActive';
+import { getOriginalPrice, normalizeBadge } from '@/lib/discountPrice';
 import {
   DEFAULT_HOMEPAGE_CONTENT,
   resolveHomepageContent,
@@ -629,7 +631,7 @@ function NewArrivals({ products }: { products: Product[] }) {
                   </div>
                   {/* Info */}
                   <div>
-                    <p className="text-[11px] tracking-[0.06em] text-white/50 font-mono mb-0.5">Sepetzen</p>
+                    <p className="font-sans font-thin text-[10px] tracking-[0.06em] text-white/50 mb-0.5">Sepetzen</p>
                     <p className="text-[13px] lg:text-[14px] font-semibold text-white leading-snug mb-1.5 group-hover:text-white transition-colors">
                       {p.name}
                     </p>
@@ -642,6 +644,69 @@ function NewArrivals({ products }: { products: Product[] }) {
             );
           })}
         </div>
+      </div>
+    </section>
+  );
+}
+
+// ─── DISCOUNTED PRODUCTS ──────────────────────────────────────────────────────
+
+function DiscountedProducts({ products }: { products: Product[] }) {
+  const items = useMemo(() => {
+    return products
+      .filter(p =>
+        p.images?.length &&
+        p.discountBadge &&
+        !(p.variants && p.variants.length > 0 && p.variants.every(v => !(v.stock > 0))) &&
+        !isFreeShippingPromotion(p.discountBadge) &&
+        isDiscountBadgeActive(p.discountBadge, p.discountBadgeStartDate, p.discountBadgeEndDate) &&
+        getOriginalPrice(parseFloat(String(p.basePrice || '0')) || 0, normalizeBadge(p.discountBadge)) !== null,
+      )
+      .slice(0, 8);
+  }, [products]);
+
+  if (!items.length) return null;
+
+  return (
+    <section className="theme-light-zone bg-[#0F0F0F] py-16 lg:py-24 px-5 lg:px-10" data-testid="scene-discounted">
+      <div className="max-w-[1320px] mx-auto">
+        <div className="flex items-end justify-between mb-10 lg:mb-14">
+          <div>
+            <p className="text-[10px] font-mono tracking-[0.30em] uppercase text-white mb-2">Fırsat</p>
+            <h2
+              className="font-black text-white leading-none"
+              style={{ fontSize: 'clamp(28px, 4vw, 52px)', letterSpacing: '-0.03em' }}
+            >
+              İndirimdekiler
+            </h2>
+          </div>
+          <Link
+            href="/magaza?discounted=1"
+            className="hidden sm:inline-flex items-center gap-2 text-[11px] tracking-[0.22em] uppercase font-semibold text-white/35 hover:text-white transition-colors"
+            data-testid="link-discounted-all"
+          >
+            Hepsini Gör <ArrowUpRight className="w-3.5 h-3.5" />
+          </Link>
+        </div>
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 lg:gap-5">
+          {items.map((p, i) => (
+            <motion.div
+              key={p.id}
+              initial={{ opacity: 0, y: 24 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              viewport={{ once: true, amount: 0.05 }}
+              transition={{ duration: 0.5, delay: (i % 4) * 0.08, ease: [0.16, 1, 0.3, 1] }}
+            >
+              <ProductCard product={p} />
+            </motion.div>
+          ))}
+        </div>
+        <Link
+          href="/magaza?discounted=1"
+          className="sm:hidden mt-8 flex items-center justify-center gap-2 text-[11px] tracking-[0.22em] uppercase font-semibold text-white/60 hover:text-white transition-colors"
+        >
+          Hepsini Gör <ArrowUpRight className="w-3.5 h-3.5" />
+        </Link>
       </div>
     </section>
   );
@@ -800,7 +865,7 @@ function TrustStrip({ items: rawItems }: { items: TrustItem[] }) {
                   i < items.length - 1 ? 'sm:pr-8 lg:pr-12' : '',
                 ].join(' ')}
               >
-                <div className="w-11 h-11 rounded-sm bg-[#141414]/20 flex items-center justify-center shrink-0">
+                <div className="w-11 h-11 rounded-[30px] bg-[#141414]/20 flex items-center justify-center shrink-0">
                   <Icon className="w-[19px] h-[19px] text-[#FAFAFA]" strokeWidth={1.75} />
                 </div>
                 <div>
@@ -1145,6 +1210,7 @@ export default function Home() {
     featured: <FeaturedProducts key="featured" products={products} />,
     categories: <PopularCategories key="categories" products={products} />,
     newArrivals: <NewArrivals key="newArrivals" products={products} />,
+    discounted: <DiscountedProducts key="discounted" products={products} />,
     showcaseMarquee: content.showcaseMarquee.isActive && showcaseItems.length > 0
       ? <ShowcaseMarquee key="showcaseMarquee" items={showcaseItems} />
       : null,

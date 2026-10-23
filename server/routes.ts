@@ -2605,6 +2605,17 @@ KURALLAR:
     }
   });
 
+  // Public: bayiliği olan (Yetkili Satıcı rozeti gösterilecek) aktif marka adları.
+  app.get("/api/authorized-brands", async (_req, res) => {
+    try {
+      const list = await storage.getBrands();
+      res.json(list.filter((b) => b.isActive && b.isAuthorizedDealer).map((b) => b.name));
+    } catch (error) {
+      console.error("[Brands] authorized brands error:", error);
+      res.status(500).json({ error: "Yetkili satıcı markaları alınamadı" });
+    }
+  });
+
   // Alt kategori kuralları: sınırsız derinlik. Tek kısıt döngü oluşmamasıdır:
   // bir kategori kendisinin ya da kendi alt kategorilerinden birinin altına taşınamaz.
   // Geçersizse Türkçe hata mesajı döner, geçerliyse null.
@@ -2665,7 +2676,7 @@ KURALLAR:
 
   app.post("/api/admin/brands", requireAdmin, async (req, res) => {
     try {
-      const { name, slug, logoUrl, isActive } = req.body;
+      const { name, slug, logoUrl, isActive, isAuthorizedDealer } = req.body;
       if (!name?.trim()) return res.status(400).json({ error: "Marka adı zorunludur" });
       if (!slug?.trim()) return res.status(400).json({ error: "Slug zorunludur" });
       const existing = await storage.getBrandBySlug(slug.trim());
@@ -2675,6 +2686,7 @@ KURALLAR:
         slug: slug.trim(),
         logoUrl: logoUrl?.trim() || null,
         isActive: isActive !== false,
+        isAuthorizedDealer: isAuthorizedDealer === true,
       });
       res.status(201).json(brand);
     } catch (error) {
@@ -2684,7 +2696,7 @@ KURALLAR:
 
   app.put("/api/admin/brands/:id", requireAdmin, async (req, res) => {
     try {
-      const { name, slug, logoUrl, isActive } = req.body;
+      const { name, slug, logoUrl, isActive, isAuthorizedDealer } = req.body;
       if (!name?.trim()) return res.status(400).json({ error: "Marka adı zorunludur" });
       if (!slug?.trim()) return res.status(400).json({ error: "Slug zorunludur" });
       // Slug unique check (başkası kullanıyor mu?)
@@ -2697,6 +2709,7 @@ KURALLAR:
         slug: slug.trim(),
         logoUrl: logoUrl?.trim() || null,
         isActive: isActive !== false,
+        isAuthorizedDealer: isAuthorizedDealer === true,
       });
       if (!brand) return res.status(404).json({ error: "Marka bulunamadı" });
       res.json(brand);
@@ -9080,7 +9093,9 @@ window.addEventListener('load', function() {
       const live = await readLiveStream();
       if (!live.isActive) return res.json({ isActive: false });
       const products: any[] = [];
+      const liveIds = new Set(live.liveProductIds ?? live.productIds);
       for (const id of live.productIds) {
+        if (!liveIds.has(id)) continue; // taslaktaki ürün sitede görünmez
         const p = await storage.getProduct(id);
         if (p && p.isActive !== false) products.push(p);
       }
@@ -9112,7 +9127,7 @@ window.addEventListener('load', function() {
       if (!parsed.success) {
         return res.status(400).json({ error: "Geçersiz içerik", details: parsed.error.flatten() });
       }
-      const data = parsed.data;
+      const data = resolveLiveStream(parsed.data);
       if (data.streamUrl && !/^https?:\/\//i.test(data.streamUrl)) {
         return res.status(400).json({ error: "Yayın bağlantısı http veya https ile başlamalı" });
       }

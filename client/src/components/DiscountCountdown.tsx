@@ -24,7 +24,7 @@ export function DiscountCountdown({ endDate, className = '', testId }: { endDate
 
   return (
     <span
-      className={`storefront-new-badge normal-case tabular-nums gap-1.5 ${className}`}
+      className={`storefront-new-badge discount-countdown normal-case tabular-nums gap-1.5 ${className}`}
       data-testid={testId}
       title="İndirimin bitmesine kalan süre"
     >

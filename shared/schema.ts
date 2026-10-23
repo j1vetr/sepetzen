@@ -1019,6 +1019,8 @@ export const brands = pgTable("brands", {
   slug: text("slug").notNull().unique(),
   logoUrl: text("logo_url"),
   isActive: boolean("is_active").default(true).notNull(),
+  // Marka bayiliği varsa ürün sayfasında "Yetkili Satıcı" rozeti gösterilir
+  isAuthorizedDealer: boolean("is_authorized_dealer").default(false).notNull(),
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
 export const blogPosts = pgTable("blog_posts", {

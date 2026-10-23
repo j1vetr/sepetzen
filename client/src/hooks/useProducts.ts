@@ -28,6 +28,8 @@ export interface Product {
   isNew: boolean;
 
   discountBadge?: string | null;
+  discountBadgeStartDate?: string | null;
+  discountBadgeEndDate?: string | null;
 
   brand?: string | null;
 
@@ -103,7 +105,7 @@ export interface ProductFilters {
   search?: string;
   minPrice?: number;
   maxPrice?: number;
-  sort?: 'recommended' | 'price_asc' | 'price_desc' | 'newest' | 'popular';
+  sort?: 'recommended' | 'price_asc' | 'price_desc' | 'newest' | 'popular' | 'discounted';
 }
 
 export function useProducts(filters?: ProductFilters) {
@@ -117,8 +119,8 @@ export function useProducts(filters?: ProductFilters) {
       if (filters?.search) params.append('search', filters.search);
       if (filters?.minPrice !== undefined) params.append('minPrice', String(filters.minPrice));
       if (filters?.maxPrice !== undefined) params.append('maxPrice', String(filters.maxPrice));
-      // 'recommended' istemcide karıştırılır, sunucu varsayılan sırayla döner
-      if (filters?.sort && filters.sort !== 'recommended') params.append('sort', filters.sort);
+      // 'recommended' ve 'discounted' istemcide sıralanır, sunucu varsayılan sırayla döner
+      if (filters?.sort && filters.sort !== 'recommended' && filters.sort !== 'discounted') params.append('sort', filters.sort);
 
       const response = await fetch(`/api/products?${params.toString()}`);
       if (!response.ok) throw new Error('Failed to fetch products');

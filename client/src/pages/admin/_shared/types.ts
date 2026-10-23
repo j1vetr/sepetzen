@@ -205,6 +205,7 @@ export interface Brand {
   slug: string;
   logoUrl?: string | null;
   isActive: boolean;
+  isAuthorizedDealer?: boolean;
   createdAt: string;
   productCount?: number;
 }

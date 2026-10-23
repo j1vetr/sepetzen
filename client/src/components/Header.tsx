@@ -427,7 +427,7 @@ export function Header({ overlayHero = false }: { overlayHero?: boolean } = {}) 
                     </span>
                   </button>
                 </DropdownMenuTrigger>
-                <DropdownMenuContent align="end" className="surface-glass-dark bg-black/85 text-white border border-white/10 shadow-[0_8px_30px_rgba(0,0,0,0.5)] rounded-md min-w-[180px] z-[9999]">
+                <DropdownMenuContent align="end" className="surface-glass-dark bg-black/45 backdrop-blur-xl text-white border border-white/10 shadow-[0_8px_30px_rgba(0,0,0,0.5)] rounded-md min-w-[180px] z-[9999]">
                   <DropdownMenuItem disabled className="text-[10px] tracking-widest text-white/30 uppercase">{user.firstName || user.email}</DropdownMenuItem>
                   <DropdownMenuItem onClick={() => navigate('/hesabim')} className="text-[11px] tracking-wider uppercase text-white/75 hover:bg-white/5 hover:text-white cursor-pointer py-2.5">
                     <User className="w-4 h-4 mr-2" />Hesabım
@@ -567,7 +567,7 @@ export function Header({ overlayHero = false }: { overlayHero?: boolean } = {}) 
                       <img
                         src={siteIdentity.logoUrl}
                         alt="Sepetzen"
-                        className="h-12 w-auto object-contain"
+                        className="h-14 w-auto object-contain"
                       />
                     </a>
                   </motion.div>
@@ -598,7 +598,7 @@ export function Header({ overlayHero = false }: { overlayHero?: boolean } = {}) 
                 <DropdownMenuContent
                   align="start"
                   sideOffset={12}
-                  className="surface-glass-dark bg-black/92 text-white border border-white/[0.08] shadow-[0_12px_40px_rgba(0,0,0,0.6)] rounded-b-md p-0 z-[9999] overflow-hidden"
+                  className="surface-glass-dark bg-black/45 backdrop-blur-xl text-white border border-white/[0.08] shadow-[0_12px_40px_rgba(0,0,0,0.6)] rounded-b-md p-0 z-[9999] overflow-hidden"
                   style={{ width: allCatsDropdownWidth }}
                   onMouseEnter={cancelAllCatsClose}
                   onMouseLeave={closeAllCats}
@@ -779,7 +779,7 @@ export function Header({ overlayHero = false }: { overlayHero?: boolean } = {}) 
                           <DropdownMenuContent
                             align="end"
                             sideOffset={12}
-                            className="surface-glass-dark bg-black/85 text-white border border-white/10 shadow-[0_8px_30px_rgba(0,0,0,0.5)] rounded-md p-2 min-w-[220px] z-[9999]"
+                            className="surface-glass-dark bg-black/45 backdrop-blur-xl text-white border border-white/10 shadow-[0_8px_30px_rgba(0,0,0,0.5)] rounded-md p-2 min-w-[220px] z-[9999]"
                           >
                             {navHidden.map((root) => {
                               const children = (root.children || []).filter(c => c.isActive);
@@ -841,7 +841,7 @@ export function Header({ overlayHero = false }: { overlayHero?: boolean } = {}) 
                   <DropdownMenuContent
                     align="start"
                     sideOffset={20}
-                    className="surface-glass-dark bg-black/85 text-white border border-white/10 shadow-[0_8px_30px_rgba(0,0,0,0.5)] rounded-md p-5"
+                    className="surface-glass-dark bg-black/45 backdrop-blur-xl text-white border border-white/10 shadow-[0_8px_30px_rgba(0,0,0,0.5)] rounded-md p-5"
                     style={{ minWidth: visibleCategories.length > 6 ? 520 : 240 }}
                   >
                     {visibleCategories.length === 0 ? (
@@ -939,9 +939,9 @@ export function Header({ overlayHero = false }: { overlayHero?: boolean } = {}) 
             transition={{ duration: 0.26, ease: [0.16, 1, 0.3, 1] }}
             className="mega-menu-panel absolute top-full left-0 right-0 surface-glass-dark border-b border-transparent shadow-[0_40px_80px_-16px_rgba(0,0,0,0.55)] z-[110] overflow-hidden"
             style={{
-              backgroundColor: 'rgba(9, 9, 9, 0.92)',
-              backdropFilter: 'blur(22px) saturate(1.35)',
-              WebkitBackdropFilter: 'blur(22px) saturate(1.35)',
+              backgroundColor: 'rgba(9, 9, 9, 0.45)',
+              backdropFilter: 'blur(28px) saturate(1.5)',
+              WebkitBackdropFilter: 'blur(28px) saturate(1.5)',
             }}
             onMouseEnter={cancelClose}
             onMouseLeave={closeMega}

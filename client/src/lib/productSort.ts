@@ -1,4 +1,7 @@
-export type ProductSortValue = 'recommended' | 'newest' | 'price_asc' | 'price_desc' | 'popular';
+import { isFreeShippingPromotion } from '@/lib/promotionBadge';
+import { isDiscountBadgeActive } from '@/lib/discountBadgeActive';
+import { normalizeBadge } from '@/lib/discountPrice';
+export type ProductSortValue = 'recommended' | 'newest' | 'price_asc' | 'price_desc' | 'popular' | 'discounted';
 
 export const productSortOptions: { value: ProductSortValue; label: string }[] = [
   { value: 'recommended', label: 'Önerilen' },
@@ -6,7 +9,34 @@ export const productSortOptions: { value: ProductSortValue; label: string }[] = 
   { value: 'price_asc', label: 'Fiyat: Düşük → Yüksek' },
   { value: 'price_desc', label: 'Fiyat: Yüksek → Düşük' },
   { value: 'popular', label: 'En Popüler' },
+  { value: 'discounted', label: 'İndirimdekiler' },
 ];
+
+type DiscountSortable = {
+  id: string;
+  basePrice?: string | null;
+  discountBadge?: string | null;
+  discountBadgeStartDate?: string | null;
+  discountBadgeEndDate?: string | null;
+  variants?: { stock?: number | null }[] | null;
+};
+
+/** Şu an geçerli indirim yüzdesi (yoksa 0). Tükenen ürün indirimli sayılmaz. */
+function activeDiscountPercent(p: DiscountSortable): number {
+  if (!p.discountBadge || isFreeShippingPromotion(p.discountBadge)) return 0;
+  if (!isDiscountBadgeActive(p.discountBadge, p.discountBadgeStartDate, p.discountBadgeEndDate)) return 0;
+  if (p.variants && p.variants.length > 0 && p.variants.every((v) => !((v.stock ?? 0) > 0))) return 0;
+  const m = normalizeBadge(p.discountBadge).match(/%(\d+)/);
+  return m ? parseInt(m[1], 10) : 0;
+}
+
+/** İndirimdekiler: geçerli indirimi olanlar önce (yüzdesi yüksek olan üstte), diğerleri mevcut sırasıyla arkada. */
+export function sortDiscountedFirst<T extends DiscountSortable>(list: T[]): T[] {
+  return list
+    .map((p, i) => ({ p, i, d: activeDiscountPercent(p) }))
+    .sort((a, b) => Number(b.d > 0) - Number(a.d > 0) || b.d - a.d || a.i - b.i)
+    .map((x) => x.p);
+}
 
 // Sayfa her yüklendiğinde değişen, ama oturum boyunca sabit kalan tohum:
 // filtre değiştirirken ürünler sürekli yer değiştirmesin, yenilemede karışsın.
@@ -41,7 +71,7 @@ export function sortRecommended<T extends { id: string }>(list: T[]): T[] {
 }
 
 /** Marka sayfası gibi sunucudan sıralanmamış listeler için tam istemci sıralaması. */
-export function sortProductsClient<T extends { id: string; basePrice?: string | null; createdAt?: string | Date | null; isFeatured?: boolean | null }>(
+export function sortProductsClient<T extends DiscountSortable & { id: string; basePrice?: string | null; createdAt?: string | Date | null; isFeatured?: boolean | null }>(
   list: T[],
   sort: ProductSortValue,
 ): T[] {
@@ -54,6 +84,8 @@ export function sortProductsClient<T extends { id: string; basePrice?: string | 
       return [...list].sort((a, b) => price(a) - price(b));
     case 'price_desc':
       return [...list].sort((a, b) => price(b) - price(a));
+    case 'discounted':
+      return sortDiscountedFirst(list);
     case 'popular':
       return [...list].sort((a, b) => Number(!!b.isFeatured) - Number(!!a.isFeatured) || time(b) - time(a));
     default:
