@@ -9150,21 +9150,25 @@ window.addEventListener('load', function() {
       let items: { type: string; id: string }[] = [];
       try { items = JSON.parse(decodeURIComponent(raw)); } catch { return res.json([]); }
 
-      const seen = new Set<string>();
-      const result: any[] = [];
-
+      // Her kategori/ürün kendi listesini üretir, sonra sırayla karıştırılır: şerit
+      // yalnızca ilk kategorinin ürünleriyle dolmasın, seçilen her kategori görünsün.
+      const lists: any[][] = [];
       for (const item of items) {
         if (item.type === 'category') {
           const prods = await storage.getProducts({ categoryId: item.id, limit: 50 });
-          for (const p of prods) {
-            if (!seen.has(p.id) && p.images?.length) {
-              seen.add(p.id);
-              result.push(p);
-            }
-          }
+          lists.push(prods.filter((p) => p.images?.length));
         } else if (item.type === 'product') {
           const p = await storage.getProduct(item.id);
-          if (p && !seen.has(p.id) && p.images?.length) {
+          lists.push(p && p.images?.length ? [p] : []);
+        }
+      }
+      const seen = new Set<string>();
+      const result: any[] = [];
+      const longest = Math.max(0, ...lists.map((l) => l.length));
+      for (let i = 0; i < longest; i++) {
+        for (const l of lists) {
+          const p = l[i];
+          if (p && !seen.has(p.id)) {
             seen.add(p.id);
             result.push(p);
           }
