@@ -9,19 +9,26 @@ export function BackToTop() {
   const [location] = useLocation();
 
   const isProductPage = location.startsWith('/urun/');
+  // Uzun ürün listelerinde (mağaza, kategori, marka) düğme, yukarı kaydırmayı beklemeden
+  // 400 pikselden fazla inildiğinde sürekli görünür.
+  const isListingPage =
+    location === '/magaza' || location.startsWith('/kategori/') || location.startsWith('/marka/');
+  const alwaysVisibleRef = useRef(isListingPage);
+  alwaysVisibleRef.current = isListingPage;
 
   useEffect(() => {
     const onScroll = () => {
       const y = window.scrollY;
       const scrolledEnough = y > 400;
       const scrollingUp = y < lastY.current;
-      setVisible(scrolledEnough && scrollingUp);
+      setVisible(scrolledEnough && (scrollingUp || alwaysVisibleRef.current));
       lastY.current = y;
     };
 
+    onScroll();
     window.addEventListener('scroll', onScroll, { passive: true });
     return () => window.removeEventListener('scroll', onScroll);
-  }, []);
+  }, [location]);
 
   return (
     <AnimatePresence>
