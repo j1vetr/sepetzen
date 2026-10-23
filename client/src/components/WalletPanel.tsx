@@ -1,6 +1,6 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { Wallet, CreditCard, Landmark, Loader2, Copy, Check, ArrowDownLeft, ArrowUpRight, Clock } from 'lucide-react';
+import { Wallet, CreditCard, Landmark, Loader2, Copy, Check, ArrowDownLeft, ArrowUpRight, Clock, X, Lock } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { formatTRDateTime } from '@shared/dateFormat';
 
@@ -55,6 +55,7 @@ export default function WalletPanel() {
   const [amount, setAmount] = useState('');
   const [method, setMethod] = useState<'card' | 'bank'>('card');
   const [copied, setCopied] = useState<string | null>(null);
+  const [paymentUrl, setPaymentUrl] = useState<string | null>(null);
   const [bankResult, setBankResult] = useState<{ reference: string; amount: number } | null>(null);
 
   const { data, isLoading } = useQuery<WalletData>({
@@ -76,6 +77,13 @@ export default function WalletPanel() {
     queryClient.invalidateQueries({ queryKey: ['wallet'] });
     queryClient.invalidateQueries({ queryKey: ['auth', 'me'] });
   };
+
+  // Ödeme penceresi açıkken bakiye güncellemesini yakala
+  useEffect(() => {
+    if (!paymentUrl) return;
+    const t = setInterval(() => queryClient.invalidateQueries({ queryKey: ['wallet'] }), 4000);
+    return () => clearInterval(t);
+  }, [paymentUrl, queryClient]);
 
   const cardAvailable = !!(payMethods?.iyzico || payMethods?.paytr);
   const bankAvailable = !!data?.bank.enabled;
@@ -100,7 +108,8 @@ export default function WalletPanel() {
         toast({ title: 'Hata', description: 'Ödeme sayfası açılamadı', variant: 'destructive' });
         return;
       }
-      window.location.href = url;
+      // Ödeme sağlayıcının sayfası site içinde pencere olarak açılır
+      setPaymentUrl(url);
     },
     onError: (e: Error) => toast({ title: 'Hata', description: e.message, variant: 'destructive' }),
   });
@@ -177,6 +186,34 @@ export default function WalletPanel() {
 
   return (
     <div className="space-y-6" data-testid="wallet-panel">
+      {paymentUrl && (
+        <div className="fixed inset-0 z-[100] bg-black/80 backdrop-blur-sm flex items-center justify-center p-3" data-testid="wallet-payment-modal">
+          <div className="w-full max-w-[560px] max-h-full flex flex-col bg-[#111111] border border-white/15 rounded-xl overflow-hidden">
+            <div className="flex items-center justify-between px-4 py-3 border-b border-white/10">
+              <span className="flex items-center gap-2 text-[12px] text-white/70"><Lock className="w-3.5 h-3.5" />Güvenli ödeme</span>
+              <button
+                type="button"
+                onClick={() => { setPaymentUrl(null); refresh(); }}
+                className="text-white/60 hover:text-white"
+                aria-label="Kapat"
+                data-testid="button-close-payment"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+            <div className="bg-white overflow-y-auto flex-1">
+              <iframe
+                src={paymentUrl}
+                title="Güvenli Ödeme"
+                className="w-full block"
+                style={{ height: '75vh', minHeight: 480, border: 0 }}
+                allow="payment *"
+                data-testid="wallet-payment-iframe"
+              />
+            </div>
+          </div>
+        </div>
+      )}
       <div className="border border-white/15 bg-[#111111] rounded-xl p-6 flex items-center justify-between gap-4">
         <div>
           <p className="text-[11px] font-mono tracking-[0.28em] uppercase text-white/50">Mevcut bakiye</p>
