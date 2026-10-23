@@ -484,13 +484,13 @@ export function Header({ overlayHero = false }: { overlayHero?: boolean } = {}) 
       <header
         id="hdr-nav"
         className={`sticky top-0 left-0 right-0 z-[100] flex items-center h-16 lg:h-auto overflow-visible transition-all duration-300 ${
-          scrolled
-            ? megaMenuId
-              // Mega panel açıkken header'dan backdrop-filter kaldırılır: ata elemandaki
-              // backdrop-filter, altındaki panelin kendi blur'unu bozar (backdrop root).
-              ? 'bg-[#050505]/95 border-b border-transparent shadow-[0_4px_24px_-8px_rgba(0,0,0,0.45)]'
-              : 'bar-glass border-b border-transparent shadow-[0_4px_24px_-8px_rgba(0,0,0,0.45)]'
-            : 'bar-glass border-b border-transparent'
+          // Mega panel açıkken header'dan backdrop-filter kaldırılır: ata elemandaki
+          // backdrop-filter, altındaki panelin kendi blur'unu bozar (backdrop root).
+          megaMenuId
+            ? 'bg-[#0A0A0A]/80 border-b border-transparent shadow-[0_4px_24px_-8px_rgba(0,0,0,0.45)]'
+            : scrolled
+              ? 'bar-glass border-b border-transparent shadow-[0_4px_24px_-8px_rgba(0,0,0,0.45)]'
+              : 'bar-glass border-b border-transparent'
         }`}
       >
         <div className="w-full max-w-[1400px] mx-auto px-4 lg:px-8 lg:py-3">

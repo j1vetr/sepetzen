@@ -2784,6 +2784,7 @@ export class DbStorage implements IStorage {
         slug: brands.slug,
         logoUrl: brands.logoUrl,
         isActive: brands.isActive,
+        isAuthorizedDealer: brands.isAuthorizedDealer,
         createdAt: brands.createdAt,
         productCount: sql<number>`cast(count(${products.id}) as int)`,
       })
