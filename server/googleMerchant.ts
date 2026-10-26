@@ -77,6 +77,14 @@ function stripHtml(html: string | null | undefined): string {
     .trim();
 }
 
+function colorSlugOf(name: string): string {
+  return name
+    .toLocaleLowerCase("tr")
+    .replace(/ç/g, "c").replace(/ğ/g, "g").replace(/ı/g, "i")
+    .replace(/ö/g, "o").replace(/ş/g, "s").replace(/ü/g, "u")
+    .replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "");
+}
+
 function absoluteUrl(maybePath: string | null | undefined, siteUrl: string): string {
   if (!maybePath) return "";
   const trimmed = String(maybePath).trim();
@@ -205,13 +213,17 @@ export async function buildGoogleMerchantFeed(
         if (availability === "out_of_stock" && !settings.includeOutOfStock) continue;
         const variantId = (v.sku && v.sku.trim()) || `${baseId}-${variants.indexOf(v) + 1}`;
         const variantTitleParts = [title, v.size, v.color].filter(Boolean) as string[];
+        // Renge özel görsel varsa o varyantın ana görseli olur, yoksa ürün görselleri.
+        const colorImages = (Array.isArray(v.images) ? v.images : [])
+          .map((img) => absoluteUrl(img, siteUrl))
+          .filter(Boolean);
         groupItems.push({
           id: variantId,
           title: hasVariantAxis ? variantTitleParts.join(" - ") : title,
           description,
-          link,
-          mainImage,
-          additionalImages,
+          link: v.color && variants.some((o) => o.color && o.color !== v.color) ? `${link}?renk=${encodeURIComponent(colorSlugOf(v.color))}` : link,
+          mainImage: colorImages.length > 0 ? colorImages[0] : mainImage,
+          additionalImages: colorImages.length > 0 ? colorImages.slice(1) : additionalImages,
           price,
           availability,
           brand,

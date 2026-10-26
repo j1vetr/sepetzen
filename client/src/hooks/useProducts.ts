@@ -66,6 +66,8 @@ export interface ProductVariant {
   size?: string;
   color?: string;
   colorHex?: string;
+  /** Renge özel görseller; boşsa ürünün genel görselleri kullanılır. */
+  images?: string[];
   price: string;
   stock: number;
   isActive: boolean;

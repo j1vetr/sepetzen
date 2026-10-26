@@ -1,4 +1,5 @@
 import { getAncestors } from '@/lib/categoryTree';
+import { colorSlug } from '@/lib/colorSlug';
 import { useState, useRef, useEffect, useCallback, useMemo } from 'react';
 import { useQuery } from '@tanstack/react-query';
 
@@ -986,6 +987,8 @@ export default function ProductDetail() {
   const isAuthorizedDealer = !!product?.brand && authorizedBrands.some((n) => n.toLowerCase() === product.brand!.toLowerCase());
   const [selectedSize, setSelectedSize] = useState<string | null>(null);
   const [selectedColor, setSelectedColor] = useState<string | null>(null);
+  // Renk yalnızca müşteri seçtiyse adres çubuğuna yazılır (?renk=yesil)
+  const userPickedColorRef = useRef(false);
 
   const matchesSelection = useCallback(
     (v: { size?: string | null; color?: string | null }, size: string | null, color: string | null) => {
@@ -999,8 +1002,17 @@ export default function ProductDetail() {
   useEffect(() => {
     // Ürün değişince ilk stoktaki aktif varyantı ön-seç.
     const preferred = activeVariants.find((v) => v.stock > 0) || activeVariants[0];
-    setSelectedSize(preferred?.size ?? null);
-    setSelectedColor(preferred?.color ?? null);
+    let initial = preferred;
+    // Paylaşılan adres: ?renk=yesil. Yalnızca stokta olan renk seçilir.
+    const wanted = typeof window !== 'undefined' ? new URLSearchParams(window.location.search).get('renk') : null;
+    if (wanted) {
+      const wantedSlug = colorSlug(wanted);
+      const match = activeVariants.find((v) => v.stock > 0 && v.color && colorSlug(v.color) === wantedSlug);
+      if (match) initial = match;
+    }
+    userPickedColorRef.current = false;
+    setSelectedSize(initial?.size ?? null);
+    setSelectedColor(initial?.color ?? null);
     setQuantity(1);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [product?.id]);
@@ -1009,6 +1021,25 @@ export default function ProductDetail() {
     () => activeVariants.find((v) => matchesSelection(v, selectedSize, selectedColor)) || null,
     [activeVariants, matchesSelection, selectedSize, selectedColor],
   );
+
+  // Seçili rengin görselleri (varsa). Renk değişince galeri başa döner ve
+  // seçim adres çubuğuna sayfa yenilenmeden yazılır.
+  const colorImages = useMemo(() => {
+    if (colorOptions.length === 0) return null;
+    const own = selectedVariant?.images && selectedVariant.images.length > 0 ? selectedVariant.images : null;
+    if (own) return own;
+    const sameColor = activeVariants.find((v) => v.color === selectedColor && v.images && v.images.length > 0);
+    return sameColor?.images ?? null;
+  }, [colorOptions.length, selectedVariant, activeVariants, selectedColor]);
+
+  useEffect(() => {
+    setSelectedImage(0);
+    if (!userPickedColorRef.current || colorOptions.length === 0 || !selectedColor) return;
+    const url = new URL(window.location.href);
+    url.searchParams.set('renk', colorSlug(selectedColor));
+    window.history.replaceState(window.history.state, '', url.pathname + url.search + url.hash);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [selectedColor]);
   const showVariantPicker = activeVariants.length > 1 && (sizeOptions.length > 0 || colorOptions.length > 0);
 
   const sizeHasStock = useCallback(
@@ -1022,6 +1053,7 @@ export default function ProductDetail() {
   // Seçim her zaman stoktaki geçerli bir kombinasyona oturtulur: bir eksen
   // seçilince diğer eksen o seçimle stokta olan bir değere taşınır.
   const pickSize = (size: string) => {
+    userPickedColorRef.current = true;
     setSelectedSize(size);
     if (colorOptions.length > 0) {
       const comboOk = activeVariants.some(
@@ -1035,6 +1067,7 @@ export default function ProductDetail() {
     setQuantity(1);
   };
   const pickColor = (color: string) => {
+    userPickedColorRef.current = true;
     setSelectedColor(color);
     if (sizeOptions.length > 0) {
       const comboOk = activeVariants.some(
@@ -1172,9 +1205,14 @@ export default function ProductDetail() {
     }
   }, [lightboxOpen, selectedImage, lightboxEmblaApi]);
 
+  // Renge özel görsel varsa onlar gösterilir, ürün videoları yanlarında kalır.
+  const baseImages = product?.images ?? [];
+  const galleryImages = colorImages
+    ? [...colorImages, ...baseImages.filter((u) => isVideoUrl(u) || isYouTubeUrl(u))]
+    : baseImages;
   const renderedImages =
-    product?.images && product.images.length > 0
-      ? product.images
+    galleryImages.length > 0
+      ? galleryImages
       : product
         ? ['https://images.unsplash.com/photo-1618354691373-d851c5c3a990?w=600&h=800&fit=crop']
         : [];
@@ -1241,7 +1279,7 @@ export default function ProductDetail() {
       await addToCart(product.id, variant?.id, quantity, persText || undefined);
       const persFeeApplied = persText ? (parseFloat(product.personalization?.fee || '0') || 0) : 0;
       const unitPrice = (variant?.price ? parseFloat(variant.price) : parseFloat(product.basePrice || '0')) + persFeeApplied;
-      const mainImage = product.images?.[0] ?? 'https://images.unsplash.com/photo-1618354691373-d851c5c3a990?w=600&h=800&fit=crop';
+      const mainImage = (colorImages?.[0]) ?? product.images?.[0] ?? 'https://images.unsplash.com/photo-1618354691373-d851c5c3a990?w=600&h=800&fit=crop';
       showModal({ name: product.name, image: mainImage, price: unitPrice * quantity, quantity });
       setJustAdded(true);
       if (justAddedTimerRef.current) clearTimeout(justAddedTimerRef.current);
@@ -1519,14 +1557,14 @@ export default function ProductDetail() {
           product.description?.replace(/<[^>]*>/g, '').slice(0, 160) ||
           `${product.name}. Sepetzen kamp, outdoor ve bıçak koleksiyonundan.`
         }
-        image={images[0]}
+        image={product.images?.[0] ?? images[0]}
         url={`/urun/${product.slug}`}
         type="product"
         product={{
           name: product.name, price, currency: 'TRY',
           availability: isOutOfStock ? 'OutOfStock' : 'InStock',
           sku: product.sku || undefined, brand: 'Sepetzen',
-          category: category?.name, images,
+          category: category?.name, images: product.images?.length ? product.images : images,
         }}
         breadcrumbs={[
           { name: 'Ana Sayfa', url: '/' },
@@ -2210,7 +2248,7 @@ export default function ProductDetail() {
                       </div>
                     </div>
                   )}
-                  {hasColorLinks ? (
+                  {colorOptions.length === 0 && hasColorLinks ? (
                     /* Çapraz-ürün renk navigasyonu: her renk farklı ürüne yönlendiriri */
                     <div>
                       <p className="text-[10px] tracking-[0.25em] uppercase text-white/40 font-medium mb-2">

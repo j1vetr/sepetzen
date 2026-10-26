@@ -27,6 +27,7 @@ import {
 } from 'lucide-react';
 import type { Product, ProductDraft, Category } from './admin/_shared/types';
 import { hasConfiguredVariantOptions } from './admin/_shared/contentQuality';
+import { VariantColorImages, colorKeyOf } from './admin/_shared/VariantColorImages';
 import {
   PrimaryButton,
   SecondaryButton,
@@ -109,6 +110,8 @@ interface VariantRow {
   price: string;
   stock: string;
   isActive: boolean;
+  colorHex: string;
+  images: string[];
 }
 
 /** "Ürün Detay Sekmeleri" bölüm ikonu.
@@ -490,6 +493,8 @@ function ProductEditor({
             price: v.price != null ? String(v.price) : '',
             stock: v.stock != null ? String(v.stock) : '0',
             isActive: v.isActive !== false,
+            colorHex: v.colorHex || '',
+            images: Array.isArray(v.images) ? v.images : [],
           })),
         );
         setVariantsLoaded(true);
@@ -509,11 +514,33 @@ function ProductEditor({
   const addVariantRow = () => {
     setVariantRows((prev) => [
       ...prev,
-      { size: '', color: '', sku: '', price: '', stock: '0', isActive: true },
+      { size: '', color: '', sku: '', price: '', stock: '0', isActive: true, colorHex: '', images: [] },
     ]);
   };
   const updateVariantRow = (index: number, patch: Partial<VariantRow>) => {
-    setVariantRows((prev) => prev.map((r, i) => (i === index ? { ...r, ...patch } : r)));
+    setVariantRows((prev) =>
+      prev.map((r, i) => {
+        if (i !== index) return r;
+        const next = { ...r, ...patch };
+        // Var olan bir renk adına geçilirse o rengin örnek ve görselleri devralınır.
+        if (patch.color !== undefined) {
+          const key = colorKeyOf(patch.color);
+          const peer = key ? prev.find((o, j) => j !== index && colorKeyOf(o.color) === key) : undefined;
+          if (peer) {
+            next.colorHex = peer.colorHex;
+            next.images = peer.images;
+          } else if (!key) {
+            next.colorHex = '';
+            next.images = [];
+          }
+        }
+        return next;
+      }),
+    );
+  };
+  // Renk grubundaki tüm varyantlara aynı örnek rengi ve görselleri uygular.
+  const updateColorGroup = (key: string, patch: { colorHex?: string; images?: string[] }) => {
+    setVariantRows((prev) => prev.map((r) => (colorKeyOf(r.color) === key ? { ...r, ...patch } : r)));
   };
   const removeVariantRow = (index: number) => {
     setVariantRows((prev) => prev.filter((_, i) => i !== index));
@@ -731,6 +758,8 @@ function ProductEditor({
               price: r.price.trim() || null,
               stock: parseInt(r.stock, 10) || 0,
               isActive: r.isActive,
+              colorHex: r.colorHex.trim() || null,
+              images: r.images,
             })),
           }
         : {}),
@@ -1480,6 +1509,11 @@ function ProductEditor({
                     </IconButton>
                   </div>
                 ))}
+                <VariantColorImages
+                  rows={variantRows}
+                  productImages={formData.images}
+                  onChange={updateColorGroup}
+                />
                 {!!productId && variantRows.length === 1 && (
                   <p className="text-[11px] text-neutral-500">
                     Üründe en az bir varyant kalmalı. Basit ürünlerde beden/renk alanlarını boş bırakın.
@@ -2029,6 +2063,11 @@ function ProductEditor({
                 + Renk Ekle
               </button>
             </div>
+            {variantRows.some((r) => r.color.trim()) && (
+              <p className="mb-2 text-[11px] text-amber-700 bg-amber-50 border border-amber-200 rounded-md px-2 py-1.5" data-testid="note-color-links-inactive">
+                Bu üründe varyant paneline renk girildi. Ürün sayfasında varyant renkleri kullanılır, buradaki renk bağlantıları gösterilmez.
+              </p>
+            )}
             {colorRows.length === 0 ? (
               <p className="text-[11px] text-neutral-400">
                 Renk eklenmedi. Tek renkli veya renksiz ürünler için boş bırakılabilir.

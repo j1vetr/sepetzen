@@ -294,6 +294,8 @@ export const productVariants = pgTable("product_variants", {
   size: text("size"),
   color: text("color"),
   colorHex: text("color_hex"),
+  // Renge özel görseller: aynı renkteki tüm varyantlar aynı listeyi taşır.
+  images: jsonb("images").$type<string[]>().default([]).notNull(),
   price: decimal("price", { precision: 10, scale: 2 }).notNull(),
   stock: integer("stock").default(0).notNull(),
   isActive: boolean("is_active").default(true).notNull(),
@@ -301,6 +303,8 @@ export const productVariants = pgTable("product_variants", {
 
 export const insertProductVariantSchema = createInsertSchema(productVariants).omit({
   id: true,
+}).extend({
+  images: z.array(z.string()).optional(),
 });
 
 export type InsertProductVariant = z.infer<typeof insertProductVariantSchema>;

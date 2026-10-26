@@ -247,17 +247,17 @@ export interface IStorage {
   deleteProductVariant(id: string): Promise<void>;
   reconcileProductVariants(
     productId: string,
-    rows: Array<{ id?: string; size: string | null; color: string | null; sku: string | null; colorHex?: string | null; price: string; stock: number; isActive: boolean }>,
+    rows: Array<{ id?: string; size: string | null; color: string | null; sku: string | null; colorHex?: string | null; images?: string[]; price: string; stock: number; isActive: boolean }>,
   ): Promise<{ retiredCount: number; deletedCount: number }>;
   updateProductWithVariants(
     id: string,
     product: Partial<InsertProduct>,
-    variantRows: Array<{ id?: string; size: string | null; color: string | null; sku: string | null; colorHex?: string | null; price: string; stock: number; isActive: boolean }>,
+    variantRows: Array<{ id?: string; size: string | null; color: string | null; sku: string | null; colorHex?: string | null; images?: string[]; price: string; stock: number; isActive: boolean }>,
     categoryIds: string[] | null,
   ): Promise<{ product: Product; retiredCount: number; deletedCount: number } | undefined>;
   createProductWithVariants(
     product: InsertProduct,
-    variantRows: Array<{ size: string | null; color: string | null; sku: string | null; colorHex?: string | null; price: string; stock: number; isActive: boolean }>,
+    variantRows: Array<{ size: string | null; color: string | null; sku: string | null; colorHex?: string | null; images?: string[]; price: string; stock: number; isActive: boolean }>,
     categoryIds: string[] | null,
   ): Promise<Product>;
   deleteOrRetireProductVariant(id: string): Promise<{ retired: boolean } | undefined>;
@@ -855,7 +855,7 @@ export class DbStorage implements IStorage {
    */
   async reconcileProductVariants(
     productId: string,
-    rows: Array<{ id?: string; size: string | null; color: string | null; sku: string | null; colorHex?: string | null; price: string; stock: number; isActive: boolean }>,
+    rows: Array<{ id?: string; size: string | null; color: string | null; sku: string | null; colorHex?: string | null; images?: string[]; price: string; stock: number; isActive: boolean }>,
   ): Promise<{ retiredCount: number; deletedCount: number }> {
     const result = await db.transaction(async (tx) => this.reconcileVariantsInTx(tx, productId, rows));
     return result;
@@ -869,7 +869,7 @@ export class DbStorage implements IStorage {
   async updateProductWithVariants(
     id: string,
     product: Partial<InsertProduct>,
-    variantRows: Array<{ id?: string; size: string | null; color: string | null; sku: string | null; colorHex?: string | null; price: string; stock: number; isActive: boolean }>,
+    variantRows: Array<{ id?: string; size: string | null; color: string | null; sku: string | null; colorHex?: string | null; images?: string[]; price: string; stock: number; isActive: boolean }>,
     categoryIds: string[] | null,
   ): Promise<{ product: Product; retiredCount: number; deletedCount: number } | undefined> {
     const { createdAt, updatedAt, id: _pid, ...updateData } = product as any;
@@ -896,7 +896,7 @@ export class DbStorage implements IStorage {
    */
   async createProductWithVariants(
     product: InsertProduct,
-    variantRows: Array<{ size: string | null; color: string | null; sku: string | null; colorHex?: string | null; price: string; stock: number; isActive: boolean }>,
+    variantRows: Array<{ size: string | null; color: string | null; sku: string | null; colorHex?: string | null; images?: string[]; price: string; stock: number; isActive: boolean }>,
     categoryIds: string[] | null,
   ): Promise<Product> {
     return db.transaction(async (tx) => {
@@ -916,6 +916,8 @@ export class DbStorage implements IStorage {
           size: v.size,
           color: v.color,
           sku: v.sku,
+          colorHex: v.colorHex ?? null,
+          images: v.images ?? [],
           price: v.price,
           stock: v.stock,
           isActive: v.isActive,
@@ -976,7 +978,7 @@ export class DbStorage implements IStorage {
   private async reconcileVariantsInTx(
     tx: Pick<typeof db, "select" | "insert" | "update" | "delete">,
     productId: string,
-    rows: Array<{ id?: string; size: string | null; color: string | null; sku: string | null; colorHex?: string | null; price: string; stock: number; isActive: boolean }>,
+    rows: Array<{ id?: string; size: string | null; color: string | null; sku: string | null; colorHex?: string | null; images?: string[]; price: string; stock: number; isActive: boolean }>,
   ): Promise<{ retiredCount: number; deletedCount: number }> {
     {
       const existing = await tx.select().from(productVariants).where(eq(productVariants.productId, productId));
@@ -994,6 +996,7 @@ export class DbStorage implements IStorage {
           stock: r.stock,
           isActive: r.isActive,
           ...(r.colorHex !== undefined ? { colorHex: r.colorHex } : {}),
+          ...(r.images !== undefined ? { images: r.images } : {}),
         };
         if (r.id && existingIds.indexOf(r.id) !== -1) {
           await tx.update(productVariants).set(payload).where(eq(productVariants.id, r.id));
@@ -1076,6 +1079,7 @@ export class DbStorage implements IStorage {
           id: productVariants.id,
           size: productVariants.size,
           color: productVariants.color,
+          images: productVariants.images,
           price: productVariants.price,
         }).from(productVariants).where(eq(productVariants.id, item.variantId));
         variant = v || null;

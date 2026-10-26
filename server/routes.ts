@@ -2839,7 +2839,7 @@ KURALLAR:
   function normalizeVariantInputs(
     input: unknown,
     basePrice: string,
-  ): Array<{ id?: string; size: string | null; color: string | null; sku: string | null; price: string; stock: number; isActive: boolean }> {
+  ): Array<{ id?: string; size: string | null; color: string | null; sku: string | null; colorHex: string | null; images: string[]; price: string; stock: number; isActive: boolean }> {
     if (!Array.isArray(input)) return [];
     if (input.length === 0) {
       throw new VariantInputError("En az bir varyant gerekli. Basit ürünler için beden/renk alanları boş tek satır bırakın.");
@@ -2848,6 +2848,23 @@ KURALLAR:
       throw new VariantInputError("En fazla 100 varyant tanımlanabilir.");
     }
     const seen: string[] = [];
+    // Renk başına görsel listesi: aynı renkteki satırlar aynı listeyi paylaşır
+    // (ilk dolu liste geçerli olur). Yalnızca site yüklemeleri kabul edilir.
+    const cleanImages = (v: unknown): string[] =>
+      Array.isArray(v)
+        ? Array.from(new Set(v.filter((u): u is string => typeof u === 'string' && /^\/uploads\/[A-Za-z0-9_\-./]+$/.test(u) && u.indexOf('..') === -1))).slice(0, 20)
+        : [];
+    const colorKeyOf = (raw: any) => typeof raw?.color === 'string' ? raw.color.trim().toLocaleLowerCase('tr') : '';
+    const imagesByColor = new Map<string, string[]>();
+    const hexByColor = new Map<string, string>();
+    input.forEach((raw: any) => {
+      const ck = colorKeyOf(raw);
+      if (!ck) return;
+      const imgs = cleanImages(raw?.images);
+      if (imgs.length > 0 && !imagesByColor.has(ck)) imagesByColor.set(ck, imgs);
+      const hx = typeof raw?.colorHex === 'string' && /^#[0-9a-fA-F]{6}$/.test(raw.colorHex.trim()) ? raw.colorHex.trim().toLowerCase() : null;
+      if (hx && !hexByColor.has(ck)) hexByColor.set(ck, hx);
+    });
     return input.map((raw: any, i: number) => {
       const size = typeof raw?.size === 'string' && raw.size.trim() ? raw.size.trim() : null;
       const color = typeof raw?.color === 'string' && raw.color.trim() ? raw.color.trim() : null;
@@ -2874,6 +2891,8 @@ KURALLAR:
         size,
         color,
         sku,
+        colorHex: color ? (hexByColor.get(colorKeyOf(raw)) ?? null) : null,
+        images: color ? (imagesByColor.get(colorKeyOf(raw)) ?? []) : [],
         price: String(priceNum),
         stock: stockNum,
         isActive: raw?.isActive === undefined ? true : !!raw.isActive,

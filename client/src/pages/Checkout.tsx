@@ -980,7 +980,7 @@ export default function Checkout() {
         <div key={item.id} className="flex gap-3 items-center min-w-0">
           <div className={`${compact ? 'w-11 h-12' : 'w-14 h-16'} bg-white/8 rounded-md overflow-hidden shrink-0`}>
             {(() => {
-              const src = pickThumbUrl(item.product?.images);
+              const src = pickThumbUrl(item.variant?.images?.length ? item.variant.images : item.product?.images);
               if (!src) return null;
               return isVideoUrl(src)
                 ? <video src={src} muted playsInline preload="metadata" className="w-full h-full object-cover" />

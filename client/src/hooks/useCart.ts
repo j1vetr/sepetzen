@@ -27,6 +27,7 @@ interface CartItem {
     id: string;
     size: string | null;
     color: string | null;
+    images?: string[];
     price: string;
   };
 }

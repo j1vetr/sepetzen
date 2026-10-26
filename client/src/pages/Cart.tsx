@@ -1,5 +1,6 @@
 import { useState, useRef } from 'react';
 import { pickThumbUrl, isVideoUrl } from '@/lib/mediaUtils';
+import { colorSlug } from '@/lib/colorSlug';
 import { Link } from 'wouter';
 import { Header } from '@/components/Header';
 import { useCart } from '@/hooks/useCart';
@@ -156,10 +157,10 @@ export default function Cart() {
                         data-testid={`cart-item-${item.id}`}
                       >
                         {/* Image */}
-                        <Link href={`/urun/${product?.slug}`}>
+                        <Link href={`/urun/${product?.slug}${item.variant?.color ? `?renk=${colorSlug(item.variant.color)}` : ''}`}>
                           <div className="w-20 h-24 sm:w-24 sm:h-28 bg-[#151515] rounded-md shrink-0 overflow-hidden cursor-pointer">
                             {(() => {
-                              const src = pickThumbUrl(product?.images);
+                              const src = pickThumbUrl(item.variant?.images?.length ? item.variant.images : product?.images);
                               if (!src) return <div className="w-full h-full flex items-center justify-center"><Package size={24} className="text-white/30" /></div>;
                               return isVideoUrl(src)
                                 ? <video src={src} muted playsInline preload="metadata" className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300" />
