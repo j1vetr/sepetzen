@@ -9132,6 +9132,8 @@ window.addEventListener('load', function() {
         return res.status(400).json({ error: "Yayın bağlantısı http veya https ile başlamalı" });
       }
       const previous = await readLiveStream();
+      // Kısa linkler yalnızca kısa link ucundan üretilir, buradan değiştirilemez
+      data.shortLinks = previous.shortLinks;
       // Yayın ilk kez açılırken başlangıç zamanını yaz, kapanınca temizle
       data.startedAt = data.isActive ? (previous.isActive && previous.startedAt ? previous.startedAt : new Date().toISOString()) : null;
       await storage.setSiteSetting(LIVE_STREAM_KEY, JSON.stringify(data));
@@ -9139,6 +9141,52 @@ window.addEventListener('load', function() {
     } catch (error) {
       console.error('[live-stream PUT]', error);
       res.status(500).json({ error: "Canlı yayın ayarları kaydedilemedi" });
+    }
+  });
+
+  // Kısa link üret: ürün başına sepetzen.com/f151 biçiminde kalıcı bir kod
+  let shortLinkQueue: Promise<unknown> = Promise.resolve();
+  app.post("/api/admin/live-stream/short-link", requireAdmin, (req, res) => {
+    const run = async () => {
+      const productId = typeof req.body?.productId === "string" ? req.body.productId : "";
+      const regenerate = req.body?.regenerate === true;
+      const product = productId ? await storage.getProduct(productId) : undefined;
+      if (!product) return res.status(404).json({ error: "Ürün bulunamadı" });
+      const live = await readLiveStream();
+      const existing = live.shortLinks[productId];
+      if (existing && !regenerate) return res.json({ code: existing });
+      const used = new Set(Object.values(live.shortLinks));
+      const letters = "abcdefghjkmnpqrstuvwxyz";
+      let code = "";
+      for (let i = 0; i < 200; i++) {
+        const digits = i < 100 ? 3 : 4;
+        const num = Math.floor(Math.random() * 10 ** digits).toString().padStart(digits, "0");
+        const candidate = letters[Math.floor(Math.random() * letters.length)] + num;
+        if (!used.has(candidate)) { code = candidate; break; }
+      }
+      if (!code) return res.status(500).json({ error: "Kısa kod üretilemedi" });
+      live.shortLinks[productId] = code;
+      await storage.setSiteSetting(LIVE_STREAM_KEY, JSON.stringify(live));
+      res.json({ code });
+    };
+    shortLinkQueue = shortLinkQueue.then(run).catch((error) => {
+      console.error('[live-stream short-link]', error);
+      if (!res.headersSent) res.status(500).json({ error: "Kısa link oluşturulamadı" });
+    });
+  });
+
+  // Kısa link yönlendirmesi: /f151 -> ürün sayfası
+  app.get(/^\/([a-z]\d{3,4})$/i, async (req, res, next) => {
+    try {
+      const code = req.params[0].toLowerCase();
+      const live = await readLiveStream();
+      const entry = Object.entries(live.shortLinks).find(([, c]) => c === code);
+      if (!entry) return next();
+      const product = await storage.getProduct(entry[0]);
+      if (!product || product.isActive === false || !product.slug) return next();
+      res.redirect(302, `/urun/${product.slug}`);
+    } catch (error) {
+      next(error);
     }
   });
 

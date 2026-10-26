@@ -146,7 +146,7 @@ export const ProductCard = memo(function ProductCard({ product }: ProductCardPro
       <Link href={`/urun/${product.slug}`}>
         <div
           data-testid={`card-product-${product.id}`}
-          className="group relative cursor-pointer"
+          className="group relative cursor-pointer product-card-root"
           onMouseEnter={() => setIsHovered(true)}
           onMouseLeave={() => setIsHovered(false)}
         >

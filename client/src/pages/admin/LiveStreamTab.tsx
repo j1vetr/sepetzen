@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { ArrowDown, ArrowUp, ExternalLink, Loader2, Package, Radio, Search, Trash2, X } from 'lucide-react';
+import { ArrowDown, ArrowUp, Copy, ExternalLink, Link2, RefreshCw, Loader2, Package, Radio, Search, Trash2, X } from 'lucide-react';
 import { apiRequest } from '@/lib/queryClient';
 import { useToast } from '@/hooks/use-toast';
 import type { LiveStream } from '@shared/liveStream';
@@ -49,6 +49,27 @@ export default function LiveStreamTab() {
     },
     onError: (e: Error) => toast({ title: 'Kaydedilemedi', description: e.message, variant: 'destructive' }),
   });
+
+  const makeLink = useMutation({
+    mutationFn: async ({ productId, regenerate }: { productId: string; regenerate?: boolean }) => {
+      const res = await apiRequest('POST', '/api/admin/live-stream/short-link', { productId, regenerate: !!regenerate });
+      return { productId, ...(await res.json()) as { code: string } };
+    },
+    onSuccess: ({ productId, code }) => {
+      setForm(f => (f ? { ...f, shortLinks: { ...(f.shortLinks ?? {}), [productId]: code } } : f));
+      queryClient.invalidateQueries({ queryKey: KEY });
+    },
+    onError: (e: Error) => toast({ title: 'Kısa link oluşturulamadı', description: e.message, variant: 'destructive' }),
+  });
+  const shortUrl = (code: string) => `${window.location.origin}/${code}`;
+  const copyLink = async (code: string) => {
+    try {
+      await navigator.clipboard.writeText(shortUrl(code));
+      toast({ title: 'Link kopyalandı', description: shortUrl(code) });
+    } catch {
+      toast({ title: 'Kopyalanamadı', description: shortUrl(code), variant: 'destructive' });
+    }
+  };
 
   if (!form) return <div className="flex justify-center py-16"><Loader2 className="w-6 h-6 animate-spin text-neutral-400" /></div>;
 
@@ -187,6 +208,36 @@ export default function LiveStreamTab() {
                   <span className="w-5 text-xs text-neutral-400 tabular-nums">{i + 1}</span>
                   {img ? <img src={img} alt="" className="w-9 h-9 rounded object-cover bg-neutral-100" /> : <span className="w-9 h-9 rounded bg-neutral-100 flex items-center justify-center"><Package className="w-4 h-4 text-neutral-400" /></span>}
                   <span className={`flex-1 text-sm truncate ${isLive ? 'text-neutral-900' : 'text-neutral-500'}`}>{p?.name ?? 'Silinmiş ürün'}</span>
+                  {(() => {
+                    const code = form.shortLinks?.[id];
+                    if (!code) {
+                      return (
+                        <button
+                          type="button"
+                          onClick={() => makeLink.mutate({ productId: id })}
+                          disabled={makeLink.isPending}
+                          className="inline-flex items-center gap-1 px-2 py-1 rounded-md border border-neutral-200 text-[11px] font-medium text-neutral-600 hover:bg-neutral-50 disabled:opacity-50"
+                          data-testid={`button-short-link-${id}`}
+                        >
+                          <Link2 className="w-3 h-3" /> Kısa link
+                        </button>
+                      );
+                    }
+                    return (
+                      <span className="inline-flex items-center gap-0.5 rounded-md border border-neutral-200 bg-white pl-2" data-testid={`short-link-${id}`}>
+                        <span className="text-[11px] font-mono text-neutral-700">/{code}</span>
+                        <button type="button" onClick={() => copyLink(code)} className="p-1.5 text-neutral-500 hover:text-neutral-900" aria-label="Kısa linki kopyala" title="Kopyala"><Copy className="w-3.5 h-3.5" /></button>
+                        <button
+                          type="button"
+                          onClick={() => confirm('Yeni bir kod üretilirse eski link çalışmaz. Devam edilsin mi?') && makeLink.mutate({ productId: id, regenerate: true })}
+                          disabled={makeLink.isPending}
+                          className="p-1.5 text-neutral-400 hover:text-neutral-900 disabled:opacity-50"
+                          aria-label="Yeni kod üret"
+                          title="Yeni kod üret"
+                        ><RefreshCw className="w-3.5 h-3.5" /></button>
+                      </span>
+                    );
+                  })()}
                   <button
                     type="button"
                     role="switch"

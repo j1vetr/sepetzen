@@ -12,6 +12,8 @@ export const liveStreamSchema = z.object({
   // Alan yoksa (eski kayıtlar) listedeki tüm ürünler yayında sayılır.
   liveProductIds: z.array(z.string()).max(300).optional(),
   startedAt: z.string().nullable().default(null),
+  // Ürün kimliği -> kısa link kodu (sepetzen.com/f151). Sunucu üretir, istemciden gelen değer yok sayılır.
+  shortLinks: z.record(z.string(), z.string()).default({}),
 });
 
 export type LiveStream = z.infer<typeof liveStreamSchema>;
@@ -24,6 +26,7 @@ export const DEFAULT_LIVE_STREAM: LiveStream = {
   productIds: [],
   liveProductIds: [],
   startedAt: null,
+  shortLinks: {},
 };
 
 export function resolveLiveStream(raw: unknown): LiveStream {

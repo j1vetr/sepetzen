@@ -942,3 +942,42 @@ html[data-theme="light"] .mobile-drawer-glass.surface-glass-dark {
 html[data-theme="light"] .product-title {
   color: #2a2a2a;
 }
+
+/* ── Mobil kaydırma performansı ──────────────────────────────────────────
+   Telefonlarda backdrop-filter (buzlu cam) her kaydırma karesinde yeniden
+   hesaplanır ve ürün listelerinde kasmaya yol açar. Mobilde bulanıklığı
+   kapatıp zeminleri daha opak yapıyoruz. Masaüstü görünümü değişmez. */
+@media (max-width: 1023px) {
+  .bar-glass,
+  .surface-glass-dark,
+  .mobile-drawer-glass,
+  .mobile-drawer-footer,
+  .btn-glass,
+  .free-shipping-badge,
+  .storefront-new-badge,
+  .card-fav-btn,
+  .card-quick-view,
+  [class*="backdrop-blur"] {
+    -webkit-backdrop-filter: none !important;
+    backdrop-filter: none !important;
+  }
+  .bar-glass { background: rgba(10, 10, 10, 0.97); }
+  .surface-glass-dark { background: rgba(8, 8, 8, 0.96); }
+  .mobile-drawer-glass { background: rgba(10, 10, 10, 0.97); }
+  .mobile-drawer-footer { background: rgba(8, 8, 8, 0.9); }
+  .btn-glass { background: rgba(10, 10, 10, 0.92); }
+  .free-shipping-badge { background: rgba(9, 8, 6, 0.9); }
+  .storefront-new-badge { background: rgba(255, 255, 255, 0.92); }
+
+  /* Ekran dışındaki kartların boyama maliyetini ertele */
+  .product-card-root {
+    content-visibility: auto;
+    contain-intrinsic-size: auto 340px;
+  }
+}
+@media (max-width: 1023px) {
+  html[data-theme="light"] .mobile-drawer-glass.surface-glass-dark,
+  html .mobile-drawer-glass.surface-glass-dark {
+    background: rgba(8, 8, 8, 0.97);
+  }
+}
