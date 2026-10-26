@@ -2223,21 +2223,18 @@ export default function ProductDetail() {
                               onClick={() => {
                                 if (!isCurrent && entry.slug) navigate(`/urun/${entry.slug}`);
                               }}
-                              className={`px-3 h-10 text-[12px] tracking-[0.08em] uppercase border rounded-md backdrop-blur-sm transition-all duration-200 ${
+                              title={entry.name}
+                              aria-label={entry.name}
+                              aria-pressed={isCurrent}
+                              className={`${entry.hex ? 'w-10 px-0 rounded-full' : 'px-3 rounded-md'} h-10 flex items-center justify-center text-[12px] tracking-[0.08em] uppercase border transition-all duration-200 ${
                                 isCurrent
-                                  ? 'border-white/70 bg-white/15 text-white font-semibold ring-1 ring-inset ring-white/20 shadow-[inset_0_1px_0_0_rgba(255,255,255,0.12)]'
-                                  : 'border-white/15 bg-white/5 text-white/65 hover:border-white/40 hover:bg-white/10 hover:text-white/90'
+                                  ? 'border-white ring-2 ring-white/40 text-white font-semibold'
+                                  : 'border-white/15 bg-white/5 text-white/65 hover:border-white/50 hover:text-white/90'
                               }`}
                               data-testid={`button-color-link-${entry.name}`}
                             >
                               {entry.hex ? (
-                                <span className="flex items-center gap-1.5">
-                                  <span
-                                    className="w-3 h-3 rounded-full shrink-0 border border-white/20"
-                                    style={{ backgroundColor: entry.hex }}
-                                  />
-                                  {entry.name}
-                                </span>
+                                <span className="block w-6 h-6 rounded-full border border-white/25" style={{ backgroundColor: entry.hex }} />
                               ) : entry.name}
                             </button>
                           );
@@ -2254,22 +2251,29 @@ export default function ProductDetail() {
                         {colorOptions.map((color) => {
                           const disabled = !colorHasStock(color);
                           const active = selectedColor === color;
+                          const hex = activeVariants.find((v) => v.color === color && v.colorHex)?.colorHex;
                           return (
                             <button
                               key={color}
                               type="button"
                               onClick={() => !disabled && pickColor(color)}
                               disabled={disabled}
-                              className={`px-3 h-10 text-[12px] tracking-[0.08em] uppercase border rounded-md backdrop-blur-sm transition-all duration-200 ${
+                              title={color}
+                              aria-label={color}
+                              aria-pressed={active}
+                              className={`${hex ? 'w-10 px-0 rounded-full' : 'px-3 rounded-md'} h-10 relative overflow-hidden flex items-center justify-center text-[12px] tracking-[0.08em] uppercase border transition-all duration-200 ${
                                 active
-                                  ? 'border-white/70 bg-white/15 text-white font-semibold ring-1 ring-inset ring-white/20 shadow-[inset_0_1px_0_0_rgba(255,255,255,0.12)]'
+                                  ? 'border-white ring-2 ring-white/40 text-white font-semibold'
                                   : disabled
-                                    ? 'border-white/8 bg-white/3 text-white/20 line-through cursor-not-allowed'
-                                    : 'border-white/15 bg-white/5 text-white/65 hover:border-white/40 hover:bg-white/10 hover:text-white/90'
+                                    ? 'border-white/10 text-white/20 cursor-not-allowed opacity-40'
+                                    : 'border-white/15 bg-white/5 text-white/65 hover:border-white/50 hover:text-white/90'
                               }`}
                               data-testid={`button-variant-color-${color}`}
                             >
-                              {color}
+                              {hex ? (
+                                <span className="block w-6 h-6 rounded-full border border-white/25" style={{ backgroundColor: hex }} />
+                              ) : color}
+                              {hex && disabled && <span className="absolute inset-0 m-auto w-px h-8 bg-white/50 rotate-45" />}
                             </button>
                           );
                         })}
