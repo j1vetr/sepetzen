@@ -1,3 +1,4 @@
+import { getAncestors } from '@/lib/categoryTree';
 import { useState, useRef, useEffect, useCallback, useMemo } from 'react';
 import { useQuery } from '@tanstack/react-query';
 
@@ -1466,6 +1467,8 @@ export default function ProductDetail() {
   const persApplied = persEnabled && personalizationText.trim() !== '';
   const displayPrice = price + (persApplied ? persFee : 0);
   const category = categories.find((c) => c.id === product.categoryId);
+  // Kategori zinciri: en üst kategoriden ürünün kategorisine kadar (sınırsız derinlik)
+  const categoryTrail = category ? [...getAncestors(categories, category.id), category] : [];
   // Stok yalnızca aktif varyantlar üzerinden hesaplanır.
   const totalStock = activeVariants.reduce((sum, v) => sum + (v.stock || 0), 0);
   const isOutOfStock = !!product.variants && product.variants.length > 0 && totalStock === 0;
@@ -1527,7 +1530,7 @@ export default function ProductDetail() {
         }}
         breadcrumbs={[
           { name: 'Ana Sayfa', url: '/' },
-          ...(category ? [{ name: category.name, url: `/kategori/${category.slug}` }] : []),
+          ...categoryTrail.map((c) => ({ name: c.name, url: `/kategori/${c.slug}` })),
           { name: product.name, url: `/urun/${product.slug}` },
         ]}
       />
@@ -1646,12 +1649,12 @@ export default function ProductDetail() {
           {/* Breadcrumb */}
           <nav className="flex items-center gap-1.5 text-[10px] text-white/38 mb-8 lg:mb-5 font-sans tracking-[0.15em] uppercase flex-wrap">
             <Link href="/" className="hover:text-white transition-colors">Ana Sayfa</Link>
-            {category && (
-              <>
+            {categoryTrail.map((c) => (
+              <span key={c.id} className="contents">
                 <ChevronRight className="w-3 h-3 text-white/20" />
-                <Link href={`/kategori/${category.slug}`} className="hover:text-white transition-colors">{category.name}</Link>
-              </>
-            )}
+                <Link href={`/kategori/${c.slug}`} className="hover:text-white transition-colors">{c.name}</Link>
+              </span>
+            ))}
             <ChevronRight className="w-3 h-3 text-white/20" />
             <span className="text-white/60 normal-case font-sans tracking-normal text-[10px]">{product.name}</span>
           </nav>
@@ -1803,7 +1806,7 @@ export default function ProductDetail() {
                             <img
                               src={images[selectedImage]}
                               alt={product.name}
-                              className="absolute inset-0 w-full h-full object-cover will-change-transform"
+                              className="absolute inset-0 w-full h-full object-contain will-change-transform"
                               style={{
                                 transformOrigin: `${zoomPos.x}% ${zoomPos.y}%`,
                                 transform: isZooming && !reduceMotion ? 'scale(2)' : 'scale(1)',

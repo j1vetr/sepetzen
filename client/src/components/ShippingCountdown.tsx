@@ -24,7 +24,14 @@ function calculateShippingInfo(): ShippingInfo {
   const cutoffMinutes = cutoffHour * 60 + cutoffMinute;
   const isBeforeCutoff = nowMinutes < cutoffMinutes;
 
-  if (isWeekday && isBeforeCutoff) {
+  // Cumartesi saat 10:00'a kadar verilen siparişler de aynı gün kargoda
+  const saturdayCutoffMinutes = 10 * 60;
+  if (day === 6 && nowMinutes < saturdayCutoffMinutes) {
+    targetDate = new Date(now);
+    targetDate.setHours(10, 0, 0, 0);
+    label = 'aynı gün kargoda';
+    isSameDay = true;
+  } else if (isWeekday && isBeforeCutoff) {
     targetDate = new Date(now);
     targetDate.setHours(cutoffHour, cutoffMinute, 0, 0);
     label = 'aynı gün kargoda';

@@ -9436,7 +9436,7 @@ window.addEventListener('load', function() {
         invalidateGoogleMerchantFeedCache();
       }
       // Google Tag veya özel CSS değiştiyse head enjeksiyon önbelleğini düşür
-      if (settings.google_tag_code !== undefined || settings.custom_css !== undefined) {
+      if (['google_tag_code', 'custom_css', 'custom_head_code', 'custom_body_html', 'custom_js'].some((k) => settings[k] !== undefined)) {
         const { invalidateHeadInjectionCache } = await import("./headInjection");
         invalidateHeadInjectionCache();
       }

@@ -2,7 +2,7 @@ import express, { type Express, type Request } from "express";
 import fs from "fs";
 import path from "path";
 import { applyBrandSeo, getBrandSeo } from "./brandSeo";
-import { getHeadInjection, injectIntoHead } from "./headInjection";
+import { getHeadInjection, injectIntoHead, getBodyInjection, injectIntoBody } from "./headInjection";
 
 function getRequestOrigin(req: Request): string {
   const forwardedProtocol = req.get("x-forwarded-proto")?.split(",")[0]?.trim();
@@ -72,17 +72,19 @@ export function serveStatic(app: Express) {
   app.use("*", async (req, res) => {
     res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
     const indexPath = path.resolve(distPath, "index.html");
-    const [brandSeo, headInjection] = await Promise.all([
+    const [brandSeo, headInjection, bodyInjection] = await Promise.all([
       getBrandSeo(req.originalUrl),
       getHeadInjection(),
+      getBodyInjection(),
     ]);
     if (/^\/marka\/[^/?#]+/.test(req.originalUrl) && !brandSeo) {
       res.status(404);
     }
-    if (brandSeo || headInjection) {
+    if (brandSeo || headInjection || bodyInjection) {
       const template = await fs.promises.readFile(indexPath, "utf-8");
       let html = brandSeo ? applyBrandSeo(template, brandSeo, getRequestOrigin(req)) : template;
       html = injectIntoHead(html, headInjection);
+      html = injectIntoBody(html, bodyInjection);
       return res.send(html);
     }
     return res.sendFile(indexPath);

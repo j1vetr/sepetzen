@@ -983,6 +983,11 @@ function DesktopHeroMarquee({ products }: { products: Product[] }) {
 
   // Animasyon -%50 kayıyor, bu yüzden kopya sayısı çift olmalı ki döngü kesintisiz olsun
   const tripled = [...items, ...items, ...items, ...items];
+  // Mobil şeritle aynı kayma hızı (piksel/saniye): mobilde 38 sn'de yarım şerit (adet x 140 px) kayar,
+  // masaüstünde yarım şerit 2 x adet x 160 px olduğundan süre buna göre hesaplanır.
+  const mobileCount = Math.min(products.filter(p => p.images?.length).length, 12);
+  const pxPerSec = (mobileCount * 140) / 38;
+  const durationSec = Math.max(20, Math.round((2 * items.length * 160) / pxPerSec));
 
   return (
     <div
@@ -996,7 +1001,7 @@ function DesktopHeroMarquee({ products }: { products: Product[] }) {
       }}
       data-testid="scene-desktop-hero-marquee"
     >
-      <div className="marquee-loop gap-3 px-4">
+      <div className="marquee-loop gap-3 px-4" style={{ animationDuration: `${durationSec}s` }}>
         {tripled.map((p, i) => {
           const price = parseFloat(String(p.basePrice || '0')) || 0;
           return (

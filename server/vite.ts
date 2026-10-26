@@ -6,7 +6,7 @@ import fs from "fs";
 import path from "path";
 import { nanoid } from "nanoid";
 import { applyBrandSeo, getBrandSeo } from "./brandSeo";
-import { getHeadInjection, injectIntoHead } from "./headInjection";
+import { getHeadInjection, injectIntoHead, getBodyInjection, injectIntoBody } from "./headInjection";
 
 const viteLogger = createLogger();
 
@@ -58,9 +58,10 @@ export async function setupVite(server: Server, app: Express) {
         `src="/src/main.tsx"`,
         `src="/src/main.tsx?v=${nanoid()}"`,
       );
-      const [brandSeo, headInjection] = await Promise.all([
+      const [brandSeo, headInjection, bodyInjection] = await Promise.all([
         getBrandSeo(url),
         getHeadInjection(),
+        getBodyInjection(),
       ]);
       if (brandSeo) {
         template = applyBrandSeo(template, brandSeo, getRequestOrigin(req));
@@ -69,6 +70,7 @@ export async function setupVite(server: Server, app: Express) {
       }
       let page = await vite.transformIndexHtml(url, template);
       page = injectIntoHead(page, headInjection);
+      page = injectIntoBody(page, bodyInjection);
       res.set({ "Content-Type": "text/html" }).end(page);
     } catch (e) {
       vite.ssrFixStacktrace(e as Error);

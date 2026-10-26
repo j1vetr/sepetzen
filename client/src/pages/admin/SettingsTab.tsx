@@ -2025,6 +2025,9 @@ export default function SettingsPanel({ initialSection = 'genel', contentOnly = 
     shipentegra_sender_email: '',
     google_tag_code: '',
     custom_css: '',
+    custom_head_code: '',
+    custom_body_html: '',
+    custom_js: '',
     ...Object.fromEntries(WHATSAPP_EVENTS.flatMap(({ key, defaultTpl }) => [
       [`wpileti_evt_${key}`, 'true'],
       [`wpileti_tpl_${key}`, defaultTpl],
@@ -3169,9 +3172,9 @@ export default function SettingsPanel({ initialSection = 'genel', contentOnly = 
             <Code2 className="w-5 h-5 text-neutral-900" />
           </div>
           <div>
-            <h3 className="text-lg font-semibold text-neutral-900">Ek CSS</h3>
+            <h3 className="text-lg font-semibold text-neutral-900">Ek CSS, Header, HTML ve JavaScript</h3>
             <p className="text-sm text-neutral-500">
-              Tüm sayfalara eklenmesini istediğiniz özel CSS kuralları. Tema stillerinin üzerine yazar.
+              Tüm sayfalara eklenmesini istediğiniz özel CSS, header kodu, HTML ve JavaScript. CSS tema stillerinin üzerine yazar.
             </p>
           </div>
         </div>
@@ -3192,6 +3195,60 @@ export default function SettingsPanel({ initialSection = 'genel', contentOnly = 
             />
             <p className="text-xs text-neutral-500 mt-1">
               Değişiklikler kaydedildikten sonra en fazla 60 saniye içinde siteye yansır.
+            </p>
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-neutral-700 mb-1.5">
+              Header kodu (&lt;head&gt; içine)
+            </label>
+            <textarea
+              value={settings.custom_head_code}
+              onChange={(e) => setSettings(s => ({ ...s, custom_head_code: e.target.value }))}
+              rows={6}
+              spellCheck={false}
+              placeholder={"<meta name=\"example\" content=\"...\" />\n<script src=\"...\"></script>"}
+              className="w-full px-4 py-3 bg-neutral-50 border border-neutral-200 rounded-lg text-neutral-900 focus:border-neutral-900 transition-colors font-mono text-sm resize-y"
+              data-testid="textarea-custom-head-code"
+            />
+            <p className="text-xs text-neutral-500 mt-1">
+              Meta etiketi, doğrulama kodu, yazı tipi bağlantısı veya harici script gibi kodlar. Tüm sayfaların head bölümüne eklenir.
+            </p>
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-neutral-700 mb-1.5">
+              HTML kodu (sayfa sonuna)
+            </label>
+            <textarea
+              value={settings.custom_body_html}
+              onChange={(e) => setSettings(s => ({ ...s, custom_body_html: e.target.value }))}
+              rows={6}
+              spellCheck={false}
+              placeholder={"<div>...</div>"}
+              className="w-full px-4 py-3 bg-neutral-50 border border-neutral-200 rounded-lg text-neutral-900 focus:border-neutral-900 transition-colors font-mono text-sm resize-y"
+              data-testid="textarea-custom-body-html"
+            />
+            <p className="text-xs text-neutral-500 mt-1">
+              Sayfanın en altına, kapanış body etiketinden önce eklenir. Sohbet widget'ı veya harici bir snippet için kullanın.
+            </p>
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-neutral-700 mb-1.5">
+              JavaScript kodu
+            </label>
+            <textarea
+              value={settings.custom_js}
+              onChange={(e) => setSettings(s => ({ ...s, custom_js: e.target.value }))}
+              rows={6}
+              spellCheck={false}
+              placeholder={"console.log('merhaba');"}
+              className="w-full px-4 py-3 bg-neutral-50 border border-neutral-200 rounded-lg text-neutral-900 focus:border-neutral-900 transition-colors font-mono text-sm resize-y"
+              data-testid="textarea-custom-js"
+            />
+            <p className="text-xs text-neutral-500 mt-1">
+              Script etiketi yazmadan doğrudan JavaScript girin. Sayfa sonunda çalışır. Hatalı kod sitede sorun çıkarabilir, dikkatli kullanın.
             </p>
           </div>
 
