@@ -239,7 +239,7 @@ export default function Checkout() {
   });
   const [useSeparateBillingAddress, setUseSeparateBillingAddress] = useState(false);
   const [receiverPaysShipping, setReceiverPaysShipping] = useState(false);
-  // Canlı yayın ürünü varsa Alıcı Ödemeli kendiliğinden seçilir (müşteri isterse kaldırabilir)
+  // Canlı yayın ürünü varsa Alıcı Ödemeli sabit seçilidir ve kaldırılamaz
   const hasLiveItems = useHasLiveStreamItems(items);
   const liveAutoAppliedRef = useRef(false);
   useEffect(() => {
@@ -366,7 +366,7 @@ export default function Checkout() {
   const baseShippingCost = isDomestic
     ? (subtotal >= freeShippingThreshold ? 0 : rawRate)
     : rawRate;
-  const receiverPays = receiverPaysShipping && isDomestic;
+  const receiverPays = (receiverPaysShipping || hasLiveItems) && isDomestic;
   const shippingCost = appliedCoupon?.freeShipping || receiverPays ? 0 : baseShippingCost;
   const remainingForFreeShipping = isDomestic && !appliedCoupon?.freeShipping ? (freeShippingThreshold - subtotal) : 0;
   const shippingProgress = isDomestic ? Math.min((subtotal / freeShippingThreshold) * 100, 100) : 100;
@@ -1436,19 +1436,20 @@ export default function Checkout() {
 
                       {isDomestic && (
                         <label
-                          className={`flex items-start gap-3 cursor-pointer p-3 rounded-lg border transition-colors ${receiverPaysShipping ? 'border-white/40 bg-white/[0.04]' : 'border-white/10 bg-[#0F0F0F] hover:bg-white/[0.02]'}`}
+                          className={`flex items-start gap-3 cursor-pointer p-3 rounded-lg border transition-colors ${receiverPays ? 'border-white/40 bg-white/[0.04]' : 'border-white/10 bg-[#0F0F0F] hover:bg-white/[0.02]'}`}
                           data-testid="label-receiver-pays"
                         >
                           <input
                             type="checkbox"
-                            checked={receiverPaysShipping}
+                            checked={receiverPays}
+                            disabled={hasLiveItems}
                             onChange={(e) => setReceiverPaysShipping(e.target.checked)}
                             className="mt-0.5"
                             data-testid="checkbox-receiver-pays"
                           />
                           <span className="text-[13px] text-white/80">
                             <strong className="text-white">Alıcı Ödemeli</strong>
-                            <span className="block text-[12px] text-white/50">Kargo ücretini teslimatta kargo firmasına ödersiniz.</span>
+                            <span className="block text-[12px] text-white/50">{hasLiveItems ? 'Canlı yayın ürünlerinde kargo ücreti teslimatta kargo firmasına ödenir.' : 'Kargo ücretini teslimatta kargo firmasına ödersiniz.'}</span>
                           </span>
                         </label>
                       )}

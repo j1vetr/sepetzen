@@ -2,8 +2,8 @@ import { useQuery } from '@tanstack/react-query';
 import type { Product } from '@shared/schema';
 
 export type PublicLiveStream =
-  | { isActive: false }
-  | { isActive: true; title: string; description: string; streamUrl: string; startedAt: string | null; products: Product[] };
+  | { isActive: false; liveProductIds?: string[] }
+  | { isActive: true; title: string; description: string; streamUrl: string; startedAt: string | null; products: Product[]; liveProductIds?: string[] };
 
 export function useLiveStream() {
   return useQuery<PublicLiveStream>({
@@ -19,11 +19,12 @@ export function useLiveStream() {
   });
 }
 
-/** Sepette, şu an açık canlı yayındaki bir ürün var mı? Varsa kargo alıcı ödemeli işlenir. */
+/** Sepette canlı yayın listesinde yayına alınmış bir ürün var mı? Varsa kargo alıcı ödemeli işlenir. */
 export function useHasLiveStreamItems(items: Array<{ product?: { id?: string } | null; productId?: string }>): boolean {
   const { data } = useLiveStream();
-  if (!data?.isActive) return false;
-  const liveIds = new Set(data.products.map((p) => p.id));
+  // Yayın kapalı olsa bile listedeki yayındaki ürünler canlı yayın ürünü sayılır
+  const liveIds = new Set(data?.liveProductIds ?? (data?.isActive ? data.products.map((p) => p.id) : []));
+  if (liveIds.size === 0) return false;
   return items.some((i) => {
     const id = i.product?.id ?? i.productId;
     return !!id && liveIds.has(id);

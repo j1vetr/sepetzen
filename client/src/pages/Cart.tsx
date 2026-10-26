@@ -89,7 +89,8 @@ export default function Cart() {
           <div className="flex flex-col lg:flex-row gap-6">
             {/* ── Left: Items ─────────────────────── */}
             <div className="flex-1 space-y-4">
-              {/* Free shipping progress */}
+              {/* Free shipping progress (canlı yayın ürünlerinde alıcı ödemeli olduğu için gösterilmez) */}
+              {!hasLiveItems && (
               <div className="bg-[#141414] rounded-lg border border-white/8 shadow-[0_8px_30px_rgba(0,0,0,0.4)] p-4 flex gap-4 items-start sm:items-center">
                 <div className="w-10 h-10 bg-white/8 rounded-full flex items-center justify-center shrink-0">
                   <Truck size={20} className="text-white" />
@@ -115,6 +116,7 @@ export default function Cart() {
                   </div>
                 </div>
               </div>
+              )}
 
               {/* Product card list */}
               <div className="bg-[#141414] rounded-lg border border-white/8 shadow-[0_8px_30px_rgba(0,0,0,0.4)] overflow-hidden">

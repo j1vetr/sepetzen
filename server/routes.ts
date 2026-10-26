@@ -4259,7 +4259,7 @@ Bu ürün için 4 bölümlü HTML açıklama üret. Teknik Özellikler bölümü
         ? (serverSubtotal >= FREE_SHIPPING_THRESHOLD ? 0 : baseRate)
         : baseRate;
 
-      const receiverPays = isReceiverPays(req.body, selectedCountry);
+      const receiverPays = await isReceiverPaysForCart(req.body, selectedCountry, cartItems);
       if (couponFreeShipping || receiverPays) {
         shippingCost = 0;
       }
@@ -4676,7 +4676,7 @@ Bu ürün için 4 bölümlü HTML açıklama üret. Teknik Özellikler bölümü
       let shippingCost = isDomestic
         ? (serverSubtotal >= FREE_SHIPPING_THRESHOLD ? 0 : baseRate)
         : baseRate;
-      const receiverPays = isReceiverPays(req.body, selectedCountry);
+      const receiverPays = await isReceiverPaysForCart(req.body, selectedCountry, cartItems);
       if (couponFreeShipping || receiverPays) shippingCost = 0;
 
       // Kargo dahil kupon: indirim tabanı subtotal + kargo olur (kart akışı ile aynı mantık)
@@ -6266,7 +6266,7 @@ Bu ürün için 4 bölümlü HTML açıklama üret. Teknik Özellikler bölümü
       const orderCountry = req.body.shippingAddress?.country || 'Türkiye';
       const isDomestic = orderCountry === 'Türkiye';
       const baseRate = shippingCostForCountry(orderCountry, shippingCosts);
-      const receiverPays = isReceiverPays(req.body, orderCountry);
+      const receiverPays = await isReceiverPaysForCart(req.body, orderCountry, cartItems);
       const shippingCost = receiverPays ? 0 : isDomestic
         ? (serverSubtotal >= FREE_SHIPPING_THRESHOLD ? 0 : baseRate)
         : baseRate;
@@ -9087,11 +9087,24 @@ window.addEventListener('load', function() {
     return resolveLiveStream(parsed);
   }
 
+  // Sepette canlı yayın listesinde yayına alınmış bir ürün varsa kargo her zaman alıcı ödemeli işlenir.
+  // Yayın kapalı olsa bile geçerlidir, çünkü ürün linkleri yayın dışında da paylaşılır.
+  async function liveProductIdSet(): Promise<Set<string>> {
+    const live = await readLiveStream();
+    return new Set(live.liveProductIds ?? live.productIds);
+  }
+  async function isReceiverPaysForCart(body: any, country: string, cartItems: Array<{ productId: string }>): Promise<boolean> {
+    if (country !== 'Türkiye') return false;
+    if (isReceiverPays(body, country)) return true;
+    const liveIds = await liveProductIdSet();
+    return cartItems.some((c) => liveIds.has(c.productId));
+  }
+
   // Public: yayın durumu ve yayında gösterilen ürünler (yalnızca aktif ürünler, seçilme sırasıyla)
   app.get("/api/live-stream", async (_req, res) => {
     try {
       const live = await readLiveStream();
-      if (!live.isActive) return res.json({ isActive: false });
+      if (!live.isActive) return res.json({ isActive: false, liveProductIds: live.liveProductIds ?? live.productIds });
       const products: any[] = [];
       const liveIds = new Set(live.liveProductIds ?? live.productIds);
       for (const id of live.productIds) {
@@ -9106,6 +9119,7 @@ window.addEventListener('load', function() {
         streamUrl: live.streamUrl,
         startedAt: live.startedAt,
         products,
+        liveProductIds: live.liveProductIds ?? live.productIds,
       });
     } catch (error) {
       console.error('[live-stream GET]', error);
