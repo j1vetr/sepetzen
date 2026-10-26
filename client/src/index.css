@@ -957,7 +957,7 @@ html[data-theme="light"] .product-title {
   .storefront-new-badge,
   .card-fav-btn,
   .card-quick-view,
-  [class*="backdrop-blur"] {
+  .product-card-root [class*="backdrop-blur"] {
     -webkit-backdrop-filter: none !important;
     backdrop-filter: none !important;
   }

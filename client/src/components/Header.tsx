@@ -510,7 +510,7 @@ export function Header({ overlayHero = false }: { overlayHero?: boolean } = {}) 
           // Mega panel açıkken header'dan backdrop-filter kaldırılır: ata elemandaki
           // backdrop-filter, altındaki panelin kendi blur'unu bozar (backdrop root).
           megaMenuId
-            ? 'bg-[#0A0A0A]/80 border-b border-transparent shadow-[0_4px_24px_-8px_rgba(0,0,0,0.45)]'
+            ? 'bg-[#0A0A0A] border-b border-transparent shadow-[0_4px_24px_-8px_rgba(0,0,0,0.45)]'
             : scrolled
               ? 'bar-glass border-b border-transparent shadow-[0_4px_24px_-8px_rgba(0,0,0,0.45)]'
               : 'bar-glass border-b border-transparent'
