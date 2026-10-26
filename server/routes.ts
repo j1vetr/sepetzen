@@ -781,6 +781,58 @@ export async function registerRoutes(
     return `${baseUrl}${imageUrl.startsWith('/') ? imageUrl : '/' + imageUrl}`;
   };
 
+  // Sosyal paylaşım görselleri (WhatsApp, Facebook vb.): 1200x630 JPEG
+  const OG_W = 1200;
+  const OG_H = 630;
+  const uploadsRoot = path.join(process.cwd(), 'client', 'public', 'uploads');
+  const resolveLocalUpload = (url: string): string | null => {
+    if (!url.startsWith('/uploads/')) return null;
+    const full = path.resolve(process.cwd(), 'client', 'public', '.' + url.split('?')[0]);
+    return full.startsWith(uploadsRoot) && fs.existsSync(full) ? full : null;
+  };
+
+  // Ana sayfa: siyah zemin üzerinde beyaz logo
+  let homeOgCache: Buffer | null = null;
+  app.get('/og/home.jpg', async (_req, res) => {
+    try {
+      if (!homeOgCache) {
+        const logoPath = path.join(uploadsRoot, 'branding', 'sepetzen-logo-white.png');
+        const logo = await sharp(logoPath).resize({ width: 800, fit: 'inside' }).png().toBuffer();
+        homeOgCache = await sharp({ create: { width: OG_W, height: OG_H, channels: 3, background: '#000000' } })
+          .composite([{ input: logo, gravity: 'center' }])
+          .jpeg({ quality: 90 })
+          .toBuffer();
+      }
+      res.setHeader('Content-Type', 'image/jpeg');
+      res.setHeader('Cache-Control', 'public, max-age=3600');
+      res.send(homeOgCache);
+    } catch (error) {
+      console.error('[og home]', error);
+      res.status(500).end();
+    }
+  });
+
+  // Ürün: ana fotoğraf, beyaz zemin üzerinde ortalanmış (video değil, ilk görsel)
+  app.get('/og/urun/:slug.jpg', async (req, res) => {
+    try {
+      const product = await storage.getProductBySlug(req.params.slug);
+      const imageUrl = product?.images?.find((u) => !/\.(mp4|webm|mov)(\?|$)/i.test(u) && !/youtu/i.test(u));
+      const file = imageUrl ? resolveLocalUpload(imageUrl) : null;
+      if (!product || !file) return res.redirect(302, '/og/home.jpg');
+      const buf = await sharp(file)
+        .resize({ width: OG_W, height: OG_H, fit: 'contain', background: '#ffffff' })
+        .flatten({ background: '#ffffff' })
+        .jpeg({ quality: 88 })
+        .toBuffer();
+      res.setHeader('Content-Type', 'image/jpeg');
+      res.setHeader('Cache-Control', 'public, max-age=3600');
+      res.send(buf);
+    } catch (error) {
+      console.error('[og product]', error);
+      res.redirect(302, '/og/home.jpg');
+    }
+  });
+
   // Product page crawler middleware
   app.get('/urun/:slug', async (req, res, next) => {
     const userAgent = req.get('user-agent');
@@ -797,9 +849,7 @@ export async function registerRoutes(
 
       const baseUrl = `${req.protocol}://${req.get('host')}`;
       const pageUrl = `${baseUrl}/urun/${product.slug}`;
-      const mainImage = product.images && product.images.length > 0
-        ? normalizeImageUrl(baseUrl, product.images[0])
-        : `${baseUrl}/logo.png`;
+      const mainImage = `${baseUrl}/og/urun/${encodeURIComponent(product.slug)}.jpg`;
       const price = parseFloat(product.basePrice || '0');
       const description = product.description
         ? escapeHtml(product.description.substring(0, 200))

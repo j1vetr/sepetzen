@@ -39,7 +39,7 @@ export function SEO({
   const identity = useSiteIdentity();
   const fullTitle = title ? `${title} | ${SITE_NAME}` : DEFAULT_TITLE;
   const fullUrl = url ? `${BASE_URL}${url}` : (typeof window !== 'undefined' ? window.location.href : '');
-  const imageUrl = image ? (image.startsWith('http') ? image : `${BASE_URL}${image}`) : `${BASE_URL}/opengraph.jpg`;
+  const imageUrl = image ? (image.startsWith('http') ? image : `${BASE_URL}${image}`) : `${BASE_URL}/og/home.jpg`;
 
   useEffect(() => {
     document.title = fullTitle;
