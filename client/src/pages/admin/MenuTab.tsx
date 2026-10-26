@@ -247,17 +247,27 @@ export default function MenuManagementPanel({ categories }: MenuManagementPanelP
     .filter(i => !i.parentId)
     .sort((a, b) => a.displayOrder - b.displayOrder);
 
-  // Üst menü adayları: kök öğeler ve ikinci seviye öğeler (en fazla üç seviye).
+  // Üst menü adayları: bağlantı olmayan tüm öğeler (sınırsız derinlik).
   const submenuParents = menuItems.filter(i => {
     if (i.type === 'link') return false;
-    if (!i.parentId) return i.type === 'submenu' || menuItems.some(c => c.parentId === i.id) || i.type === 'category';
-    const par = menuItems.find(p => p.id === i.parentId);
-    return !!par && !par.parentId;
+    return true;
   });
+  const menuPath = (item: MenuItemData): string => {
+    const parts = [item.title];
+    let cur = item;
+    let guard = 0;
+    while (cur.parentId && guard++ < 50) {
+      const par = menuItems.find(m => m.id === cur.parentId);
+      if (!par) break;
+      parts.unshift(par.title);
+      cur = par;
+    }
+    return parts.join(' / ');
+  };
   const isDescendantOf = (id: string, ancestorId: string): boolean => {
     let cur = menuItems.find(m => m.id === id);
     let guard = 0;
-    while (cur?.parentId && guard++ < 5) {
+    while (cur?.parentId && guard++ < 50) {
       if (cur.parentId === ancestorId) return true;
       cur = menuItems.find(m => m.id === cur!.parentId);
     }
@@ -322,7 +332,7 @@ export default function MenuManagementPanel({ categories }: MenuManagementPanelP
 
         {/* actions */}
         <div className="flex items-center gap-1 opacity-0 group-hover/row:opacity-100 transition-opacity shrink-0">
-          {depth === 1 && child.type !== 'link' && (
+          {child.type !== 'link' && (
             <button
               onClick={() => openAddChild(child.id)}
               className="flex items-center gap-1 px-2 py-1 rounded text-[11px] text-neutral-500 hover:bg-neutral-100 border border-transparent hover:border-neutral-200"
@@ -741,7 +751,7 @@ export default function MenuManagementPanel({ categories }: MenuManagementPanelP
                   >
                     <option value="">Ana menüde göster</option>
                     {submenuParents.filter(p => p.id !== editingItem?.id && !(editingItem && isDescendantOf(p.id, editingItem.id))).map(parent => (
-                      <option key={parent.id} value={parent.id}>{parent.parentId ? `${menuItems.find(m => m.id === parent.parentId)?.title ?? ''} / ${parent.title}` : parent.title}</option>
+                      <option key={parent.id} value={parent.id}>{menuPath(parent)}</option>
                     ))}
                   </select>
                 </div>

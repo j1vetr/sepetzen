@@ -43,12 +43,15 @@ export function BackToTop() {
           aria-label="Başa dön"
           className={`fixed right-4 z-50 w-11 h-11 rounded-full flex items-center justify-center ${isProductPage ? 'bottom-36' : 'bottom-24'}`}
           style={{
-            background: 'rgba(255,255,255,0.10)',
+            background: 'rgba(17,17,17,0.82)',
+            border: '1px solid rgba(255,255,255,0.18)',
+            boxShadow: '0 4px 14px rgba(0,0,0,0.25)',
+            color: '#ffffff',
             backdropFilter: 'blur(16px)',
             WebkitBackdropFilter: 'blur(16px)',
           }}
         >
-          <ArrowUp className="w-5 h-5 text-white" strokeWidth={2} />
+          <ArrowUp className="w-5 h-5" style={{ color: '#ffffff' }} strokeWidth={2} />
         </motion.button>
       )}
     </AnimatePresence>

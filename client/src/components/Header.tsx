@@ -247,6 +247,29 @@ export function Header({ overlayHero = false }: { overlayHero?: boolean } = {}) 
     }`;
 
   const activeMegaRoot = megaMenuId ? menuRoots.find(r => r.id === megaMenuId) : null;
+  // Üçüncü seviyeden sonraki alt öğeleri sınırsız derinlikte iç içe listeler.
+  const renderDeeperMenu = (items: MenuItemData[] | undefined, onNavigate: () => void): React.ReactNode => {
+    const active = (items ?? []).filter(i => i.isActive);
+    if (active.length === 0) return null;
+    return (
+      <ul className="ml-2.5 pl-2.5 border-l border-white/10 space-y-0.5">
+        {active.map(i => (
+          <li key={i.id}>
+            <Link
+              href={hrefForMenu(i)}
+              onClick={onNavigate}
+              className="block py-1 text-[11.5px] text-white/40 hover:text-white transition-colors leading-tight"
+              data-testid={`link-menu-deep-${i.id}`}
+            >
+              {i.title}
+            </Link>
+            {renderDeeperMenu(i.children, onNavigate)}
+          </li>
+        ))}
+      </ul>
+    );
+  };
+
   const activeMegaChildren = activeMegaRoot ? (activeMegaRoot.children || []).filter(c => c.isActive) : [];
 
   const megaCategoryId = activeMegaRoot?.category?.id ?? null;
@@ -671,6 +694,7 @@ export function Header({ overlayHero = false }: { overlayHero?: boolean } = {}) 
                                             >
                                               {g.title}
                                             </button>
+                                            {renderDeeperMenu(g.children, () => setAllCatsOpen(false))}
                                           </li>
                                         ))}
                                       </ul>
@@ -1094,6 +1118,7 @@ export function Header({ overlayHero = false }: { overlayHero?: boolean } = {}) 
                                 >
                                   {g.title}
                                 </Link>
+                                {renderDeeperMenu(g.children, () => setMegaMenuId(null))}
                               </li>
                             ))}
                           </ul>
@@ -1324,6 +1349,7 @@ export function Header({ overlayHero = false }: { overlayHero?: boolean } = {}) 
                                                 >
                                                   {g.title}
                                                 </Link>
+                                                {renderDeeperMenu(g.children, () => setMobileOpen(false))}
                                               </li>
                                             ))}
                                           </ul>
