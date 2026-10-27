@@ -1,9 +1,9 @@
-import { and, eq, inArray, asc, gt } from "drizzle-orm";
+import { and, eq, inArray, asc, gt, sql } from "drizzle-orm";
 import { db } from "./storage";
 import { productVariants, variantOptions } from "@shared/schema";
 import { foldVariantKey, compareSizeNames } from "@shared/variantKey";
 
-export interface ListColor { name: string; hex: string | null; slug: string }
+export interface ListColor { name: string; hex: string | null; slug: string; image: string | null }
 export interface VariantListSummary {
   /** Satışta olan (aktif ve stoklu) renkler, kütüphane sırasına göre */
   colorSummary: ListColor[];
@@ -31,6 +31,7 @@ export async function attachVariantListSummary<T extends { id: string }>(items: 
         productId: productVariants.productId,
         color: productVariants.color,
         colorHex: productVariants.colorHex,
+        firstImage: sql<string | null>`${productVariants.images}->>0`,
         size: productVariants.size,
         price: productVariants.price,
       })
@@ -61,9 +62,14 @@ export async function attachVariantListSummary<T extends { id: string }>(items: 
       if (v.color) {
         const key = foldVariantKey(v.color);
         const existing = colors.get(key);
-        const hex = v.colorHex || libHex.get(key) || null;
-        if (!existing) colors.set(key, { name: v.color, hex, slug: slugOf(v.color) });
-        else if (!existing.hex && hex) existing.hex = hex;
+        const legacy = (Array.isArray((item as any).availableColors) ? ((item as any).availableColors as { name?: string; hex?: string | null }[]) : [])
+          .find((c) => foldVariantKey(c?.name) === key)?.hex;
+        const hex = v.colorHex || libHex.get(key) || legacy || null;
+        if (!existing) colors.set(key, { name: v.color, hex, slug: slugOf(v.color), image: v.firstImage || null });
+        else {
+          if (!existing.hex && hex) existing.hex = hex;
+          if (!existing.image && v.firstImage) existing.image = v.firstImage;
+        }
       }
       if (v.size) sizes.add(v.size);
       const pc = v.color ? slugOf(v.color) : "";
@@ -85,10 +91,11 @@ export async function attachVariantListSummary<T extends { id: string }>(items: 
 }
 
 /** Varyasyonlar kütüphanesindeki sıra: katlanmış anahtar listesi (renk ve beden ayrı). */
-export async function getVariantOptionOrder(): Promise<{ color: string[]; size: string[] }> {
+export async function getVariantOptionOrder(): Promise<{ color: string[]; size: string[]; colorHex: Record<string, string> }> {
   const opts = await db.select().from(variantOptions).orderBy(asc(variantOptions.sortOrder), asc(variantOptions.name));
   return {
     color: opts.filter((o) => o.type === "color").map((o) => o.key),
     size: opts.filter((o) => o.type === "size").map((o) => o.key),
+    colorHex: Object.fromEntries(opts.filter((o) => o.type === "color" && o.hex).map((o) => [o.key, o.hex as string])),
   };
 }

@@ -979,7 +979,20 @@ export default function ProductDetail() {
   );
   // Seçenekler Varyasyonlar kütüphanesindeki sıraya göre dizilir; kütüphanede
   // olmayanlar sona, ürün içindeki sıralarıyla eklenir.
-  const optionOrder = (product as { optionOrder?: { color: string[]; size: string[] } } | undefined)?.optionOrder;
+  const optionOrder = (product as { optionOrder?: { color: string[]; size: string[]; colorHex?: Record<string, string> } } | undefined)?.optionOrder;
+  // Renk kodu: varyant, kütüphane, eski renk listesi sırasıyla
+  const hexFor = (color: string): string | null => {
+    const key = foldVariantKey(color);
+    const fromVariant = activeVariants.find((v) => foldVariantKey(v.color) === key && v.colorHex)?.colorHex;
+    if (fromVariant) return fromVariant;
+    if (optionOrder?.colorHex?.[key]) return optionOrder.colorHex[key];
+    const legacy = ((product?.availableColors || []) as { name: string; hex: string | null }[]).find((c) => foldVariantKey(c.name) === key);
+    return legacy?.hex || null;
+  };
+  const colorStock = (color: string): number =>
+    activeVariants
+      .filter((v) => (v.color ?? null) === color && (sizeOptions.length === 0 || !selectedSize || (v.size ?? null) === selectedSize))
+      .reduce((sum, v) => sum + (v.stock || 0), 0);
   const sizeOptions = useMemo(() => {
     const list: string[] = [];
     activeVariants.forEach((v) => {
@@ -2266,6 +2279,7 @@ export default function ProductDetail() {
                       </p>
                       <div className="flex flex-wrap gap-2">
                         {colorLinks.map((entry) => {
+                          const entryHex = entry.hex || hexFor(entry.name);
                           const isCurrent = !entry.slug || entry.slug === product?.slug;
                           return (
                             <button
@@ -2277,15 +2291,15 @@ export default function ProductDetail() {
                               title={entry.name}
                               aria-label={entry.name}
                               aria-pressed={isCurrent}
-                              className={`${entry.hex ? 'w-10 px-0 rounded-full' : 'px-3 rounded-md'} h-10 flex items-center justify-center text-[12px] tracking-[0.08em] uppercase border transition-all duration-200 ${
+                              className={`${entryHex ? 'w-10 px-0 rounded-full' : 'px-3 rounded-md'} h-10 flex items-center justify-center text-[12px] tracking-[0.08em] uppercase border transition-all duration-200 ${
                                 isCurrent
                                   ? 'border-white ring-2 ring-white/40 text-white font-semibold'
                                   : 'border-white/15 bg-white/5 text-white/65 hover:border-white/50 hover:text-white/90'
                               }`}
                               data-testid={`button-color-link-${entry.name}`}
                             >
-                              {entry.hex ? (
-                                <span className="block w-6 h-6 rounded-full border border-white/25" style={{ backgroundColor: entry.hex }} />
+                              {entryHex ? (
+                                <span className="block w-6 h-6 rounded-full border border-white/25" style={{ backgroundColor: entryHex }} />
                               ) : entry.name}
                             </button>
                           );
@@ -2296,20 +2310,21 @@ export default function ProductDetail() {
                     /* Tek-ürün varyant renk seçimi (aynı üründe renk değişimi) */
                     <div>
                       <p className="text-[10px] tracking-[0.25em] uppercase text-white/40 font-medium mb-2">
-                        Renk{selectedColor ? <span className="text-white/70 ml-2 tracking-normal normal-case">{selectedColor}</span> : null}
+                        Renk{selectedColor ? <span className="text-white/70 ml-2 tracking-normal normal-case">{selectedColor}{(() => { const n = colorStock(selectedColor); return n <= 0 ? ' · Tükendi' : n <= 5 ? ` · Son ${n} adet` : ' · Stokta var'; })()}</span> : null}
                       </p>
                       <div className="flex flex-wrap gap-2">
                         {colorOptions.map((color) => {
                           const disabled = !colorHasStock(color);
                           const active = selectedColor === color;
-                          const hex = activeVariants.find((v) => v.color === color && v.colorHex)?.colorHex;
+                          const hex = hexFor(color);
+                          const stockOfColor = colorStock(color);
                           return (
                             <button
                               key={color}
                               type="button"
                               onClick={() => pickColor(color)}
                               aria-disabled={disabled}
-                              title={color}
+                              title={`${color} (${stockOfColor > 0 ? `${stockOfColor} adet stokta` : 'stokta yok'})`}
                               aria-label={color}
                               aria-pressed={active}
                               className={`${hex ? 'w-10 px-0 rounded-full' : 'px-3 rounded-md'} h-10 relative overflow-hidden flex items-center justify-center text-[12px] tracking-[0.08em] uppercase border transition-all duration-200 ${

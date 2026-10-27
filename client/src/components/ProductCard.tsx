@@ -45,7 +45,7 @@ interface Product {
   variants?: ProductVariant[];
   availableSizes?: string[];
   availableColors?: { name: string; hex: string | null }[];
-  colorSummary?: { name: string; hex: string | null; slug: string }[];
+  colorSummary?: { name: string; hex: string | null; slug: string; image?: string | null }[];
   startingPrice?: number | null;
   priceVaries?: boolean;
 }
@@ -59,6 +59,8 @@ interface ProductCardProps {
 export const ProductCard = memo(function ProductCard({ product }: ProductCardProps) {
   const [, navigate] = useLocation();
   const [isHovered, setIsHovered] = useState(false);
+  // Renk örneğinin üstüne gelinince kart görseli o rengin görseline geçer
+  const [swatchImage, setSwatchImage] = useState<string | null>(null);
   const [quickViewOpen, setQuickViewOpen] = useState(false);
   const videoRef = useRef<HTMLVideoElement>(null);
   const scrubBarRef = useRef<HTMLDivElement>(null);
@@ -258,7 +260,7 @@ export const ProductCard = memo(function ProductCard({ product }: ProductCardPro
             ) : (
               <>
                 <motion.img
-                  src={mainImage}
+                  src={swatchImage ?? mainImage}
                   alt={product.name}
                   className="w-full h-full object-cover"
                   loading="lazy"
@@ -428,6 +430,10 @@ export const ProductCard = memo(function ProductCard({ product }: ProductCardPro
                     tabIndex={0}
                     onClick={(e: React.MouseEvent) => { e.preventDefault(); e.stopPropagation(); navigate(`/urun/${product.slug}?renk=${c.slug}`); }}
                     onKeyDown={(e: React.KeyboardEvent) => { if (e.key === 'Enter') { e.preventDefault(); e.stopPropagation(); navigate(`/urun/${product.slug}?renk=${c.slug}`); } }}
+                    onMouseEnter={() => c.image && setSwatchImage(c.image)}
+                    onMouseLeave={() => setSwatchImage(null)}
+                    onFocus={() => c.image && setSwatchImage(c.image)}
+                    onBlur={() => setSwatchImage(null)}
                     title={c.name}
                     aria-label={c.name}
                     data-testid={`swatch-${product.id}-${c.slug}`}
