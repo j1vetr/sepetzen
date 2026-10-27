@@ -15,6 +15,7 @@ import { sanitizeAdminHtml } from '@/lib/sanitizeHtml';
 import { useInfiniteList } from '@/hooks/useInfiniteList';
 import { SubcategoryStrip } from '@/components/SubcategoryStrip';
 import { PriceRangeFilter } from '@/components/PriceRangeFilter';
+import { parseVariantParams, writeVariantParams, collectVariantOptions, filterByVariants } from '@/lib/variantFilter';
 import { FilterDrawer } from '@/components/FilterDrawer';
 import {
   Select,
@@ -146,6 +147,8 @@ export default function Category() {
   const [filterOpen, setFilterOpen] = useState(false);
   const [gridCols, setGridCols] = useState<3 | 4>(4);
   const [selectedBrands, setSelectedBrands] = useState<string[]>([]);
+  const [selectedColors, setSelectedColors] = useState<string[]>(() => parseVariantParams(typeof window !== 'undefined' ? window.location.search : '').colors);
+  const [selectedSizes, setSelectedSizes] = useState<string[]>(() => parseVariantParams(typeof window !== 'undefined' ? window.location.search : '').sizes);
   const [selectedSpecFilters, setSelectedSpecFilters] = useState<Record<string, string[]>>({});
 
   const updateUrl = useCallback(
@@ -161,6 +164,10 @@ export default function Category() {
       if (maxP < 10000) p.set('maxPrice', String(maxP));
       if (n) p.set('isNew', '1');
       if (d) p.set('discounted', '1');
+      const cur = new URLSearchParams(window.location.search);
+      const rk = cur.get('renk'); const bd = cur.get('beden');
+      if (rk) p.set('renk', rk);
+      if (bd) p.set('beden', bd);
       const qs = p.toString();
       window.history.replaceState(null, '', `${window.location.pathname}${qs ? `?${qs}` : ''}`);
     },
@@ -197,6 +204,8 @@ export default function Category() {
     setSortBy('recommended');
     setPriceRange([0, 10000]);
     setSelectedBrands([]);
+    setSelectedColors([]);
+    setSelectedSizes([]);
     setSelectedSpecFilters({});
     window.history.replaceState(null, '', window.location.pathname);
   }, []);
@@ -208,6 +217,9 @@ export default function Category() {
     setShowOnlyNew(reparsed.isNew);
     setShowOnlyDiscounted(reparsed.discounted);
     setSelectedBrands([]);
+    const vp = parseVariantParams(window.location.search);
+    setSelectedColors(vp.colors);
+    setSelectedSizes(vp.sizes);
     setSelectedSpecFilters({});
   }, [slug]);
 
@@ -255,6 +267,20 @@ export default function Category() {
     });
   };
 
+  const variantOpts = useMemo(() => collectVariantOptions(products), [products]);
+  const toggleColor = (name: string) => {
+    const slug = variantOpts.colorSlugOf(name);
+    const next = selectedColors.includes(slug) ? selectedColors.filter(c => c !== slug) : [...selectedColors, slug];
+    setSelectedColors(next);
+    writeVariantParams(next, selectedSizes);
+  };
+  const toggleSize = (val: string) => {
+    const next = selectedSizes.includes(val) ? selectedSizes.filter(v => v !== val) : [...selectedSizes, val];
+    setSelectedSizes(next);
+    writeVariantParams(selectedColors, next);
+  };
+  const selectedColorNames = selectedColors.map(variantOpts.slugToName);
+
   const toggleBrand = (val: string) => {
     setSelectedBrands(prev => prev.includes(val) ? prev.filter(v => v !== val) : [...prev, val]);
   };
@@ -266,6 +292,7 @@ export default function Category() {
     if (showOnlyNew) result = result.filter(p => p.isNew);
     if (showOnlyDiscounted) result = result.filter(p => !!p.discountBadge);
     if (selectedBrands.length > 0) result = result.filter(p => p.brand && selectedBrands.includes(p.brand));
+    result = filterByVariants(result, selectedColors, selectedSizes);
     for (const attr of filterAttributes) {
       const sel = selectedSpecFilters[attr.key] ?? [];
       if (sel.length > 0) {
@@ -273,7 +300,7 @@ export default function Category() {
       }
     }
     return sortBy === 'recommended' ? sortRecommended(result) : sortBy === 'discounted' ? sortDiscountedFirst(result) : result;
-  }, [sortBy, products, showOnlyNew, showOnlyDiscounted, selectedBrands, selectedSpecFilters, filterAttributes]);
+  }, [sortBy, products, showOnlyNew, showOnlyDiscounted, selectedBrands, selectedColors, selectedSizes, selectedSpecFilters, filterAttributes]);
   const { visible: visibleProducts, hasMore: hasMoreProducts, sentinelRef: productsSentinelRef } = useInfiniteList(filteredProducts, 12);
   const showSkeleton = useMinimumSkeleton(isLoading);
 
@@ -283,12 +310,14 @@ export default function Category() {
   );
 
   const priceActive = priceRange[0] > 0 || priceRange[1] < 10000;
-  const hasActiveFilters = showOnlyNew || showOnlyDiscounted || priceActive || selectedBrands.length > 0 || specFilterCount > 0;
+  const hasActiveFilters = showOnlyNew || showOnlyDiscounted || priceActive || selectedBrands.length > 0 || selectedColors.length > 0 || selectedSizes.length > 0 || specFilterCount > 0;
   const activeFilterCount =
     (showOnlyNew ? 1 : 0) +
     (showOnlyDiscounted ? 1 : 0) +
     (priceActive ? 1 : 0) +
     selectedBrands.length +
+    selectedColors.length +
+    selectedSizes.length +
     specFilterCount;
 
   // Aktif chip listesi — filtre paneli üzerinde görünür
@@ -297,6 +326,8 @@ export default function Category() {
     ...(showOnlyDiscounted ? [{ key: 'disc', label: 'İndirimli', onRemove: () => { setShowOnlyDiscounted(false); updateUrl({ discounted: false }); } }] : []),
     ...(priceActive ? [{ key: 'price', label: `${priceRange[0].toLocaleString('tr-TR')}–${priceRange[1].toLocaleString('tr-TR')} ₺`, onRemove: () => { setPriceRange([0, 10000]); updateUrl({ minPrice: 0, maxPrice: 10000 }); } }] : []),
     ...selectedBrands.map(b => ({ key: `br-${b}`, label: b, onRemove: () => toggleBrand(b) })),
+    ...selectedColorNames.map(n => ({ key: `renk-${n}`, label: n, onRemove: () => toggleColor(n) })),
+    ...selectedSizes.map(z => ({ key: `beden-${z}`, label: z, onRemove: () => toggleSize(z) })),
     ...filterAttributes.flatMap(attr =>
       (selectedSpecFilters[attr.key] ?? []).map(v => ({ key: `sp-${attr.key}-${v}`, label: v, onRemove: () => toggleSpec(attr.key, v) }))
     ),
@@ -404,6 +435,22 @@ export default function Category() {
                 label: 'Marka',
                 badge: selectedBrands.length,
                 content: <MultiCheckList options={brandOptions} selected={selectedBrands} onToggle={toggleBrand} counts={brandCounts} />,
+              }]
+            : []),
+          ...(variantOpts.colorOptions.length >= 2 || selectedColors.length > 0
+            ? [{
+                id: 'renk',
+                label: 'Renk',
+                badge: selectedColors.length,
+                content: <MultiCheckList options={variantOpts.colorOptions} selected={selectedColorNames} onToggle={toggleColor} counts={variantOpts.colorCounts} />,
+              }]
+            : []),
+          ...(variantOpts.sizeOptions.length >= 2 || selectedSizes.length > 0
+            ? [{
+                id: 'beden',
+                label: 'Beden',
+                badge: selectedSizes.length,
+                content: <MultiCheckList options={variantOpts.sizeOptions} selected={selectedSizes} onToggle={toggleSize} counts={variantOpts.sizeCounts} />,
               }]
             : []),
           ...filterAttributes

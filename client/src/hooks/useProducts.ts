@@ -57,6 +57,14 @@ export interface Product {
   updatedAt: string;
 
   variants?: ProductVariant[];
+
+  /** Liste uçlarından gelen hafif özet: satışta olan renk ve bedenler (kütüphane sırasıyla). */
+  colorSummary?: { name: string; hex: string | null; slug: string }[];
+  sizeSummary?: string[];
+  /** En düşük satıştaki varyant fiyatı; fiyatlar farklıysa priceVaries true gelir. */
+  startingPrice?: number | null;
+  priceVaries?: boolean;
+  variantPairs?: [string, string][];
 }
 
 export interface ProductVariant {

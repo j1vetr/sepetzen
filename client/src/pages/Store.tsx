@@ -12,6 +12,7 @@ import { ChevronRight, X, SlidersHorizontal, LayoutGrid, Grid3X3, ArrowUpRight, 
 import { motion, AnimatePresence } from 'framer-motion';
 import { useProducts, useCategories, useFilterAttributes, type ProductFilters } from '@/hooks/useProducts';
 import { useInfiniteList } from '@/hooks/useInfiniteList';
+import { parseVariantParams, writeVariantParams, collectVariantOptions, filterByVariants } from '@/lib/variantFilter';
 import { PriceRangeFilter } from '@/components/PriceRangeFilter';
 import { FilterDrawer, type FilterDrawerGroup } from '@/components/FilterDrawer';
 import { useFreeShippingThreshold } from '@/hooks/useShippingSettings';
@@ -221,6 +222,8 @@ export default function Store() {
     return [...(q.get('isNew') === '1' ? ['new'] : []), ...(q.get('discounted') === '1' ? ['discounted'] : [])];
   });
   const [selectedBrands, setSelectedBrands] = useState<string[]>([]);
+  const [selectedColors, setSelectedColors] = useState<string[]>(() => parseVariantParams(typeof window !== 'undefined' ? window.location.search : '').colors);
+  const [selectedSizes, setSelectedSizes] = useState<string[]>(() => parseVariantParams(typeof window !== 'undefined' ? window.location.search : '').sizes);
   // Dinamik filtre değerleri: { [key]: string[] }
   const [selectedSpecFilters, setSelectedSpecFilters] = useState<Record<string, string[]>>({});
 
@@ -261,6 +264,20 @@ export default function Store() {
     return result;
   }, [fetchedProducts, filterAttributes]);
 
+  const variantOpts = useMemo(() => collectVariantOptions(fetchedProducts), [fetchedProducts]);
+  const toggleColor = (name: string) => {
+    const slug = variantOpts.colorSlugOf(name);
+    const next = selectedColors.includes(slug) ? selectedColors.filter(c => c !== slug) : [...selectedColors, slug];
+    setSelectedColors(next);
+    writeVariantParams(next, selectedSizes);
+  };
+  const toggleSize = (val: string) => {
+    const next = selectedSizes.includes(val) ? selectedSizes.filter(v => v !== val) : [...selectedSizes, val];
+    setSelectedSizes(next);
+    writeVariantParams(selectedColors, next);
+  };
+  const selectedColorNames = selectedColors.map(variantOpts.slugToName);
+
   const toggleSpec = (key: string, val: string) => {
     setSelectedSpecFilters(prev => {
       const current = prev[key] ?? [];
@@ -277,6 +294,7 @@ export default function Store() {
     if (selectedBrands.length > 0) {
       result = result.filter(p => p.brand && selectedBrands.includes(p.brand));
     }
+    result = filterByVariants(result, selectedColors, selectedSizes);
     for (const attr of filterAttributes) {
       const sel = selectedSpecFilters[attr.key] ?? [];
       if (sel.length > 0) {
@@ -289,7 +307,7 @@ export default function Store() {
     if (statusFilters.includes('new')) result = result.filter(p => p.isNew);
     if (statusFilters.includes('discounted')) result = result.filter(p => !!p.discountBadge);
     return sortBy === 'recommended' ? sortRecommended(result) : sortBy === 'discounted' ? sortDiscountedFirst(result) : result;
-  }, [sortBy, fetchedProducts, brandParam, statusFilters, freeShippingThreshold, selectedBrands, selectedSpecFilters, filterAttributes]);
+  }, [sortBy, fetchedProducts, brandParam, statusFilters, freeShippingThreshold, selectedBrands, selectedColors, selectedSizes, selectedSpecFilters, filterAttributes]);
   const { visible: visibleProducts, hasMore: hasMoreProducts, sentinelRef: productsSentinelRef } = useInfiniteList(filteredProducts, 12);
   const showSkeleton = useMinimumSkeleton(isLoading);
 
@@ -309,6 +327,9 @@ export default function Store() {
     setPriceRange([0, 10000]);
     setStatusFilters([]);
     setSelectedBrands([]);
+    setSelectedColors([]);
+    setSelectedSizes([]);
+    writeVariantParams([], []);
     setSelectedSpecFilters({});
   };
 
@@ -318,6 +339,8 @@ export default function Store() {
     !!selectedCategory ||
     statusFilters.length > 0 ||
     selectedBrands.length > 0 ||
+    selectedColors.length > 0 ||
+    selectedSizes.length > 0 ||
     specFilterCount > 0;
 
   const activeFilterCount =
@@ -325,6 +348,8 @@ export default function Store() {
     (selectedCategory ? 1 : 0) +
     statusFilters.length +
     selectedBrands.length +
+    selectedColors.length +
+    selectedSizes.length +
     specFilterCount;
 
   const orderedCategories = useMemo(() => flattenCategoryTree(categories), [categories]);
@@ -373,6 +398,8 @@ export default function Store() {
       label: s === 'free-shipping' ? 'Ücretsiz Kargo' : s === 'new' ? 'Yeni' : 'İndirimli',
       onRemove: () => toggleStatusFilter(s),
     })),
+    ...selectedColorNames.map(n => ({ key: `renk-${n}`, label: n, onRemove: () => toggleColor(n) })),
+    ...selectedSizes.map(z => ({ key: `beden-${z}`, label: z, onRemove: () => toggleSize(z) })),
     ...selectedBrands.map(b => ({
       key: `brand-${b}`,
       label: b,
@@ -515,6 +542,22 @@ export default function Store() {
       </div>
       ),
     },
+    ...(variantOpts.colorOptions.length >= 2 || selectedColors.length > 0
+      ? [{
+          id: 'renk',
+          label: 'Renk',
+          badge: selectedColors.length,
+          content: <MultiCheckList options={variantOpts.colorOptions} selected={selectedColorNames} onToggle={toggleColor} counts={variantOpts.colorCounts} testIdPrefix="filter-color" />,
+        }]
+      : []),
+    ...(variantOpts.sizeOptions.length >= 2 || selectedSizes.length > 0
+      ? [{
+          id: 'beden',
+          label: 'Beden',
+          badge: selectedSizes.length,
+          content: <MultiCheckList options={variantOpts.sizeOptions} selected={selectedSizes} onToggle={toggleSize} counts={variantOpts.sizeCounts} testIdPrefix="filter-size" />,
+        }]
+      : []),
     ...(brandOptions.length >= 2
       ? [{
           id: 'brand',

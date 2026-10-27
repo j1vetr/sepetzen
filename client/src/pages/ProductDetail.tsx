@@ -1,5 +1,12 @@
 import { getAncestors } from '@/lib/categoryTree';
 import { colorSlug } from '@/lib/colorSlug';
+import { foldVariantKey } from '@shared/variantKey';
+
+function sortByLibrary(list: string[], order?: string[]): string[] {
+  if (!order || order.length === 0) return list;
+  const rank = (n: string) => { const i = order.indexOf(foldVariantKey(n)); return i === -1 ? Number.MAX_SAFE_INTEGER : i; };
+  return list.map((n, i) => ({ n, i })).sort((a, b) => rank(a.n) - rank(b.n) || a.i - b.i).map((x) => x.n);
+}
 import { useState, useRef, useEffect, useCallback, useMemo } from 'react';
 import { useQuery } from '@tanstack/react-query';
 
@@ -970,20 +977,23 @@ export default function ProductDetail() {
     () => (product?.variants || []).filter((v) => v.isActive),
     [product?.variants],
   );
+  // Seçenekler Varyasyonlar kütüphanesindeki sıraya göre dizilir; kütüphanede
+  // olmayanlar sona, ürün içindeki sıralarıyla eklenir.
+  const optionOrder = (product as { optionOrder?: { color: string[]; size: string[] } } | undefined)?.optionOrder;
   const sizeOptions = useMemo(() => {
     const list: string[] = [];
     activeVariants.forEach((v) => {
       if (v.size && list.indexOf(v.size) === -1) list.push(v.size);
     });
-    return list;
-  }, [activeVariants]);
+    return sortByLibrary(list, optionOrder?.size);
+  }, [activeVariants, optionOrder]);
   const colorOptions = useMemo(() => {
     const list: string[] = [];
     activeVariants.forEach((v) => {
       if (v.color && list.indexOf(v.color) === -1) list.push(v.color);
     });
-    return list;
-  }, [activeVariants]);
+    return sortByLibrary(list, optionOrder?.color);
+  }, [activeVariants, optionOrder]);
   const isAuthorizedDealer = !!product?.brand && authorizedBrands.some((n) => n.toLowerCase() === product.brand!.toLowerCase());
   const [selectedSize, setSelectedSize] = useState<string | null>(null);
   const [selectedColor, setSelectedColor] = useState<string | null>(null);
@@ -2230,13 +2240,13 @@ export default function ProductDetail() {
                             <button
                               key={size}
                               type="button"
-                              onClick={() => !disabled && pickSize(size)}
-                              disabled={disabled}
+                              onClick={() => pickSize(size)}
+                              aria-disabled={disabled}
                               className={`min-w-[44px] px-3 h-10 text-[12px] tracking-[0.08em] uppercase border rounded-md backdrop-blur-sm transition-all duration-200 ${
                                 active
                                   ? 'border-white/70 bg-white/15 text-white font-semibold ring-1 ring-inset ring-white/20 shadow-[inset_0_1px_0_0_rgba(255,255,255,0.12)]'
                                   : disabled
-                                    ? 'border-white/8 bg-white/3 text-white/20 line-through cursor-not-allowed'
+                                    ? 'border-white/10 bg-white/3 text-white/30 line-through cursor-pointer hover:border-white/30'
                                     : 'border-white/15 bg-white/5 text-white/65 hover:border-white/40 hover:bg-white/10 hover:text-white/90'
                               }`}
                               data-testid={`button-variant-size-${size}`}
@@ -2297,8 +2307,8 @@ export default function ProductDetail() {
                             <button
                               key={color}
                               type="button"
-                              onClick={() => !disabled && pickColor(color)}
-                              disabled={disabled}
+                              onClick={() => pickColor(color)}
+                              aria-disabled={disabled}
                               title={color}
                               aria-label={color}
                               aria-pressed={active}
@@ -2306,7 +2316,7 @@ export default function ProductDetail() {
                                 active
                                   ? 'border-white ring-2 ring-white/40 text-white font-semibold'
                                   : disabled
-                                    ? 'border-white/10 text-white/20 cursor-not-allowed opacity-40'
+                                    ? 'border-white/10 text-white/30 cursor-pointer opacity-50'
                                     : 'border-white/15 bg-white/5 text-white/65 hover:border-white/50 hover:text-white/90'
                               }`}
                               data-testid={`button-variant-color-${color}`}
@@ -2323,7 +2333,7 @@ export default function ProductDetail() {
                   ) : null}
                   {selectedUnavailable && (
                     <p className="text-[12px] text-red-500 font-medium" data-testid="text-variant-unavailable">
-                      Bu seçim stokta yok. Lütfen başka bir seçenek deneyin.
+                      Stokta yok. Lütfen başka bir seçenek deneyin.
                     </p>
                   )}
                 </div>

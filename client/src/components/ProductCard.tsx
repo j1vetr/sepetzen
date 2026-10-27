@@ -10,7 +10,7 @@ function isVideoUrl(url: string): boolean {
 
 
 import { motion } from 'framer-motion';
-import { Link } from 'wouter';
+import { Link, useLocation } from 'wouter';
 import { useFavoriteIds, useToggleFavorite } from '@/hooks/useFavorites';
 import { QuickViewModal } from './QuickViewModal';
 import { FreeShippingBadge } from './FreeShippingBadge';
@@ -45,13 +45,19 @@ interface Product {
   variants?: ProductVariant[];
   availableSizes?: string[];
   availableColors?: { name: string; hex: string | null }[];
+  colorSummary?: { name: string; hex: string | null; slug: string }[];
+  startingPrice?: number | null;
+  priceVaries?: boolean;
 }
+
+const MAX_SWATCHES = 5;
 
 interface ProductCardProps {
   product: Product;
 }
 
 export const ProductCard = memo(function ProductCard({ product }: ProductCardProps) {
+  const [, navigate] = useLocation();
   const [isHovered, setIsHovered] = useState(false);
   const [quickViewOpen, setQuickViewOpen] = useState(false);
   const videoRef = useRef<HTMLVideoElement>(null);
@@ -115,7 +121,11 @@ export const ProductCard = memo(function ProductCard({ product }: ProductCardPro
   const { toggleFavorite, isLoading: isFavoriteLoading } = useToggleFavorite();
 
   const isLiked = favoriteIds.includes(product.id);
-  const price = parseFloat(product.basePrice || '0') || 0;
+  const basePriceNum = parseFloat(product.basePrice || '0') || 0;
+  const showStartingPrice = !!product.priceVaries && typeof product.startingPrice === 'number' && product.startingPrice > 0;
+  const price = showStartingPrice ? (product.startingPrice as number) : basePriceNum;
+  const swatchColors = product.colorSummary && product.colorSummary.length > 1 ? product.colorSummary : [];
+  const extraSwatches = Math.max(0, swatchColors.length - MAX_SWATCHES);
   const freeShippingThreshold = useFreeShippingThreshold();
   const rawBadge = product.discountBadge ?? null;
   const normalizedBadge = rawBadge ? normalizeBadge(rawBadge) : null;
@@ -408,6 +418,29 @@ export const ProductCard = memo(function ProductCard({ product }: ProductCardPro
               </div>
             )}
 
+            {/* Renk örnekleri: tek renkli üründe gösterilmez */}
+            {!isOutOfStock && swatchColors.length > 0 && (
+              <div className="flex items-center gap-1.5" data-testid={`swatches-${product.id}`}>
+                {swatchColors.slice(0, MAX_SWATCHES).map(c => (
+                  <span
+                    key={c.slug}
+                    role="link"
+                    tabIndex={0}
+                    onClick={(e: React.MouseEvent) => { e.preventDefault(); e.stopPropagation(); navigate(`/urun/${product.slug}?renk=${c.slug}`); }}
+                    onKeyDown={(e: React.KeyboardEvent) => { if (e.key === 'Enter') { e.preventDefault(); e.stopPropagation(); navigate(`/urun/${product.slug}?renk=${c.slug}`); } }}
+                    title={c.name}
+                    aria-label={c.name}
+                    data-testid={`swatch-${product.id}-${c.slug}`}
+                    className="block w-4 h-4 rounded-full cursor-pointer border border-white/30 hover:border-white hover:scale-110 transition"
+                    style={c.hex ? { backgroundColor: c.hex } : undefined}
+                  >
+                    {!c.hex && <span className="flex items-center justify-center w-full h-full text-[8px] text-white/70 uppercase">{c.name.charAt(0)}</span>}
+                  </span>
+                ))}
+                {extraSwatches > 0 && <span className="text-[10px] text-white/50" data-testid={`swatches-more-${product.id}`}>+{extraSwatches}</span>}
+              </div>
+            )}
+
             {/* Fiyat (tükendiyse yalnızca Tükendi yazar) */}
             {isOutOfStock ? (
               <span
@@ -430,7 +463,7 @@ export const ProductCard = memo(function ProductCard({ product }: ProductCardPro
                 className="text-sm font-thin leading-none text-white"
                 data-testid={`text-price-${product.id}`}
               >
-                {price.toLocaleString('tr-TR')} ₺
+                {showStartingPrice ? `${price.toLocaleString('tr-TR')} ₺'den başlayan` : `${price.toLocaleString('tr-TR')} ₺`}
               </span>
             </div>
             )}

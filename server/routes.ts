@@ -20,6 +20,7 @@ import PDFDocument from "pdfkit";
 import sharp from "sharp";
 import { cache, CACHE_KEYS, CACHE_TTL } from "./cache";
 import { eq, desc, sql, ilike, or, inArray, isNotNull, avg, count } from "drizzle-orm";
+import { attachVariantListSummary, getVariantOptionOrder } from "./variantListSummary";
 import { insertAdminUserSchema, insertCategorySchema, insertProductSchema, insertProductVariantSchema, insertCartItemSchema, insertOrderSchema, insertOrderItemSchema, insertUserSchema, adminUpdateUserSchema, personalizationConfigSchema, couponRedemptions, orders, coupons, products, stockAdjustments, productCategories, productVariants, users, categories, blogPosts, pages, productReviews, orderItems } from "@shared/schema";
 import { optimizeImage, optimizeImageBuffer, optimizeUploadedFiles, verifyImageContent } from "./imageOptimizer";
 import {
@@ -2650,7 +2651,7 @@ KURALLAR:
       }
 
       const products = await storage.getProducts({ brand: brand.name });
-      res.json({ brand, products });
+      res.json({ brand, products: await attachVariantListSummary(products) });
     } catch (error) {
       console.error("[Brands] Public brand fetch error:", error);
       res.status(500).json({ error: "Failed to fetch brand" });
@@ -2948,7 +2949,7 @@ KURALLAR:
         avgRating: ratingsMap[p.id]?.avgRating ?? 0,
         reviewCount: ratingsMap[p.id]?.reviewCount ?? 0,
       }));
-      res.json(productsWithRating);
+      res.json(await attachVariantListSummary(productsWithRating));
     } catch (error) {
       res.status(500).json({ error: "Failed to fetch products" });
     }
@@ -2966,7 +2967,7 @@ KURALLAR:
       }
       const variants = await storage.getProductVariants(product.id);
       const categoryIds = await storage.getProductCategoryIds(product.id);
-      res.json({ ...product, variants, categoryIds });
+      res.json({ ...product, variants, categoryIds, optionOrder: await getVariantOptionOrder() });
     } catch (error) {
       res.status(500).json({ error: "Failed to fetch product" });
     }
