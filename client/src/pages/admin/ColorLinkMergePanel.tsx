@@ -14,6 +14,7 @@ interface Member {
   price: string | null;
   stock: number | null;
   warnings: string[];
+  notes?: string[];
 }
 interface Group {
   groupKey: string;
@@ -118,6 +119,9 @@ function GroupCard({ group: initial }: { group: Group }) {
                   {m.isPrimary ? 'Ana ürün, bu renk varyantı olur' : 'Varyant olarak eklenir, ürün satıştan kalkar ve yönlendirilir'}
                   {m.warnings.map((w) => (
                     <div key={w} className="text-red-600">{w}</div>
+                  ))}
+                  {(m.notes ?? []).map((n) => (
+                    <div key={n} className="text-amber-700">{n}</div>
                   ))}
                 </td>
               </tr>

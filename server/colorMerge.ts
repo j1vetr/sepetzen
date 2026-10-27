@@ -19,6 +19,7 @@ interface MemberPlan {
   price: string | null;
   stock: number | null;
   warnings: string[];
+  notes: string[];
 }
 
 interface GroupPlan {
@@ -40,6 +41,25 @@ export function colorSlugOf(name: string): string {
 }
 
 type ProductRow = typeof products.$inferSelect;
+
+const foldColor = (c: string | null | undefined) => (c ?? "").trim().toLocaleLowerCase("tr");
+
+/**
+ * Ürünün kendi varyantı: renk adı eşleşen tek aktif varyant. Her renk için tek tek
+ * eklenen ürünlerde sistem diğer renklerin varyantlarını da üretmiş olabilir
+ * (ör. Mavi ürününde Yeşil ve Turuncu satırları). Onlar "extras" sayılır.
+ * Renk adı bilinmiyorsa ve tek aktif varyant varsa o varyant kullanılır.
+ */
+function pickOwnVariant<V extends { isActive: boolean; color: string | null }>(vs: V[], colorName: string | null): { own: V | null; extras: V[] } {
+  const active = vs.filter((v) => v.isActive);
+  if (colorName) {
+    const matches = active.filter((v) => foldColor(v.color) === foldColor(colorName));
+    if (matches.length === 1) return { own: matches[0], extras: active.filter((v) => v !== matches[0]) };
+    if (matches.length === 0 && active.length === 1 && !active[0].color) return { own: active[0], extras: [] };
+    return { own: null, extras: active };
+  }
+  return { own: active.length === 1 ? active[0] : null, extras: [] };
+}
 type VariantRow = typeof productVariants.$inferSelect;
 
 /** Renk linkleriyle birbirine bağlı ürün gruplarını bulur ve her biri için birleştirme planı çıkarır. */
@@ -150,6 +170,7 @@ function planGroup(
 
   const memberPlans: MemberPlan[] = sorted.map((p) => {
     const warnings: string[] = [];
+    const notes: string[] = [];
     const vs = variantsOf.get(p.id) ?? [];
     const active = vs.filter((v) => v.isActive);
     const nameMap = names.get(p.id);
@@ -165,9 +186,13 @@ function planGroup(
       hex = e.hex && /^#[0-9a-fA-F]{6}$/.test(e.hex) ? e.hex.toLowerCase() : null;
     }
     if (!p.isActive) warnings.push("Ürün pasif.");
-    if (active.length !== 1) warnings.push(active.length === 0 ? "Aktif varyantı yok, stok bilgisi alınamıyor." : "Kendi varyantları (beden/çoklu) var.");
-    if (active.some((v) => v.size || v.color)) warnings.push("Mevcut varyantında beden veya renk tanımlı.");
-    const v = active.length === 1 ? active[0] : null;
+    const { own, extras } = pickOwnVariant(vs, colorName);
+    if (!own) {
+      warnings.push(active.length === 0 ? "Aktif varyantı yok, stok bilgisi alınamıyor." : "Kendi rengine ait tek bir varyant bulunamadı.");
+    } else if (extras.length > 0) {
+      notes.push(`Bu ürünün stoku "${own.color ?? "renksiz"}" varyantından alınır. Diğer renk satırları (${extras.map((e) => `${e.color ?? "renksiz"}: ${e.stock}`).join(", ")}) pasife alınır, silinmez.`);
+    }
+    const v = own;
     return {
       productId: p.id,
       name: p.name,
@@ -177,10 +202,11 @@ function planGroup(
       colorName,
       hex,
       photoCount: (Array.isArray(p.images) ? p.images : []).filter(isPhoto).length,
-      variantCount: active.length,
+      variantCount: own ? 1 : active.length,
       price: v ? String(v.price) : null,
       stock: v ? v.stock : null,
       warnings,
+      notes,
     };
   });
 
@@ -227,12 +253,17 @@ export async function applyGroup(groupKey: string, primaryProductId: string | un
     const batchId = crypto.randomUUID();
     const primary = rows.find((r) => r.id === plan.primaryProductId)!;
     const primaryPlan = plan.members.find((m) => m.isPrimary)!;
-    const primaryVariant = (variantsOf.get(primary.id) ?? []).find((v) => v.isActive)!;
+    const { own: primaryVariant, extras: primaryExtras } = pickOwnVariant(variantsOf.get(primary.id) ?? [], primaryPlan.colorName);
+    if (!primaryVariant) throw new MergeError("Ana ürünün kendi renk varyantı bulunamadı.");
+    // Renk anahtarı -> birleşik üründeki nihai varyant (sepet satırlarını yönlendirmek için)
+    const finalVariantByColor = new Map<string, string>([[foldColor(primaryPlan.colorName), primaryVariant.id]]);
+    const extraVariants: { id: string }[] = [...primaryExtras];
     const primaryPhotos = (Array.isArray(primary.images) ? primary.images : []).filter(isPhoto);
 
     // Ana ürünün kendi varyantı kendi rengini alır
     const primarySnapshot = {
       variant: { id: primaryVariant.id, color: primaryVariant.color, colorHex: primaryVariant.colorHex, images: primaryVariant.images },
+      deactivatedVariantIds: primaryExtras.map((e) => e.id),
       availableColors: primary.availableColors,
     };
     await tx.update(productVariants)
@@ -255,11 +286,13 @@ export async function applyGroup(groupKey: string, primaryProductId: string | un
     for (const m of plan.members) {
       if (m.isPrimary) continue;
       const src = rows.find((r) => r.id === m.productId)!;
-      const srcVariant = (variantsOf.get(src.id) ?? []).find((v) => v.isActive)!;
+      const { own: srcVariant, extras: srcExtras } = pickOwnVariant(variantsOf.get(src.id) ?? [], m.colorName);
+      if (!srcVariant) throw new MergeError(`"${m.name}" ürününün kendi renk varyantı bulunamadı.`);
+      extraVariants.push(...srcExtras);
       const photos = (Array.isArray(src.images) ? src.images : []).filter(isPhoto);
       const [created] = await tx.insert(productVariants).values({
         productId: primary.id,
-        size: null,
+        size: srcVariant.size,
         color: m.colorName,
         colorHex: m.hex,
         images: photos,
@@ -272,6 +305,7 @@ export async function applyGroup(groupKey: string, primaryProductId: string | un
       // Açık sepetler yeni varyantı göstersin, ödeme adımında eski varyant stoksuz sayılmasın
       await tx.update(cartItems).set({ productId: primary.id, variantId: created.id }).where(eq(cartItems.variantId, srcVariant.id));
       await tx.update(products).set({ isActive: false, updatedAt: new Date() }).where(eq(products.id, src.id));
+      finalVariantByColor.set(foldColor(m.colorName), created.id);
       newColors.push({ name: m.colorName!, hex: m.hex, slug: null });
       inserts.push({
         batchId,
@@ -288,6 +322,16 @@ export async function applyGroup(groupKey: string, primaryProductId: string | un
           price: String(srcVariant.price),
         },
       });
+    }
+
+    // Diğer renklerin otomatik üretilmiş satırları: sepetler doğru renge taşınır, ana üründekiler pasife alınır (silinmez)
+    const allExtras = [...primaryExtras, ...extraVariants.filter((e) => !primaryExtras.includes(e as any))];
+    for (const ex of allExtras as { id: string; color?: string | null }[]) {
+      const target = finalVariantByColor.get(foldColor(ex.color));
+      if (target) await tx.update(cartItems).set({ productId: primary.id, variantId: target }).where(eq(cartItems.variantId, ex.id));
+    }
+    if (primaryExtras.length > 0) {
+      await tx.update(productVariants).set({ isActive: false }).where(inArray(productVariants.id, primaryExtras.map((e) => e.id)));
     }
 
     await tx.update(products).set({ availableColors: newColors, updatedAt: new Date() }).where(eq(products.id, primary.id));
@@ -314,6 +358,9 @@ export async function undoBatch(batchId: string) {
           .set({ color: v.color ?? null, colorHex: v.colorHex ?? null, images: Array.isArray(v.images) ? v.images : [] })
           .where(eq(productVariants.id, v.id));
         await tx.update(products).set({ availableColors: snap.availableColors ?? [], updatedAt: new Date() }).where(eq(products.id, r.primaryProductId));
+        if (Array.isArray(snap.deactivatedVariantIds) && snap.deactivatedVariantIds.length > 0) {
+          await tx.update(productVariants).set({ isActive: true }).where(inArray(productVariants.id, snap.deactivatedVariantIds));
+        }
       } else if (r.createdVariantId) {
         // Eklenen varyant pasife alınır (geçmişi olabilir, silinmez). Kalan stok eski varyanta döner.
         const [created] = await tx.select().from(productVariants).where(eq(productVariants.id, r.createdVariantId));
