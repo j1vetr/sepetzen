@@ -1,6 +1,7 @@
 import type { Express, Request, Response, NextFunction } from "express";
 import { createServer, type Server } from "http";
 import { storage, db, getNextAutoProductSku } from "./storage";
+import { registerVariantOptionRoutes } from "./variantOptions";
 import { mergedProductRedirect, registerColorMergeRoutes, findMergeRedirect } from "./colorMerge";
 import { sanitizeStoredHtml } from "./htmlSanitize";
 import { collectUserData, getLatestDeletionRequest, createDeletionRequest, listDeletionRequests, resolveDeletionRequest } from "./kvkk";
@@ -3537,6 +3538,7 @@ Bu ürün için 4 bölümlü HTML açıklama üret. Teknik Özellikler bölümü
   });
 
   registerColorMergeRoutes(app, requireAdmin);
+  registerVariantOptionRoutes(app, requireAdmin);
 
   // Product Variants API
   app.get("/api/products/:productId/variants", async (req, res) => {

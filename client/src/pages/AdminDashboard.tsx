@@ -25,6 +25,7 @@ import WalletTab from './admin/WalletTab';
 import BatchInvoiceTab from './admin/BatchInvoiceTab';
 import LiveStreamTab from './admin/LiveStreamTab';
 import BrandsTab from './admin/BrandsTab';
+import VariationsTab from './admin/VariationsTab';
 
 import CategoryModal from './admin/modals/CategoryModal';
 import UserDetailModal from './admin/modals/UserDetailModal';
@@ -290,6 +291,7 @@ export default function AdminDashboard() {
         {activeTab === 'pages' && <PagesTab initialSelectedId={pagesInitialSelectedId} />}
         {activeTab === 'blog' && <BlogTab initialSelectedId={blogInitialSelectedId} />}
         {activeTab === 'brands' && <BrandsTab />}
+        {activeTab === 'variations' && <VariationsTab />}
         {activeTab === 'coupons' && <CouponsTab />}
         {activeTab === 'reviews' && <ReviewsTab />}
         {activeTab === 'kvkk' && <KvkkTab />}

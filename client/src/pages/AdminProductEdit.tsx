@@ -27,7 +27,8 @@ import {
 } from 'lucide-react';
 import type { Product, ProductDraft, Category } from './admin/_shared/types';
 import { hasConfiguredVariantOptions } from './admin/_shared/contentQuality';
-import { VariantColorImages, colorKeyOf } from './admin/_shared/VariantColorImages';
+import ProductVariantsPanel, { newRowKey, type VariantRow } from './admin/_shared/ProductVariantsPanel';
+import { foldVariantKey } from '@shared/variantKey';
 import {
   PrimaryButton,
   SecondaryButton,
@@ -99,19 +100,6 @@ function generateSlug(name: string) {
     .toLowerCase()
     .replace(/[^a-z0-9]+/g, '-')
     .replace(/^-+|-+$/g, '');
-}
-
-// Varyant düzenleme satırı: fiyat boş bırakılırsa ürün fiyatı kullanılır.
-interface VariantRow {
-  id?: string;
-  size: string;
-  color: string;
-  sku: string;
-  price: string;
-  stock: string;
-  isActive: boolean;
-  colorHex: string;
-  images: string[];
 }
 
 /** "Ürün Detay Sekmeleri" bölüm ikonu.
@@ -486,6 +474,7 @@ function ProductEditor({
         if (cancelled) return;
         setVariantRows(
           (data as any[]).map((v) => ({
+            k: newRowKey(),
             id: v.id,
             size: v.size || '',
             color: v.color || '',
@@ -510,41 +499,6 @@ function ProductEditor({
       cancelled = true;
     };
   }, [productId]);
-
-  const addVariantRow = () => {
-    setVariantRows((prev) => [
-      ...prev,
-      { size: '', color: '', sku: '', price: '', stock: '0', isActive: true, colorHex: '', images: [] },
-    ]);
-  };
-  const updateVariantRow = (index: number, patch: Partial<VariantRow>) => {
-    setVariantRows((prev) =>
-      prev.map((r, i) => {
-        if (i !== index) return r;
-        const next = { ...r, ...patch };
-        // Var olan bir renk adına geçilirse o rengin örnek ve görselleri devralınır.
-        if (patch.color !== undefined) {
-          const key = colorKeyOf(patch.color);
-          const peer = key ? prev.find((o, j) => j !== index && colorKeyOf(o.color) === key) : undefined;
-          if (peer) {
-            next.colorHex = peer.colorHex;
-            next.images = peer.images;
-          } else if (!key) {
-            next.colorHex = '';
-            next.images = [];
-          }
-        }
-        return next;
-      }),
-    );
-  };
-  // Renk grubundaki tüm varyantlara aynı örnek rengi ve görselleri uygular.
-  const updateColorGroup = (key: string, patch: { colorHex?: string; images?: string[] }) => {
-    setVariantRows((prev) => prev.map((r) => (colorKeyOf(r.color) === key ? { ...r, ...patch } : r)));
-  };
-  const removeVariantRow = (index: number) => {
-    setVariantRows((prev) => prev.filter((_, i) => i !== index));
-  };
 
   useEffect(() => {
     const urls = pendingFiles.map((f) => URL.createObjectURL(f));
@@ -748,6 +702,9 @@ function ProductEditor({
       slug: formData.slug || generateSlug(formData.name),
       images: [...formData.images, ...uploadedUrls],
       availableColors: normalizedAvailableColors,
+      // Varyant paneli yönettiği üründe beden listesi tutulmaz: eksik kombinasyon
+      // araçları bilinçli boşlukları yeniden oluşturmasın.
+      ...(includeVariants && variantRows.length > 0 ? { availableSizes: [] } : {}),
       ...(includeVariants
         ? {
             variants: variantRows.map((r) => ({
@@ -771,17 +728,30 @@ function ProductEditor({
   const isSaving = saveMutation.isPending;
   const saveError = saveMutation.error instanceof Error ? saveMutation.error.message : null;
   const totalImageCount = formData.images.length + pendingFiles.length;
-  const normalizedAvailableColors = useMemo(
-    () =>
-      colorRows
-        .filter((r) => r.name.trim())
-        .map((r) => ({
-          name: toTurkishUpper(r.name.trim()),
-          hex: r.hex || null,
-          slug: r.slug.trim() || null,
-        })),
-    [colorRows],
-  );
+  // Eski renk bağlantıları (slug'lı girişler) varsa liste olduğu gibi korunur.
+  const hasLegacyLinks = colorRows.some((r) => r.slug.trim() && r.slug.trim() !== (product?.slug || ''));
+  const variantHasColors = variantRows.some((r) => r.color.trim());
+  const normalizedAvailableColors = useMemo(() => {
+    if (!hasLegacyLinks && variantHasColors) {
+      // Renk listesi varyantlardan türetilir
+      const seen = new Set<string>();
+      const list: { name: string; hex: string | null; slug: null }[] = [];
+      variantRows.forEach((r) => {
+        const key = foldVariantKey(r.color);
+        if (!key || seen.has(key)) return;
+        seen.add(key);
+        list.push({ name: r.color.trim(), hex: r.colorHex.trim() || null, slug: null });
+      });
+      return list;
+    }
+    return colorRows
+      .filter((r) => r.name.trim())
+      .map((r) => ({
+        name: toTurkishUpper(r.name.trim()),
+        hex: r.hex || null,
+        slug: r.slug.trim() || null,
+      }));
+  }, [colorRows, variantRows, hasLegacyLinks, variantHasColors]);
 
   const previewImages = useMemo(
     () => [
@@ -1411,18 +1381,8 @@ function ProductEditor({
             title="Varyantlar"
             description={
               productId
-                ? 'Beden, renk, SKU, fiyat ve stok satır satır düzenlenir. Fiyat boşsa ürün fiyatı geçerlidir.'
+                ? 'Renk ve bedenleri kütüphaneden seçin, eksik kombinasyonları oluşturun. Fiyat boşsa ürün fiyatı geçerlidir.'
                 : 'Varyant eklemezseniz tek stok değerli basit ürün oluşturulur.'
-            }
-            actions={
-              <SecondaryButton
-                type="button"
-                onClick={addVariantRow}
-                disabled={!!productId && !variantsLoaded}
-                data-testid="button-add-variant"
-              >
-                + Varyant Ekle
-              </SecondaryButton>
             }
             testId="card-variants"
           >
@@ -1431,96 +1391,16 @@ function ProductEditor({
                 <InlineAlert tone="warning">{variantLoadError}</InlineAlert>
               </div>
             )}
-            {variantRows.length === 0 ? (
-              <p className="text-[12px] text-neutral-500 py-1">
-                {productId
-                  ? variantsLoaded
-                    ? 'Bu üründe varyant yok.'
-                    : 'Varyantlar yükleniyor…'
-                  : 'Henüz varyant eklenmedi. Basit ürünler için gerekmez.'}
-              </p>
-            ) : (
-              <div className="space-y-2" data-testid="list-variant-rows">
-                <div className="hidden sm:grid grid-cols-[1fr_1fr_1fr_90px_80px_60px_32px] gap-2 px-1 text-[10px] uppercase tracking-wide text-neutral-400 font-medium">
-                  <span>Beden</span>
-                  <span>Renk</span>
-                  <span>SKU</span>
-                  <span>Fiyat (₺)</span>
-                  <span>Stok</span>
-                  <span>Aktif</span>
-                  <span />
-                </div>
-                {variantRows.map((row, i) => (
-                  <div
-                    key={row.id || `new-${i}`}
-                    className="grid grid-cols-2 sm:grid-cols-[1fr_1fr_1fr_90px_80px_60px_32px] gap-2 items-center rounded-lg border border-neutral-200 bg-neutral-50/50 p-2"
-                    data-testid={`row-variant-${i}`}
-                  >
-                    <TextInput
-                      value={row.size}
-                      onChange={(e) => updateVariantRow(i, { size: e.target.value })}
-                      placeholder="Beden"
-                      data-testid={`input-variant-size-${i}`}
-                    />
-                    <TextInput
-                      value={row.color}
-                      onChange={(e) => updateVariantRow(i, { color: e.target.value })}
-                      placeholder="Renk"
-                      data-testid={`input-variant-color-${i}`}
-                    />
-                    <TextInput
-                      value={row.sku}
-                      onChange={(e) => updateVariantRow(i, { sku: e.target.value })}
-                      placeholder="SKU (ops.)"
-                      data-testid={`input-variant-sku-${i}`}
-                    />
-                    <TextInput
-                      value={row.price}
-                      onChange={(e) => updateVariantRow(i, { price: e.target.value })}
-                      placeholder={formData.basePrice || 'Ürün fiyatı'}
-                      data-testid={`input-variant-price-${i}`}
-                    />
-                    <TextInput
-                      type="number"
-                      min="0"
-                      value={row.stock}
-                      onChange={(e) => updateVariantRow(i, { stock: e.target.value })}
-                      placeholder="0"
-                      data-testid={`input-variant-stock-${i}`}
-                    />
-                    <label className="flex items-center justify-center gap-1 text-[11px] text-neutral-600 cursor-pointer">
-                      <input
-                        type="checkbox"
-                        checked={row.isActive}
-                        onChange={(e) => updateVariantRow(i, { isActive: e.target.checked })}
-                        className="w-4 h-4 rounded"
-                        data-testid={`checkbox-variant-active-${i}`}
-                      />
-                      <span className="sm:hidden">Aktif</span>
-                    </label>
-                    <IconButton
-                      type="button"
-                      onClick={() => removeVariantRow(i)}
-                      disabled={!!productId && variantRows.length === 1}
-                      aria-label="Varyantı sil"
-                      data-testid={`button-remove-variant-${i}`}
-                    >
-                      <Trash2 className="w-3.5 h-3.5" />
-                    </IconButton>
-                  </div>
-                ))}
-                <VariantColorImages
-                  rows={variantRows}
-                  productImages={formData.images}
-                  onChange={updateColorGroup}
-                />
-                {!!productId && variantRows.length === 1 && (
-                  <p className="text-[11px] text-neutral-500">
-                    Üründe en az bir varyant kalmalı. Basit ürünlerde beden/renk alanlarını boş bırakın.
-                  </p>
-                )}
-              </div>
-            )}
+            <ProductVariantsPanel
+              rows={variantRows}
+              setRows={setVariantRows}
+              basePrice={formData.basePrice}
+              productSku={formData.sku}
+              productImages={formData.images}
+              isEdit={!!productId}
+              loaded={variantsLoaded}
+              hasLegacyLinks={hasLegacyLinks}
+            />
           </SectionCard>
 
           {/* ── Ürün Detay Sekmeleri ── */}
@@ -2045,7 +1925,10 @@ function ProductEditor({
             </div>
           </div>
 
-          {/* Renk / taş tonu */}
+          {/* Renk / taş tonu: yalnızca eski renk verisi olan ürünlerde, katlı */}
+          {colorRows.length > 0 && !variantHasColors && (
+          <details className="group" data-testid="legacy-colors">
+            <summary className="cursor-pointer text-[12px] font-medium text-neutral-600 px-1 py-2">Eski renk bağlantıları</summary>
           <div className="bg-white border border-neutral-200 rounded-xl px-4 py-4 shadow-[0_1px_2px_rgba(0,0,0,0.03)]">
             <div className="flex items-center justify-between mb-3">
               <h2 className="text-[13px] font-semibold text-neutral-900">Renk / Ton</h2>
@@ -2128,9 +2011,11 @@ function ProductEditor({
               </div>
             )}
             <p className="mt-2 text-[11px] text-neutral-400">
-              Birden fazla ürün rengi varsa her renk için bir satır ekleyin. Bağlı slug: aynı ürünün farklı renk varyantı olan diğer ürünün URL slug'u.
+              Bu bölüm eski yapıdan kalmadır. Yeni renkleri Varyantlar bölümünden ekleyin. Bağlı ürünleri tek ürüne çevirmek için Ürünler sayfasındaki "Renk linklerini varyanta çevir" aracını kullanın.
             </p>
           </div>
+          </details>
+          )}
 
           {/* Alt kaydet - mobilde üst bar görünmez olabildiği için */}
           <div className="lg:hidden flex gap-2">

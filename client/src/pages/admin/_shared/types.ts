@@ -236,4 +236,5 @@ export type TabType =
   | 'coupons'
   | 'reviews'
   | 'kvkk'
-  | 'brands';
+  | 'brands'
+  | 'variations';

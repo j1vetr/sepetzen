@@ -1,7 +1,8 @@
 import type { Express, Request, Response, NextFunction, RequestHandler } from "express";
-import { and, eq, inArray, isNull } from "drizzle-orm";
+import { and, eq, inArray, isNull, sql } from "drizzle-orm";
 import { db } from "./storage";
 import { products, productVariants, productColorMerges, cartItems } from "@shared/schema";
+import { ensureVariantOptions } from "./variantOptions";
 
 type ColorEntry = { name?: string; hex?: string | null; slug?: string | null };
 
@@ -291,7 +292,12 @@ export async function applyGroup(groupKey: string, primaryProductId: string | un
 
     await tx.update(products).set({ availableColors: newColors, updatedAt: new Date() }).where(eq(products.id, primary.id));
     await tx.insert(productColorMerges).values(inserts);
-    return { batchId, primarySlug: primary.slug, variantsCreated: inserts.length - 1 };
+    return { batchId, primarySlug: primary.slug, variantsCreated: inserts.length - 1, colors: newColors };
+  }).then(async (result) => {
+    // Birleştirilen renkler varyasyon kütüphanesine de eklenir
+    await ensureVariantOptions(result.colors.map((c) => ({ type: "color" as const, name: c.name, hex: c.hex }))).catch((e) => console.error("[color-merge library]", e));
+    const { colors: _c, ...rest } = result;
+    return rest;
   });
 }
 
@@ -311,8 +317,14 @@ export async function undoBatch(batchId: string) {
       } else if (r.createdVariantId) {
         // Eklenen varyant pasife alınır (geçmişi olabilir, silinmez). Kalan stok eski varyanta döner.
         const [created] = await tx.select().from(productVariants).where(eq(productVariants.id, r.createdVariantId));
-        const carried = created ? created.stock : Number(snap.sourceVariantStock ?? 0);
-        if (created) await tx.update(productVariants).set({ isActive: false, stock: 0 }).where(eq(productVariants.id, created.id));
+        if (!created) throw new MergeError(`"${r.colorName}" varyantı bulunamadı, geri alma güvenli değil.`);
+        const [srcNow] = await tx.select().from(productVariants).where(eq(productVariants.id, snap.sourceVariantId));
+        if (!srcNow) throw new MergeError(`"${r.colorName}" için eski varyant bulunamadı, geri alma güvenli değil.`);
+        if (srcNow.stock !== 0) {
+          throw new MergeError(`"${r.colorName}" eski varyantının stoğu birleştirmeden sonra değişmiş (${srcNow.stock}). Stokları elle uzlaştırıp tekrar deneyin.`);
+        }
+        const carried = created.stock;
+        await tx.update(productVariants).set({ isActive: false, stock: 0 }).where(eq(productVariants.id, created.id));
         await tx.update(cartItems).set({ productId: r.sourceProductId, variantId: snap.sourceVariantId }).where(eq(cartItems.variantId, r.createdVariantId));
         await tx.update(productVariants).set({ stock: carried }).where(eq(productVariants.id, snap.sourceVariantId));
         await tx.update(products).set({ isActive: snap.sourceWasActive !== false, updatedAt: new Date() }).where(eq(products.id, r.sourceProductId));
@@ -347,6 +359,22 @@ export const mergedProductRedirect: RequestHandler = async (req: Request, res: R
 };
 
 export function registerColorMergeRoutes(app: Express, requireAdmin: RequestHandler) {
+  // Tablo yoksa oluştur (db:push çalıştırılmamış ortamlarda uçlar çökmesin)
+  (async () => {
+    await db.execute(sql`create table if not exists product_color_merges (
+      id varchar primary key default gen_random_uuid(),
+      batch_id varchar not null,
+      primary_product_id varchar not null references products(id) on delete cascade,
+      source_product_id varchar not null references products(id) on delete cascade,
+      source_slug text not null,
+      color_name text not null,
+      created_variant_id varchar,
+      snapshot jsonb not null default '{}'::jsonb,
+      created_at timestamp not null default now(),
+      undone_at timestamp
+    )`);
+    await db.execute(sql`create index if not exists product_color_merges_source_slug_idx on product_color_merges(source_slug)`);
+  })().catch((e) => console.error("[color-merge table]", e));
   app.get("/api/admin/color-merge", requireAdmin, async (_req, res) => {
     try {
       const { groups } = await buildPlans();

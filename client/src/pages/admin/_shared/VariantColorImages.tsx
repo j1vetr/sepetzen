@@ -1,4 +1,5 @@
 import { useRef, useState } from 'react';
+import { foldVariantKey } from '@shared/variantKey';
 import { ChevronLeft, ChevronRight, Loader2, Trash2, Upload } from 'lucide-react';
 
 export interface ColorGroupRow {
@@ -7,12 +8,14 @@ export interface ColorGroupRow {
   images: string[];
 }
 
-export const colorKeyOf = (color: string) => color.trim().toLocaleLowerCase('tr');
+export const colorKeyOf = (color: string) => foldVariantKey(color);
 
 interface Props {
   rows: ColorGroupRow[];
   productImages: string[];
   onChange: (colorKey: string, patch: { colorHex?: string; images?: string[] }) => void;
+  /** Verilirse yalnızca bu renk grubu, başlıksız ve kenarlıksız gösterilir */
+  onlyKey?: string;
 }
 
 const isVideo = (u: string) => /\.(mp4|webm|mov)(\?.*)?$/i.test(u) || /youtu\.?be/i.test(u);
@@ -21,7 +24,7 @@ const isVideo = (u: string) => /\.(mp4|webm|mov)(\?.*)?$/i.test(u) || /youtu\.?b
  * Renk bazında örnek rengi ve görsel yönetimi. Aynı renkteki tüm bedenler
  * aynı görselleri paylaşır; müşteri o rengi seçince galeri bu listeye geçer.
  */
-export function VariantColorImages({ rows, productImages, onChange }: Props) {
+export function VariantColorImages({ rows, productImages, onChange, onlyKey }: Props) {
   const [uploadingKey, setUploadingKey] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const fileRef = useRef<HTMLInputElement>(null);
@@ -40,6 +43,11 @@ export function VariantColorImages({ rows, productImages, onChange }: Props) {
     }
   });
 
+  if (onlyKey) {
+    const keep = groups.filter((g) => g.key === onlyKey);
+    groups.length = 0;
+    groups.push(...keep);
+  }
   if (groups.length === 0) return null;
   const photos = productImages.filter((u) => !isVideo(u));
 
@@ -73,11 +81,15 @@ export function VariantColorImages({ rows, productImages, onChange }: Props) {
   };
 
   return (
-    <div className="mt-4 border-t border-neutral-200 pt-3" data-testid="section-variant-color-images">
-      <p className="text-[12px] font-semibold text-neutral-800">Renk görselleri</p>
-      <p className="text-[11px] text-neutral-500 mb-3">
-        Müşteri bir renk seçince galeri o rengin görsellerine geçer. Görsel eklemezseniz ürünün genel görselleri gösterilir.
-      </p>
+    <div className={onlyKey ? 'mt-2' : 'mt-4 border-t border-neutral-200 pt-3'} data-testid="section-variant-color-images">
+      {!onlyKey && (
+        <>
+          <p className="text-[12px] font-semibold text-neutral-800">Renk görselleri</p>
+          <p className="text-[11px] text-neutral-500 mb-3">
+            Müşteri bir renk seçince galeri o rengin görsellerine geçer. Görsel eklemezseniz ürünün genel görselleri gösterilir.
+          </p>
+        </>
+      )}
       {error && <p className="text-[11px] text-red-600 mb-2">{error}</p>}
       <input
         ref={fileRef}

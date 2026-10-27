@@ -20,3 +20,9 @@ description: Durable rules for variant deletion safety and variant pricing in ch
 - Stok bir varyandan diğerine taşınırken açık sepet satırları da aynı transaction'da taşınmalı (hem birleştirme hem geri alma), yoksa ödeme adımı stoksuz sayar.
 - Uygunluk kontrolleri yalnızca aktif varyantlara bakmalı; geri alınan birleştirmenin pasif varyantları yeniden birleştirmeyi engellememeli.
 - Trendyol bağlantısı bu repoda tutulmuyor, tespit edilmez.
+
+## Variation library (variant_options)
+- Library is only a picker/sort helper. Variants keep color/size TEXT (no FK); match by `foldVariantKey` (case + Turkish-char insensitive).
+- availableColors is derived from variants on product save (slug-less) unless the product has legacy slugged links, then the list is kept untouched.
+- Variant panel saves `availableSizes: []`; sync-variants/fix-variants only build gaps from availableSizes, so this stops them recreating deliberate gaps.
+- colorMerge undo rejects when the old variant's stock is no longer 0 or the created variant is missing.

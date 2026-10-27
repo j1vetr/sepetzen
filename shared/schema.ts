@@ -323,6 +323,25 @@ export const productColorMerges = pgTable("product_color_merges", {
 
 export type ProductColorMerge = typeof productColorMerges.$inferSelect;
 
+// Varyasyon kütüphanesi: renk ve beden değerleri bir kez tanımlanır, ürünlerde
+// seçilir. Varyantlar yine ad metnini taşır (bağlantı yok), bu yüzden kütüphane
+// yalnızca seçim, sıralama ve renk kodu yardımcısıdır.
+export const variantOptions = pgTable("variant_options", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  type: text("type").notNull(), // 'color' | 'size'
+  name: text("name").notNull(),
+  // Büyük/küçük harf ve Türkçe karakter farkını yok sayan eşleştirme anahtarı
+  key: text("key").notNull(),
+  hex: text("hex"),
+  sortOrder: integer("sort_order").default(0).notNull(),
+  isActive: boolean("is_active").default(true).notNull(),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+}, (t) => ({
+  typeKeyUnique: uniqueIndex("variant_options_type_key_idx").on(t.type, t.key),
+}));
+
+export type VariantOption = typeof variantOptions.$inferSelect;
+
 export const insertProductVariantSchema = createInsertSchema(productVariants).omit({
   id: true,
 }).extend({

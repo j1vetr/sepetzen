@@ -16,6 +16,7 @@ import {
 
   Newspaper,
   Tag,
+  Palette,
   ShieldCheck,
   Wallet,
   FileStack,
@@ -29,6 +30,7 @@ export const VALID_TABS: TabType[] = [
   'products',
   'categories',
   'brands',
+  'variations',
   'orders',
   'users',
   'analytics',
@@ -71,6 +73,7 @@ export const SIDEBAR_CATEGORIES: SidebarCategory[] = [
       { id: 'products', icon: Package, label: 'Ürünler' },
       { id: 'categories', icon: Grid3x3, label: 'Kategoriler' },
       { id: 'brands', icon: Tag, label: 'Markalar' },
+      { id: 'variations', icon: Palette, label: 'Varyasyonlar' },
     ],
   },
   {
@@ -112,6 +115,7 @@ export const TAB_DESCRIPTIONS: Record<TabType, string> = {
   analytics: 'Satış ve ziyaret verilerinizin özeti.',
   products: 'Ürünlerinizi ekleyin, düzenleyin ve fiyatlarını yönetin.',
   categories: 'Ürünlerinizi gruplandıran kategorileri düzenleyin.',
+  variations: 'Renk ve beden değerlerini bir kez tanımlayın, ürünlerde seçin.',
   brands: 'Marka listesini yönetin, ürün formunda tutarlı marka seçimi yapın.',
   inventory: 'Ürün stoklarını tek ekrandan görüp güncelleyin.',
   orders: 'Sitenizden gelen siparişleri görüntüleyin ve yönetin.',
