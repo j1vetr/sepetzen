@@ -1972,6 +1972,7 @@ export default function SettingsPanel({ initialSection = 'genel', contentOnly = 
     site_url: '',
     site_name: '',
     google_merchant_enabled: 'false',
+    pinterest_feed_enabled: 'false',
     google_merchant_brand: '',
     google_merchant_category: '',
     google_merchant_include_out_of_stock: 'false',
@@ -2040,6 +2041,7 @@ export default function SettingsPanel({ initialSection = 'genel', contentOnly = 
   const [iyzicoSaving, setIyzicoSaving] = useState(false);
   const [callbackCopied, setCallbackCopied] = useState(false);
   const [merchantLinkCopied, setMerchantLinkCopied] = useState(false);
+  const [pinterestLinkCopied, setPinterestLinkCopied] = useState(false);
   const [iyzicoApiKey, setIyzicoApiKey] = useState('');
   const [iyzicoSecretKey, setIyzicoSecretKey] = useState('');
   const [iyzicoTesting, setIyzicoTesting] = useState(false);
@@ -2390,6 +2392,15 @@ export default function SettingsPanel({ initialSection = 'genel', contentOnly = 
     productCount: number;
   }>({
     queryKey: ['/api/admin/google-merchant/status'],
+  });
+
+  const { data: pinterestStatus, refetch: refetchPinterestStatus, isFetching: pinterestStatusLoading } = useQuery<{
+    enabled: boolean;
+    feedUrl: string;
+    itemCount: number;
+    productCount: number;
+  }>({
+    queryKey: ['/api/admin/pinterest-feed/status'],
   });
 
   useEffect(() => {
@@ -3108,6 +3119,119 @@ export default function SettingsPanel({ initialSection = 'genel', contentOnly = 
             >
               {isSaving ? <Loader2 className="w-4 h-4 animate-spin" /> : <CheckCircle2 className="w-4 h-4" />}
               Besleme Ayarlarını Kaydet
+            </button>
+          </div>
+        </div>
+      </div>
+      )}
+
+      {section === 'genel' && genelTab === 'site' && (
+      <div className="bg-white border border-neutral-200 rounded-xl p-6" data-testid="card-pinterest-feed-settings">
+        <div className="flex items-center gap-3 mb-6">
+          <div className="p-2 bg-neutral-50 rounded-lg">
+            <ShoppingBag className="w-5 h-5 text-neutral-900" />
+          </div>
+          <div>
+            <h3 className="text-lg font-semibold text-neutral-900">Pinterest Ürün Akışı (RSS)</h3>
+            <p className="text-sm text-neutral-500">
+              Tüm aktif ürünleri Pinterest kataloğuna aktarmak için RSS adresi üretir. Yeni eklenen ve silinen ürünler en geç 5 dakika içinde akışa yansır.
+            </p>
+          </div>
+        </div>
+
+        <div className="space-y-5">
+          <div className="grid grid-cols-2 gap-3">
+            {(['false', 'true'] as const).map((val) => {
+              const active = (settings.pinterest_feed_enabled === 'true') === (val === 'true');
+              return (
+                <button
+                  key={val}
+                  type="button"
+                  onClick={() => setSettings(s => ({ ...s, pinterest_feed_enabled: val }))}
+                  data-testid={val === 'true' ? 'button-pinterest-on' : 'button-pinterest-off'}
+                  className={`px-4 py-3 rounded-lg border text-sm font-medium transition-colors text-left ${
+                    active
+                      ? val === 'true' ? 'bg-emerald-600 text-white border-emerald-600' : 'bg-neutral-900 text-white border-neutral-900'
+                      : 'bg-white text-neutral-700 border-neutral-200 hover:bg-neutral-50'
+                  }`}
+                >
+                  <div className="flex items-center gap-2">
+                    {active && <CheckCircle2 className="w-4 h-4" />}
+                    <span>{val === 'true' ? 'AÇIK' : 'KAPALI'}</span>
+                  </div>
+                  <div className={`text-xs mt-1 ${active ? 'text-white/80' : 'text-neutral-500'}`}>
+                    {val === 'true' ? 'Besleme yayında' : 'Besleme adresi 404 döner'}
+                  </div>
+                </button>
+              );
+            })}
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-neutral-500 mb-2">Besleme Adresi</label>
+            <div className="flex gap-2">
+              <input
+                type="text"
+                readOnly
+                value={pinterestStatus?.feedUrl || `${(settings.site_url || '').replace(/\/+$/, '')}/pinterest.xml`}
+                className="flex-1 px-4 py-3 bg-neutral-50 border border-neutral-200 rounded-lg text-neutral-900 text-sm font-mono"
+                data-testid="input-pinterest-feed-url"
+              />
+              <button
+                type="button"
+                onClick={() => {
+                  const url = pinterestStatus?.feedUrl || `${(settings.site_url || '').replace(/\/+$/, '')}/pinterest.xml`;
+                  navigator.clipboard.writeText(url);
+                  setPinterestLinkCopied(true);
+                  setTimeout(() => setPinterestLinkCopied(false), 2000);
+                }}
+                className="flex items-center gap-2 px-4 py-3 bg-neutral-900 text-white rounded-lg hover:bg-neutral-800 transition-colors text-sm font-medium"
+                data-testid="button-copy-pinterest-feed-url"
+              >
+                {pinterestLinkCopied ? <CheckCircle2 className="w-4 h-4" /> : <Copy className="w-4 h-4" />}
+                {pinterestLinkCopied ? 'Kopyalandı' : 'Kopyala'}
+              </button>
+            </div>
+            <p className="text-xs text-neutral-500 mt-1">
+              Pinterest'te Katalog, Veri kaynağı ekle, Besleme türü olarak RSS seçip bu adresi girin. Marka, kategori ve stok ayarları Google Merchant bölümüyle ortaktır.
+            </p>
+          </div>
+
+          <div className="flex items-start gap-2 p-3 bg-neutral-50 border border-neutral-200 rounded-lg text-xs text-neutral-700" data-testid="text-pinterest-status">
+            {pinterestStatusLoading ? (
+              <><Loader2 className="w-4 h-4 animate-spin" /> Besleme özeti hesaplanıyor...</>
+            ) : pinterestStatus ? (
+              <span>
+                Beslemede <strong>{pinterestStatus.productCount}</strong> ürün, <strong>{pinterestStatus.itemCount}</strong> varyant kaydı yer alıyor.
+                {' '}Görseli olmayan, pasif veya fiyatsız ürünler dışarıda bırakılır.
+              </span>
+            ) : (
+              <span>Besleme özeti alınamadı.</span>
+            )}
+          </div>
+
+          <div className="flex justify-end gap-2">
+            <button
+              type="button"
+              onClick={() => refetchPinterestStatus()}
+              disabled={pinterestStatusLoading}
+              className="px-5 py-2.5 border border-neutral-200 text-neutral-700 rounded-lg hover:bg-neutral-50 transition-colors text-sm font-medium disabled:opacity-50"
+              data-testid="button-pinterest-refresh"
+            >
+              Özeti Yenile
+            </button>
+            <button
+              type="button"
+              onClick={async () => {
+                await handleSave();
+                await refetchPinterestStatus();
+              }}
+              disabled={isSaving}
+              className="flex items-center gap-2 px-5 py-2.5 bg-neutral-900 text-white rounded-lg hover:bg-neutral-800 transition-colors text-sm font-medium disabled:opacity-50"
+              data-testid="button-save-pinterest-settings"
+            >
+              {isSaving ? <Loader2 className="w-4 h-4 animate-spin" /> : <CheckCircle2 className="w-4 h-4" />}
+              Kaydet
             </button>
           </div>
         </div>

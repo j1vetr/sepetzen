@@ -48,7 +48,15 @@ export async function getGoogleMerchantSettings(): Promise<GoogleMerchantSetting
 
 export function invalidateGoogleMerchantFeedCache(): void {
   cache.delete(FEED_CACHE_KEY);
+  cache.delete(PINTEREST_CACHE_KEY);
 }
+
+export const PINTEREST_FEED_PATH = "/pinterest.xml";
+const PINTEREST_CACHE_KEY = "feed:pinterest";
+// Pinterest günde bir kez okur. Kısa önbellek, yeni ve silinen ürünlerin hızla yansımasını sağlar.
+const PINTEREST_CACHE_TTL = 5 * 60 * 1000;
+
+export type FeedFormat = "google" | "pinterest";
 
 function escapeXml(value: string | null | undefined): string {
   if (value === null || value === undefined) return "";
@@ -124,7 +132,9 @@ interface FeedItemInput {
   color?: string | null;
 }
 
-function renderItem(item: FeedItemInput): string {
+function renderItem(item: FeedItemInput, format: FeedFormat = "google"): string {
+  // Pinterest "in stock" / "out of stock" biçimini bekler, Google alt çizgili biçimi kullanır
+  const availability = format === "pinterest" ? item.availability.replace("_", " ") : item.availability;
   const lines: (string | null)[] = [
     "  <item>",
     tag("g:id", item.id),
@@ -133,7 +143,7 @@ function renderItem(item: FeedItemInput): string {
     tag("link", item.link),
     tag("g:image_link", item.mainImage),
     ...item.additionalImages.slice(0, 10).map((url) => tag("g:additional_image_link", url)),
-    tag("g:availability", item.availability),
+    tag("g:availability", availability),
     tag("g:condition", "new"),
     tag("g:price", item.price),
     tag("g:brand", item.brand),
@@ -156,6 +166,7 @@ export interface GoogleMerchantFeedResult {
 
 export async function buildGoogleMerchantFeed(
   settings: GoogleMerchantSettings,
+  format: FeedFormat = "google",
 ): Promise<GoogleMerchantFeedResult> {
   // Stok kodu boş ürünler Merchant'ta hata verdiği için önce otomatik kod atanır
   await backfillMissingProductSkus();
@@ -264,7 +275,7 @@ export async function buildGoogleMerchantFeed(
         uniqueId = `${item.id}-${suffix++}`;
       }
       usedIds.add(uniqueId);
-      items.push(renderItem({ ...item, id: uniqueId }));
+      items.push(renderItem({ ...item, id: uniqueId }, format));
     }
   }
 
@@ -274,7 +285,7 @@ export async function buildGoogleMerchantFeed(
   <channel>
     <title>${escapeXml(stripInvalidXmlChars(feedTitle))}</title>
     <link>${escapeXml(siteUrl)}</link>
-    <description>${escapeXml(stripInvalidXmlChars(`${settings.brand} Google Merchant Center ürün beslemesi`))}</description>`;
+    <description>${escapeXml(stripInvalidXmlChars(`${settings.brand} ${format === "pinterest" ? "Pinterest" : "Google Merchant Center"} ürün beslemesi`))}</description>`;
 
   const footer = `  </channel>
 </rss>`;
@@ -290,5 +301,15 @@ export async function getGoogleMerchantFeed(
   if (cached) return cached;
   const result = await buildGoogleMerchantFeed(settings);
   cache.set(FEED_CACHE_KEY, result, FEED_CACHE_TTL);
+  return result;
+}
+
+export async function getPinterestFeed(
+  settings: GoogleMerchantSettings,
+): Promise<GoogleMerchantFeedResult> {
+  const cached = cache.get<GoogleMerchantFeedResult>(PINTEREST_CACHE_KEY);
+  if (cached) return cached;
+  const result = await buildGoogleMerchantFeed(settings, "pinterest");
+  cache.set(PINTEREST_CACHE_KEY, result, PINTEREST_CACHE_TTL);
   return result;
 }

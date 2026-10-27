@@ -632,6 +632,25 @@ export async function registerRoutes(
     }
   });
 
+  // Pinterest ürün akışı (RSS 2.0). Pinterest → Katalog → Veri kaynağı ekle URL'i olarak kullanılır
+  app.get("/pinterest.xml", async (_req, res) => {
+    try {
+      const { getGoogleMerchantSettings, getPinterestFeed } = await import("./googleMerchant");
+      const siteSettings = await storage.getSiteSettings();
+      if (siteSettings.pinterest_feed_enabled !== "true") {
+        res.status(404).type("text/plain; charset=utf-8").send("Pinterest beslemesi kapalı");
+        return;
+      }
+      const { xml } = await getPinterestFeed(await getGoogleMerchantSettings());
+      res.setHeader("Content-Type", "application/xml; charset=utf-8");
+      res.setHeader("Cache-Control", "public, max-age=300");
+      res.send(xml);
+    } catch (error) {
+      console.error("[pinterest] feed üretimi başarısız:", error);
+      res.status(500).send("Feed üretilemedi");
+    }
+  });
+
   // Favicon: admin'de ayarlanan URL'e yönlendir — Google ve tarayıcılar statik <link> etiketini görür,
   // redirect sayesinde her zaman admin favicon'u yüklenir, varsayılan dosyaya düşülmez.
   let _cachedFaviconUrl: string | null = null;
@@ -9571,7 +9590,7 @@ window.addEventListener('load', function() {
         clearShipEntegraTokenCache();
       }
       // Merchant besleme ayarları değiştiyse önbelleği düşür
-      if (Object.keys(settings).some((key) => key.startsWith("google_merchant_") || key === "site_url" || key === "site_name")) {
+      if (Object.keys(settings).some((key) => key.startsWith("google_merchant_") || key.startsWith("pinterest_") || key === "site_url" || key === "site_name")) {
         const { invalidateGoogleMerchantFeedCache } = await import("./googleMerchant");
         invalidateGoogleMerchantFeedCache();
       }
@@ -9601,6 +9620,26 @@ window.addEventListener('load', function() {
       });
     } catch (error) {
       console.error("[google-merchant] durum alınamadı:", error);
+      res.status(500).json({ error: "Besleme durumu alınamadı" });
+    }
+  });
+
+  // Pinterest besleme durumu, admin önizlemesi için
+  app.get("/api/admin/pinterest-feed/status", requireAdmin, async (_req, res) => {
+    try {
+      const { getGoogleMerchantSettings, buildGoogleMerchantFeed, PINTEREST_FEED_PATH } =
+        await import("./googleMerchant");
+      const feedSettings = await getGoogleMerchantSettings();
+      const siteSettings = await storage.getSiteSettings();
+      const { itemCount, productCount } = await buildGoogleMerchantFeed(feedSettings, "pinterest");
+      res.json({
+        enabled: siteSettings.pinterest_feed_enabled === "true",
+        feedUrl: `${feedSettings.siteUrl}${PINTEREST_FEED_PATH}`,
+        itemCount,
+        productCount,
+      });
+    } catch (error) {
+      console.error("[pinterest] durum alınamadı:", error);
       res.status(500).json({ error: "Besleme durumu alınamadı" });
     }
   });
