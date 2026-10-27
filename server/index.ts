@@ -9,6 +9,14 @@ const app = express();
 const httpServer = createServer(app);
 
 app.set('trust proxy', 1);
+// www alt alan adı her zaman www'siz adrese kalıcı yönlenir (yol ve sorgu korunur)
+app.use((req, res, next) => {
+  const host = req.hostname || "";
+  if (host.startsWith("www.")) {
+    return res.redirect(301, `https://${host.slice(4)}${req.originalUrl}`);
+  }
+  next();
+});
 app.use(compression());
 app.use(cookieParser());
 
