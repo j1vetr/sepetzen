@@ -1,6 +1,7 @@
 import type { Express, Request, Response, NextFunction } from "express";
 import { createServer, type Server } from "http";
 import { storage, db, getNextAutoProductSku } from "./storage";
+import { mergedProductRedirect, registerColorMergeRoutes, findMergeRedirect } from "./colorMerge";
 import { sanitizeStoredHtml } from "./htmlSanitize";
 import { collectUserData, getLatestDeletionRequest, createDeletionRequest, listDeletionRequests, resolveDeletionRequest } from "./kvkk";
 import { issueInvoiceForOrder, cancelInvoiceForOrder } from "./invoiceService";
@@ -834,7 +835,7 @@ export async function registerRoutes(
   });
 
   // Product page crawler middleware
-  app.get('/urun/:slug', async (req, res, next) => {
+  app.get('/urun/:slug', mergedProductRedirect, async (req, res, next) => {
     const userAgent = req.get('user-agent');
 
     if (!isCrawler(userAgent)) {
@@ -2955,6 +2956,9 @@ KURALLAR:
   app.get("/api/products/:slug", async (req, res) => {
     try {
       const showOutOfStock = (await storage.getSiteSetting('show_outofstock_products')) === 'true';
+      // Birleştirilmiş eski renk ürünü: istemci ana ürüne yönlendirilir
+      const mergedTarget = await findMergeRedirect(req.params.slug);
+      if (mergedTarget) return res.json({ redirectTo: mergedTarget });
       const product = await storage.getProductBySlug(req.params.slug, showOutOfStock);
       if (!product) {
         return res.status(404).json({ error: "Product not found" });
@@ -3531,6 +3535,8 @@ Bu ürün için 4 bölümlü HTML açıklama üret. Teknik Özellikler bölümü
       res.status(500).json({ error: error.message || "Açıklama üretilirken hata oluştu" });
     }
   });
+
+  registerColorMergeRoutes(app, requireAdmin);
 
   // Product Variants API
   app.get("/api/products/:productId/variants", async (req, res) => {

@@ -22,6 +22,7 @@ import {
   Check,
   ChevronDown,
 } from 'lucide-react';
+import ColorLinkMergePanel from './ColorLinkMergePanel';
 import type { Product, Category, ProductVariant, ProductDraft, Brand } from './_shared/types';
 import { hasConfiguredVariantOptions } from './_shared/contentQuality';
 import {
@@ -740,6 +741,7 @@ export default function ProductsTab({
   const [perPage, setPerPage] = useState<number>(savedListState?.perPage ?? 25);
   const [page, setPage] = useState<number>(savedListState?.page ?? 1);
   const [selectionMode, setSelectionMode] = useState<boolean>(false);
+  const [showColorMerge, setShowColorMerge] = useState(false);
 
   // Listeye dönüşte scroll pozisyonunu geri yükle; state okundu, sessionStorage temizle
   useEffect(() => {
@@ -973,6 +975,14 @@ export default function ProductsTab({
               <Tag className="w-3.5 h-3.5" />
               <span className="hidden md:inline">Toplu etiket</span>
             </GhostButton>
+            <GhostButton
+              onClick={() => setShowColorMerge((v) => !v)}
+              data-testid="button-toggle-color-merge"
+              title="Renk linkiyle bağlı ürünleri tek ürünün renk varyantlarına çevirir"
+            >
+              <span className="hidden md:inline">Renk linklerini varyanta çevir</span>
+              <span className="md:hidden">Renk birleştir</span>
+            </GhostButton>
             <SecondaryButton
               onClick={handleSyncVariants}
               disabled={isSyncing}
@@ -993,6 +1003,12 @@ export default function ProductsTab({
           </>
         }
       />
+
+      {showColorMerge && (
+        <Card className="p-3 sm:p-4">
+          <ColorLinkMergePanel />
+        </Card>
+      )}
 
       <Card className="p-3 sm:p-3.5">
         <div className="grid grid-cols-1 gap-2 sm:grid-cols-2 xl:flex xl:flex-wrap xl:items-center">

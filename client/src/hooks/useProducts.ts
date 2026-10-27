@@ -137,7 +137,13 @@ export function useProduct(slug: string) {
     queryFn: async () => {
       const response = await fetch(`/api/products/${slug}`);
       if (!response.ok) throw new Error('Failed to fetch product');
-      return response.json() as Promise<Product>;
+      const data = await response.json();
+      // Birleştirilmiş eski renk ürünü: ana ürünün ilgili renk adresine geç
+      if (data && typeof data.redirectTo === 'string') {
+        window.location.replace(data.redirectTo);
+        return new Promise<Product>(() => {});
+      }
+      return data as Product;
     },
     enabled: !!slug,
     staleTime: 0,

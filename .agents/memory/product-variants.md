@@ -15,3 +15,8 @@ description: Durable rules for variant deletion safety and variant pricing in ch
 **Rule 3 — a base-price change must propagate to variants that follow it.** Storefront cards display basePrice while product detail displays variant.price, so any admin path that changes basePrice must also update variants whose price equaled the old base (explicit-variant saves blank those prices so they fall back to the new base; non-variant saves and bulk price actions call the variant-price sync). Variants priced differently from the old base are deliberate and must be preserved.
 **Why:** an operator raised a product's price in admin but the single variant kept the old price — homepage showed the new price, product detail the old one (5000/2000 mismatch on the live site, which also ran a build predating the sync).
 **How to apply:** any new price-editing path (quick edit, import, bulk import) must either send variants explicitly or trigger the same base→variant sync; also remember the live VPS deployment can lag this repo, so data mismatches seen only in production usually mean stale prod code or data.
+
+## Renk linki birleştirme (dersler)
+- Stok bir varyandan diğerine taşınırken açık sepet satırları da aynı transaction'da taşınmalı (hem birleştirme hem geri alma), yoksa ödeme adımı stoksuz sayar.
+- Uygunluk kontrolleri yalnızca aktif varyantlara bakmalı; geri alınan birleştirmenin pasif varyantları yeniden birleştirmeyi engellememeli.
+- Trendyol bağlantısı bu repoda tutulmuyor, tespit edilmez.

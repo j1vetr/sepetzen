@@ -301,6 +301,28 @@ export const productVariants = pgTable("product_variants", {
   isActive: boolean("is_active").default(true).notNull(),
 });
 
+// Renk linkli ürünlerin tek ürüne birleştirilmesi kaydı. Her satır bir
+// kaynak ürünü temsil eder; aynı batchId'ye sahip satırlar tek işlemdir.
+// Silme yok: geri alma bu kayıttaki anlık görüntülerden yapılır.
+export const productColorMerges = pgTable("product_color_merges", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  batchId: varchar("batch_id").notNull(),
+  primaryProductId: varchar("primary_product_id").references(() => products.id, { onDelete: "cascade" }).notNull(),
+  sourceProductId: varchar("source_product_id").references(() => products.id, { onDelete: "cascade" }).notNull(),
+  sourceSlug: text("source_slug").notNull(),
+  colorName: text("color_name").notNull(),
+  // Ana ürüne eklenen varyant (kaynak ürünün kendisi ana ürünse null)
+  createdVariantId: varchar("created_variant_id"),
+  // Geri alma için anlık görüntüler
+  snapshot: jsonb("snapshot").$type<Record<string, unknown>>().default({}).notNull(),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  undoneAt: timestamp("undone_at"),
+}, (t) => ({
+  sourceSlugIdx: index("product_color_merges_source_slug_idx").on(t.sourceSlug),
+}));
+
+export type ProductColorMerge = typeof productColorMerges.$inferSelect;
+
 export const insertProductVariantSchema = createInsertSchema(productVariants).omit({
   id: true,
 }).extend({
