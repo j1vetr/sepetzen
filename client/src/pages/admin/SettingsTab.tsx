@@ -3,7 +3,6 @@ import { useState, useEffect, useRef, type ComponentType } from 'react';
 import { Settings, Mail, Loader2, CheckCircle2, XCircle, Send, Server, CreditCard, Copy, AlertTriangle, Wrench, MessageCircle, KeyRound, ShieldCheck, Truck, MapPin, Megaphone, Globe, Banknote, Upload, ShoppingBag, Plus, Trash2, Sparkles, Zap, Image, Bell, SlidersHorizontal, ChevronUp, ChevronDown as ChevronDownIcon, Snowflake, BarChart2, Code2, FileText } from 'lucide-react';
 import InvoiceSettingsSection from './InvoiceSettingsSection';
 import AdminPathSection from './AdminPathSection';
-import { BANK_TRANSFER_INFO } from '@shared/bankInfo';
 import type { SiteIdentity, SocialLink, MobileNavItem } from '@shared/siteIdentity';
 import { COUNTRIES } from '@/lib/countries';
 
@@ -38,7 +37,7 @@ const WHATSAPP_EVENTS: { key: WhatsAppEvent; label: string; defaultTpl: string }
     key: 'order_preparing_customer',
     label: 'Sipariş hazırlanıyor (müşteriye)',
     defaultTpl:
-      `📦 *SİPARİŞİNİZ HAZIRLANIYOR*\n${DIVIDER}\n\nMerhaba {{musteriAdi}} 👋\n\n*{{siparisNo}}* numaralı siparişiniz atölyemizde özenle hazırlanıyor. 🛠️\n\nKargoya verildiğinde takip numarası ile birlikte size tekrar yazacağız. 🚚\n\n🔍 Sipariş takibi:\n{{siparisTakipLink}}\n\n- {{siteAdi}}`,
+      `📦 *SİPARİŞİNİZ HAZIRLANIYOR*\n${DIVIDER}\n\nMerhaba {{musteriAdi}} 👋\n\n*{{siparisNo}}* numaralı siparişiniz özenle hazırlanıyor. 🛠️\n\nKargoya verildiğinde takip numarası ile birlikte size tekrar yazacağız. 🚚\n\n🔍 Sipariş takibi:\n{{siparisTakipLink}}\n\n- {{siteAdi}}`,
   },
   {
     key: 'order_shipped_customer',
@@ -68,7 +67,7 @@ const WHATSAPP_EVENTS: { key: WhatsAppEvent; label: string; defaultTpl: string }
     key: 'order_bank_transfer_pending_customer',
     label: 'Havale ödeme bekleniyor (müşteriye)',
     defaultTpl:
-      `🏦 *HAVALE ONAYI BEKLENİYOR*\n${DIVIDER}\n\nMerhaba {{musteriAdi}} 👋\n\n*{{siparisNo}}* numaralı siparişiniz oluşturuldu. Aşağıdaki hesaba ödemenizi gönderdiğinizde siparişiniz hazırlığa alınacak. ✅\n\n💰 *Tutar:* {{toplam}} ₺\n🛒 *Ürün Sayısı:* {{urunSayisi}}\n🕐 *Tarih:* {{siparisTarihSaat}}\n\n📋 *Banka Bilgileri*\n🏦 Banka: ${BANK_TRANSFER_INFO.bankName}\n🔢 IBAN: \`${BANK_TRANSFER_INFO.iban}\`\n👤 Ad Soyad: ${BANK_TRANSFER_INFO.accountHolder}\n📝 Açıklama: {{siparisNo}}\n\n💡 Açıklamaya sipariş numaranızı yazmayı unutmayın.\n\n🔍 Sipariş takibi:\n{{siparisTakipLink}}\n\n- {{siteAdi}}`,
+      `🏦 *HAVALE ONAYI BEKLENİYOR*\n${DIVIDER}\n\nMerhaba {{musteriAdi}} 👋\n\n*{{siparisNo}}* numaralı siparişiniz oluşturuldu. Aşağıdaki hesaba ödemenizi gönderdiğinizde siparişiniz hazırlığa alınacak. ✅\n\n💰 *Tutar:* {{toplam}} ₺\n🛒 *Ürün Sayısı:* {{urunSayisi}}\n🕐 *Tarih:* {{siparisTarihSaat}}\n\n📋 *Banka Bilgileri*\n🏦 Banka: {{bankaAdi}}\n🔢 IBAN: \`{{iban}}\`\n👤 Ad Soyad: {{hesapSahibi}}\n📝 Açıklama: {{siparisNo}}\n\n💡 Açıklamaya sipariş numaranızı yazmayı unutmayın.\n\n🔍 Sipariş takibi:\n{{siparisTakipLink}}\n\n- {{siteAdi}}`,
   },
   {
     key: 'order_bank_transfer_admin',
@@ -80,7 +79,7 @@ const WHATSAPP_EVENTS: { key: WhatsAppEvent; label: string; defaultTpl: string }
     key: 'review_pending_admin',
     label: 'Yeni yorum onay bekliyor (yöneticiye)',
     defaultTpl:
-      `💬 *YENİ YORUM - ONAY BEKLİYOR*\n${DIVIDER}\n\n🪨 *Ürün:* {{urunAdi}}\n👤 *Yazan:* {{yorumYazari}} {{misafirEtiketi}}\n⭐ *Puan:* {{yildizlar}} ({{puan}}/5)\n{{baslikSatiri}}{{icerikSatiri}}\n🔧 Onaylamak için:\n{{adminPanelUrl}}`,
+      `💬 *YENİ YORUM - ONAY BEKLİYOR*\n${DIVIDER}\n\n🛍️ *Ürün:* {{urunAdi}}\n👤 *Yazan:* {{yorumYazari}} {{misafirEtiketi}}\n⭐ *Puan:* {{yildizlar}} ({{puan}}/5)\n{{baslikSatiri}}{{icerikSatiri}}\n🔧 Onaylamak için:\n{{adminPanelUrl}}`,
   },
 ];
 
@@ -102,6 +101,9 @@ const WHATSAPP_VARIABLES = [
   '{{kargoFirma}}',
   '{{siparisTakipLink}}',
   '{{adminPanelUrl}}',
+  '{{bankaAdi}}',
+  '{{iban}}',
+  '{{hesapSahibi}}',
   '{{siteAdi}}',
 ];
 

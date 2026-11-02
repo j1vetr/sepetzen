@@ -2,6 +2,7 @@ import { getAdminPath } from './adminPath';
 import { storage } from './storage';
 import type { Order } from '@shared/schema';
 import { BANK_TRANSFER_INFO } from '@shared/bankInfo';
+import { getBankTransferConfig } from './bankTransfer';
 import { formatTRDate, formatTRTime, formatTRDateTime } from '@shared/dateFormat';
 
 export interface WhatsAppResult {
@@ -30,7 +31,7 @@ export const WHATSAPP_EVENT_LABELS: Record<WhatsAppEvent, string> = {
   order_delivered_customer: 'Teslim edildi (müşteriye)',
   order_cancelled_customer: 'Sipariş iptal edildi (müşteriye)',
   order_cancelled_admin: 'Sipariş iptal edildi (yöneticiye)',
-  order_bank_transfer_pending_customer: 'Havale ödeme alındı – onay bekleniyor (müşteriye)',
+  order_bank_transfer_pending_customer: 'Havale ödeme bekleniyor (müşteriye)',
   order_bank_transfer_admin: 'Havale ile ödeme – kontrol et (yöneticiye)',
   review_pending_admin: 'Yeni yorum onay bekliyor (yöneticiye)',
 };
@@ -46,6 +47,7 @@ const PREVIOUS_DEFAULT_TEMPLATES: Record<WhatsAppEvent, string[]> = {
     'Yeni sipariş geldi!\n\nSipariş No: {{siparisNo}}\nMüşteri: {{musteriAdi}}\nTelefon: {{musteriTelefon}}\nTutar: {{toplam}} TL',
   ],
   order_preparing_customer: [
+    "📦 *SİPARİŞİNİZ HAZIRLANIYOR*\n━━━━━━━━━━━━━━━\n\nMerhaba {{musteriAdi}} 👋\n\n*{{siparisNo}}* numaralı siparişiniz atölyemizde özenle hazırlanıyor. 🛠️\n\nKargoya verildiğinde takip numarası ile birlikte size tekrar yazacağız. 🚚\n\n🔍 Sipariş takibi:\n{{siparisTakipLink}}\n\n- {{siteAdi}}",
     'Merhaba {{musteriAdi}},\n\n{{siparisNo}} numaralı siparişiniz hazırlanmaya başladı. En kısa sürede kargoya teslim edilecek.\n\n{{siteAdi}}',
     '📦 *Siparişiniz hazırlanıyor*\n\nMerhaba {{musteriAdi}}, *{{siparisNo}}* numaralı siparişiniz atölyemizde özenle hazırlanıyor. En kısa sürede kargoya teslim edilecek.\n\n- {{siteAdi}}',
   ],
@@ -65,12 +67,14 @@ const PREVIOUS_DEFAULT_TEMPLATES: Record<WhatsAppEvent, string[]> = {
     'Sipariş iptal edildi!\n\nSipariş No: {{siparisNo}}\nMüşteri: {{musteriAdi}}\nTutar: {{toplam}} TL',
   ],
   order_bank_transfer_pending_customer: [
+    "🏦 *HAVALE ONAYI BEKLENİYOR*\n━━━━━━━━━━━━━━━\n\nMerhaba {{musteriAdi}} 👋\n\n*{{siparisNo}}* numaralı siparişiniz oluşturuldu. Aşağıdaki hesaba ödemenizi gönderdiğinizde siparişiniz hazırlığa alınacak. ✅\n\n💰 *Tutar:* {{toplam}} ₺\n🛒 *Ürün Sayısı:* {{urunSayisi}}\n🕐 *Tarih:* {{siparisTarihSaat}}\n\n📋 *Banka Bilgileri*\n🏦 Banka: Ziraat Bankası\n🔢 IBAN: `TR00 0000 0000 0000 0000 0000 00`\n👤 Ad Soyad: Ahmet Uğur Durmaz\n📝 Açıklama: {{siparisNo}}\n\n💡 Açıklamaya sipariş numaranızı yazmayı unutmayın.\n\n🔍 Sipariş takibi:\n{{siparisTakipLink}}\n\n- {{siteAdi}}",
     `🏦 *Siparişiniz alındı – Havale onayı bekleniyor*\n\nMerhaba {{musteriAdi}}, *{{siparisNo}}* numaralı siparişiniz başarıyla oluşturuldu.\n\nÖdemenizi aşağıdaki hesaba *{{toplam}} TL* olarak gönderebilirsiniz:\n\nBanka: ${BANK_TRANSFER_INFO.bankName}\nIBAN: ${BANK_TRANSFER_INFO.iban}\nAd Soyad: ${BANK_TRANSFER_INFO.accountHolder}\n\nHavaleniz hesabımıza ulaştığında siparişiniz hazırlanmaya başlanacak ve size tekrar bilgi vereceğiz.\n\n- {{siteAdi}}`,
   ],
   order_bank_transfer_admin: [
     '⚠️ *HAVALE İLE ÖDEME - KONTROL ET*\n\nMüşteri havale yöntemiyle yeni bir sipariş oluşturdu.\n\nSipariş No: {{siparisNo}}\nMüşteri: {{musteriAdi}}\nTelefon: {{musteriTelefon}}\nTutar: {{toplam}} TL\n\nHesap hareketlerini kontrol edip admin panelinden onaylayabilirsin.',
   ],
   review_pending_admin: [
+    "💬 *YENİ YORUM - ONAY BEKLİYOR*\n━━━━━━━━━━━━━━━\n\n🪨 *Ürün:* {{urunAdi}}\n👤 *Yazan:* {{yorumYazari}} {{misafirEtiketi}}\n⭐ *Puan:* {{yildizlar}} ({{puan}}/5)\n{{baslikSatiri}}{{icerikSatiri}}\n🔧 Onaylamak için:\n{{adminPanelUrl}}",
     '💬 *YENİ YORUM ONAY BEKLİYOR*\n\nÜrün: *{{urunAdi}}*\nYazan: {{yorumYazari}} {{misafirEtiketi}}\nPuan: {{yildizlar}} ({{puan}}/5)\n{{baslikSatiri}}{{icerikSatiri}}\nAdmin panelinden onaylamak için: {{adminPanelUrl}}',
   ],
 };
@@ -81,7 +85,7 @@ export const DEFAULT_TEMPLATES: Record<WhatsAppEvent, string> = {
   order_received_admin:
     `🛍️ *YENİ SİPARİŞ*\n${DIVIDER}\n\n📦 *Sipariş No:* {{siparisNo}}\n👤 *Müşteri:* {{musteriAdi}}\n📞 *Telefon:* {{musteriTelefon}}\n📧 *E-posta:* {{musteriEposta}}\n🛒 *Ürün:* {{urunSayisi}} kalem\n💰 *Tutar:* {{toplam}} ₺\n💳 *Ödeme:* {{odemeYontemi}}\n🕐 *Tarih:* {{siparisTarihSaat}}\n\n🔧 Yönetim paneli:\n{{adminPanelUrl}}`,
   order_preparing_customer:
-    `📦 *SİPARİŞİNİZ HAZIRLANIYOR*\n${DIVIDER}\n\nMerhaba {{musteriAdi}} 👋\n\n*{{siparisNo}}* numaralı siparişiniz atölyemizde özenle hazırlanıyor. 🛠️\n\nKargoya verildiğinde takip numarası ile birlikte size tekrar yazacağız. 🚚\n\n🔍 Sipariş takibi:\n{{siparisTakipLink}}\n\n- {{siteAdi}}`,
+    `📦 *SİPARİŞİNİZ HAZIRLANIYOR*\n${DIVIDER}\n\nMerhaba {{musteriAdi}} 👋\n\n*{{siparisNo}}* numaralı siparişiniz özenle hazırlanıyor. 🛠️\n\nKargoya verildiğinde takip numarası ile birlikte size tekrar yazacağız. 🚚\n\n🔍 Sipariş takibi:\n{{siparisTakipLink}}\n\n- {{siteAdi}}`,
   order_shipped_customer:
     `🚚 *KARGOYA VERİLDİ*\n${DIVIDER}\n\nMerhaba {{musteriAdi}} 👋\n\n*{{siparisNo}}* numaralı siparişiniz kargoya teslim edildi! 📮\n\n🚛 *Kargo Firması:* {{kargoFirma}}\n🏷️ *Takip No:* {{kargoTakipNo}}\n\n🔗 Kargo takibi:\n{{kargoTakipLink}}\n\n📋 Sipariş detayı:\n{{siparisTakipLink}}\n\nGüzel günlerde kullanın! 🌟\n\n- {{siteAdi}}`,
   order_delivered_customer:
@@ -91,11 +95,11 @@ export const DEFAULT_TEMPLATES: Record<WhatsAppEvent, string> = {
   order_cancelled_admin:
     `❌ *SİPARİŞ İPTAL EDİLDİ*\n${DIVIDER}\n\n📦 *Sipariş No:* {{siparisNo}}\n👤 *Müşteri:* {{musteriAdi}}\n📞 *Telefon:* {{musteriTelefon}}\n💰 *Tutar:* {{toplam}} ₺\n💳 *Ödeme:* {{odemeYontemi}}\n🕐 *Tarih:* {{siparisTarihSaat}}\n\n🔧 Yönetim paneli:\n{{adminPanelUrl}}`,
   order_bank_transfer_pending_customer:
-    `🏦 *HAVALE ONAYI BEKLENİYOR*\n${DIVIDER}\n\nMerhaba {{musteriAdi}} 👋\n\n*{{siparisNo}}* numaralı siparişiniz oluşturuldu. Aşağıdaki hesaba ödemenizi gönderdiğinizde siparişiniz hazırlığa alınacak. ✅\n\n💰 *Tutar:* {{toplam}} ₺\n🛒 *Ürün Sayısı:* {{urunSayisi}}\n🕐 *Tarih:* {{siparisTarihSaat}}\n\n📋 *Banka Bilgileri*\n🏦 Banka: ${BANK_TRANSFER_INFO.bankName}\n🔢 IBAN: \`${BANK_TRANSFER_INFO.iban}\`\n👤 Ad Soyad: ${BANK_TRANSFER_INFO.accountHolder}\n📝 Açıklama: {{siparisNo}}\n\n💡 Açıklamaya sipariş numaranızı yazmayı unutmayın.\n\n🔍 Sipariş takibi:\n{{siparisTakipLink}}\n\n- {{siteAdi}}`,
+    `🏦 *HAVALE ONAYI BEKLENİYOR*\n${DIVIDER}\n\nMerhaba {{musteriAdi}} 👋\n\n*{{siparisNo}}* numaralı siparişiniz oluşturuldu. Aşağıdaki hesaba ödemenizi gönderdiğinizde siparişiniz hazırlığa alınacak. ✅\n\n💰 *Tutar:* {{toplam}} ₺\n🛒 *Ürün Sayısı:* {{urunSayisi}}\n🕐 *Tarih:* {{siparisTarihSaat}}\n\n📋 *Banka Bilgileri*\n🏦 Banka: {{bankaAdi}}\n🔢 IBAN: \`{{iban}}\`\n👤 Ad Soyad: {{hesapSahibi}}\n📝 Açıklama: {{siparisNo}}\n\n💡 Açıklamaya sipariş numaranızı yazmayı unutmayın.\n\n🔍 Sipariş takibi:\n{{siparisTakipLink}}\n\n- {{siteAdi}}`,
   order_bank_transfer_admin:
     `⚠️ *HAVALE ÖDEME - KONTROL ET*\n${DIVIDER}\n\nMüşteri havale yöntemiyle yeni bir sipariş oluşturdu. Hesap hareketlerini kontrol edip onaylayın. 🔍\n\n📦 *Sipariş No:* {{siparisNo}}\n👤 *Müşteri:* {{musteriAdi}}\n📞 *Telefon:* {{musteriTelefon}}\n📧 *E-posta:* {{musteriEposta}}\n💰 *Tutar:* {{toplam}} ₺\n🛒 *Ürün:* {{urunSayisi}} kalem\n🕐 *Tarih:* {{siparisTarihSaat}}\n\n🔧 Yönetim paneli:\n{{adminPanelUrl}}`,
   review_pending_admin:
-    `💬 *YENİ YORUM - ONAY BEKLİYOR*\n${DIVIDER}\n\n🪨 *Ürün:* {{urunAdi}}\n👤 *Yazan:* {{yorumYazari}} {{misafirEtiketi}}\n⭐ *Puan:* {{yildizlar}} ({{puan}}/5)\n{{baslikSatiri}}{{icerikSatiri}}\n🔧 Onaylamak için:\n{{adminPanelUrl}}`,
+    `💬 *YENİ YORUM - ONAY BEKLİYOR*\n${DIVIDER}\n\n🛍️ *Ürün:* {{urunAdi}}\n👤 *Yazan:* {{yorumYazari}} {{misafirEtiketi}}\n⭐ *Puan:* {{yildizlar}} ({{puan}}/5)\n{{baslikSatiri}}{{icerikSatiri}}\n🔧 Onaylamak için:\n{{adminPanelUrl}}`,
 };
 
 const DEFAULT_ENDPOINT = 'http://127.0.0.1:3225/api/send-message';
@@ -249,6 +253,7 @@ async function orderVars(order: Order, config: WhatsAppConfig): Promise<Record<s
     console.error('[WhatsApp] orderVars items lookup failed:', err);
   }
 
+  const bank = await getBankTransferConfig();
   const siteUrl = await resolveSiteUrl();
   const siparisTakipLink = `${siteUrl}/siparis-takip?no=${encodeURIComponent(order.orderNumber)}`;
   const adminPanelUrl = `${siteUrl}/${await getAdminPath()}/orders/${order.id}`;
@@ -271,6 +276,9 @@ async function orderVars(order: Order, config: WhatsAppConfig): Promise<Record<s
     odemeYontemi: paymentMethodLabel(order.paymentMethod),
     siparisTakipLink,
     adminPanelUrl,
+    bankaAdi: bank.bankName,
+    iban: bank.iban,
+    hesapSahibi: bank.accountHolder,
     siteAdi: config.siteName,
   };
 }
@@ -459,6 +467,9 @@ export const WHATSAPP_TEMPLATE_VARIABLES = [
   'kargoFirma',
   'siparisTakipLink',
   'adminPanelUrl',
+  'bankaAdi',
+  'iban',
+  'hesapSahibi',
   'siteAdi',
 ];
 
