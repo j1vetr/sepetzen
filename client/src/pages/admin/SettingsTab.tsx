@@ -1977,6 +1977,10 @@ export default function SettingsPanel({ initialSection = 'genel', contentOnly = 
     google_merchant_category: '',
     google_merchant_include_out_of_stock: 'false',
     wpileti_enabled: 'false',
+    whatsapp_provider: 'wpileti',
+    openwa_url: '',
+    openwa_api_key: '',
+    openwa_session_id: '',
     wpileti_api_key: '',
     wpileti_endpoint: 'http://127.0.0.1:3225/api/send-message',
     wpileti_admin_phone: '',
@@ -2042,6 +2046,7 @@ export default function SettingsPanel({ initialSection = 'genel', contentOnly = 
   const [callbackCopied, setCallbackCopied] = useState(false);
   const [merchantLinkCopied, setMerchantLinkCopied] = useState(false);
   const [pinterestLinkCopied, setPinterestLinkCopied] = useState(false);
+  const [openwaStatus, setOpenwaStatus] = useState('');
   const [iyzicoApiKey, setIyzicoApiKey] = useState('');
   const [iyzicoSecretKey, setIyzicoSecretKey] = useState('');
   const [iyzicoTesting, setIyzicoTesting] = useState(false);
@@ -4511,7 +4516,7 @@ export default function SettingsPanel({ initialSection = 'genel', contentOnly = 
             <MessageCircle className="w-5 h-5 text-neutral-600" />
           </div>
           <div className="flex-1">
-            <h3 className="text-lg font-semibold text-neutral-900">WhatsApp Bildirimleri (Wpileti)</h3>
+            <h3 className="text-lg font-semibold text-neutral-900">WhatsApp Bildirimleri</h3>
             <p className="text-sm text-neutral-500">
               Sipariş aşamalarında müşteriye ve yöneticiye otomatik WhatsApp mesajı gönderir.
             </p>
@@ -4531,6 +4536,81 @@ export default function SettingsPanel({ initialSection = 'genel', contentOnly = 
         </div>
 
         <div className="grid md:grid-cols-2 gap-4 mb-5">
+          <div className="md:col-span-2">
+            <label className="block text-sm font-medium text-neutral-500 mb-2">Gönderim Yöntemi</label>
+            <select
+              value={settings.whatsapp_provider === 'openwa' ? 'openwa' : 'wpileti'}
+              onChange={(e) => setSettings(s => ({ ...s, whatsapp_provider: e.target.value }))}
+              className="w-full px-4 py-3 bg-neutral-50 border border-neutral-200 rounded-lg text-neutral-900"
+              data-testid="select-whatsapp-provider"
+            >
+              <option value="wpileti">Wpileti</option>
+              <option value="openwa">OpenWA (kendi sunucunuzda)</option>
+            </select>
+          </div>
+          {settings.whatsapp_provider === 'openwa' ? (
+            <>
+              <div>
+                <label className="block text-sm font-medium text-neutral-500 mb-2">OpenWA Adresi</label>
+                <input
+                  type="text"
+                  value={settings.openwa_url}
+                  onChange={(e) => setSettings(s => ({ ...s, openwa_url: e.target.value }))}
+                  placeholder="http://127.0.0.1:2785"
+                  className="w-full px-4 py-3 bg-neutral-50 border border-neutral-200 rounded-lg text-neutral-900 text-sm font-mono"
+                  data-testid="input-openwa-url"
+                />
+                <p className="text-xs text-neutral-500 mt-1">OpenWA sunucunuzun adresi ve portu (varsayılan 2785).</p>
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-neutral-500 mb-2">OpenWA API Anahtarı</label>
+                <input
+                  type="password"
+                  value={settings.openwa_api_key}
+                  onChange={(e) => setSettings(s => ({ ...s, openwa_api_key: e.target.value }))}
+                  placeholder="••••••••"
+                  className="w-full px-4 py-3 bg-neutral-50 border border-neutral-200 rounded-lg text-neutral-900"
+                  data-testid="input-openwa-apikey"
+                  autoComplete="off"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-neutral-500 mb-2">Oturum Kimliği</label>
+                <input
+                  type="text"
+                  value={settings.openwa_session_id}
+                  onChange={(e) => setSettings(s => ({ ...s, openwa_session_id: e.target.value }))}
+                  placeholder="OpenWA panelinde oluşturduğunuz oturumun kimliği"
+                  className="w-full px-4 py-3 bg-neutral-50 border border-neutral-200 rounded-lg text-neutral-900 text-sm font-mono"
+                  data-testid="input-openwa-session"
+                />
+              </div>
+              <div className="flex flex-col justify-end">
+                <button
+                  type="button"
+                  onClick={async () => {
+                    setOpenwaStatus('Kontrol ediliyor...');
+                    try {
+                      const res = await fetch('/api/admin/whatsapp/openwa-status', { credentials: 'include' });
+                      const data = await res.json();
+                      setOpenwaStatus(data.success ? `Bağlantı kuruldu. Oturum durumu: ${data.status}` : `Hata: ${data.error}`);
+                    } catch {
+                      setOpenwaStatus('Hata: Durum alınamadı');
+                    }
+                  }}
+                  className="px-4 py-3 border border-neutral-200 text-neutral-700 rounded-lg hover:bg-neutral-50 text-sm font-medium"
+                  data-testid="button-openwa-status"
+                >
+                  Bağlantıyı Kontrol Et
+                </button>
+                {openwaStatus && <p className="text-xs text-neutral-600 mt-1" data-testid="text-openwa-status">{openwaStatus}</p>}
+              </div>
+              <p className="md:col-span-2 text-xs text-amber-700">
+                OpenWA resmi olmayan bir WhatsApp bağlantısı kullanır. Numara engellenebilir, bu yüzden ana işletme numaranızı değil ayrı bir hat kullanın. Önce ayarları kaydedin, sonra bağlantıyı kontrol edin.
+              </p>
+            </>
+          ) : (
+            <>
           <div>
             <label className="block text-sm font-medium text-neutral-500 mb-2">wpileti API Anahtarı</label>
             <input
@@ -4557,6 +4637,8 @@ export default function SettingsPanel({ initialSection = 'genel', contentOnly = 
               wpileti sunucunuzun adresi. Yerel kuruluysa varsayılan değeri bırakın.
             </p>
           </div>
+            </>
+          )}
           <div>
             <label className="block text-sm font-medium text-neutral-500 mb-2">Yönetici WhatsApp Numarası</label>
             <input

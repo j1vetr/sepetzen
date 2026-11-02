@@ -102,8 +102,12 @@ const DEFAULT_ENDPOINT = 'http://127.0.0.1:3225/api/send-message';
 
 interface WhatsAppConfig {
   enabled: boolean;
+  provider: 'wpileti' | 'openwa';
   apiKey: string;
   endpoint: string;
+  openwaUrl: string;
+  openwaKey: string;
+  openwaSession: string;
   adminPhone: string;
   siteName: string;
   events: Record<WhatsAppEvent, boolean>;
@@ -115,8 +119,16 @@ async function getConfig(): Promise<WhatsAppConfig | null> {
   const enabled = settings.wpileti_enabled === 'true';
   if (!enabled) return null;
 
+  const provider = settings.whatsapp_provider === 'openwa' ? 'openwa' : 'wpileti';
   const apiKey = settings.wpileti_api_key || '';
-  if (!apiKey) return null;
+  const openwaUrl = (settings.openwa_url || '').trim().replace(/\/+$/, '');
+  const openwaKey = settings.openwa_api_key || '';
+  const openwaSession = (settings.openwa_session_id || '').trim();
+  if (provider === 'openwa') {
+    if (!openwaUrl || !openwaKey || !openwaSession) return null;
+  } else if (!apiKey) {
+    return null;
+  }
 
   const endpoint = settings.wpileti_endpoint || DEFAULT_ENDPOINT;
   const adminPhone = settings.wpileti_admin_phone || '';
@@ -130,7 +142,7 @@ async function getConfig(): Promise<WhatsAppConfig | null> {
     templates[evt] = tplValue && tplValue.trim() ? tplValue : DEFAULT_TEMPLATES[evt];
   }
 
-  return { enabled, apiKey, endpoint, adminPhone, siteName, events, templates };
+  return { enabled, provider, apiKey, endpoint, openwaUrl, openwaKey, openwaSession, adminPhone, siteName, events, templates };
 }
 
 export function normalizePhone(input: string | null | undefined): string | null {
@@ -170,16 +182,23 @@ async function sendRaw(
   const controller = new AbortController();
   const timeout = setTimeout(() => controller.abort(), 10_000);
   try {
-    const res = await fetch(config.endpoint, {
-      method: 'POST',
-      headers: { 'Accept': '*/*', 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        api_key: config.apiKey,
-        receiver,
-        data: { message },
-      }),
-      signal: controller.signal,
-    });
+    const res = config.provider === 'openwa'
+      ? await fetch(`${config.openwaUrl}/api/sessions/${encodeURIComponent(config.openwaSession)}/messages/send-text`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', 'X-API-Key': config.openwaKey },
+          body: JSON.stringify({ chatId: `${receiver}@c.us`, text: message }),
+          signal: controller.signal,
+        })
+      : await fetch(config.endpoint, {
+          method: 'POST',
+          headers: { 'Accept': '*/*', 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            api_key: config.apiKey,
+            receiver,
+            data: { message },
+          }),
+          signal: controller.signal,
+        });
     const text = await res.text().catch(() => '');
     if (!res.ok) {
       console.error(`[WhatsApp] HTTP ${res.status} event=${event} body=${text.slice(0, 200)}`);
@@ -188,7 +207,7 @@ async function sendRaw(
     console.log(`[WhatsApp] sent ok event=${event}`);
     return { success: true };
   } catch (err: any) {
-    const msg = err?.name === 'AbortError' ? 'wpileti timeout (10s)' : err?.message || 'Bilinmeyen hata';
+    const msg = err?.name === 'AbortError' ? 'WhatsApp servisi zaman aşımına uğradı (10 sn)' : err?.message || 'Bilinmeyen hata';
     console.error(`[WhatsApp] failed event=${event}: ${msg}`);
     return { success: false, error: msg };
   } finally {
@@ -442,3 +461,36 @@ export const WHATSAPP_TEMPLATE_VARIABLES = [
   'adminPanelUrl',
   'siteAdi',
 ];
+
+/** OpenWA oturumunun bağlantı durumunu sorgular (admin panelinde gösterilir). */
+export async function checkOpenWaStatus(): Promise<{ success: boolean; status?: string; error?: string }> {
+  const settings = await storage.getSiteSettings();
+  const url = (settings.openwa_url || '').trim().replace(/\/+$/, '');
+  const key = settings.openwa_api_key || '';
+  const session = (settings.openwa_session_id || '').trim();
+  if (!url || !key || !session) {
+    return { success: false, error: 'Adres, API anahtarı ve oturum kimliğini girip kaydedin.' };
+  }
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), 10_000);
+  try {
+    const res = await fetch(`${url}/api/sessions/${encodeURIComponent(session)}`, {
+      headers: { 'X-API-Key': key },
+      signal: controller.signal,
+    });
+    const text = await res.text().catch(() => '');
+    if (!res.ok) {
+      return { success: false, error: `HTTP ${res.status}: ${text.slice(0, 200)}` };
+    }
+    let status = 'unknown';
+    try {
+      const body = JSON.parse(text);
+      status = String(body?.status ?? body?.data?.status ?? 'unknown');
+    } catch { /* gövde JSON değil */ }
+    return { success: true, status };
+  } catch (err: any) {
+    return { success: false, error: err?.name === 'AbortError' ? 'Sunucuya ulaşılamadı (10 sn)' : err?.message || 'Bilinmeyen hata' };
+  } finally {
+    clearTimeout(timeout);
+  }
+}

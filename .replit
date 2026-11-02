@@ -7,6 +7,10 @@ channel = "stable-24_05"
 packages = ["unzip"]
 
 [[ports]]
+localPort = 2799
+externalPort = 3001
+
+[[ports]]
 localPort = 5000
 externalPort = 80
 

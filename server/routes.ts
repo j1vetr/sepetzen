@@ -52,6 +52,7 @@ import {
   sendBankTransferPendingToCustomer,
   sendBankTransferPendingToAdmin,
   sendTestWhatsApp,
+  checkOpenWaStatus,
   sendReviewPendingToAdmin,
 } from "./whatsappService";
 import { getBankTransferConfig } from "./bankTransfer";
@@ -9454,6 +9455,9 @@ window.addEventListener('load', function() {
       if (settings.wpileti_api_key) {
         settings.wpileti_api_key = '••••••••';
       }
+      if (settings.openwa_api_key) {
+        settings.openwa_api_key = '••••••••';
+      }
       if (settings.turnstile_secret_key) {
         settings.turnstile_secret_key = '••••••••';
       }
@@ -9555,6 +9559,9 @@ window.addEventListener('load', function() {
       }
       if (settings.wpileti_api_key === '••••••••') {
         delete settings.wpileti_api_key;
+      }
+      if (settings.openwa_api_key === '••••••••') {
+        delete settings.openwa_api_key;
       }
       if (settings.turnstile_secret_key === '••••••••') {
         delete settings.turnstile_secret_key;
@@ -9725,6 +9732,14 @@ window.addEventListener('load', function() {
       }
     } catch (error: any) {
       res.status(500).json({ success: false, error: error.message || "Test mesajı gönderilemedi" });
+    }
+  });
+
+  app.get("/api/admin/whatsapp/openwa-status", requireAdmin, async (_req, res) => {
+    try {
+      res.json(await checkOpenWaStatus());
+    } catch (error: any) {
+      res.status(500).json({ success: false, error: error.message || "Durum alınamadı" });
     }
   });
 
