@@ -1,6 +1,7 @@
 import { storage, db, backfillMissingProductSkus } from "./storage";
 import { productVariants } from "@shared/schema";
 import { cache } from "./cache";
+import { feedSafeImageUrl } from "./feedImages";
 
 /**
  * Google Merchant Center (Google Shopping) RSS 2.0 ürün beslemesi.
@@ -194,9 +195,12 @@ export async function buildGoogleMerchantFeed(
   for (const p of allProducts) {
     if (!p.isActive) continue;
 
-    const images = (Array.isArray(p.images) ? p.images : [])
-      .map((img) => absoluteUrl(img, siteUrl))
-      .filter(Boolean);
+    const images = await Promise.all(
+      (Array.isArray(p.images) ? p.images : [])
+        .map((img) => absoluteUrl(img, siteUrl))
+        .filter(Boolean)
+        .map((u) => feedSafeImageUrl(u, siteUrl)),
+    );
     // Görseli olmayan ürünler Google tarafından reddedilir; akışa hiç koymuyoruz.
     if (images.length === 0) continue;
 
@@ -225,9 +229,12 @@ export async function buildGoogleMerchantFeed(
         const variantId = (v.sku && v.sku.trim()) || `${baseId}-${variants.indexOf(v) + 1}`;
         const variantTitleParts = [title, v.size, v.color].filter(Boolean) as string[];
         // Renge özel görsel varsa o varyantın ana görseli olur, yoksa ürün görselleri.
-        const colorImages = (Array.isArray(v.images) ? v.images : [])
-          .map((img) => absoluteUrl(img, siteUrl))
-          .filter(Boolean);
+        const colorImages = await Promise.all(
+          (Array.isArray(v.images) ? v.images : [])
+            .map((img) => absoluteUrl(img, siteUrl))
+            .filter(Boolean)
+            .map((u) => feedSafeImageUrl(u, siteUrl)),
+        );
         groupItems.push({
           id: variantId,
           title: hasVariantAxis ? variantTitleParts.join(" - ") : title,

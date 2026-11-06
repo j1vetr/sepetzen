@@ -12,3 +12,4 @@ sepetzen_dump.dump
 *.sql
 # Şema migration dosyaları sürüm kontrolünde tutulur (deploy için gerekli)
 !migrations/*.sql
+.cache/

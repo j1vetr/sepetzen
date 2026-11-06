@@ -619,6 +619,20 @@ export async function registerRoutes(
     }
   });
 
+  // Besleme için 500 pikselden küçük görsellerin büyütülmüş kopyaları (site görselleri değişmez)
+  app.get("/feed-image/*", async (req, res) => {
+    try {
+      const { getFeedImageFile } = await import("./feedImages");
+      const file = await getFeedImageFile(String((req.params as any)[0] || ""));
+      if (!file) return res.status(404).send("Görsel bulunamadı");
+      res.setHeader("Cache-Control", "public, max-age=86400");
+      res.type("image/jpeg").sendFile(file);
+    } catch (error) {
+      console.error("[feed-image] üretilemedi:", error);
+      res.status(500).send("Görsel üretilemedi");
+    }
+  });
+
   // Google Merchant Center (Google Shopping) RSS 2.0 ürün akışı
   // Merchant Center → Ürünler → Besleme → Planlanmış getirme URL'i olarak kullanılır
   app.get("/google-merchant.xml", async (_req, res) => {
