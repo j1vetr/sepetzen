@@ -18,6 +18,7 @@ import {
 } from 'lucide-react';
 import { useBankTransferInfo } from '@/hooks/useBankTransferInfo';
 import { SEO } from '@/components/SEO';
+import { trackMeta } from '@/lib/metaPixel';
 
 export default function PaymentSuccess() {
   const bankInfo = useBankTransferInfo();
@@ -62,6 +63,17 @@ export default function PaymentSuccess() {
             return;
           }
           if (data.status === 'completed') {
+            // Meta Pixel Purchase: sunucudaki CAPI olayıyla aynı event_id, böylece tekilleşir
+            if (data.metaPurchase && data.orderNumber) {
+              const guard = `meta-purchase-${data.orderNumber}`;
+              try {
+                if (!sessionStorage.getItem(guard)) {
+                  sessionStorage.setItem(guard, '1');
+                  const { eventId, ...custom } = data.metaPurchase;
+                  void trackMeta('Purchase', { eventId, rawCustomData: custom, serverRelay: false });
+                }
+              } catch { /* sessionStorage yoksa atla */ }
+            }
             setOrderNumber(data.orderNumber);
             setLoading(false);
           } else if (data.status === 'failed') {

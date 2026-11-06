@@ -107,6 +107,14 @@ app.use((req, res, next) => {
     console.error("[index] default page seed failed:", err);
   }
 
+  // Meta CAPI için sipariş/ödeme bağlam sütunları (yeni deploy'larda db:push beklemeden hazır olsun)
+  try {
+    const { ensureMetaTrackingColumns } = await import("./metaTracking");
+    await ensureMetaTrackingColumns();
+  } catch (err) {
+    console.error("[index] meta tracking columns failed:", err);
+  }
+
   // Auth hız limiti tablosunu idempotent olarak oluştur (yeni deploy'larda garantili)
   try {
     const { ensureTable } = await import("./authRateLimit");

@@ -24,6 +24,7 @@ import { GoogleAuthButton } from '@/components/AuthLayout';
 import { BANK_TRANSFER_INFO } from '@shared/bankInfo';
 import { InvoiceFields, emptyInvoiceForm, invoiceFormFrom, invoicePayload, validateInvoiceForm, type InvoiceFormValue } from '@/components/InvoiceFields';
 import { useShippingSettings } from '@/hooks/useShippingSettings';
+import { trackMeta } from '@/lib/metaPixel';
 import { useHasLiveStreamItems } from '@/hooks/useLiveStream';
 import { ComplementaryProducts } from '@/components/ComplementaryProducts';
 
@@ -269,6 +270,29 @@ export default function Checkout() {
       }));
     }
   }, [user]);
+
+  // Meta Pixel / CAPI: ödemeye başlama (sepet doluysa bir kez) ve ödeme adımına geçiş
+  const metaCheckoutRef = useRef(false);
+  useEffect(() => {
+    if (metaCheckoutRef.current || items.length === 0) return;
+    metaCheckoutRef.current = true;
+    void trackMeta('InitiateCheckout', {
+      contents: items.map(i => ({ productId: i.productId, sku: i.product?.sku, quantity: i.quantity, price: parseFloat(i.variant?.price || i.product?.basePrice || '0') || 0 })),
+      value: subtotal,
+    });
+  }, [items, subtotal]);
+  const metaPaymentRef = useRef(false);
+  useEffect(() => {
+    if (currentStep !== 3 || metaPaymentRef.current || items.length === 0) return;
+    metaPaymentRef.current = true;
+    const [first, ...rest] = formData.customerName.trim().split(' ');
+    void trackMeta('AddPaymentInfo', {
+      contents: items.map(i => ({ productId: i.productId, sku: i.product?.sku, quantity: i.quantity, price: parseFloat(i.variant?.price || i.product?.basePrice || '0') || 0 })),
+      value: subtotal,
+      userData: { email: formData.customerEmail, phone: formData.customerPhone, firstName: first, lastName: rest.join(' ') },
+    });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [currentStep]);
 
   // Auto-select default address when addresses are loaded (only once on initial load)
   useEffect(() => {

@@ -1975,6 +1975,17 @@ export default function SettingsPanel({ initialSection = 'genel', contentOnly = 
     site_name: '',
     google_merchant_enabled: 'false',
     pinterest_feed_enabled: 'false',
+    meta_pixel_enabled: 'false',
+    meta_pixel_id: '',
+    meta_capi_enabled: 'false',
+    meta_capi_token: '',
+    meta_test_event_code: '',
+    meta_api_version: 'v21.0',
+    meta_domain_verification: '',
+    meta_content_id_source: 'sku',
+    meta_purchase_value: 'total',
+    meta_purchase_timing_bank: 'paid',
+    meta_require_consent: 'false',
     google_merchant_brand: '',
     google_merchant_category: '',
     google_merchant_include_out_of_stock: 'false',
@@ -2049,6 +2060,8 @@ export default function SettingsPanel({ initialSection = 'genel', contentOnly = 
   const [merchantLinkCopied, setMerchantLinkCopied] = useState(false);
   const [pinterestLinkCopied, setPinterestLinkCopied] = useState(false);
   const [openwaStatus, setOpenwaStatus] = useState('');
+  const [metaTestMsg, setMetaTestMsg] = useState<{ ok: boolean; text: string } | null>(null);
+  const [metaTesting, setMetaTesting] = useState(false);
   const [iyzicoApiKey, setIyzicoApiKey] = useState('');
   const [iyzicoSecretKey, setIyzicoSecretKey] = useState('');
   const [iyzicoTesting, setIyzicoTesting] = useState(false);
@@ -2399,6 +2412,12 @@ export default function SettingsPanel({ initialSection = 'genel', contentOnly = 
     productCount: number;
   }>({
     queryKey: ['/api/admin/google-merchant/status'],
+  });
+
+  const { data: metaLog, refetch: refetchMetaLog, isFetching: metaLogLoading } = useQuery<{
+    entries: { time: string; event: string; eventId: string; source: string; status: string; detail: string; value?: number }[];
+  }>({
+    queryKey: ['/api/admin/meta/log'],
   });
 
   const { data: pinterestStatus, refetch: refetchPinterestStatus, isFetching: pinterestStatusLoading } = useQuery<{
@@ -3240,6 +3259,261 @@ export default function SettingsPanel({ initialSection = 'genel', contentOnly = 
               {isSaving ? <Loader2 className="w-4 h-4 animate-spin" /> : <CheckCircle2 className="w-4 h-4" />}
               Kaydet
             </button>
+          </div>
+        </div>
+      </div>
+      )}
+
+      {section === 'genel' && genelTab === 'site' && (
+      <div className="bg-white border border-neutral-200 rounded-xl p-6" data-testid="card-meta-pixel-settings">
+        <div className="flex items-center gap-3 mb-6">
+          <div className="p-2 bg-neutral-50 rounded-lg">
+            <BarChart2 className="w-5 h-5 text-neutral-900" />
+          </div>
+          <div>
+            <h3 className="text-lg font-semibold text-neutral-900">Meta Pixel ve Conversions API</h3>
+            <p className="text-sm text-neutral-500">
+              Siteden Meta reklam hesabına tarayıcı (Pixel) ve sunucu (Conversions API) olayları gönderir. İkisi aynı olay kimliğiyle gittiği için Meta çift saymaz.
+            </p>
+          </div>
+        </div>
+
+        <div className="space-y-6">
+          <div className="grid md:grid-cols-2 gap-4">
+            <div>
+              <label className="block text-sm font-medium text-neutral-500 mb-2">Pixel Kimliği (Dataset ID)</label>
+              <input
+                type="text"
+                value={settings.meta_pixel_id}
+                onChange={(e) => setSettings(s => ({ ...s, meta_pixel_id: e.target.value }))}
+                placeholder="1234567890123456"
+                className="w-full px-4 py-3 bg-neutral-50 border border-neutral-200 rounded-lg text-neutral-900 text-sm font-mono"
+                data-testid="input-meta-pixel-id"
+              />
+              <p className="text-xs text-neutral-500 mt-1">Meta Olay Yöneticisi, Veri kaynakları bölümündeki sayısal kimlik</p>
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-neutral-500 mb-2">Conversions API Erişim Anahtarı</label>
+              <input
+                type="password"
+                value={settings.meta_capi_token}
+                onChange={(e) => setSettings(s => ({ ...s, meta_capi_token: e.target.value }))}
+                placeholder="••••••••"
+                autoComplete="off"
+                className="w-full px-4 py-3 bg-neutral-50 border border-neutral-200 rounded-lg text-neutral-900 text-sm font-mono"
+                data-testid="input-meta-capi-token"
+              />
+              <p className="text-xs text-neutral-500 mt-1">Olay Yöneticisi, Ayarlar, Conversions API, Erişim anahtarı oluştur</p>
+            </div>
+          </div>
+
+          <div className="grid md:grid-cols-2 gap-3">
+            {([
+              ['meta_pixel_enabled', 'Pixel (tarayıcı olayları)', 'Ziyaretçinin tarayıcısından olay gönderir'],
+              ['meta_capi_enabled', 'Conversions API (sunucu olayları)', 'Siparişleri ve olayları sunucudan gönderir, reklam engelleyicilerden etkilenmez'],
+            ] as const).map(([key, label, hint]) => (
+              <label key={key} className="flex items-start gap-3 p-3 border border-neutral-200 rounded-lg cursor-pointer hover:bg-neutral-50">
+                <input
+                  type="checkbox"
+                  checked={settings[key] === 'true'}
+                  onChange={(e) => setSettings(s => ({ ...s, [key]: e.target.checked ? 'true' : 'false' }))}
+                  className="w-4 h-4 mt-0.5 accent-neutral-900"
+                  data-testid={`checkbox-${key}`}
+                />
+                <span>
+                  <span className="block text-sm font-medium text-neutral-900">{label}</span>
+                  <span className="block text-xs text-neutral-500">{hint}</span>
+                </span>
+              </label>
+            ))}
+          </div>
+
+          <div>
+            <p className="text-sm font-medium text-neutral-500 mb-2">Gönderilecek olaylar</p>
+            <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-2">
+              {[['PageView','Sayfa görüntüleme'],['ViewContent','Ürün görüntüleme'],['Search','Arama'],['AddToCart','Sepete ekleme'],['AddToWishlist','Favorilere ekleme'],['InitiateCheckout','Ödemeye başlama'],['AddPaymentInfo','Ödeme bilgisi ekleme'],['Purchase','Satın alma'],['CompleteRegistration','Üyelik tamamlama'],['Lead','İletişim formu']].map(([evt, label]) => (
+                <label key={evt} className="flex items-center gap-2 px-3 py-2 border border-neutral-200 rounded-lg cursor-pointer hover:bg-neutral-50">
+                  <input
+                    type="checkbox"
+                    checked={settings[`meta_evt_${evt}`] !== 'false'}
+                    onChange={(e) => setSettings(s => ({ ...s, [`meta_evt_${evt}`]: e.target.checked ? 'true' : 'false' }))}
+                    className="w-4 h-4 accent-neutral-900"
+                    data-testid={`checkbox-meta-evt-${evt}`}
+                  />
+                  <span className="text-sm text-neutral-900">{label}</span>
+                  <code className="ml-auto text-[10px] text-neutral-400">{evt}</code>
+                </label>
+              ))}
+            </div>
+          </div>
+
+          <div className="grid md:grid-cols-2 gap-4">
+            <div>
+              <label className="block text-sm font-medium text-neutral-500 mb-2">Ürün Kimliği Kaynağı</label>
+              <select
+                value={settings.meta_content_id_source}
+                onChange={(e) => setSettings(s => ({ ...s, meta_content_id_source: e.target.value }))}
+                className="w-full px-4 py-3 bg-neutral-50 border border-neutral-200 rounded-lg text-neutral-900"
+                data-testid="select-meta-content-id"
+              >
+                <option value="sku">Stok kodu (Meta katalog akışıyla aynı)</option>
+                <option value="id">Sistem ürün kimliği</option>
+              </select>
+              <p className="text-xs text-neutral-500 mt-1">Katalog reklamlarında olaylar ürünlerle bu kimlik üzerinden eşleşir. Meta katalog akışı stok kodu kullanır.</p>
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-neutral-500 mb-2">Satın Alma Değeri</label>
+              <select
+                value={settings.meta_purchase_value}
+                onChange={(e) => setSettings(s => ({ ...s, meta_purchase_value: e.target.value }))}
+                className="w-full px-4 py-3 bg-neutral-50 border border-neutral-200 rounded-lg text-neutral-900"
+                data-testid="select-meta-purchase-value"
+              >
+                <option value="total">Ödenen toplam (kargo dahil)</option>
+                <option value="products">Yalnızca ürün tutarı (indirim düşülmüş, kargo hariç)</option>
+              </select>
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-neutral-500 mb-2">Havale Siparişlerinde Satın Alma Zamanı</label>
+              <select
+                value={settings.meta_purchase_timing_bank}
+                onChange={(e) => setSettings(s => ({ ...s, meta_purchase_timing_bank: e.target.value }))}
+                className="w-full px-4 py-3 bg-neutral-50 border border-neutral-200 rounded-lg text-neutral-900"
+                data-testid="select-meta-bank-timing"
+              >
+                <option value="paid">Havale onaylandığında (önerilir)</option>
+                <option value="created">Sipariş oluştuğunda</option>
+              </select>
+              <p className="text-xs text-neutral-500 mt-1">Kart ve bakiye ödemelerinde olay ödeme alındığında gönderilir.</p>
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-neutral-500 mb-2">Alan Adı Doğrulama Kodu</label>
+              <input
+                type="text"
+                value={settings.meta_domain_verification}
+                onChange={(e) => setSettings(s => ({ ...s, meta_domain_verification: e.target.value.trim() }))}
+                placeholder="Örn: abc123def456..."
+                className="w-full px-4 py-3 bg-neutral-50 border border-neutral-200 rounded-lg text-neutral-900 text-sm font-mono"
+                data-testid="input-meta-domain-verification"
+              />
+              <p className="text-xs text-neutral-500 mt-1">Business Manager, Marka güvenliği, Alan adları, meta etiketi doğrulamasındaki content değeri</p>
+            </div>
+          </div>
+
+          <label className="flex items-center gap-3 cursor-pointer">
+            <input
+              type="checkbox"
+              checked={settings.meta_require_consent === 'true'}
+              onChange={(e) => setSettings(s => ({ ...s, meta_require_consent: e.target.checked ? 'true' : 'false' }))}
+              className="w-4 h-4 accent-neutral-900"
+              data-testid="checkbox-meta-require-consent"
+            />
+            <span className="text-sm text-neutral-900">Çerez bildirimi kabul edilmeden olay gönderme (tarayıcı olayları)</span>
+          </label>
+          <p className="text-xs text-neutral-500 -mt-4">Sipariş olayları (Purchase) bu ayardan bağımsız sunucudan gönderilir. Kişisel veriler Meta'ya gitmeden önce SHA-256 ile özetlenir.</p>
+
+          <div className="bg-neutral-50 border border-neutral-200 rounded-lg p-4 space-y-3">
+            <p className="text-sm font-medium text-neutral-900">Bağlantıyı sına</p>
+            <div className="flex flex-col md:flex-row gap-3">
+              <input
+                type="text"
+                value={settings.meta_test_event_code}
+                onChange={(e) => setSettings(s => ({ ...s, meta_test_event_code: e.target.value.trim() }))}
+                placeholder="Test olayı kodu (TEST12345)"
+                className="flex-1 px-4 py-3 bg-white border border-neutral-200 rounded-lg text-neutral-900 text-sm font-mono"
+                data-testid="input-meta-test-code"
+              />
+              <button
+                type="button"
+                disabled={metaTesting}
+                onClick={async () => {
+                  setMetaTesting(true);
+                  setMetaTestMsg(null);
+                  try {
+                    await handleSave();
+                    const res = await fetch('/api/admin/meta/test', {
+                      method: 'POST',
+                      headers: { 'Content-Type': 'application/json' },
+                      credentials: 'include',
+                      body: JSON.stringify({ testEventCode: settings.meta_test_event_code }),
+                    });
+                    const data = await res.json();
+                    setMetaTestMsg(data.success ? { ok: true, text: data.message } : { ok: false, text: data.error || 'Gönderilemedi' });
+                    refetchMetaLog();
+                  } catch {
+                    setMetaTestMsg({ ok: false, text: 'Test olayı gönderilemedi' });
+                  } finally {
+                    setMetaTesting(false);
+                  }
+                }}
+                className="flex items-center justify-center gap-2 px-5 py-3 bg-neutral-900 text-white rounded-lg hover:bg-neutral-800 text-sm font-medium disabled:opacity-50"
+                data-testid="button-meta-test"
+              >
+                {metaTesting ? <Loader2 className="w-4 h-4 animate-spin" /> : <Send className="w-4 h-4" />}
+                Kaydet ve Test Olayı Gönder
+              </button>
+            </div>
+            <p className="text-xs text-neutral-500">
+              Olay Yöneticisi, Test olayları sekmesindeki kodu yazın. Kod doluyken sunucudan giden tüm olaylar yalnızca test olarak görünür, bu yüzden reklam için canlıya geçerken kodu silin.
+            </p>
+            {metaTestMsg && (
+              <p className={`text-sm ${metaTestMsg.ok ? 'text-emerald-700' : 'text-red-600'}`} data-testid="text-meta-test-result">{metaTestMsg.text}</p>
+            )}
+          </div>
+
+          <div className="flex justify-end">
+            <button
+              type="button"
+              onClick={() => handleSave()}
+              disabled={isSaving}
+              className="flex items-center gap-2 px-5 py-2.5 bg-neutral-900 text-white rounded-lg hover:bg-neutral-800 transition-colors text-sm font-medium disabled:opacity-50"
+              data-testid="button-save-meta-settings"
+            >
+              {isSaving ? <Loader2 className="w-4 h-4 animate-spin" /> : <CheckCircle2 className="w-4 h-4" />}
+              Meta Ayarlarını Kaydet
+            </button>
+          </div>
+
+          <div>
+            <div className="flex items-center justify-between mb-2">
+              <p className="text-sm font-medium text-neutral-900">Son sunucu olayları</p>
+              <button
+                type="button"
+                onClick={() => refetchMetaLog()}
+                disabled={metaLogLoading}
+                className="px-3 py-1.5 border border-neutral-200 text-neutral-700 rounded-lg hover:bg-neutral-50 text-xs font-medium disabled:opacity-50"
+                data-testid="button-meta-log-refresh"
+              >
+                Yenile
+              </button>
+            </div>
+            <div className="border border-neutral-200 rounded-lg overflow-x-auto">
+              <table className="w-full text-xs">
+                <thead className="bg-neutral-50 text-neutral-500">
+                  <tr>
+                    <th className="text-left px-3 py-2 font-medium">Zaman</th>
+                    <th className="text-left px-3 py-2 font-medium">Olay</th>
+                    <th className="text-left px-3 py-2 font-medium">Kaynak</th>
+                    <th className="text-left px-3 py-2 font-medium">Durum</th>
+                    <th className="text-left px-3 py-2 font-medium">Ayrıntı</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {(metaLog?.entries || []).slice(0, 30).map((e, i) => (
+                    <tr key={`${e.eventId}-${i}`} className="border-t border-neutral-100">
+                      <td className="px-3 py-2 whitespace-nowrap text-neutral-600">{new Date(e.time).toLocaleString('tr-TR')}</td>
+                      <td className="px-3 py-2 font-mono">{e.event}{typeof e.value === 'number' ? ` (${e.value} TL)` : ''}</td>
+                      <td className="px-3 py-2 text-neutral-600">{e.source}</td>
+                      <td className={`px-3 py-2 font-medium ${e.status === 'ok' ? 'text-emerald-700' : 'text-red-600'}`}>{e.status === 'ok' ? 'Gönderildi' : 'Hata'}</td>
+                      <td className="px-3 py-2 text-neutral-600">{e.detail}</td>
+                    </tr>
+                  ))}
+                  {(metaLog?.entries || []).length === 0 && (
+                    <tr><td colSpan={5} className="px-3 py-6 text-center text-neutral-500">Henüz sunucu olayı yok. Günlük sunucu yeniden başlayınca sıfırlanır.</td></tr>
+                  )}
+                </tbody>
+              </table>
+            </div>
           </div>
         </div>
       </div>

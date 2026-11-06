@@ -1,3 +1,4 @@
+import { trackMeta } from '@/lib/metaPixel';
 import { useState, useEffect, useRef, useMemo } from 'react';
 import { pickThumbUrl, isVideoUrl } from '@/lib/mediaUtils';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -161,6 +162,7 @@ export function SearchOverlay({ isOpen, onClose }: SearchOverlayProps) {
   const submitSearch = () => {
     const q = query.trim();
     if (!q) return;
+    void trackMeta('Search', { searchString: q });
     navigate(`/magaza?search=${encodeURIComponent(q)}`);
     onClose();
   };

@@ -377,6 +377,8 @@ export type CartItem = typeof cartItems.$inferSelect;
 export const orders = pgTable("orders", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
   orderNumber: text("order_number").notNull().unique(),
+  // Meta CAPI Purchase olayı için sipariş anındaki tarayıcı bağlamı (JSON)
+  trackingContext: text("tracking_context"),
   customerName: text("customer_name").notNull(),
   customerEmail: text("customer_email").notNull(),
   customerPhone: text("customer_phone").notNull(),
@@ -904,6 +906,8 @@ export const pendingPayments = pgTable("pending_payments", {
   accountPasswordHash: text("account_password_hash"),
   clientIp: text("client_ip"),
   clientUserAgent: text("client_user_agent"),
+  // Meta CAPI için tarayıcı bağlamı (fbp, fbc, IP, user agent, sayfa adresi) JSON olarak
+  trackingContext: text("tracking_context"),
   createdAt: timestamp("created_at").defaultNow().notNull(),
   expiresAt: timestamp("expires_at").notNull(),
 });

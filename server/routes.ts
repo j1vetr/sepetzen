@@ -56,6 +56,11 @@ import {
   sendReviewPendingToAdmin,
 } from "./whatsappService";
 import { getBankTransferConfig } from "./bankTransfer";
+import {
+  getMetaConfig, getPublicMetaConfig, invalidateMetaConfigCache, relayBrowserEvent, allowTrackRequest,
+  contextFromRequest, serializeContext, sendMetaPurchase, shouldSendPurchaseNow, buildPurchasePayload,
+  purchaseEventId, getMetaLog, sendCapiEvent, META_EVENTS, META_EVENT_LABELS,
+} from "./metaTracking";
 import * as wallet from "./wallet";
 import * as batchInvoice from "./batchInvoice";
 import { defaultRange, getSalesOverview, overviewToCsv } from "./analytics";
@@ -4443,6 +4448,7 @@ Bu ürün için 4 bölümlü HTML açıklama üret. Teknik Özellikler bölümü
         total: serverTotal.toFixed(2),
         status: 'pending',
         paymentToken: null,
+        trackingContext: serializeContext(contextFromRequest(req)),
         iyzicoPaymentId: null,
         createAccount: createAccount || false,
         accountPasswordHash: accountPasswordHash,
@@ -4831,6 +4837,7 @@ Bu ürün için 4 bölümlü HTML açıklama üret. Teknik Özellikler bölümü
         status: 'pending',
         paymentMethod: 'bank_transfer',
         paymentStatus: 'awaiting_transfer',
+        trackingContext: serializeContext(contextFromRequest(req)),
       });
 
       // Create order items but DO NOT reduce stock yet — admin must confirm transfer first.
@@ -4885,6 +4892,7 @@ Bu ürün için 4 bölümlü HTML açıklama üret. Teknik Özellikler bölümü
       sendAdminOrderNotificationEmail(order, orderItems).catch(err => console.error('[Email] Admin notification (bank transfer) failed:', err));
       sendBankTransferPendingToCustomer(order).catch(err => console.error('[WhatsApp] Bank transfer pending (customer) failed:', err));
       sendBankTransferPendingToAdmin(order).catch(err => console.error('[WhatsApp] Bank transfer pending (admin) failed:', err));
+      shouldSendPurchaseNow(order, 'created').then(async go => { if (go) await sendMetaPurchase(order); }).catch(err => console.error('[Meta] Purchase failed:', err));
 
       res.json({
         success: true,
@@ -4942,6 +4950,7 @@ Bu ürün için 4 bölümlü HTML açıklama üret. Teknik Özellikler bölümü
       status: availabilityIssues.length > 0 ? 'pending' : 'confirmed',
       paymentMethod,
       paymentStatus: 'paid',
+      trackingContext: pendingPayment.trackingContext,
     });
 
     if (availabilityIssues.length > 0) {
@@ -5032,6 +5041,7 @@ Bu ürün için 4 bölümlü HTML açıklama üret. Teknik Özellikler bölümü
     sendAdminOrderNotificationEmail(order, orderItems).catch(err => console.error('[Email] Admin notification failed:', err));
     sendOrderReceivedToCustomer(order).catch(err => console.error('[WhatsApp] Order received (customer) failed:', err));
     sendOrderReceivedToAdmin(order).catch(err => console.error('[WhatsApp] Order received (admin) failed:', err));
+    sendMetaPurchase(order).catch(err => console.error('[Meta] Purchase failed:', err));
 
     // Create user account if requested during checkout
     if (pendingPayment.createAccount && pendingPayment.accountPasswordHash) {
@@ -6015,8 +6025,13 @@ Bu ürün için 4 bölümlü HTML açıklama üret. Teknik Özellikler bölümü
       if (pendingPayment.status === 'completed') {
         const order = await storage.getOrderByNumber(pendingPayment.merchantOid);
         const orderItems = order ? await storage.getOrderItems(order.id) : [];
+        const metaCfg = await getMetaConfig();
+        const metaPurchase = order && metaCfg.pixelEnabled && metaCfg.events.Purchase
+          ? { ...(await buildPurchasePayload(order, orderItems)), eventId: purchaseEventId(order.orderNumber) }
+          : undefined;
         return res.json({
           status: 'completed',
+          metaPurchase,
           orderNumber: order?.orderNumber,
           orderId: order?.id,
           total: order?.total,
@@ -6381,7 +6396,7 @@ Bu ürün için 4 bölümlü HTML açıklama üret. Teknik Özellikler bölümü
         total: serverTotal.toFixed(2),
       });
 
-      const order = await storage.createOrder(validated);
+      const order = await storage.createOrder({ ...validated, trackingContext: serializeContext(contextFromRequest(req)) } as typeof validated);
 
       // Record coupon redemption and update influencer commission
       if (validatedCoupon) {
@@ -6478,6 +6493,7 @@ Bu ürün için 4 bölümlü HTML açıklama üret. Teknik Özellikler bölümü
       // Send WhatsApp notifications (best-effort, never blocks order flow)
       sendOrderReceivedToCustomer(order).catch(err => console.error('[WhatsApp] Order received (customer) failed:', err));
       sendOrderReceivedToAdmin(order).catch(err => console.error('[WhatsApp] Order received (admin) failed:', err));
+      shouldSendPurchaseNow(order, 'created').then(async go => { if (go) await sendMetaPurchase(order); }).catch(err => console.error('[Meta] Purchase failed:', err));
 
       res.status(201).json(order);
     } catch (error) {
@@ -8638,6 +8654,7 @@ window.addEventListener('load', function() {
         sendOrderReceivedToCustomer(updatedOrder).catch(err =>
           console.error('[WhatsApp] Order received (bank transfer confirmed) failed:', err)
         );
+        shouldSendPurchaseNow(updatedOrder, 'paid').then(async go => { if (go) await sendMetaPurchase(updatedOrder); }).catch(err => console.error('[Meta] Purchase failed:', err));
         // e-Arşiv fatura (fire-and-forget)
         issueInvoiceForOrder(updatedOrder, orderItems, (data) =>
           storage.updateOrder(updatedOrder.id, data as any).then(() => {})
@@ -9458,6 +9475,9 @@ window.addEventListener('load', function() {
       if (settings.openwa_api_key) {
         settings.openwa_api_key = '••••••••';
       }
+      if (settings.meta_capi_token) {
+        settings.meta_capi_token = '••••••••';
+      }
       if (settings.turnstile_secret_key) {
         settings.turnstile_secret_key = '••••••••';
       }
@@ -9563,6 +9583,9 @@ window.addEventListener('load', function() {
       if (settings.openwa_api_key === '••••••••') {
         delete settings.openwa_api_key;
       }
+      if (settings.meta_capi_token === '••••••••') {
+        delete settings.meta_capi_token;
+      }
       if (settings.turnstile_secret_key === '••••••••') {
         delete settings.turnstile_secret_key;
       }
@@ -9600,6 +9623,11 @@ window.addEventListener('load', function() {
       if (Object.keys(settings).some((key) => key.startsWith("google_merchant_") || key.startsWith("pinterest_") || key === "site_url" || key === "site_name")) {
         const { invalidateGoogleMerchantFeedCache } = await import("./googleMerchant");
         invalidateGoogleMerchantFeedCache();
+      }
+      if (Object.keys(settings).some((key) => key.startsWith("meta_"))) {
+        invalidateMetaConfigCache();
+        const { invalidateHeadInjectionCache } = await import("./headInjection");
+        invalidateHeadInjectionCache();
       }
       // Google Tag veya özel CSS değiştiyse head enjeksiyon önbelleğini düşür
       if (['google_tag_code', 'custom_css', 'custom_head_code', 'custom_body_html', 'custom_js'].some((k) => settings[k] !== undefined)) {
@@ -11284,13 +11312,80 @@ Sitemap: ${baseUrl}/sitemap.xml
   });
 
 
-  // Meta Pixel + CAPI tracking removed. Stub endpoints kept as no-ops so any cached/old client deploys do not get 404s.
+  // ── Meta Pixel + Conversions API ──────────────────────────────────────────
+  // Eski istemciler 404 almasın diye eski uç noktalar boş yanıt verir.
   const noopTrackHandler = (_req: Request, res: Response) => res.json({ success: true });
   app.post("/api/track/view-content", noopTrackHandler);
   app.post("/api/track/add-to-cart", noopTrackHandler);
   app.post("/api/track/initiate-checkout", noopTrackHandler);
   app.post("/api/track/purchase", noopTrackHandler);
   app.post("/api/track/add-payment-info", noopTrackHandler);
+
+  app.get("/api/meta/config", async (_req: Request, res: Response) => {
+    try {
+      res.setHeader("Cache-Control", "no-store");
+      res.json(await getPublicMetaConfig());
+    } catch {
+      res.json({ pixelEnabled: false, pixelId: "", capiEnabled: false, contentIdSource: "sku", requireConsent: false, events: {} });
+    }
+  });
+
+  app.post("/api/meta/event", async (req: Request, res: Response) => {
+    try {
+      if (!allowTrackRequest(req.ip)) return res.status(429).json({ success: false });
+      let sessionUser: { email?: string; phone?: string; firstName?: string; lastName?: string; city?: string; zip?: string; country?: string; externalId?: string } | undefined;
+      try {
+        const payload = await getAuthPayload(req, res);
+        if (payload?.type === 'user' && payload.userId) {
+          const u = await storage.getUser(payload.userId);
+          if (u) sessionUser = { email: u.email, phone: u.phone ?? undefined, firstName: u.firstName ?? undefined, lastName: u.lastName ?? undefined, city: u.city ?? undefined, zip: u.postalCode ?? undefined, country: u.country ?? undefined, externalId: u.id };
+        }
+      } catch { /* oturum yoksa misafir olarak devam */ }
+      const result = await relayBrowserEvent(req, sessionUser);
+      res.json({ success: result.ok, reason: result.reason });
+    } catch (error) {
+      console.error("[Meta] event relay failed:", error);
+      res.json({ success: false });
+    }
+  });
+
+  app.get("/api/admin/meta/log", requireAdmin, (_req: Request, res: Response) => {
+    res.json({ entries: getMetaLog() });
+  });
+
+  app.get("/api/admin/meta/status", requireAdmin, async (_req: Request, res: Response) => {
+    const cfg = await getMetaConfig();
+    res.json({
+      pixelEnabled: cfg.pixelEnabled,
+      capiEnabled: cfg.capiEnabled,
+      pixelId: cfg.pixelId,
+      testEventCode: cfg.testEventCode,
+      events: META_EVENTS.map((key) => ({ key, label: META_EVENT_LABELS[key], enabled: cfg.events[key] })),
+    });
+  });
+
+  // Meta Olay Yöneticisi, Test Olayları sekmesinde görünecek bir test olayı gönderir
+  app.post("/api/admin/meta/test", requireAdmin, async (req: Request, res: Response) => {
+    try {
+      const cfg = await getMetaConfig();
+      if (!cfg.capiEnabled) {
+        return res.status(400).json({ success: false, error: "Conversions API kapalı veya Pixel kimliği ya da erişim anahtarı eksik. Önce ayarları kaydedin." });
+      }
+      const bodyCode = typeof req.body?.testEventCode === "string" ? req.body.testEventCode.trim() : "";
+      const result = await sendCapiEvent({
+        eventName: "PageView",
+        eventId: `admin_test_${Date.now()}`,
+        sourceUrl: typeof req.headers.referer === "string" ? req.headers.referer : undefined,
+        ctx: contextFromRequest(req),
+        forceTestCode: bodyCode || cfg.testEventCode || undefined,
+      });
+      if (result.ok) res.json({ success: true, message: result.detail });
+      else res.status(400).json({ success: false, error: result.detail });
+    } catch (error: any) {
+      res.status(500).json({ success: false, error: error?.message || "Test olayı gönderilemedi" });
+    }
+  });
+
   app.get("/feeds/google-merchant.xml", async (_req: Request, res: Response) => {
     try {
       const allProducts = await storage.getAllProducts();

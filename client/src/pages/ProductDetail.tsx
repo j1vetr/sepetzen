@@ -133,6 +133,7 @@ import { isYouTubeUrl, getYouTubeThumbnail, getYouTubeEmbedUrl } from '@/lib/you
 import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/hooks/useAuth';
 import { useFavoriteIds, useToggleFavorite } from '@/hooks/useFavorites';
+import { trackMeta } from '@/lib/metaPixel';
 import {
   useProductReviews,
   useProductRating,
@@ -923,6 +924,18 @@ export default function ProductDetail() {
   const { data: favoriteIds = [] } = useFavoriteIds();
   const { toggleFavorite, isLoading: isFavoriteLoading } = useToggleFavorite();
   const isLiked = product ? favoriteIds.includes(product.id) : false;
+
+  // Meta Pixel / CAPI: ürün görüntüleme (ürün başına bir kez)
+  const viewedProductRef = useRef<string | null>(null);
+  useEffect(() => {
+    if (!product || viewedProductRef.current === product.id) return;
+    viewedProductRef.current = product.id;
+    void trackMeta('ViewContent', {
+      contents: [{ productId: product.id, sku: (product as any).sku, quantity: 1, price: parseFloat(product.basePrice || '0') || 0 }],
+      value: parseFloat(product.basePrice || '0') || 0,
+      contentName: product.name,
+    });
+  }, [product]);
 
   const [, navigate] = useLocation();
 

@@ -1,3 +1,4 @@
+import { trackMeta } from '@/lib/metaPixel';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useAuth } from '@/hooks/useAuth';
 import { type Product } from '@/hooks/useProducts';
@@ -80,6 +81,7 @@ export function useToggleFavorite() {
       await removeMutation.mutateAsync(productId);
     } else {
       await addMutation.mutateAsync(productId);
+      void trackMeta('AddToWishlist', { contents: [{ productId }] });
     }
   };
 

@@ -29,8 +29,14 @@ export async function getHeadInjection(): Promise<string> {
     storage.getSiteSetting("custom_body_html").catch(() => null),
     storage.getSiteSetting("custom_js").catch(() => null),
   ]);
+  const rawMetaVerify = await storage.getSiteSetting("meta_domain_verification").catch(() => null);
 
   let html = "";
+
+  const metaVerify = (rawMetaVerify || "").trim();
+  if (/^[A-Za-z0-9]{10,64}$/.test(metaVerify)) {
+    html += `<meta name="facebook-domain-verification" content="${metaVerify}" />\n`;
+  }
 
   const tag = rawTag?.trim();
   if (tag) {

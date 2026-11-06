@@ -25,3 +25,4 @@
 
 - [Admin white-screen debugging](admin-white-screen-debugging.md) — verify stale-prod claims by asset hash; repro admin render crashes via unauthenticated screenshot; icon props take components, not JSX.
 - [Invoice providers](invoice-providers.md) — BirFatura and Parasut both selectable via `invoice_provider` setting; creds in site_settings (masked); orders remember provider for cancel.
+- [Meta Pixel and CAPI](meta-pixel-capi.md) — Purchase is server-only with deterministic event_id; browser reuses it; content id = SKU; order stores tracking_context.

@@ -1,3 +1,4 @@
+import { trackMeta } from '@/lib/metaPixel';
 import { useState } from 'react';
 import { useLocation, Link } from 'wouter';
 import { Button } from '@/components/ui/button';
@@ -56,6 +57,7 @@ export default function Register() {
         lastName: formData.lastName || undefined,
         phone: formData.phone || undefined,
       });
+      void trackMeta('CompleteRegistration', { userData: { email: formData.email, phone: formData.phone, firstName: formData.firstName, lastName: formData.lastName } });
       toast({ title: 'Başarılı', description: 'Kayıt tamamlandı' });
       navigate('/');
     } catch (error: any) {

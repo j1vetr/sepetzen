@@ -1,3 +1,4 @@
+import { trackMeta } from '@/lib/metaPixel';
 import { useState } from 'react';
 import { LegalConsent, LegalLink } from '@/components/LegalConsent';
 import { Header } from '@/components/Header';
@@ -53,6 +54,7 @@ export default function ContactPage() {
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || 'Gönderim başarısız');
       setStatus('success');
+      void trackMeta('Lead', { userData: { email: form.email, firstName: form.name }, contentName: form.subject });
       setForm({ name: '', email: '', subject: SUBJECTS[0], message: '' });
       setAccepted(false);
     } catch (err) {

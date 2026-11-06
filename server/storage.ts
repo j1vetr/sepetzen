@@ -1068,6 +1068,7 @@ export class DbStorage implements IStorage {
         id: products.id,
         name: products.name,
         slug: products.slug,
+        sku: products.sku,
         basePrice: products.basePrice,
         images: products.images,
         personalization: products.personalization,

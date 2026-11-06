@@ -1,5 +1,6 @@
 import { createContext, useContext } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { trackMeta } from '@/lib/metaPixel';
 
 interface CartItem {
   id: string;
@@ -14,6 +15,7 @@ interface CartItem {
     id: string;
     name: string;
     slug: string;
+    sku?: string | null;
     basePrice: string;
     images: string[];
     personalization?: {
@@ -152,6 +154,14 @@ export function useCartProvider() {
     addToCart: async (productId: string, variantId?: string, quantity = 1, personalizationText?: string) => {
       await addMutation.mutateAsync({ productId, variantId, quantity, personalizationText });
       await queryClient.refetchQueries({ queryKey: ['cart'] });
+      const cart = queryClient.getQueryData<CartItem[]>(['cart']) || [];
+      const added = cart.find(i => i.productId === productId && (i.variantId || undefined) === (variantId || undefined));
+      const unit = parseFloat(added?.variant?.price || added?.product?.basePrice || '0') || 0;
+      void trackMeta('AddToCart', {
+        contents: [{ productId, sku: added?.product?.sku, quantity, price: unit }],
+        value: unit * quantity,
+        contentName: added?.product?.name,
+      });
     },
     updateQuantity: async (itemId: string, quantity: number) => {
       await updateMutation.mutateAsync({ itemId, quantity });

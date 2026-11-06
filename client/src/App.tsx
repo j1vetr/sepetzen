@@ -14,6 +14,7 @@ import { BackToTop } from "@/components/BackToTop";
 import { MobileBottomNav } from "@/components/MobileBottomNav";
 import { GoogleAuthNotice } from "@/components/GoogleAuthNotice";
 import { CookieConsent } from "@/components/CookieConsent";
+import { MetaPixelTracker } from "@/components/MetaPixelTracker";
 import { PopupBanner } from "@/components/PopupBanner";
 import { Snowfall } from "@/components/Snowfall";
 
@@ -129,6 +130,7 @@ function AppShell() {
       <Toaster />
       <Router />
       <CookieConsent />
+      <MetaPixelTracker />
       <MobileBottomNav />
       {!isAdmin && <PopupBanner />}
       {!isAdmin && <Snowfall />}
