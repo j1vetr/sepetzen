@@ -1,6 +1,7 @@
 import { useMemo, useState } from 'react';
 import { Loader2, AlertTriangle } from 'lucide-react';
 import type { Product, Category, BulkPriceAction } from '../_shared/types';
+import BulkHistoryPanel from './BulkHistoryPanel';
 import AdminModal from '../_ui/AdminModal';
 import {
   PrimaryButton,
@@ -578,6 +579,8 @@ export default function BulkPriceModal({
         {result && (
           <InlineAlert tone={result.success ? 'success' : 'error'}>{result.message}</InlineAlert>
         )}
+
+        <BulkHistoryPanel onUndone={onSuccess} />
       </div>
     </AdminModal>
   );

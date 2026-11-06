@@ -1,6 +1,7 @@
 import { useMemo, useState } from 'react';
 import { Tag, Loader2 } from 'lucide-react';
 import type { Category, Product } from '../_shared/types';
+import BulkHistoryPanel from './BulkHistoryPanel';
 import AdminModal from '../_ui/AdminModal';
 import {
   PrimaryButton,
@@ -294,6 +295,8 @@ export default function BulkBadgeModal({
             {result.message}
           </InlineAlert>
         )}
+
+        <BulkHistoryPanel onUndone={onSuccess} />
       </div>
     </AdminModal>
   );

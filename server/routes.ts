@@ -1,6 +1,7 @@
 import type { Express, Request, Response, NextFunction } from "express";
 import { createServer, type Server } from "http";
 import { storage, db, getNextAutoProductSku } from "./storage";
+import { captureSnapshot, saveSnapshot, listHistory, undoHistory } from "./bulkEditHistory";
 import { registerVariantOptionRoutes } from "./variantOptions";
 import { mergedProductRedirect, registerColorMergeRoutes, findMergeRedirect } from "./colorMerge";
 import { sanitizeStoredHtml } from "./htmlSanitize";
@@ -3378,18 +3379,16 @@ KURALLAR:
         return res.status(400).json({ error: "Geçersiz değer" });
       }
 
-      const allProducts = await storage.getProducts();
+      // Pasif ürünler de dahil tüm ürünler (admin listesiyle aynı kapsam)
+      const allProducts = await storage.getAllProducts();
 
       let targetProducts;
       if (productIds && Array.isArray(productIds) && productIds.length > 0) {
-        // Specific product IDs selected
         const idSet = new Set(productIds);
         targetProducts = allProducts.filter(p => idSet.has(p.id));
       } else if (categoryId) {
-        // Category filter
         targetProducts = allProducts.filter(p => p.categoryId === categoryId);
       } else {
-        // All products
         targetProducts = allProducts;
       }
 
@@ -3397,52 +3396,82 @@ KURALLAR:
         return res.status(400).json({ error: "Ürün bulunamadı" });
       }
 
+      const applyAction = (current: number): number | null => {
+        let n: number;
+        switch (action) {
+          case 'set': n = numericValue; break;
+          case 'increase': n = current + numericValue; break;
+          case 'decrease': n = Math.max(0, current - numericValue); break;
+          case 'percent_increase': n = current * (1 + numericValue / 100); break;
+          case 'percent_decrease': n = current * (1 - numericValue / 100); break;
+          default: return null;
+        }
+        return Math.round(n * 100) / 100;
+      };
+      if (!['set', 'increase', 'decrease', 'percent_increase', 'percent_decrease'].includes(action)) {
+        return res.status(400).json({ error: "Geçersiz işlem" });
+      }
+
+      // İşlemden önce eski değerleri kaydet, böylece geri alınabilir
+      const snapshot = await captureSnapshot(targetProducts.map(p => p.id));
+      const snapByProduct = new Map(snapshot.map(sn => [sn.id, sn]));
+      const actionLabels: Record<string, string> = {
+        set: 'Sabit fiyat', increase: 'TL artış', decrease: 'TL indirim',
+        percent_increase: 'Yüzde zam', percent_decrease: 'Yüzde indirim',
+      };
+      const historyId = await saveSnapshot('price', `${actionLabels[action]}: ${numericValue}${action.startsWith('percent') ? '%' : ' TL'}`, snapshot);
+
       let updated = 0;
 
       for (const product of targetProducts) {
         const currentPrice = parseFloat(product.basePrice);
         if (isNaN(currentPrice)) continue;
-
-        let newPrice: number;
-
-        switch (action) {
-          case 'set':
-            newPrice = numericValue;
-            break;
-          case 'increase':
-            newPrice = currentPrice + numericValue;
-            break;
-          case 'decrease':
-            newPrice = Math.max(0, currentPrice - numericValue);
-            break;
-          case 'percent_increase':
-            newPrice = currentPrice * (1 + numericValue / 100);
-            break;
-          case 'percent_decrease':
-            newPrice = currentPrice * (1 - numericValue / 100);
-            break;
-          default:
-            continue;
-        }
-
-        // Round to 2 decimal places
-        newPrice = Math.round(newPrice * 100) / 100;
+        const newPrice = applyAction(currentPrice);
+        if (newPrice === null) continue;
 
         const updateData: any = { basePrice: String(newPrice) };
         if (autoBadge && badgeText) {
           updateData.discountBadge = badgeText;
         }
         await storage.updateProduct(product.id, updateData);
-        // Varyant fiyatlarını da güncelle; aksi hâlde ürün detay sayfası
-        // eski variant.price'ı, kart ise yeni basePrice'ı gösterir.
-        await storage.syncVariantPricesToBase(product.id, String(newPrice));
+        // Her varyanta aynı işlem kendi fiyatı üzerinden uygulanır, böylece
+        // varyantlar arasındaki fiyat farkları korunur.
+        for (const v of snapByProduct.get(product.id)?.variants ?? []) {
+          const vCurrent = parseFloat(v.price);
+          if (isNaN(vCurrent)) continue;
+          const vNew = applyAction(vCurrent);
+          if (vNew === null) continue;
+          await storage.updateProductVariant(v.id, { price: String(vNew) });
+        }
         updated++;
       }
 
-      res.json({ success: true, updated });
+      res.json({ success: true, updated, historyId });
     } catch (error) {
       console.error('Bulk price update error:', error);
       res.status(500).json({ error: "Toplu fiyat güncellemesi başarısız" });
+    }
+  });
+
+  app.get("/api/admin/products/bulk-history", requireAdmin, async (_req, res) => {
+    try {
+      res.json(await listHistory());
+    } catch (error) {
+      console.error('Bulk history list error:', error);
+      res.status(500).json({ error: "Geçmiş alınamadı" });
+    }
+  });
+
+  app.post("/api/admin/products/bulk-history/:id/undo", requireAdmin, async (req, res) => {
+    try {
+      const id = parseInt(req.params.id, 10);
+      if (!Number.isInteger(id)) return res.status(400).json({ error: "Geçersiz kayıt" });
+      const result = await undoHistory(id);
+      if ('error' in result) return res.status(result.status).json({ error: result.error });
+      res.json({ success: true, restored: result.restored });
+    } catch (error) {
+      console.error('Bulk undo error:', error);
+      res.status(500).json({ error: "Geri alma başarısız" });
     }
   });
 
@@ -3454,6 +3483,8 @@ KURALLAR:
         return res.status(400).json({ error: "productIds array is required" });
       }
 
+      const snapshot = await captureSnapshot(productIds);
+      await saveSnapshot('badge', badge ? `Etiket eklendi: ${badge}` : 'Etiket kaldırıldı', snapshot);
       let updated = 0;
       for (const id of productIds) {
         await storage.updateProduct(id, { discountBadge: badge || null });
